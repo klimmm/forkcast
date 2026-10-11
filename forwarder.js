@@ -7,8 +7,8 @@
 // The Forkcast server refuses a change (POST, PUT, DELETE) whose Origin is not the Host it is served under (its CSRF
 // guard). Behind this forwarder the browser's Origin is this service and the Host the tunnel, so this service's own
 // Origin, and only that one, is rewritten to the tunnel's: another site's Origin passes through unchanged and is
-// refused as before. GET /__ping answers here without touching the laptop: Render's health check and the laptop's
-// keep-alive (a free service sleeps after 15 minutes without traffic).
+// refused as before. GET /__ping answers here without touching the laptop: Render's health check. Like the workspace's
+// other free services it sleeps after 15 minutes without traffic (they share 750 free instance hours a month).
 //
 // No dependencies: node forwarder.js (Node 18 or later for fetch).
 
