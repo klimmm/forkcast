@@ -1,0 +1,7 @@
+{
+  "name": "forkcast-link",
+  "private": true,
+  "description": "Forkcast's fixed address: a forwarder to the laptop's current tunnel",
+  "engines": { "node": ">=18" },
+  "scripts": { "start": "node forwarder.js" }
+}
