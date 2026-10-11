@@ -65,7 +65,9 @@ function noteError(req, to, what, retried) {
 }
 
 // A 502/504/530 or a connection error is retried once, on a fresh connection (no keep-alive socket from before the
-// tunnel reconnected) and at the address as re-read, which may have moved.
+// tunnel reconnected) and at the address as re-read, which may have moved; only while nothing has reached the
+// visitor: an error after the answer began (a reset mid-body) retried it and wrote the headers twice, which threw
+// ERR_HTTP_HEADERS_SENT and took the forwarder down (2026-10-11 15:30:07 UTC, Render's server_failed).
 function forward(req, res, body, to, retried) {
   const headers = {};
   for (const [k, v] of Object.entries(req.headers)) if (!HOP.has(k)) headers[k] = v;
@@ -89,8 +91,9 @@ function forward(req, res, body, to, retried) {
   });
   up.on('error', async (e) => {
     noteError(req, to, e.code || e.message, retried);
+    if (res.headersSent) return res.destroy();  // the answer had begun: cut it, the browser sees a broken response
     if (!retried) return forward(req, res, body, (await readTarget(true)) || to, true);
-    if (!res.headersSent) res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' });
+    res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' });
     res.end(`Forkcast is not reachable right now (${e.code || e.message}). Try again in a minute.`);
   });
   up.end(body);
