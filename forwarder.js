@@ -1,8 +1,10 @@
 // Forkcast's fixed public address: a forwarder on Render (free web service) in front of the Forkcast server, which
 // runs on a laptop behind a Cloudflare quick tunnel whose name changes after a reboot or a long network drop. Every
 // request is passed to the tunnel's current address and the answer streamed back, so the address bar keeps this
-// service's own name. The current address is target.txt in this repo (written by the laptop's
-// forkcast/ui/tools/publish_link.sh), re-read every TARGET_TTL_MS and at once when the tunnel stops answering.
+// service's own name. The current address is the service's TARGET_URL environment variable, which the laptop's
+// forkcast/ui/tools/publish_link.sh sets and redeploys with on every new tunnel; without it, target.txt in this
+// repo, re-read every TARGET_TTL_MS and at once when the tunnel stops answering (raw.githubusercontent.com serves
+// it up to 5 minutes stale, whatever the query string, which is why the variable comes first).
 //
 // The Forkcast server refuses a change (POST, PUT, DELETE) whose Origin is not the Host it is served under (its CSRF
 // guard). Behind this forwarder the browser's Origin is this service and the Host the tunnel, so this service's own
@@ -22,11 +24,14 @@ const RETRY_GAP_MS = 5_000;  // the least time between two forced re-reads after
 // hop-by-hop headers (RFC 9110 7.6.1) are this connection's, never forwarded
 const HOP = new Set(['connection', 'keep-alive', 'proxy-connection', 'transfer-encoding', 'te', 'trailer', 'upgrade']);
 
-let target = null;  // URL of the tunnel's origin
+// TARGET_URL fixes the address for this deploy's lifetime; target.txt is only the fallback without it
+const PINNED = process.env.TARGET_URL ? new URL(process.env.TARGET_URL) : null;
+let target = PINNED;  // URL of the tunnel's origin
 let readAt = 0;
 let forcedAt = 0;
 
 async function readTarget(force = false) {
+  if (PINNED) return PINNED;
   const now = Date.now();
   if (!force && target && now - readAt < TARGET_TTL_MS) return target;
   if (force && now - forcedAt < RETRY_GAP_MS) return target;
@@ -97,6 +102,6 @@ http.createServer((req, res) => {
     forward(req, res, Buffer.concat(chunks), to, false);
   });
 }).listen(PORT, () => {
-  console.log(`forwarder on :${PORT}, target from ${TARGET_SOURCE}`);
+  console.log(`forwarder on :${PORT}, target ${PINNED ? PINNED.origin + ' (TARGET_URL)' : 'from ' + TARGET_SOURCE}`);
   readTarget(true);
 });
