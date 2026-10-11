@@ -56,6 +56,16 @@ async function readTarget(force = false) {
   return target;
 }
 
+// the last upstream failures, at GET /__errors: whether a retry on a fresh connection answered (2026-10-11 18:01: 502s
+// for a minute after the tunnel reconnected under the same name, with the server up, cause unseen)
+const ERRORS = [];
+function noteError(req, to, what, retried) {
+  ERRORS.push(`${new Date().toISOString()} ${req.method} ${req.url} -> ${to.host}: ${what}${retried ? ' (retry, fresh connection)' : ''}`);
+  if (ERRORS.length > 50) ERRORS.shift();
+}
+
+// A 502/504/530 or a connection error is retried once, on a fresh connection (no keep-alive socket from before the
+// tunnel reconnected) and at the address as re-read, which may have moved.
 function forward(req, res, body, to, retried) {
   const headers = {};
   for (const [k, v] of Object.entries(req.headers)) if (!HOP.has(k)) headers[k] = v;
@@ -64,19 +74,22 @@ function forward(req, res, body, to, retried) {
   if (req.headers.origin && req.headers.origin.toLowerCase() === own.toLowerCase()) headers.origin = to.origin;
   headers['x-forwarded-host'] = req.headers.host;
   headers['x-forwarded-proto'] = 'https';
-  const up = https.request({ host: to.hostname, port: 443, method: req.method, path: req.url, headers, servername: to.hostname }, (r) => {
-    // Cloudflare's 530 (error 1033, the tunnel is gone) and 502/504: the address may have moved
-    if ([502, 504, 530].includes(r.statusCode) && !retried) {
-      r.resume();
-      return readTarget(true).then((t) => (t && t.host !== to.host ? forward(req, res, body, t, true) : relay(r, res, own, to)));
+  const opts = { host: to.hostname, port: 443, method: req.method, path: req.url, headers, servername: to.hostname };
+  if (retried) opts.agent = false;
+  const up = https.request(opts, (r) => {
+    // Cloudflare's 530 (error 1033, the tunnel is gone), 502/504 (localhost.run's "no tunnel"): retried once
+    if ([502, 504, 530].includes(r.statusCode)) {
+      noteError(req, to, `HTTP ${r.statusCode}`, retried);
+      if (!retried) {
+        r.resume();
+        return readTarget(true).then((t) => forward(req, res, body, t || to, true));
+      }
     }
     relay(r, res, own, to);
   });
   up.on('error', async (e) => {
-    if (!retried) {
-      const t = await readTarget(true);
-      if (t && t.host !== to.host) return forward(req, res, body, t, true);
-    }
+    noteError(req, to, e.code || e.message, retried);
+    if (!retried) return forward(req, res, body, (await readTarget(true)) || to, true);
     if (!res.headersSent) res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' });
     res.end(`Forkcast is not reachable right now (${e.code || e.message}). Try again in a minute.`);
   });
@@ -112,6 +125,10 @@ function pushTarget(req, res, body) {
 }
 
 http.createServer((req, res) => {
+  if (req.url === '/__errors') {
+    res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
+    return res.end(ERRORS.join('\n') + '\n');
+  }
   if (req.url === '/__ping') {
     res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
     return res.end(target ? `ok ${target.host}` : 'ok');
