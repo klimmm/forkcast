@@ -907,9 +907,18 @@ export function holdOf(list = [], { A, end, owned = [] } = {}) {
   return { pin, squads, determined };
 }
 
+/** GW g's lineup as a solve has it for squad `sq` under `chip`: the first bundle road (bundleRoads) whose week g holds the
+ *  same 15 and the same chip → {xi, bench, captain, vice} | null (no solve has that squad there). */
+function solvedLineup(roads, g, sq, chip) {
+  const k = idsKey(sq);
+  const w = bundleRoads(roads).map((r) => weekAt(r, g)).find((x) => x && squadKey(x) === k && (x.chip ?? null) === chip);
+  return w ? { xi: ids(w.xi), bench: ids(w.bench), captain: num(w.captain), vice: num(w.vice) } : null;
+}
+
 /**
  * The plan your pins make when the hold determines it (holdOf: every GW rolled or held, no squad chip): the engine's
- * evaluation (engine.evaluate: each GW's best XI and armband, the bank and free transfers FPL counts) of the moves
+ * evaluation (engine.evaluate: the bank and free transfers FPL counts; each GW's XI, bench and armband the solve's where
+ * a bundle road holds that GW's squad, solvedLineup, else the best XI by xP) of the moves
  * between the held squads (paired by position), with your Bench Boost or Triple Captain, as a Road whose values are
  * the ones a solve of `list` sends (planValues), so it fits your pins as a bundle road would (roadFits) and needs no
  * solve. cctx: planInputs (its base from the bank your pins start from). → Road | null (not determined).
@@ -929,6 +938,10 @@ export function holdRoad(cctx, list) {
     const outs = prev.filter((x) => !cur.includes(x)), ins = cur.filter((x) => !prev.includes(x));
     for (const m of E.pairMoves(outs, ins, cctx.players)) if (m.out != null && m.in != null) draft = E.applyMove(draft, g, m.out, m.in);
     if (c.chips[g] === 'bb' || c.chips[g] === 'tc') draft = E.setChip(draft, g, c.chips[g]);
+    // the solve's lineup, not the xP order's: a doubtful starter the solver starts for the autosub behind him (2026 GW8
+    // Calvert-Lewin d50 started, Vuskovic first sub; the xP pick benched him) - the user, 2026-10-23
+    const lu = solvedLineup(cctx.roads, g, cur, c.chips[g] ?? null);
+    if (lu) draft = E.setLineup(draft, g, lu);
     prev = cur;
   }
   const ev = E.evaluate({ base: cctx.base, players: cctx.players, draft, horizon: gws });

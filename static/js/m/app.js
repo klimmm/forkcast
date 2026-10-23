@@ -1364,6 +1364,11 @@ async function boot() {
   // iOS Safari shows :active only under a touchstart listener: the toasts hang off <body>, outside the screen's own
   document.addEventListener('touchstart', () => {}, { passive: true });
   renderBanner();
+  // a history load (Back/Forward past the bfcache) takes the page and its scripts from the browser's cache without
+  // asking, so this code may be an older release than the one served, and reloadIfReleased would keep the served one as
+  // its own: a reload asks for each again by its ETag (304s where nothing changed; the review, 2026-10-23, of no-cache
+  // replacing no-store). Never twice: after it the navigation is a reload
+  if (globalThis.performance?.getEntriesByType?.('navigation')[0]?.type === 'back_forward') { location.reload(); return; }
   reloadIfReleased();  // the release this page runs, kept to compare when it is shown again
   if (signOutIfAway()) return;  // back after FORGET_MS away: Connect, the team's choices gone
   const entry = store.get('entry');
