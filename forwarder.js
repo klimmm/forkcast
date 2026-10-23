@@ -18,8 +18,11 @@
 // No dependencies: node forwarder.js (Node 18 or later for fetch).
 
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 const http = require('node:http');
 const https = require('node:https');
+const path = require('node:path');
+const zlib = require('node:zlib');
 
 const PORT = Number(process.env.PORT || 10000);
 const TARGET_SOURCE = process.env.TARGET_SOURCE || 'https://raw.githubusercontent.com/klimmm/forkcast/main/target.txt';
@@ -72,10 +75,110 @@ function noteError(req, to, what, retried) {
 // reaches the visitor, so a stalled one is asked again on a fresh connection, up to TRIES times in all; any other is
 // streamed as before and cut where it stalls (the visitor sees a broken response, which a reload retries). A change
 // (POST, PUT, DELETE) is asked again once at most, and never after a timeout: it may have reached the server.
-const STALL_MS = Number(process.env.STALL_MS || 20_000);
+const STALL_MS = Number(process.env.STALL_MS || 10_000);
 const HEAD_MS = Number(process.env.HEAD_MS || 90_000);
 const BUFFER_MAX = 8 * 1024 * 1024;
 const TRIES = 3;
+
+// The laptop's front end served from here (2026-10-23: through the tunnel's ~50 KB/s a first load took a minute, the
+// page blank until its ~800 KB of scripts had crawled through): static/ is a copy of the release the laptop serves
+// (forkcast/ui/tools/publish_static.sh, run at public.sh's start), its name in static/RELEASE. A file is served from it
+// only while the laptop says it serves that same release (`laptop`: the X-Forkcast-Release of every answer passed
+// through, and of its /api/meta every META_MS), so a page never mixes two releases' files with an API; every other
+// request, and every request while they differ or are not known, goes to the laptop as before. Only the app's own
+// paths (the laptop's access.APP_STATIC, its test files refused), GET only (a HEAD, the app's release and module checks,
+// still asks the laptop), with the headers the laptop sends: no-cache with an ETag, gzip where it would.
+const STATIC_DIR = path.join(__dirname, 'static');
+const APP_STATIC = /^\/(?:m\/.*|js\/m\/.+|js\/plan\/.+|js\/ui\.js|js\/api\.js|js\/vendor\/qr\.js|css\/app\.css|css\/m\.css|css\/m-[a-z0-9-]+\.css|css\/views\/plan-pitch\.css)$/i;
+const TYPES = {
+  '.js': 'application/javascript; charset=utf-8', '.mjs': 'application/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.html': 'text/html; charset=utf-8', '.json': 'application/json; charset=utf-8', '.webmanifest': 'application/manifest+json; charset=utf-8',
+  '.svg': 'image/svg+xml', '.png': 'image/png',
+};
+const GZIP_TYPES = /^(?:text\/|application\/json|application\/javascript|image\/svg\+xml)/;  // the laptop's server.GZIP_TYPES
+const META_MS = 15_000;
+let laptop = null;
+
+// static/ read once at start: url path -> {body, gz, type, etag}; a directory's index.html also under its own path
+function loadStatic() {
+  const files = new Map();
+  let release = null;
+  try {
+    release = fs.readFileSync(path.join(STATIC_DIR, 'RELEASE'), 'utf8').trim() || null;
+  } catch {
+    return { release: null, files };
+  }
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) { walk(p); continue; }
+      const url = '/' + path.relative(STATIC_DIR, p).split(path.sep).join('/');
+      const type = TYPES[path.extname(p).toLowerCase()];
+      if (!type || !APP_STATIC.test(url) || /\.test\.mjs$/i.test(url)) continue;
+      const body = fs.readFileSync(p);
+      const f = {
+        body, type,
+        gz: GZIP_TYPES.test(type) && body.length >= 1024 ? zlib.gzipSync(body, { level: 6 }) : null,
+        etag: `W/"${crypto.createHash('sha1').update(body).digest('hex').slice(0, 16)}"`,
+      };
+      files.set(url, f);
+      if (url.endsWith('/index.html')) files.set(url.slice(0, -'index.html'.length), f);
+    }
+  };
+  walk(STATIC_DIR);
+  return { release, files };
+}
+const STATIC = loadStatic();
+
+// gzip accepted unless its q is 0 (the laptop's server.gzipped)
+const gzipOk = (accept) => (accept || '').split(',').some((e) => e.split(';')[0].trim().toLowerCase() === 'gzip' && !/;\s*q=0(\.0*)?\s*$/.test(e.trim()));
+
+// req answered from static/ (true), or left to the laptop (false)
+function local(req, res) {
+  if (req.method !== 'GET' || !STATIC.release || laptop !== STATIC.release) return false;
+  const f = STATIC.files.get(new URL(req.url, 'http://x').pathname);
+  if (!f) return false;
+  const headers = {
+    'cache-control': 'no-cache', etag: f.etag, 'x-forkcast-release': STATIC.release,
+    'x-frame-options': 'SAMEORIGIN', 'content-security-policy': "frame-ancestors 'self'",
+  };
+  if ((req.headers['if-none-match'] || '').split(',').some((t) => t.trim() === f.etag)) {
+    res.writeHead(304, headers);
+    res.end();
+    return true;
+  }
+  const gz = f.gz && gzipOk(req.headers['accept-encoding']);
+  const body = gz ? f.gz : f.body;
+  if (gz) Object.assign(headers, { 'content-encoding': 'gzip', vary: 'Accept-Encoding' });
+  res.writeHead(200, { ...headers, 'content-type': f.type, 'content-length': body.length });
+  res.end(body);
+  return true;
+}
+
+// the laptop's release, from an answer it gave
+function noteRelease(r) {
+  const v = r.headers['x-forkcast-release'];
+  if (v) laptop = String(v);
+}
+
+// its /api/meta every META_MS while static/ holds a release: a release change on the laptop is seen within META_MS
+function watchLaptop() {
+  if (!STATIC.release) return;
+  const tick = async () => {
+    const to = await readTarget();
+    if (to) {
+      const q = https.request({ host: to.hostname, port: Number(to.port) || 443, path: '/api/meta', method: 'GET', servername: to.hostname, headers: { host: to.host } }, (r) => {
+        noteRelease(r);
+        r.resume();
+      });
+      q.setTimeout(10_000, () => q.destroy());
+      q.on('error', () => {});
+      q.end();
+    }
+    setTimeout(tick, META_MS);
+  };
+  tick();
+}
 
 // A 502/504/530, a connection error or a stall is retried on a fresh connection (no keep-alive socket from before the
 // tunnel reconnected) and at the address as re-read, which may have moved; only while nothing has reached the
@@ -157,6 +260,7 @@ function whole(r, len, fail, done) {
 
 // The answer to the visitor: `buf` its body read whole, else `r` streamed, cut where it stalls for STALL_MS.
 function relay(r, res, own, to, buf = null) {
+  noteRelease(r);
   const headers = {};
   for (const [k, v] of Object.entries(r.headers)) if (!HOP.has(k)) headers[k] = v;
   // a redirect to the tunnel's own name comes back under this service's
@@ -197,7 +301,7 @@ http.createServer((req, res) => {
   // which forwarder runs (a deploy checked from outside, no laptop involved)
   if (req.url === '/__version') {
     res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
-    return res.end('stall-retry 2026-10-23\n');
+    return res.end(`stall-retry 2026-10-23; static ${STATIC.release || '-'} (${STATIC.files.size} files); laptop ${laptop || '-'}\n`);
   }
   if (req.url === '/__ping') {
     res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
@@ -207,6 +311,7 @@ http.createServer((req, res) => {
   req.on('data', (c) => chunks.push(c));
   req.on('end', async () => {
     if (req.url === '/__target' && req.method === 'POST') return pushTarget(req, res, Buffer.concat(chunks));
+    if (local(req, res)) return;
     const to = await readTarget();
     if (!to) {
       res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
@@ -215,6 +320,7 @@ http.createServer((req, res) => {
     forward(req, res, Buffer.concat(chunks), to, false);
   });
 }).listen(PORT, () => {
-  console.log(`forwarder on :${PORT}, target ${PINNED ? target.origin + ' (TARGET_URL)' : 'from ' + TARGET_SOURCE}`);
+  console.log(`forwarder on :${PORT}, target ${PINNED ? target.origin + ' (TARGET_URL)' : 'from ' + TARGET_SOURCE}, static ${STATIC.release || 'none'} (${STATIC.files.size} files)`);
   readTarget(true);
+  watchLaptop();
 });
