@@ -64,11 +64,25 @@ function noteError(req, to, what, retried) {
   if (ERRORS.length > 50) ERRORS.shift();
 }
 
-// A 502/504/530 or a connection error is retried once, on a fresh connection (no keep-alive socket from before the
+// A transfer through the tunnel that stops moving is cut, never waited on for ever (2026-10-23: localhost.run's free
+// tunnel carries ~35-60 KB/s, and with a page's ten parallel downloads one of them, ahead.js, stopped for good: the
+// page sat at "Planning … almost done", and every reload's same-address request queued behind the stuck one):
+// STALL_MS without a byte, or HEAD_MS without an answer. An answer of a known length up to BUFFER_MAX to a GET or HEAD
+// (every file and data reply the Forkcast server sends: it always sends Content-Length) is read whole before any of it
+// reaches the visitor, so a stalled one is asked again on a fresh connection, up to TRIES times in all; any other is
+// streamed as before and cut where it stalls (the visitor sees a broken response, which a reload retries). A change
+// (POST, PUT, DELETE) is asked again once at most, and never after a timeout: it may have reached the server.
+const STALL_MS = Number(process.env.STALL_MS || 20_000);
+const HEAD_MS = Number(process.env.HEAD_MS || 90_000);
+const BUFFER_MAX = 8 * 1024 * 1024;
+const TRIES = 3;
+
+// A 502/504/530, a connection error or a stall is retried on a fresh connection (no keep-alive socket from before the
 // tunnel reconnected) and at the address as re-read, which may have moved; only while nothing has reached the
 // visitor: an error after the answer began (a reset mid-body) retried it and wrote the headers twice, which threw
-// ERR_HTTP_HEADERS_SENT and took the forwarder down (2026-10-11 15:30:07 UTC, Render's server_failed).
-function forward(req, res, body, to, retried) {
+// ERR_HTTP_HEADERS_SENT and took the forwarder down (2026-10-11 15:30:07 UTC, Render's server_failed). `attempt`: the
+// tries made before this one.
+function forward(req, res, body, to, attempt = 0) {
   const headers = {};
   for (const [k, v] of Object.entries(req.headers)) if (!HOP.has(k)) headers[k] = v;
   const own = `https://${req.headers.host}`;
@@ -76,35 +90,83 @@ function forward(req, res, body, to, retried) {
   if (req.headers.origin && req.headers.origin.toLowerCase() === own.toLowerCase()) headers.origin = to.origin;
   headers['x-forwarded-host'] = req.headers.host;
   headers['x-forwarded-proto'] = 'https';
-  const opts = { host: to.hostname, port: 443, method: req.method, path: req.url, headers, servername: to.hostname };
-  if (retried) opts.agent = false;
+  const opts = { host: to.hostname, port: Number(to.port) || 443, method: req.method, path: req.url, headers, servername: to.hostname };
+  if (attempt) opts.agent = false;
+  const read = req.method === 'GET' || req.method === 'HEAD';
+  const tries = read ? TRIES : 2;
+  // this try's end, once: a later error, timeout or stall of a try already given up on changes nothing
+  let over = false;
+  const fail = async (what, up, r, again = true) => {
+    if (over) return;
+    over = true;
+    noteError(req, to, what, attempt > 0);
+    r?.destroy();
+    up.destroy();
+    if (res.headersSent) return res.destroy();  // the answer had begun: cut it, the browser sees a broken response
+    if (again && attempt + 1 < tries) return forward(req, res, body, (await readTarget(true)) || to, attempt + 1);
+    res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
+    res.end(`Forkcast is not reachable right now (${what}). Try again in a minute.`);
+  };
   const up = https.request(opts, (r) => {
-    // Cloudflare's 530 (error 1033, the tunnel is gone), 502/504 (localhost.run's "no tunnel"): retried once
-    if ([502, 504, 530].includes(r.statusCode)) {
-      noteError(req, to, `HTTP ${r.statusCode}`, retried);
-      if (!retried) {
-        r.resume();
-        return readTarget(true).then((t) => forward(req, res, body, t || to, true));
-      }
+    if (over) return r.destroy();
+    // Cloudflare's 530 (error 1033, the tunnel is gone), 502/504 (localhost.run's "no tunnel"): asked again
+    if ([502, 504, 530].includes(r.statusCode) && attempt + 1 < tries) return fail(`HTTP ${r.statusCode}`, up, r);
+    const len = Number(r.headers['content-length']);
+    if (read && Number.isInteger(len) && len <= BUFFER_MAX) {
+      return whole(r, req.method === 'HEAD' ? 0 : len, (what) => fail(what, up, r), (buf) => {
+        over = true;
+        relay(r, res, own, to, buf);
+      });
     }
+    over = true;
     relay(r, res, own, to);
   });
-  up.on('error', async (e) => {
-    noteError(req, to, e.code || e.message, retried);
-    if (res.headersSent) return res.destroy();  // the answer had begun: cut it, the browser sees a broken response
-    if (!retried) return forward(req, res, body, (await readTarget(true)) || to, true);
-    res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' });
-    res.end(`Forkcast is not reachable right now (${e.code || e.message}). Try again in a minute.`);
-  });
+  up.setTimeout(HEAD_MS, () => fail(`no answer in ${HEAD_MS / 1000} s`, up, null, read));
+  up.on('error', (e) => fail(e.code || e.message, up));
   up.end(body);
 }
 
-function relay(r, res, own, to) {
+// The answer `r` read whole (`len` bytes): done(its body), or fail(why) where it stops for STALL_MS, ends short or breaks.
+function whole(r, len, fail, done) {
+  const chunks = [];
+  let got = 0;
+  let ended = false;
+  let timer = setTimeout(() => fail(`stalled at ${got}/${len} B`), STALL_MS);
+  const moved = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fail(`stalled at ${got}/${len} B`), STALL_MS);
+  };
+  r.on('data', (c) => {
+    chunks.push(c);
+    got += c.length;
+    moved();
+  });
+  r.on('end', () => {
+    ended = true;
+    clearTimeout(timer);
+    if (got !== len) return fail(`ended at ${got}/${len} B`);
+    done(Buffer.concat(chunks));
+  });
+  r.on('error', (e) => fail(e.code || e.message));
+  // closed before its end (the tunnel cut it): never left waiting
+  r.on('close', () => {
+    clearTimeout(timer);
+    if (!ended) fail(`closed at ${got}/${len} B`);
+  });
+}
+
+// The answer to the visitor: `buf` its body read whole, else `r` streamed, cut where it stalls for STALL_MS.
+function relay(r, res, own, to, buf = null) {
   const headers = {};
   for (const [k, v] of Object.entries(r.headers)) if (!HOP.has(k)) headers[k] = v;
   // a redirect to the tunnel's own name comes back under this service's
   if (headers.location && headers.location.startsWith(to.origin)) headers.location = own + headers.location.slice(to.origin.length);
   res.writeHead(r.statusCode, headers);
+  if (buf) return res.end(buf);
+  r.setTimeout(STALL_MS, () => {
+    r.destroy();
+    res.destroy();
+  });
   r.pipe(res);
 }
 
@@ -131,6 +193,11 @@ http.createServer((req, res) => {
   if (req.url === '/__errors') {
     res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
     return res.end(ERRORS.join('\n') + '\n');
+  }
+  // which forwarder runs (a deploy checked from outside, no laptop involved)
+  if (req.url === '/__version') {
+    res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
+    return res.end('stall-retry 2026-10-23\n');
   }
   if (req.url === '/__ping') {
     res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
