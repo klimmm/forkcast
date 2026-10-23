@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>FPL Solver Studio</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1.5' y='1.5' width='29' height='29' rx='8' fill='%231b2550'/%3E%3Cpath d='M16 6v20M6 12h4v8H6M26 12h-4v8h4' stroke='%23ffffff' stroke-opacity='.4' stroke-width='1.6' fill='none'/%3E%3Cpath d='M7 23.5 13 18l5 2.5 7.5-9' stroke='%238a7aff' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <script>
+    // Apply the saved theme before first paint (app.js owns it afterwards).
+    try {
+      var t = JSON.parse(localStorage.getItem('fss:theme'));
+      if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
+  <!-- The Studio is served at /studio/ (server.py): every asset path here is absolute. -->
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/views/planner.css">
+  <link rel="stylesheet" href="/css/views/players.css">
+  <link rel="stylesheet" href="/css/views/compare.css">
+  <link rel="stylesheet" href="/css/views/dashboard.css">
+  <link rel="stylesheet" href="/css/views/fixtures.css">
+  <link rel="stylesheet" href="/css/views/runs.css">
+  <link rel="stylesheet" href="/css/views/backtests.css">
+  <link rel="stylesheet" href="/css/views/preview.css">
+  <link rel="stylesheet" href="/css/views/data.css">
+  <link rel="stylesheet" href="/css/views/docs.css">
+  <style>
+    /* Studio shell: every tool is a tab, so the strip takes the middle of the bar and scrolls when the
+       window is too narrow for it; the narrow-window tab bar scrolls the same way. */
+    .topbar-in { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .nav-tabs { justify-self: stretch; justify-content: safe center; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+    .nav-tab { padding: 0 11px; }
+    .nav-tab[aria-current="page"]::after { bottom: 0; }
+    @media (max-width: 1560px) { .nav-tab .icon { display: none; } }
+    @media (max-width: 1240px) { .brand-name { display: none; } .nav-tab { padding: 0 8px; } }
+    @media (max-width: 720px) {
+      .tabbar { grid-auto-columns: minmax(76px, 1fr); overflow-x: auto; scrollbar-width: none; }
+      .tabbar::-webkit-scrollbar { display: none; }
+    }
+
+    /* ⚙ → Open on iPhone (only with --lan / --public): a menu button styled as its links, and the dialog */
+    button.menu-item { width: 100%; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+    .share { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 20px; align-items: start; }
+    .share p { margin: 0; }
+    .share-qr { width: 200px; aspect-ratio: 1; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 0 0 1px var(--line); }
+    .share-qr svg { display: block; width: 100%; height: 100%; }
+    .share-url { word-break: break-all; }
+    @media (max-width: 600px) { .share { grid-template-columns: minmax(0, 1fr); } .share-qr { width: min(200px, 100%); } }
+  </style>
+  <script type="module" src="/js/app.js"></script>
+</head>
+<body>
+  <button class="skip" type="button" id="skip">Skip to content</button>
+  <header class="topbar">
+    <div class="topbar-in">
+      <a class="brand" href="#/lab" id="brand"><span class="brand-name">FPL Solver Studio</span></a>
+      <nav id="nav" class="nav-tabs" aria-label="Main"></nav>
+      <div class="top-tools">
+        <a id="jobs-ind" class="jobs-ind" href="#/runs" hidden></a>
+        <span id="deadline" class="deadline" hidden></span>
+        <button id="theme-btn" class="icon-btn" type="button" aria-label="Switch theme"></button>
+        <div id="settings-menu" class="menu"></div>
+      </div>
+    </div>
+  </header>
+  <div class="page">
+    <div class="page-head" id="page-head">
+      <h1 id="view-title">FPL Solver Studio</h1>
+      <span id="view-sub"></span>
+    </div>
+    <main id="view" tabindex="-1">
+      <noscript><p>FPL Solver Studio needs JavaScript (ES modules) enabled.</p></noscript>
+    </main>
+  </div>
+  <nav id="tabbar" class="tabbar" aria-label="Main"></nav>
+</body>
+</html>

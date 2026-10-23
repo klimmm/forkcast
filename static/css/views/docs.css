@@ -1,0 +1,55 @@
+/* Docs view (#/docs): contents rail, "How it works" prose, settings reference. */
+
+.doc-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; align-items: start; }
+.doc-main { min-width: 0; }
+
+.doc-toc {
+  position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow-y: auto;
+  display: flex; flex-direction: column; padding: 4px 0;
+}
+.doc-toc-label { padding: 10px 8px 4px; font-size: 12px; color: var(--muted); }
+.doc-toc-label:first-child { padding-top: 2px; }
+.doc-toc-link {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 5px 8px; border-radius: 6px; color: var(--text-2); text-decoration: none; font-size: 13px;
+}
+.doc-toc-link:hover { background: var(--surface-2); color: var(--text); }
+.doc-count { margin-left: 6px; font: 500 11.5px var(--mono); color: var(--muted); }
+
+.doc-sec, .doc-group, .doc-flag, #doc-presets, #doc-ref { scroll-margin-top: 80px; }
+.doc-sec { max-width: 78ch; }
+.doc-sec + .doc-sec { margin-top: 18px; }
+.doc-sec h3, .doc-group h3 { margin: 0 0 6px; font-size: 15px; font-weight: 650; }
+.doc-sec p { margin: 0 0 8px; line-height: 1.6; color: var(--text-2); }
+.doc-ref { text-decoration: none; }
+.doc-ref code { padding: 0 4px; border-radius: 4px; background: var(--surface-2); color: var(--accent); }
+.doc-ref:hover code { background: color-mix(in oklab, var(--accent) 14%, var(--surface-2)); }
+
+.doc-search { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 12px; }
+.doc-group { padding-top: 6px; }
+.doc-group + .doc-group { margin-top: 18px; }
+.doc-blurb { max-width: 78ch; margin: 0 0 4px; font-size: 13px; color: var(--muted); }
+
+.doc-flag { padding: 12px 8px; margin: 0 -8px; border-top: 1px solid var(--line); border-radius: 8px; outline: none; }
+.doc-flag.flash { animation: doc-flash 1.8s ease-out; }
+@keyframes doc-flash { from { background: color-mix(in oklab, var(--accent) 18%, transparent); } }
+.doc-flag-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.doc-flag-head h4 { margin: 0; font-size: 14px; font-weight: 650; }
+.doc-flag-name { font-size: 12.5px; color: var(--accent); }
+.doc-link { width: 26px; height: 26px; }
+.doc-help { max-width: 78ch; margin: 6px 0; line-height: 1.55; color: var(--text-2); }
+.doc-meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 14px; margin: 0; font-size: 12.5px; }
+.doc-meta dt { color: var(--muted); }
+.doc-meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere; color: var(--text-2); }
+
+.doc-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.doc-preset { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.doc-preset p { margin: 4px 0 8px; }
+
+@media (max-width: 900px) {
+  .doc-layout { grid-template-columns: minmax(0, 1fr); }
+  .doc-toc { position: static; max-height: none; flex-direction: row; flex-wrap: wrap; gap: 4px; padding: 0; }
+  .doc-toc-label { width: 100%; padding: 6px 2px 0; }
+  .doc-toc-link { padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+}
+@media (prefers-reduced-motion: reduce) { .doc-flag.flash { animation: none; } }

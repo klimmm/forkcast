@@ -1,0 +1,16 @@
+{
+  "name": "Forkcast",
+  "short_name": "Forkcast",
+  "description": "Plans transfers, captain and chips for your FPL team over the next four gameweeks.",
+  "id": "/m/",
+  "start_url": "/m/#/ahead",
+  "scope": "/m/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#F7F7F5",
+  "background_color": "#F7F7F5",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,32 @@
+/* Compare view (#/compare). Fixture tags come from players.css (.pv-fx). */
+
+.cv-src { margin: 10px 0 0; }
+.cv-empty-acts { justify-content: center; }
+.cv-swatch { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+
+.cv-head {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0 6px;
+  min-width: 110px; padding: 6px 4px 6px 10px; text-align: left; white-space: normal;
+}
+.cv-hname { font-weight: 650; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cv-hmeta { grid-column: 2 / 4; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.cv-x { width: 24px; height: 24px; }
+.cv-card .th-txt:has(> .cv-head) { padding: 0; }
+
+.cv-card td.cv-col { text-align: right; font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+.cv-metric { color: var(--text-2); white-space: nowrap; }
+.cv-cell { display: inline-block; padding: 1px 6px; border-radius: 6px; }
+.cv-cell.strong { font-weight: 700; }
+.tbl .cv-cell.best { color: var(--accent); font-weight: 700; background: color-mix(in oklab, var(--accent) 14%, transparent); }
+.cv-status { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font); }
+.cv-xp { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; cursor: help; }
+
+/* the player switcher can be wider than a phone: let it scroll inside the card */
+.cv-hist .card-actions { min-width: 0; max-width: 100%; }
+.cv-hist-sum { display: grid; gap: 8px 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+.cv-hs { min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--surface-2); }
+.cv-hs-name { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; font-weight: 600; }
+
+@media (max-width: 600px) {
+  .cv-head { min-width: 92px; }
+}

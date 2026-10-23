@@ -1,0 +1,51 @@
+/* Fixtures view + the ticker pieces the dashboard reuses (prefix tk-). */
+
+.tk-toolbar { gap: 10px 20px; margin-bottom: 12px; align-items: flex-end; }
+.tk-toolbar .select { min-width: 96px; }
+.tk-toolbar .icon-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* table cells */
+.tbl td.tk-gw, .tbl th.tk-gw { text-align: center; }
+.tbl th.tk-gw .th-btn { justify-content: center; }
+.tbl td.tk-gw { padding: 4px 3px; }
+.tbl.dense td.tk-gw { padding: 3px 2px; }
+.tbl td.tk-total { padding: 4px 8px; }
+.tk-team { display: flex; flex-direction: column; line-height: 1.2; white-space: nowrap; }
+.tk-team b { font: 650 13px var(--mono); }
+.tk-tname { font-size: 11.5px; color: var(--muted); }
+
+.tk-gwh { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.1; }
+.tk-mark {
+  display: inline-block; padding: 0 5px; border-radius: 4px;
+  font: 700 10px/16px var(--mono); letter-spacing: .02em; vertical-align: middle;
+}
+.tk-mark.dgw { background: color-mix(in oklab, var(--info) 20%, transparent); color: var(--info); }
+.tk-mark.bgw { background: color-mix(in oklab, var(--warn) 20%, transparent); color: var(--warn); }
+
+/* fixture chips: opponent on top, the att/def value under it */
+.heat.tk-fx { flex-direction: column; gap: 1px; width: 100%; min-width: 64px; height: auto; min-height: 28px; padding: 3px 6px; line-height: 1.1; }
+.tk-opp { font: 650 11.5px var(--mono); }
+.tk-val { font: 500 11px var(--mono); opacity: .82; }
+.heat.tk-blank { font: 600 11px var(--font); letter-spacing: .02em; color: var(--warn); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--warn) 45%, var(--line)); }
+.tk-multi { display: flex; flex-direction: column; gap: 2px; }
+.tk-multi .heat + .heat { margin-left: 0; }
+.tk-multi .heat.tk-fx { min-height: 22px; padding: 1px 6px; }
+.tbl.dense .heat.tk-fx { min-width: 58px; min-height: 24px; }
+
+/* DGW/BGW banner */
+.tk-banner { margin-bottom: 12px; }
+.tk-banner-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.tk-banner-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+
+/* legend */
+.tk-legend { display: flex; flex-direction: column; gap: 10px; }
+.tk-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.tk-key .heat + .heat { margin-left: 0; }
+.tk-notes { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 13px; max-width: 90ch; }
+.tk-notes li + li { margin-top: 4px; }
+
+@media (max-width: 600px) {
+  .tk-toolbar { gap: 10px 14px; }
+  .heat.tk-fx { min-width: 56px; padding: 3px 4px; }
+  .tk-tname { display: none; }
+}

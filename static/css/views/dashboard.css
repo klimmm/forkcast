@@ -1,0 +1,108 @@
+/* Dashboard view (prefix dash-). Ticker styles live in fixtures.css. */
+
+/* hero: the entry box */
+.dash-hero {
+  background:
+    radial-gradient(120% 160% at 100% 0%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 62%),
+    var(--surface);
+  border-color: color-mix(in oklab, var(--accent) 32%, var(--line));
+}
+.dash-hero > .card-body {
+  display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: center;
+  gap: 14px 32px; padding: 22px 24px;
+}
+.dash-hero h2 { margin: 0 0 6px; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+.dash-hero-text p { margin: 0; max-width: 60ch; color: var(--text-2); }
+.dash-hero-form { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.dash-entry-form { display: flex; gap: 8px; }
+.dash-entry { flex: 1 1 auto; height: 40px; font-family: var(--mono); font-size: 15px; }
+.dash-entry-err { margin: 0; font-size: 12.5px; color: var(--loss); }
+.dash-entry-err:empty { display: none; }
+.dash-recent { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dash-recent:empty { display: none; }
+.dash-noentry { align-self: flex-start; }
+
+/* freshness badges + season/pool controls */
+.dash-bar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; }
+.dash-bar:empty { display: none; }
+.dash-fresh { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; flex: 1 1 420px; }
+.dash-fresh-label { margin-right: 4px; font-size: 12.5px; color: var(--muted); text-decoration: none; }
+.dash-fresh-label:hover { color: var(--text); text-decoration: underline; }
+.dash-badge {
+  display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+  color: var(--text-2); font-size: 12px; text-decoration: none; white-space: nowrap;
+}
+.dash-badge:hover { border-color: var(--line-strong); color: var(--text); }
+.dash-badge.stale { border-color: color-mix(in oklab, var(--warn) 50%, var(--line)); color: var(--text); }
+.dash-badge.missing { border-color: color-mix(in oklab, var(--loss) 50%, var(--line)); color: var(--text); }
+.dash-age { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.dash-controls { gap: 10px 14px; align-items: flex-end; }
+.dash-pool { width: 240px; max-width: 100%; }
+.dash-pool-now { align-self: center; padding-top: 18px; }
+
+/* tiles */
+.dash-tiles .stat-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-tile-sub, .dash-when { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.dash-tile-sub .heat.tk-fx, .dash-fix .heat.tk-fx { width: auto; }
+.dash-tz { height: 26px; max-width: 170px; padding: 0 6px; font-size: 12px; }
+
+/* ranked player lists: one row when wide, fixture + metrics on a second row in narrow cards */
+.dash-list { list-style: none; margin: 0; padding: 0; container-type: inline-size; }
+.dash-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.dash-item:last-child { border-bottom: 0; }
+.dash-rank { flex: none; width: 16px; text-align: right; font-size: 12px; color: var(--muted); }
+.dash-who { flex: 1 1 auto; min-width: 0; }
+.dash-name { display: flex; align-items: center; gap: 6px; min-width: 0; font-weight: 620; }
+.dash-ws { height: 18px; padding: 0 6px; font-size: 10.5px; }
+.dash-meta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-note { margin-top: 1px; font-size: 12px; color: var(--text-2); overflow-wrap: anywhere; }
+.dash-more { display: flex; align-items: center; gap: 12px; flex: none; }
+.dash-fix { display: flex; flex-direction: column; gap: 2px; }
+.dash-stat { display: flex; flex-direction: column; align-items: flex-end; min-width: 48px; line-height: 1.2; }
+.dash-stat b { font-size: 13.5px; font-weight: 650; }
+.dash-stat span { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.dash-add { width: 28px; height: 28px; color: var(--muted); }
+.dash-add:hover { color: var(--accent); }
+
+/* market: four ranked columns */
+.dash-market { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 20px; }
+.dash-col { min-width: 0; }
+.dash-col-title { margin: 0 0 2px; font-size: 12.5px; font-weight: 620; color: var(--text-2); }
+.dash-next-change { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.dash-next-change .countdown { font-family: var(--mono); color: var(--text); }
+
+/* last gameweek */
+.dash-bottom { align-items: start; }
+.dash-avg { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.dash-avg b { font-size: 24px; }
+.dash-facts > li { padding: 6px 0; }
+
+@container (max-width: 430px) {
+  .withfix > .dash-item { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 4px 10px; }
+  .withfix > .dash-item > .dash-who { grid-column: 2; }
+  .withfix > .dash-item > .dash-more { grid-column: 2; grid-row: 2; justify-content: flex-start; }
+  .withfix > .dash-item > .dash-add { grid-column: 3; grid-row: 1 / span 2; }
+  .withfix .dash-stat { align-items: flex-start; }
+}
+@container (max-width: 250px) {
+  .dash-more { gap: 8px; }
+  .dash-stat { min-width: 0; }
+}
+
+@media (max-width: 1280px) {
+  .dash-market { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .dash-hero > .card-body { grid-template-columns: minmax(0, 1fr); padding: 18px; }
+}
+@media (max-width: 600px) {
+  .dash-market { grid-template-columns: minmax(0, 1fr); }
+  .dash-hero h2 { font-size: 19px; }
+  .dash-entry-form { flex-wrap: wrap; }
+  .dash-entry-form .btn { flex: 1 1 auto; }
+  .dash-badge.ok { display: none; } /* the label still counts them; stale/missing stay visible */
+  .dash-pool { width: 100%; }
+  .dash-controls { width: 100%; }
+  .dash-controls > .field { flex: 1 1 140px; }
+}

@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Planner mockup v3</title>
+<style>
+/* ---------------------------------------------------------------- tokens (DESIGN_V2.md §2) */
+:root {
+  --bg: #F7F7F5; --surface: #FFFFFF; --track: #ECECE7; --hair: #E2E2DC; --border-2: #CBCBC3;
+  --ink: #17191A; --ink-2: #44484A; --muted: #727679;
+  --acc: #0B6B3A; --acc-bg: #0B6B3A; --acc-ink: #FFFFFF;
+  --gain: #0B7A3E; --loss: #C0281E; --warn: #F2B200; --out: #D32F2F;
+  --turf-1: #02A24F; --turf-2: #009B4B; --chalk: rgb(255 255 255 / .9); --tile: rgb(0 0 0 / .26);
+  --bench-glass: rgb(255 255 255 / .38); --bench-tile: rgb(0 0 0 / .16); --bench-ink: #0E3B22;
+  --plate: #FFFFFF; --plate-ink: #17191A; --plate-2: #F2F4F3; --plate-2-ink: #2B2F2D;
+  --token: #2A2E2C; --token-ink: #FFFFFF;
+  --toast: #1F2221; --toast-ink: #FFFFFF; --scrim: rgb(0 0 0 / .32);
+  --f: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1110; --surface: #181B1A; --track: #252927; --hair: #2A2E2C; --border-2: #3B403D;
+    --ink: #ECEFED; --ink-2: #C4C9C6; --muted: #8C928F;
+    --acc: #55C68A; --acc-bg: #187A44; --acc-ink: #FFFFFF;
+    --gain: #49C07F; --loss: #FF6E61;
+    --turf-1: #0B7E41; --turf-2: #08773D; --chalk: rgb(255 255 255 / .7); --tile: rgb(0 0 0 / .3);
+    --bench-glass: rgb(255 255 255 / .08); --bench-tile: rgb(0 0 0 / .28); --bench-ink: #CDEBD9;
+    --plate: #F1F3F2; --plate-2: #D9DEDB;
+    --token: #D9DEDB; --token-ink: #111312;
+    --toast: #ECEFED; --toast-ink: #0F1110; --scrim: rgb(0 0 0 / .55);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1110; --surface: #181B1A; --track: #252927; --hair: #2A2E2C; --border-2: #3B403D;
+  --ink: #ECEFED; --ink-2: #C4C9C6; --muted: #8C928F;
+  --acc: #55C68A; --acc-bg: #187A44; --acc-ink: #FFFFFF;
+  --gain: #49C07F; --loss: #FF6E61;
+  --turf-1: #0B7E41; --turf-2: #08773D; --chalk: rgb(255 255 255 / .7); --tile: rgb(0 0 0 / .3);
+  --bench-glass: rgb(255 255 255 / .08); --bench-tile: rgb(0 0 0 / .28); --bench-ink: #CDEBD9;
+  --plate: #F1F3F2; --plate-2: #D9DEDB;
+  --token: #D9DEDB; --token-ink: #111312;
+  --toast: #ECEFED; --toast-ink: #0F1110; --scrim: rgb(0 0 0 / .55);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.35 var(--f); -webkit-text-size-adjust: 100%; }
+body { min-height: 100vh; }
+button { font: inherit; color: inherit; }
+.num { font-variant-numeric: tabular-nums; }
+.app { max-width: 430px; margin: 0 auto; min-height: 100vh; position: relative; background: var(--bg); overflow-x: clip; }
+[hidden] { display: none !important; }
+.pos { color: var(--gain); } .neg { color: var(--loss); }
+
+/* ---------------------------------------------------------------- mock controls (not part of the design) */
+.mockbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 10px; font-size: 12px; color: var(--muted);
+  border-bottom: 1px dashed var(--border-2); background: var(--track); }
+.mockbar b { color: var(--ink-2); font-weight: 600; margin-right: 2px; }
+.mockbar button { border: 1px solid var(--border-2); background: var(--surface); border-radius: 6px; padding: 2px 7px; font-size: 12px; cursor: pointer; }
+.mockbar button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.mockbar .sep { width: 1px; height: 16px; background: var(--border-2); margin: 0 2px; }
+
+/* ---------------------------------------------------------------- header: title row + GW line (FPL: ~208 pt to the pitch below the status bar) */
+.hdr { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; height: calc(44px + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 10px 0; }
+.hdr h1 { margin: 0; text-align: center; font: 700 17px/1.2 var(--f); letter-spacing: -.01em; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--track); font: 600 12px var(--f); color: var(--ink-2); justify-self: end; cursor: pointer; }
+.gwline { text-align: center; font-size: 14px; margin: 0 0 8px; padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gwline .k { color: var(--muted); }
+.gwline b { font-weight: 600; }
+.gwline .cd { color: var(--muted); }
+
+/* ---------------------------------------------------------------- chip cards: ~80 pt tall (FPL 86x70) */
+.chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 0 6px; }
+.chip { background: var(--surface); border-radius: 8px; padding: 6px 2px 6px; text-align: center; min-width: 0; cursor: pointer; border: 0; display: flex; flex-direction: column; align-items: center; }
+.tok { width: 22px; height: 18px; border-radius: 4px; background: var(--token); color: var(--token-ink); font: 800 9.5px/18px var(--f); letter-spacing: .02em; }
+.chip.used .tok { background: var(--track); color: var(--muted); }
+.chip .nm { font: 600 11px/13px var(--f); margin-top: 3px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip .gn { font: 400 11px/13px var(--f); color: var(--muted); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.chip .gn b { font-weight: 600; }
+.chip .pl { margin-top: 4px; width: 100%; max-width: 70px; height: 20px; border: 1px solid var(--ink); border-radius: 5px; background: transparent; font: 600 11.5px/18px var(--f); cursor: pointer; padding: 0; white-space: nowrap; }
+.chip .pl.on { background: var(--acc-bg); border-color: var(--acc-bg); color: var(--acc-ink); }
+.chip .pl.used { border-color: transparent; background: var(--track); color: var(--muted); font-weight: 500; cursor: default; }
+
+/* ---------------------------------------------------------------- move strip above the pitch (the GW's answer, above the fold) */
+.mstrip { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; margin: 8px 8px 8px; padding: 0 12px; height: 36px; width: calc(100% - 16px);
+  background: var(--surface); border: 0; border-radius: 8px; text-align: left; cursor: pointer; font-size: 14px; }
+.mstrip .l { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mstrip .l s { text-decoration: none; color: var(--muted); }
+.mstrip .l b { font-weight: 600; }
+.mstrip .l .g { font-weight: 600; margin-left: 6px; }
+.mstrip .r { color: var(--muted); font-size: 13px; white-space: nowrap; }
+
+/* ---------------------------------------------------------------- pitch: 390 x 446 at 390 wide; turf clipped to a perspective trapezoid on top */
+.pitch { position: relative; width: 100%; aspect-ratio: 390 / 446; --card: clamp(62px, 17.4vw, 72px); }
+.turf { position: absolute; inset: 0; clip-path: polygon(9.5% 2.7%, 90.5% 2.7%, 100% 23.5%, 100% 100%, 0 100%, 0 23.5%); }
+.turf svg, .goal { position: absolute; inset: 0; width: 100%; height: 100%; }
+.prow { position: absolute; left: 0; right: 0; display: flex; justify-content: center; gap: max(4px, calc((100% - 5 * var(--card)) / 6)); }
+.prow[data-n="5"] { justify-content: space-evenly; gap: 0; }
+.pc { position: relative; width: var(--card); display: flex; flex-direction: column; align-items: center; border: 0; padding: 0; background: none; cursor: pointer; }
+.pc .kit { position: relative; width: var(--card); height: calc(var(--card) * .92); display: grid; place-items: end center; background: var(--tile); border-radius: 2px 2px 0 0; }
+.pc .kit > svg { width: calc(var(--card) * .86); height: calc(var(--card) * .86); display: block; margin-bottom: -2px; }
+.pc .pn, .pc .pf { width: 100%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 3px; height: 15px; }
+.pc .pn { background: var(--plate); color: var(--plate-ink); font: 600 11.5px/15px var(--f); }
+.pc .pf { background: var(--plate-2); color: var(--plate-2-ink); font: 500 11px/15px var(--f); border-radius: 0 0 3px 3px; display: flex; justify-content: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.pc .pf .fx { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.pc .pf b { font-weight: 700; color: var(--plate-ink); }
+.pc .pf.sold { color: var(--plate-2-ink); font-weight: 600; }
+.pc.warn .pn { background: var(--warn); color: #1B1300; }
+.pc.out .pn { background: var(--out); color: #FFFFFF; }
+.pc.new .pn { box-shadow: inset 0 2px 0 var(--acc-bg); }
+.pc .cv { position: absolute; top: 3px; left: 3px; width: 15px; height: 15px; border-radius: 50%; background: #17191A; color: #FFF; font: 700 9px/15px var(--f); text-align: center; }
+.pc .cv.tc { font-size: 8px; letter-spacing: -.02em; }
+.pc .fl { position: absolute; top: 3px; right: 3px; width: 15px; height: 13px; }
+.pc .fl svg { display: block; width: 15px; height: 13px; }
+
+/* ---------------------------------------------------------------- bench: the turf fades into the page behind a lighter panel */
+.benchzone { background: linear-gradient(var(--turf-1) 0, var(--turf-1) 6px, var(--bg) 100%); padding-top: 2px; }
+.bench { margin: 0 8px; background: var(--bench-glass); border-radius: 16px 16px 0 0; padding: 9px 4px 14px; display: grid; grid-template-columns: repeat(4, 1fr); justify-items: center; --card: clamp(62px, 17.4vw, 72px); }
+.bench .bl { font: 700 13px/1 var(--f); color: var(--bench-ink); margin-bottom: 7px; text-align: center; }
+.bench .pc .kit { background: var(--bench-tile); }
+
+/* ---------------------------------------------------------------- full-bleed lists (FPL list screens: grey header, white rows, hairlines) */
+.sh { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 20px 16px 7px; font: 600 13px/1.2 var(--f); color: var(--ink-2); }
+.sh .lnk { border: 0; background: none; padding: 0; color: var(--acc); font: 500 14px var(--f); cursor: pointer; }
+.sh .aux { font-weight: 400; color: var(--muted); }
+.list { background: var(--surface); border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); }
+.list > * + :is(.mv, .alt, .rule, .empty, .rt) { box-shadow: inset 0 1px 0 var(--hair); }
+.segrow { padding: 10px 16px; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--track); border-radius: 8px; padding: 2px; }
+.seg button { border: 0; background: transparent; border-radius: 6px; height: 32px; padding: 0 8px; font: 500 14px var(--f); color: var(--ink-2); cursor: pointer; }
+.seg button[aria-checked="true"] { background: var(--surface); color: var(--acc); font-weight: 600; box-shadow: 0 0 0 1px var(--hair); }
+.mv { display: grid; grid-template-columns: 10px 28px 1fr auto 24px; align-items: center; gap: 10px; padding: 9px 12px 9px 12px; }
+.grip { width: 10px; height: 16px; cursor: grab; touch-action: none;
+  background: radial-gradient(circle, var(--border-2) 1.3px, transparent 1.6px) 0 0 / 5px 5.5px; }
+.mv .t { min-width: 0; }
+.mv .t .a { font: 600 15px/1.25 var(--f); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mv .t .a s { text-decoration: none; color: var(--muted); font-weight: 400; }
+.mv .t .b { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mv .g, .alt .v { text-align: right; font: 600 15px/1.2 var(--f); font-variant-numeric: tabular-nums; }
+.mv .g small, .alt .v small { display: block; font: 400 11.5px var(--f); color: var(--muted); }
+.mv .more { border: 0; background: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; height: 28px; padding: 0; }
+.empty { font-size: 14px; color: var(--ink-2); padding: 12px 16px; margin: 0; }
+.alt { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; width: 100%; padding: 10px 16px; border: 0; background: var(--surface); text-align: left; cursor: pointer; }
+.alt .l { font-size: 15px; min-width: 0; } .alt .l s { text-decoration: none; color: var(--muted); }
+.alt .l small { display: block; font-size: 12px; color: var(--muted); }
+.rule { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 10px 16px; font-size: 15px; }
+.rule small { display: block; font-size: 12px; color: var(--muted); }
+.rule button { border: 0; background: none; color: var(--loss); font: 500 14px var(--f); cursor: pointer; padding: 0; }
+.lock { padding: 12px 16px 16px; }
+.lock .ln { font-size: 13px; color: var(--ink-2); margin: 0 0 10px; }
+.primary { width: 100%; height: 46px; border: 0; border-radius: 8px; background: var(--acc-bg); color: var(--acc-ink); font: 600 16px var(--f); cursor: pointer; }
+.primary:disabled { opacity: .55; }
+.secondary { width: 100%; height: 42px; border: 1px solid var(--ink); border-radius: 8px; background: transparent; font: 600 15px var(--f); cursor: pointer; }
+.spacer { height: 84px; }
+
+/* ---------------------------------------------------------------- GW bar: docked, opaque, 52 pt + home indicator */
+.gwbar { position: sticky; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(4, 1fr) 1.1fr; background: var(--surface); border-top: 1px solid var(--hair);
+  padding: 0 4px env(safe-area-inset-bottom, 0); }
+.nodock .gwbar { position: static; }
+.nodock .spacer { height: 12px; }
+.gwbar button { position: relative; border: 0; background: none; height: 52px; padding: 4px 0 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+.gwbar .k { font: 500 11px/13px var(--f); color: var(--muted); }
+.gwbar .p { font: 600 17px/20px var(--f); font-variant-numeric: tabular-nums; }
+.gwbar .m { font: 400 10.5px/13px var(--f); color: var(--muted); white-space: nowrap; }
+.gwbar button[aria-current="true"] .k { color: var(--ink); font-weight: 700; }
+.gwbar button[aria-current="true"]::before { content: ""; position: absolute; top: -1px; left: 16%; right: 16%; height: 3px; background: var(--acc-bg); border-radius: 0 0 2px 2px; }
+.gwbar .tot { box-shadow: inset 1px 0 0 var(--hair); cursor: default; }
+.gwbar .chipmark { font-weight: 700; color: var(--ink-2); }
+
+/* ---------------------------------------------------------------- toast + sheets */
+.toast { position: fixed; left: 50%; bottom: 64px; transform: translateX(-50%); width: min(406px, calc(100% - 24px)); z-index: 60; display: flex; gap: 12px; align-items: center;
+  background: var(--toast); color: var(--toast-ink); border-radius: 8px; padding: 11px 14px; font-size: 14px; }
+.toast button { margin-left: auto; border: 0; background: none; color: inherit; font: 600 14px var(--f); text-decoration: underline; cursor: pointer; }
+.scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 70; }
+.sheet { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; z-index: 71; width: min(430px, 100%); max-height: 88vh; overflow: auto;
+  background: var(--surface); border-radius: 12px 12px 0 0; padding: 8px 16px calc(20px + env(safe-area-inset-bottom, 0px)); }
+.grab { width: 36px; height: 5px; border-radius: 3px; background: var(--border-2); margin: 0 auto 10px; }
+.sheet h2 { margin: 0 0 2px; font: 700 20px/1.2 var(--f); }
+.sheet .lead { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+.sheet h3 { margin: 14px 0 2px; font: 600 13px var(--f); color: var(--muted); }
+.ck { display: grid; grid-template-columns: 24px 1fr; gap: 10px; align-items: start; padding: 10px 0; border-top: 1px solid var(--hair); }
+.ck input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--acc-bg); }
+.ck small { display: block; color: var(--muted); font-size: 12.5px; }
+.sheet .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+.cgw { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--hair); font-size: 15px; }
+.cgw .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cgw .v small { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 6px; }
+.cgw button { height: 28px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 6px; background: transparent; font: 600 13px var(--f); cursor: pointer; }
+.cgw button.on { background: var(--acc-bg); border-color: var(--acc-bg); color: var(--acc-ink); }
+
+/* ---------------------------------------------------------------- connect */
+.connect { min-height: calc(100vh - 32px); display: flex; flex-direction: column; padding: env(safe-area-inset-top, 0px) 16px 0; }
+.connect .top { padding: 44px 0 24px; }
+.connect .name { font: 700 22px/1.15 var(--f); letter-spacing: -.01em; margin: 0 0 6px; }
+.connect .what { font-size: 15px; color: var(--ink-2); margin: 0; max-width: 330px; }
+.connect label { display: block; font: 600 13px var(--f); color: var(--ink-2); margin-bottom: 6px; }
+.connect input { width: 100%; height: 46px; border: 1px solid var(--border-2); border-radius: 8px; padding: 0 14px; font: 400 17px var(--f); background: var(--surface); color: var(--ink); outline: none; }
+.connect input:focus { border-color: var(--acc-bg); box-shadow: 0 0 0 1px var(--acc-bg); }
+.connect .go { margin-top: 10px; }
+.connect .hint { margin: 10px 0 0; }
+.connect .hint button { border: 0; background: none; padding: 0; color: var(--acc); font: 400 14px var(--f); cursor: pointer; }
+.connect .recent { margin: 28px -16px 0; }
+.connect .recent .sh { padding-top: 0; }
+.connect .rt { display: grid; grid-template-columns: 1fr auto; align-items: center; width: 100%; padding: 11px 16px; border: 0; background: var(--surface); text-align: left; cursor: pointer; font-size: 15px; }
+.connect .rt small { display: block; color: var(--muted); font-size: 12px; }
+.connect .rt .pts { font-weight: 600; font-variant-numeric: tabular-nums; }
+.connect .prog { margin-top: 24px; font-size: 14px; color: var(--ink-2); }
+.connect .bar { height: 4px; border-radius: 2px; background: var(--track); margin-top: 8px; overflow: hidden; }
+.connect .bar i { display: block; height: 100%; background: var(--acc-bg); }
+.connect .legal { margin-top: auto; padding: 24px 0 calc(16px + env(safe-area-inset-bottom, 0px)); font-size: 12px; color: var(--muted); }
+
+@media (max-width: 380px) {
+  .gwline { font-size: 13px; }
+  .chip .gn { font-size: 10.5px; letter-spacing: -.01em; }
+  .mstrip { font-size: 13.5px; }
+  .seg button { padding: 0 6px; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+const DATA = {"meta": {"season": 2026, "gw": 6, "horizon": [6, 7, 8, 9], "forecast_edge": 10, "deadline_epoch": 1791626400, "noise": 0.465951, "deadlines": {"6": 1791626400, "7": 1792231200, "8": 1792776600, "9": 1793444400}}, "entry": {"id": 383130, "team_name": "Raketa", "manager": "Klim Zhgun", "total": 326, "overall_rank": 2175978, "bank": 0.1, "ft": 1, "chips_available": ["bb", "fh", "tc"], "chips_used": [{"chip": "wc", "gw": 4}]}, "players": {"322176": {"name": "Kelleher", "club": "BRE", "pos": "GK", "price": 5.0, "xp": [3.85, 3.23, 4.2, 3.73], "status": "a", "chance": null, "news": "", "fx": [["avl"], ["LIV"], ["hul"], ["NFO"]]}, "406533": {"name": "Dovin", "club": "COV", "pos": "GK", "price": 4.0, "xp": [0.0, 0.0, 0.0, 0.0], "status": "u", "chance": 0, "news": "Has joined Leyton Orient on loan for the rest of the season", "fx": [["NEW"], ["tot"], ["FUL"], ["SUN"]]}, "334087": {"name": "Gabriel", "club": "ARS", "pos": "DEF", "price": 8.0, "xp": [4.61, 4.04, 3.95, 3.08], "status": "a", "chance": null, "news": "", "fx": [["LEE"], ["nfo"], ["EVE"], ["liv"]]}, "247815": {"name": "Ajayi", "club": "HUL", "pos": "DEF", "price": 4.2, "xp": [2.99, 2.7, 2.41, 2.95], "status": "a", "chance": 100, "news": "", "fx": [["EVE"], ["ful"], ["BRE"], ["IPS"]]}, "443784": {"name": "Thiago", "club": "BRE", "pos": "FWD", "price": 7.8, "xp": [4.79, 3.83, 4.51, 3.99], "status": "a", "chance": null, "news": "", "fx": [["avl"], ["LIV"], ["hul"], ["NFO"]]}, "131464": {"name": "Tarkowski", "club": "EVE", "pos": "DEF", "price": 6.2, "xp": [5.12, 3.31, 2.88, 3.42], "status": "a", "chance": null, "news": "", "fx": [["hul"], ["CHE"], ["ars"], ["new"]]}, "46092": {"name": "Dubravka", "club": "TOT", "pos": "GK", "price": 4.0, "xp": [0.04, 0.09, 0.12, 0.15], "status": "a", "chance": null, "news": "", "fx": [["mun"], ["COV"], ["che"], ["CRY"]]}, "92173": {"name": "Leno", "club": "FUL", "pos": "GK", "price": 4.5, "xp": [3.97, 3.81, 3.64, 3.03], "status": "a", "chance": null, "news": "", "fx": [["ips"], ["HUL"], ["cov"], ["avl"]]}, "276366": {"name": "Raya", "club": "ARS", "pos": "GK", "price": 6.1, "xp": [4.58, 4.35, 4.24, 3.58], "status": "a", "chance": null, "news": "", "fx": [["LEE"], ["nfo"], ["EVE"], ["liv"]]}, "71824": {"name": "Groß", "club": "BHA", "pos": "MID", "price": 5.9, "xp": [5.5, 4.89, 4.15, 3.81], "status": "a", "chance": null, "news": "", "fx": [["sun"], ["CRY"], ["liv"], ["mci"]]}, "533010": {"name": "Vuskovic", "club": "BHA", "pos": "DEF", "price": 5.0, "xp": [4.23, 3.64, 2.88, 2.55], "status": "a", "chance": null, "news": "", "fx": [["sun"], ["CRY"], ["liv"], ["mci"]]}, "386969": {"name": "N.Williams", "club": "NFO", "pos": "DEF", "price": 5.0, "xp": [3.11, 2.24, 3.57, 2.5], "status": "a", "chance": null, "news": "", "fx": [["cry"], ["ARS"], ["ips"], ["bre"]]}, "141469": {"name": "Calvert-Lewin", "club": "LEE", "pos": "FWD", "price": 6.0, "xp": [3.53, 3.42, 3.62, 3.22], "status": "a", "chance": null, "news": "", "fx": [["ars"], ["MUN"], ["sun"], ["bou"]]}, "426913": {"name": "Walle Egeli", "club": "IPS", "pos": "FWD", "price": 4.5, "xp": [0.23, 0.24, 0.31, 0.32], "status": "a", "chance": null, "news": "", "fx": [["FUL"], ["mci"], ["NFO"], ["hul"]]}, "406564": {"name": "Petrović", "club": "BOU", "pos": "GK", "price": 4.5, "xp": [3.54, 3.81, 3.15, 3.56], "status": "a", "chance": null, "news": "", "fx": [["che"], ["SUN"], ["mun"], ["LEE"]]}, "384430": {"name": "Evanilson", "club": "BOU", "pos": "FWD", "price": 6.0, "xp": [3.92, 3.78, 3.16, 3.3], "status": "a", "chance": null, "news": "", "fx": [["che"], ["SUN"], ["mun"], ["LEE"]]}, "396976": {"name": "Bassey", "club": "FUL", "pos": "DEF", "price": 4.5, "xp": [3.87, 3.39, 3.07, 2.35], "status": "a", "chance": null, "news": "", "fx": [["ips"], ["HUL"], ["cov"], ["avl"]]}, "89401": {"name": "Xhaka", "club": "SUN", "pos": "MID", "price": 5.5, "xp": [4.42, 4.26, 4.26, 4.49], "status": "a", "chance": null, "news": "", "fx": [["BHA"], ["bou"], ["LEE"], ["cov"]]}, "398393": {"name": "E.Le Fée", "club": "SUN", "pos": "MID", "price": 5.7, "xp": [4.64, 4.46, 4.46, 4.58], "status": "a", "chance": null, "news": "", "fx": [["BHA"], ["bou"], ["LEE"], ["cov"]]}, "298689": {"name": "Janelt", "club": "BRE", "pos": "MID", "price": 5.0, "xp": [4.5, 3.74, 4.29, 3.83], "status": "a", "chance": null, "news": "", "fx": [["avl"], ["LIV"], ["hul"], ["NFO"]]}, "332867": {"name": "Gibbs-White", "club": "NFO", "pos": "MID", "price": 8.0, "xp": [5.5, 4.47, 5.33, 4.51], "status": "a", "chance": 100, "news": "", "fx": [["cry"], ["ARS"], ["ips"], ["bre"]]}, "299077": {"name": "Mukiele", "club": "SUN", "pos": "DEF", "price": 5.4, "xp": [2.97, 2.96, 3.19, 3.64], "status": "a", "chance": 100, "news": "", "fx": [["BHA"], ["bou"], ["LEE"], ["cov"]]}, "300359": {"name": "Diop", "club": "IPS", "pos": "DEF", "price": 4.0, "xp": [2.78, 1.76, 2.3, 2.6], "status": "a", "chance": null, "news": "", "fx": [["FUL"], ["mci"], ["NFO"], ["hul"]]}, "362824": {"name": "Rogers", "club": "CHE", "pos": "MID", "price": 7.7, "xp": [5.53, 5.34, 4.99, 4.46], "status": "a", "chance": null, "news": "", "fx": [["BOU"], ["eve"], ["TOT"], ["MUN"]]}, "138695": {"name": "McBurnie", "club": "HUL", "pos": "FWD", "price": 5.5, "xp": [3.99, 3.6, 3.3, 3.58], "status": "a", "chance": null, "news": "", "fx": [["EVE"], ["ful"], ["BRE"], ["IPS"]]}, "367185": {"name": "Saka", "club": "ARS", "pos": "MID", "price": 9.5, "xp": [6.04, 5.41, 5.0, 4.53], "status": "a", "chance": null, "news": "", "fx": [["LEE"], ["nfo"], ["EVE"], ["liv"]]}, "369875": {"name": "Szoboszlai", "club": "LIV", "pos": "MID", "price": 6.9, "xp": [4.41, 4.47, 4.08, 3.66], "status": "a", "chance": null, "news": "", "fx": [["MCI"], ["bre"], ["BHA"], ["ARS"]]}, "379732": {"name": "Botman", "club": "NEW", "pos": "DEF", "price": 5.0, "xp": [4.26, 2.88, 2.81, 2.74], "status": "a", "chance": null, "news": "", "fx": [["cov"], ["AVL"], ["cry"], ["EVE"]]}, "362837": {"name": "Hill", "club": "BOU", "pos": "DEF", "price": 5.5, "xp": [3.26, 3.7, 2.85, 3.34], "status": "a", "chance": null, "news": "", "fx": [["che"], ["SUN"], ["mun"], ["LEE"]]}, "391256": {"name": "Dewsbury-Hall", "club": "EVE", "pos": "MID", "price": 6.6, "xp": [5.81, 4.39, 3.81, 4.15], "status": "a", "chance": null, "news": "", "fx": [["hul"], ["CHE"], ["ars"], ["new"]]}, "315227": {"name": "Haaland", "club": "MCI", "pos": "FWD", "price": 15.6, "xp": [6.12, 6.12, 5.62, 5.24], "status": "a", "chance": null, "news": "", "fx": [["liv"], ["IPS"], ["avl"], ["BHA"]]}, "407260": {"name": "Schade", "club": "BRE", "pos": "MID", "price": 6.2, "xp": [5.04, 4.15, 4.79, 4.27], "status": "a", "chance": null, "news": "", "fx": [["avl"], ["LIV"], ["hul"], ["NFO"]]}, "395615": {"name": "Thomas", "club": "COV", "pos": "DEF", "price": 4.0, "xp": [2.77, 2.5, 2.42, 2.33], "status": "a", "chance": null, "news": "", "fx": [["NEW"], ["tot"], ["FUL"], ["SUN"]]}, "353377": {"name": "Mbeumo", "club": "MUN", "pos": "MID", "price": 7.9, "xp": [5.38, 4.97, 4.49, 4.2], "status": "a", "chance": null, "news": "", "fx": [["TOT"], ["lee"], ["BOU"], ["che"]]}, "134373": {"name": "O'Nien", "club": "SUN", "pos": "DEF", "price": 3.9, "xp": [0.28, 0.39, 0.49, 0.64], "status": "a", "chance": null, "news": "", "fx": [["BHA"], ["bou"], ["LEE"], ["cov"]]}, "439533": {"name": "Muharemović", "club": "LEE", "pos": "DEF", "price": 5.0, "xp": [2.87, 3.1, 3.74, 3.07], "status": "a", "chance": null, "news": "", "fx": [["ars"], ["MUN"], ["sun"], ["bou"]]}, "445424": {"name": "Murillo", "club": "NFO", "pos": "DEF", "price": 5.5, "xp": [3.47, 2.54, 3.77, 2.7], "status": "a", "chance": 100, "news": "", "fx": [["cry"], ["ARS"], ["ips"], ["bre"]]}, "123761": {"name": "B.Fernandes", "club": "MUN", "pos": "MID", "price": 11.9, "xp": [6.53, 6.04, 5.53, 5.37], "status": "a", "chance": null, "news": "", "fx": [["TOT"], ["lee"], ["BOU"], ["che"]]}, "537713": {"name": "Barry", "club": "EVE", "pos": "FWD", "price": 5.7, "xp": [4.85, 3.51, 3.08, 3.3], "status": "a", "chance": null, "news": "", "fx": [["hul"], ["CHE"], ["ars"], ["new"]]}, "410998": {"name": "Scott", "club": "BOU", "pos": "MID", "price": 6.1, "xp": [4.88, 4.96, 4.27, 4.47], "status": "a", "chance": null, "news": "", "fx": [["che"], ["SUN"], ["mun"], ["LEE"]]}, "331382": {"name": "Barnes", "club": "NEW", "pos": "MID", "price": 6.1, "xp": [5.34, 4.08, 3.96, 3.7], "status": "a", "chance": null, "news": "", "fx": [["cov"], ["AVL"], ["cry"], ["EVE"]]}, "344314": {"name": "Tavernier", "club": "BOU", "pos": "MID", "price": 6.1, "xp": [4.01, 3.92, 3.31, 3.45], "status": "a", "chance": null, "news": "", "fx": [["che"], ["SUN"], ["mun"], ["LEE"]]}}, "roads": {"base": {"weeks": [{"gw": 6, "in": [398393], "out": [344314], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 410998, 398393, 369875, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 58.154}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 369875, 398393, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 55.433}, {"gw": 8, "in": [89401, 443784], "out": [141469, 369875], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 398393, 410998, 89401, 315227, 443784], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.0, "ft_avail": 2, "ft_used": 2, "hits": 0, "pred": 54.408}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 398393, 367185, 89401, 410998, 362824, 315227, 443784], "bench": [406533, 445424, 533010, 426913], "captain": 315227, "vice": 398393, "chip": null, "bank": 0.0, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 49.693}]}, "roll": {"weeks": [{"gw": 6, "in": [], "out": [], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 410998, 369875, 344314, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.1, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 57.535}, {"gw": 7, "in": [398393], "out": [344314], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 369875, 398393, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 2, "ft_used": 1, "hits": 0, "pred": 55.433}, {"gw": 8, "in": [89401, 443784], "out": [141469, 369875], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 398393, 410998, 89401, 315227, 443784], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.0, "ft_avail": 2, "ft_used": 2, "hits": 0, "pred": 54.408}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 398393, 367185, 89401, 410998, 362824, 315227, 443784], "bench": [406533, 445424, 533010, 426913], "captain": 315227, "vice": 398393, "chip": null, "bank": 0.0, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 49.693}]}, "hit": {"weeks": [{"gw": 6, "in": [71824, 398393], "out": [344314, 369875], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 71824, 410998, 398393, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 1.4, "ft_avail": 1, "ft_used": 1, "hits": 1, "pred": 59.259}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 71824, 398393, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 1.4, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 55.864}, {"gw": 8, "in": [89401, 443784], "out": [71824, 141469], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 398393, 410998, 89401, 315227, 443784], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.0, "ft_avail": 2, "ft_used": 2, "hits": 0, "pred": 54.408}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 398393, 367185, 89401, 410998, 362824, 315227, 443784], "bench": [406533, 445424, 533010, 426913], "captain": 315227, "vice": 398393, "chip": null, "bank": 0.0, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 49.693}]}, "veto": {"398393": {"weeks": [{"gw": 6, "in": [71824], "out": [344314], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 71824, 410998, 369875, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.2, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 59.027}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 71824, 369875, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.2, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 55.873}, {"gw": 8, "in": [407260], "out": [369875], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 407260, 410998, 71824, 315227, 141469], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.9, "ft_avail": 2, "ft_used": 1, "hits": 0, "pred": 53.758}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 367185, 410998, 362824, 407260, 71824, 315227, 141469], "bench": [406533, 445424, 533010, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.9, "ft_avail": 2, "ft_used": 0, "hits": 0, "pred": 47.929}]}, "71824+398393": {"weeks": [{"gw": 6, "in": [89401], "out": [344314], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 410998, 89401, 369875, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.6, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 57.944}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 369875, 89401, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.6, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 55.23}, {"gw": 8, "in": [407260], "out": [369875], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 407260, 410998, 89401, 315227, 141469], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 1.3, "ft_avail": 2, "ft_used": 1, "hits": 0, "pred": 53.855}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 367185, 89401, 410998, 362824, 407260, 315227, 141469], "bench": [406533, 445424, 533010, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 1.3, "ft_avail": 2, "ft_used": 0, "hits": 0, "pred": 48.605}]}}, "chip": {"fh@6": {"weeks": [{"gw": 6, "in": [46092, 71824, 123761, 131464, 134373, 300359, 331382, 379732, 391256, 537713], "out": [141469, 247815, 334087, 344314, 362824, 369875, 406533, 410998, 439533, 445424], "xi": [276366, 131464, 379732, 533010, 123761, 367185, 391256, 71824, 331382, 315227, 537713], "bench": [46092, 300359, 134373, 426913], "captain": 123761, "vice": 315227, "chip": "fh", "bank": 0.0, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 64.953}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 369875, 344314, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.1, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 54.893}, {"gw": 8, "in": [398393], "out": [344314], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 398393, 410998, 369875, 315227, 141469], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 2, "ft_used": 1, "hits": 0, "pred": 53.348}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 398393, 367185, 410998, 362824, 369875, 315227, 141469], "bench": [406533, 445424, 533010, 426913], "captain": 315227, "vice": 398393, "chip": null, "bank": 0.4, "ft_avail": 2, "ft_used": 0, "hits": 0, "pred": 48.11}]}, "bb@6": {"weeks": [{"gw": 6, "in": [398393], "out": [344314], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 410998, 398393, 369875, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": "bb", "bank": 0.4, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 64.238}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 369875, 398393, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 55.433}, {"gw": 8, "in": [89401, 443784], "out": [141469, 369875], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 398393, 410998, 89401, 315227, 443784], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.0, "ft_avail": 2, "ft_used": 2, "hits": 0, "pred": 54.408}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 398393, 367185, 89401, 410998, 362824, 315227, 443784], "bench": [406533, 445424, 533010, 426913], "captain": 315227, "vice": 398393, "chip": null, "bank": 0.0, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 49.693}]}, "tc@6": {"weeks": [{"gw": 6, "in": [398393], "out": [344314], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 410998, 398393, 369875, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": "tc", "bank": 0.4, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 64.273}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 369875, 398393, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 55.433}, {"gw": 8, "in": [89401, 443784], "out": [141469, 369875], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 398393, 410998, 89401, 315227, 443784], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.0, "ft_avail": 2, "ft_used": 2, "hits": 0, "pred": 54.408}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 398393, 367185, 89401, 410998, 362824, 315227, 443784], "bench": [406533, 445424, 533010, 426913], "captain": 315227, "vice": 398393, "chip": null, "bank": 0.0, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 49.693}]}, "fh@7": {"weeks": [{"gw": 6, "in": [], "out": [], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 410998, 369875, 344314, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.1, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 57.535}, {"gw": 7, "in": [71824, 92173, 123761, 134373, 138695, 353377, 362837, 384430, 395615, 396976], "out": [141469, 247815, 334087, 344314, 367185, 369875, 406533, 426913, 439533, 445424], "xi": [276366, 362837, 533010, 396976, 123761, 362824, 353377, 410998, 71824, 315227, 384430], "bench": [92173, 138695, 395615, 134373], "captain": 315227, "vice": 123761, "chip": "fh", "bank": 0.0, "ft_avail": 2, "ft_used": 1, "hits": 0, "pred": 57.333}, {"gw": 8, "in": [89401, 398393, 443784], "out": [141469, 344314, 369875], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 398393, 410998, 89401, 315227, 443784], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.0, "ft_avail": 2, "ft_used": 2, "hits": 1, "pred": 54.408}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 398393, 367185, 89401, 410998, 362824, 315227, 443784], "bench": [406533, 445424, 533010, 426913], "captain": 315227, "vice": 398393, "chip": null, "bank": 0.0, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 49.693}]}, "bb@7": {"weeks": [{"gw": 6, "in": [71824], "out": [369875], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 71824, 410998, 344314, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 1.1, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 58.64}, {"gw": 7, "in": [92173], "out": [406533], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 71824, 344314, 315227, 141469], "bench": [92173, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": "bb", "bank": 0.6, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 64.637}, {"gw": 8, "in": [407260], "out": [344314], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 407260, 410998, 71824, 315227, 141469], "bench": [92173, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 53.758}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 367185, 410998, 362824, 407260, 71824, 315227, 141469], "bench": [92173, 445424, 533010, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 47.929}]}, "tc@7": {"weeks": [{"gw": 6, "in": [398393], "out": [344314], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 410998, 398393, 369875, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 58.154}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 369875, 398393, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": "tc", "bank": 0.4, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 61.562}, {"gw": 8, "in": [89401, 443784], "out": [141469, 369875], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 398393, 410998, 89401, 315227, 443784], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.0, "ft_avail": 2, "ft_used": 2, "hits": 0, "pred": 54.408}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 398393, 367185, 89401, 410998, 362824, 315227, 443784], "bench": [406533, 445424, 533010, 426913], "captain": 315227, "vice": 398393, "chip": null, "bank": 0.0, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 49.693}]}, "fh@8": {"weeks": [{"gw": 6, "in": [71824], "out": [344314], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 71824, 410998, 369875, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.2, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 59.027}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 71824, 369875, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.2, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 55.873}, {"gw": 8, "in": [46092, 123761, 322176, 332867, 386969, 395615, 398393, 407260, 443784], "out": [71824, 141469, 276366, 334087, 367185, 369875, 406533, 410998, 533010], "xi": [322176, 445424, 439533, 386969, 123761, 332867, 362824, 407260, 398393, 315227, 443784], "bench": [46092, 395615, 247815, 426913], "captain": 315227, "vice": 123761, "chip": "fh", "bank": 0.0, "ft_avail": 2, "ft_used": 1, "hits": 0, "pred": 56.131}, {"gw": 9, "in": [398393], "out": [369875], "xi": [276366, 334087, 439533, 247815, 398393, 367185, 410998, 362824, 71824, 315227, 141469], "bench": [406533, 445424, 533010, 426913], "captain": 315227, "vice": 398393, "chip": null, "bank": 1.4, "ft_avail": 2, "ft_used": 1, "hits": 0, "pred": 48.249}]}, "bb@8": {"weeks": [{"gw": 6, "in": [71824], "out": [344314], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 71824, 410998, 369875, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.2, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 59.027}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 71824, 369875, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.2, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 55.873}, {"gw": 8, "in": [92173, 407260], "out": [369875, 406533], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 407260, 410998, 71824, 315227, 141469], "bench": [92173, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": "bb", "bank": 0.4, "ft_avail": 2, "ft_used": 2, "hits": 0, "pred": 62.989}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 367185, 410998, 362824, 407260, 71824, 315227, 141469], "bench": [92173, 445424, 533010, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 47.929}]}, "tc@8": {"weeks": [{"gw": 6, "in": [398393], "out": [344314], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 410998, 398393, 369875, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 58.154}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 369875, 398393, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 55.433}, {"gw": 8, "in": [89401, 443784], "out": [141469, 369875], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 398393, 410998, 89401, 315227, 443784], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": "tc", "bank": 0.0, "ft_avail": 2, "ft_used": 2, "hits": 0, "pred": 60.026}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 398393, 367185, 89401, 410998, 362824, 315227, 443784], "bench": [406533, 445424, 533010, 426913], "captain": 315227, "vice": 398393, "chip": null, "bank": 0.0, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 49.693}]}, "fh@9": {"weeks": [{"gw": 6, "in": [71824], "out": [344314], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 71824, 410998, 369875, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.2, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 59.027}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 71824, 369875, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.2, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 55.873}, {"gw": 8, "in": [298689, 332867], "out": [71824, 369875], "xi": [276366, 334087, 445424, 439533, 332867, 367185, 362824, 298689, 410998, 315227, 141469], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 332867, "chip": null, "bank": 0.0, "ft_avail": 2, "ft_used": 2, "hits": 0, "pred": 54.431}, {"gw": 9, "in": [46092, 89401, 123761, 131464, 138695, 299077, 300359, 322176, 362837, 398393, 443784], "out": [141469, 276366, 298689, 332867, 334087, 367185, 406533, 426913, 439533, 445424, 533010], "xi": [322176, 299077, 131464, 362837, 123761, 398393, 89401, 410998, 362824, 315227, 443784], "bench": [46092, 138695, 247815, 300359], "captain": 123761, "vice": 315227, "chip": "fh", "bank": 0.0, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 52.133}]}, "bb@9": {"weeks": [{"gw": 6, "in": [71824], "out": [344314], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 71824, 410998, 369875, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.2, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 59.027}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 71824, 369875, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.2, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 55.873}, {"gw": 8, "in": [], "out": [], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 410998, 71824, 369875, 315227, 141469], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.2, "ft_avail": 2, "ft_used": 0, "hits": 0, "pred": 53.051}, {"gw": 9, "in": [300359, 406564, 443784], "out": [334087, 406533, 426913], "xi": [276366, 439533, 247815, 445424, 367185, 410998, 362824, 71824, 369875, 315227, 443784], "bench": [406564, 141469, 300359, 533010], "captain": 315227, "vice": 367185, "chip": "bb", "bank": 0.4, "ft_avail": 3, "ft_used": 3, "hits": 0, "pred": 59.639}]}, "tc@9": {"weeks": [{"gw": 6, "in": [398393], "out": [344314], "xi": [276366, 334087, 533010, 445424, 367185, 362824, 410998, 398393, 369875, 315227, 141469], "bench": [406533, 247815, 439533, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 1, "ft_used": 1, "hits": 0, "pred": 58.154}, {"gw": 7, "in": [], "out": [], "xi": [276366, 334087, 533010, 439533, 367185, 362824, 410998, 369875, 398393, 315227, 141469], "bench": [406533, 247815, 445424, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.4, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 55.433}, {"gw": 8, "in": [89401, 443784], "out": [141469, 369875], "xi": [276366, 334087, 445424, 439533, 367185, 362824, 398393, 410998, 89401, 315227, 443784], "bench": [406533, 533010, 247815, 426913], "captain": 315227, "vice": 367185, "chip": null, "bank": 0.0, "ft_avail": 2, "ft_used": 2, "hits": 0, "pred": 54.408}, {"gw": 9, "in": [], "out": [], "xi": [276366, 334087, 439533, 247815, 398393, 367185, 89401, 410998, 362824, 315227, 443784], "bench": [406533, 445424, 533010, 426913], "captain": 315227, "vice": 398393, "chip": "tc", "bank": 0.0, "ft_avail": 1, "ft_used": 0, "hits": 0, "pred": 54.936}]}}}, "scraped": {"moves": {"6": {"344314>398393": [3.4, "clear"]}, "8": {"369875>89401": [1.0, "clear"], "141469>443784": [1.7, "clear"]}}, "alts": {"roll": "lean", "398393": "clear", "71824+398393": "clear"}, "chips": {"6": {"bb": 6.1, "tc": 6.1, "fh": 3.5}, "8": {"bb": 8.1, "tc": 5.6, "fh": 1.5}, "9": {"bb": 9.9, "tc": 5.2, "fh": 3.7}}, "chip_best": {"fh": [9, 3.7], "bb": [9, 9.9], "tc": [6, 6.1]}}};
+
+// ---------------------------------------------------------------- tiny DOM helpers
+const NS = 'http://www.w3.org/2000/svg';
+function h(tag, attrs, ...kids) {
+  const [name, ...cls] = tag.split('.');
+  const el = document.createElement(name);
+  if (cls.length) el.className = cls.join(' ');
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = [el.className, v].filter(Boolean).join(' ');
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k === 'html') el.innerHTML = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) el.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  return el;
+}
+function svg(tag, attrs, ...kids) {
+  const el = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) if (v != null && v !== false) el.setAttribute(k, v);
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) el.append(c);
+  return el;
+}
+let uidSeq = 0;
+const uid = (p) => `${p}-${++uidSeq}`;
+
+// ---------------------------------------------------------------- shirts: a port of static/js/plan/kits.js (same KITS, same paths)
+// + one addition for the pitch: `turf: true` swaps a green-family GK colour for grey (DESIGN_V2.md §4, GK contrast)
+const GK = { yellow: '#f5d327', lime: '#b5e34b', green: '#34d399', teal: '#2bc4b4', orange: '#ff8a3d', pink: '#f06aa0', purple: '#8b6cf6', sky: '#7cc8f8' };
+const WHITE = '#ffffff', BLACK = '#16181d';
+const KITS = {
+  ARS: { b: '#e1251b', s: WHITE, c: WHITE, g: GK.lime }, AVL: { b: '#7b1e45', s: '#95bfe5', c: '#95bfe5', g: GK.orange },
+  BHA: { b: WHITE, a: '#0a5bbf', p: 'stripes', s: '#0a5bbf', c: '#0a5bbf', g: GK.green }, BOU: { b: '#d7261e', a: BLACK, p: 'stripes', s: BLACK, c: BLACK, g: GK.sky },
+  BRE: { b: '#e30613', a: WHITE, p: 'stripes', s: '#e30613', c: BLACK, g: GK.yellow }, CHE: { b: '#0a4595', s: '#0a4595', c: WHITE, g: GK.orange },
+  COV: { b: '#5ab3ea', s: '#5ab3ea', c: '#13294b', g: GK.purple }, CRY: { b: '#1b458f', a: '#d4202f', p: 'stripes', s: '#1b458f', c: '#d4202f', g: GK.lime },
+  EVE: { b: '#1b3f9e', s: '#1b3f9e', c: WHITE, k: WHITE, g: GK.pink }, FUL: { b: WHITE, s: WHITE, c: BLACK, g: GK.teal },
+  HUL: { b: '#f5a12d', a: BLACK, p: 'stripes', s: BLACK, c: BLACK, g: GK.sky }, IPS: { b: '#0f4ea6', s: WHITE, c: WHITE, g: GK.yellow },
+  LEE: { b: WHITE, s: WHITE, c: '#1d428a', k: '#f9c80e', g: GK.purple }, LIV: { b: '#c8102e', s: '#c8102e', c: '#f2c84b', g: GK.green },
+  MCI: { b: '#98c5e9', s: '#98c5e9', c: WHITE, k: '#1c2c5b', g: GK.yellow }, MUN: { b: '#da291c', s: '#da291c', c: BLACK, g: GK.teal },
+  NEW: { b: WHITE, a: BLACK, p: 'stripes', s: BLACK, c: BLACK, g: GK.lime }, NFO: { b: '#e53233', s: '#e53233', c: WHITE, g: GK.sky },
+  SUN: { b: '#eb172b', a: WHITE, p: 'stripes', s: WHITE, c: '#eb172b', g: GK.pink }, TOT: { b: WHITE, s: WHITE, c: '#132257', g: GK.purple },
+};
+const NEUTRAL = { b: '#9aa3b2', s: '#8b94a3', c: '#6b7383' };
+const TURF_GK = '#d4d9de';
+const rgb = (x) => [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16));
+const hex = (c) => `#${c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('')}`;
+const shade = (x, amt) => hex(rgb(x).map((v) => (amt < 0 ? v * (1 + amt) : v + (255 - v) * amt)));
+const luma = (x) => { const [r, g, b] = rgb(x); return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
+function greenish(x) {   // hue 60-190 degrees with real saturation: lime, green, teal vanish on the turf
+  const [r, g, b] = rgb(x).map((v) => v / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  if (mx - mn < 0.25) return false;
+  const hue = mx === g ? 60 * ((b - r) / (mx - mn) + 2) : mx === r ? 60 * (((g - b) / (mx - mn)) % 6) : 60 * ((r - g) / (mx - mn) + 4);
+  return hue >= 60 && hue <= 190;
+}
+const TORSO = 'M23 6.5 13.5 10 17 24 17.5 57Q32 59.6 46.5 57L47 24 50.5 10 41 6.5C38 12 26 12 23 6.5Z';
+const SLEEVE = 'M13.5 10C9.5 12 6.2 16 3.5 21.5L11.2 28.6 17 24Z';
+const NECK_BACK = 'M23 6.5Q32 4.6 41 6.5C38 12 26 12 23 6.5Z';
+const NECKLINE = 'M23 6.5C26 12 38 12 41 6.5';
+const CUFF = 'M3.5 21.5 11.2 28.6';
+const MIRROR = 'matrix(-1 0 0 1 64 0)';
+const pair = (d, attrs) => [svg('path', { d, ...attrs }), svg('path', { d, transform: MIRROR, ...attrs })];
+function pattern(p, color) {
+  if (p === 'stripes') return [4.2, 12.6, 21].flatMap((d) => [32 - d, 32 + d]).map((x) => svg('rect', { fill: color, x: x - 2.1, y: 0, width: 4.2, height: 64 }));
+  return [];
+}
+function shirt({ club, gk = false, size = 56, turf = false }) {
+  const k = KITS[String(club || '').toUpperCase()] || NEUTRAL;
+  let body = gk ? k.g || GK.yellow : k.b;
+  if (gk && turf && greenish(body)) body = TURF_GK;
+  const sleeves = gk ? body : k.s || body;
+  const collar = gk ? shade(body, -0.38) : k.c || shade(body, -0.3);
+  const cuffs = gk ? collar : k.k || collar;
+  const light = luma(body) > 0.85;
+  const id = uid('kit');
+  return svg('svg', { viewBox: '0 0 64 64', width: size, height: size, 'aria-hidden': 'true' },
+    svg('defs', null,
+      svg('clipPath', { id: `${id}-t` }, svg('path', { d: TORSO })),
+      svg('clipPath', { id: `${id}-s` }, pair(SLEEVE, {})),
+      svg('linearGradient', { id: `${id}-g`, x1: 0, x2: 1, y1: 0, y2: 0.25 },
+        svg('stop', { offset: 0, 'stop-color': '#fff', 'stop-opacity': 0.16 }), svg('stop', { offset: 0.4, 'stop-color': '#fff', 'stop-opacity': 0 }),
+        svg('stop', { offset: 0.62, 'stop-color': '#000', 'stop-opacity': 0 }), svg('stop', { offset: 1, 'stop-color': '#000', 'stop-opacity': light ? 0.12 : 0.22 }))),
+    svg('path', { d: NECK_BACK, fill: shade(body, light ? -0.22 : -0.42) }),
+    pair(SLEEVE, { fill: sleeves }),
+    svg('g', { 'clip-path': `url(#${id}-s)` }, pair(CUFF, { stroke: cuffs, 'stroke-width': 4.6, fill: 'none' })),
+    svg('path', { d: TORSO, fill: body }),
+    !gk && k.p ? svg('g', { 'clip-path': `url(#${id}-t)` }, pattern(k.p, k.a)) : null,
+    svg('g', { fill: `url(#${id}-g)` }, svg('path', { d: TORSO }), pair(SLEEVE, {})),
+    svg('path', { d: NECKLINE, stroke: collar, 'stroke-width': 2.6, fill: 'none', 'stroke-linecap': 'round' }),
+    svg('g', { fill: 'none', stroke: '#000', 'stroke-opacity': 0.28, 'stroke-width': 1.1, 'stroke-linejoin': 'round' }, svg('path', { d: TORSO }), pair(SLEEVE, {})));
+}
+
+// ---------------------------------------------------------------- data helpers
+const P = DATA.players;
+const M = DATA.meta;
+const GWS = M.horizon;            // [6, 7, 8, 9]
+const A = M.gw;                   // the next deadline's GW
+const MINUS = '−';
+const WIN = `GW${GWS[0]}–${GWS.at(-1)}`;
+const nm = (id) => P[id]?.name ?? `#${id}`;
+const f1 = (x) => (Math.round(x * 10) / 10).toFixed(1);
+const signed = (x) => { const r = Math.round(x * 10) / 10; return r > 0 ? `+${r.toFixed(1)}` : r < 0 ? `${MINUS}${Math.abs(r).toFixed(1)}` : '0.0'; };
+const money = (x) => `£${Number(x).toFixed(1)}m`;
+const total = (road) => road.weeks.reduce((s, w) => s + w.pred, 0);
+const weekOf = (road, gw) => road.weeks.find((w) => w.gw === gw);
+const CHIP = { bb: 'Bench Boost', tc: 'Triple Captain', fh: 'Free Hit', wc: 'Wildcard' };
+// the app's labels (calls.js WORD: clear / lean / coin) -> a word only when the gain is weak (DESIGN_V2.md §6)
+const WEAK = { clear: null, lean: 'close', coin: 'toss-up' };
+const R = DATA.roads;
+const BASE_TOTAL = total(R.base);
+
+function roadOf(choice) {
+  if (choice === 'base') return R.base;
+  if (choice === 'roll') return R.roll;
+  if (choice === 'hit') return R.hit;
+  const [kind, key] = choice.split(':');
+  return kind === 'veto' ? R.veto[key] : R.chip[key];
+}
+function rulesOf(choice) {
+  if (choice === 'base') return [];
+  if (choice === 'roll') return [{ t: `Roll GW${A}`, s: 'No transfer; the free transfer carries over' }];
+  if (choice === 'hit') return [{ t: `Allow ${MINUS}4 in GW${A}`, s: `One extra transfer, GW${A} only` }];
+  const [kind, key] = choice.split(':');
+  if (kind === 'veto') return key.split('+').map((id) => ({ t: `Not ${nm(id)}`, s: 'All weeks' }));
+  const [c, g] = key.split('@');
+  return [{ t: `${CHIP[c]} in GW${g}`, s: 'Chip' }];
+}
+
+// ---------------------------------------------------------------- state
+const S = { screen: 'ahead', gw: A, choice: 'base', connect: 'form', theme: 'auto', bar: true, toast: null, sheet: null };
+(function readHash() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  if (q.get('screen')) S.screen = q.get('screen');
+  if (q.get('gw')) S.gw = Number(q.get('gw'));
+  if (q.get('choice')) S.choice = q.get('choice');
+  if (q.get('connect')) S.connect = q.get('connect');
+  if (q.get('theme')) S.theme = q.get('theme');
+  if (q.get('bar') === '0') S.bar = false;
+  if (q.get('sheet')) S.sheet = q.get('sheet');
+  if (q.get('dock') === '0') document.documentElement.classList.add('nodock');   // full-page screenshots
+})();
+function applyTheme() { if (S.theme === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = S.theme; }
+let toastTimer = 0;
+function toast(text, undo) {
+  S.toast = { text, undo };
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { S.toast = null; render(); }, 5000);
+  render();
+}
+function set(patch) { Object.assign(S, patch); render(); }
+function pick(choice, text) {
+  const prev = S.choice;
+  if (choice === prev) return;
+  set({ choice });
+  toast(`${text}: ${signed(total(roadOf(choice)) - total(roadOf(prev)))} pts over ${WIN}.`, () => set({ choice: prev }));
+}
+
+// ---------------------------------------------------------------- pieces
+function mockbar() {
+  const b = (label, on, fn) => h('button', { 'aria-pressed': on ? 'true' : 'false', onclick: fn }, label);
+  return h('div.mockbar', null,
+    h('b', null, 'Mockup'),
+    b('Plan', S.screen === 'ahead', () => set({ screen: 'ahead' })), b('Connect', S.screen === 'connect', () => set({ screen: 'connect' })),
+    h('span.sep'),
+    GWS.map((g) => b(`GW${g}`, S.screen === 'ahead' && S.gw === g, () => set({ screen: 'ahead', gw: g }))),
+    h('span.sep'),
+    b('Light', S.theme === 'light', () => { S.theme = 'light'; applyTheme(); render(); }),
+    b('Dark', S.theme === 'dark', () => { S.theme = 'dark'; applyTheme(); render(); }));
+}
+
+function deadlineOf(gw) { return Number(M.deadlines?.[gw] ?? (gw === A ? M.deadline_epoch : NaN)); }
+function deadlineText(gw) {
+  const d = new Date(deadlineOf(gw) * 1000);
+  const day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const t = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return `${day} at ${t}`;
+}
+function countdown(gw) {   // only under 7 days (DESIGN_V2.md §3.2)
+  const s = deadlineOf(gw) - Date.now() / 1000;
+  if (!(s > 0) || s >= 7 * 86400) return null;
+  const d = Math.floor(s / 86400), hh = Math.floor((s % 86400) / 3600), mm = Math.floor((s % 3600) / 60);
+  return d ? `${d}d ${hh}h` : `${hh}h ${mm}m`;
+}
+
+function header() {
+  const initials = DATA.entry.manager.split(/\s+/).map((s) => s[0]).join('').slice(0, 2).toUpperCase();
+  const cd = countdown(S.gw);
+  return [
+    h('header.hdr', null, h('span'), h('h1', null, DATA.entry.team_name),
+      h('button.avatar', { 'aria-label': 'Account and settings', onclick: () => toast('Account sheet (not part of this mockup).') }, initials)),
+    h('p.gwline', null, h('span.k', null, `Gameweek ${S.gw}`), ' • ',
+      h('b', null, `Deadline: ${deadlineText(S.gw)}`), cd ? h('span.cd', null, ` (${cd})`) : null),
+  ];
+}
+
+// ---------------------------------------------------------------- chips
+function chipGain(c, g) {   // the app's own number where it was read off the app, else this mock's plan-total difference
+  const s = DATA.scraped.chips?.[g]?.[c];
+  if (s != null) return s;
+  const r = R.chip[`${c}@${g}`];
+  return r ? total(r) - BASE_TOTAL : null;
+}
+function chipBest(c) {
+  const s = DATA.scraped.chip_best?.[c];
+  if (s) return s;
+  return GWS.map((x) => [x, chipGain(c, x)]).filter(([, v]) => v != null).sort((a, b) => b[1] - a[1])[0] || null;
+}
+function chipState(c, road) {
+  const used = DATA.entry.chips_used.find((u) => u.chip === c)?.gw ?? null;
+  const planned = road.weeks.find((w) => w.chip === c)?.gw ?? null;
+  return { used, planned };
+}
+function chips(road) {
+  const cards = ['bb', 'tc', 'fh', 'wc'].map((c) => {
+    const { used, planned } = chipState(c, road);
+    const g = chipGain(c, S.gw);
+    const best = chipBest(c);
+    let btn;
+    if (used != null) btn = h('button.pl.used', { disabled: true }, `Used GW${used}`);
+    else if (planned === S.gw) btn = h('button.pl.on', { onclick: (e) => { e.stopPropagation(); pick('base', `${CHIP[c]} off GW${S.gw}`); } }, 'Planned');
+    else if (planned) btn = h('button.pl', { onclick: (e) => { e.stopPropagation(); playChip(c, S.gw); } }, `In GW${planned}`);
+    else btn = h('button.pl', { onclick: (e) => { e.stopPropagation(); playChip(c, S.gw); } }, 'Play');
+    const line = used != null ? ' ' : g == null ? 'solving' : [
+      h('b', { class: g >= 0.05 ? 'pos' : g <= -0.05 ? 'neg' : '' }, signed(g)),
+      best ? (best[0] === S.gw ? ' · best' : ` · best GW${best[0]}`) : null];
+    return h('div.chip', { class: used != null ? 'used' : '', role: 'button', tabindex: 0, 'aria-label': `${CHIP[c]} details`, onclick: () => used == null && set({ sheet: `chip:${c}` }) },
+      h('span.tok', { 'aria-hidden': 'true' }, c.toUpperCase()),
+      h('div.nm', null, CHIP[c]),
+      h('div.gn', null, line),
+      btn);
+  });
+  return h('div.chips', null, cards);
+}
+function playChip(c, g) {
+  const key = `${c}@${g}`;
+  if (!R.chip[key]) return toast(`Not solved for GW${g} in this mockup.`);
+  set({ sheet: null });
+  pick(`chip:${key}`, `${CHIP[c]} in GW${g}`);
+}
+
+// ---------------------------------------------------------------- moves (shared by the strip above the pitch and the list)
+function moveGain(w, out, inn) {
+  // the app's own phone estimate where it was read off the app (same move on the suggested plan); else a plain xP difference (≈)
+  const bw = weekOf(R.base, w.gw);
+  const s = bw.out.includes(out) && bw.in.includes(inn) ? DATA.scraped.moves[w.gw]?.[`${out}>${inn}`] : null;
+  if (s) return { d: s[0], word: WEAK[s[1]], approx: false };
+  const from = GWS.indexOf(w.gw);
+  let d = 0;
+  for (let i = from; i < GWS.length; i++) d += P[inn].xp[i] - P[out].xp[i];
+  return { d, word: null, approx: true };
+}
+function pairs(w) {   // each sale with the buy of the same position (the order FPL lists them)
+  const ins = [...w.in];
+  return w.out.map((o) => {
+    const k = ins.findIndex((i) => P[i].pos === P[o].pos);
+    const i = k >= 0 ? ins.splice(k, 1)[0] : ins.shift();
+    return [o, i];
+  });
+}
+const gainText = (g) => `${g.approx ? '≈' : ''}${signed(g.d)}`;
+const tone = (d) => (d >= 0.05 ? 'pos' : d <= -0.05 ? 'neg' : '');
+
+function moveStrip(road, w) {
+  const mv = pairs(w);
+  const gains = mv.map(([o, i]) => moveGain(w, o, i));
+  const sum = gains.reduce((s, g) => s + g.d, 0);
+  const approx = gains.some((g) => g.approx);
+  const hit = w.hits ? ` (${MINUS}${4 * w.hits})` : '';
+  const chip = w.chip ? `${CHIP[w.chip]} · ` : '';
+  let left;
+  if (!mv.length) left = [chip, h('b', null, 'No transfers')];
+  else if (mv.length === 1) left = [chip, h('s', null, `${nm(mv[0][0])} → `), h('b', null, nm(mv[0][1])), hit, h('span.g', { class: tone(sum) }, `${approx ? '≈' : ''}${signed(sum)}`)];
+  else left = [chip, h('b', null, `${mv.map(([, i]) => nm(i)).join(', ')} in`), hit, h('span.g', { class: tone(sum) }, `${approx ? '≈' : ''}${signed(sum)}`)];
+  return h('button.mstrip.num', { 'aria-label': `GW${w.gw} transfers, scroll to the list`, onclick: () => document.getElementById('xfers')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) },
+    h('span.l', null, left), h('span.r', null, `${w.ft_avail} FT · ${money(w.bank)}`));
+}
+
+// ---------------------------------------------------------------- pitch
+function fixtureText(fx) {   // FPL's old convention: home in capitals, away in lower case (the bundle already cases it)
+  if (!Array.isArray(fx) || !fx.length) return '—';
+  return fx.join(' ');
+}
+function flagSvg(t) {
+  const fill = t === 'out' ? '#D32F2F' : '#F2B200';
+  const ink = t === 'out' ? '#FFFFFF' : '#1B1300';
+  return `<svg viewBox="0 0 15 13"><path d="M7.5 .8 14.3 12.3H.7z" fill="${fill}" stroke="#fff" stroke-width="1" stroke-linejoin="round"/><rect x="6.8" y="4.3" width="1.4" height="4.2" rx=".5" fill="${ink}"/><circle cx="7.5" cy="10.2" r=".85" fill="${ink}"/></svg>`;
+}
+function statusTone(p) {
+  const s = (p.status || 'a')[0];
+  if (s === 'a') return p.chance != null && p.chance > 0 && p.chance < 100 ? 'warn' : null;
+  return s === 'd' ? 'warn' : 'out';
+}
+function card(id, road, w, opts = {}) {
+  const p = P[id];
+  const gi = GWS.indexOf(S.gw);
+  const t = statusTone(p);
+  const isC = w.captain === id, isV = w.vice === id;
+  const mult = isC ? (w.chip === 'tc' ? 3 : 2) : 1;
+  const xp = p.xp[gi] * (opts.bench && w.chip !== 'bb' ? 1 : mult);
+  const isIn = w.in.includes(id);
+  const soldAt = road.weeks.find((x) => x.gw > S.gw && x.out.includes(id))?.gw;
+  const second = soldAt
+    ? h('span.pf.sold', null, `Sold GW${soldAt}`)
+    : h('span.pf', null, h('span.fx', null, fixtureText(p.fx[gi])), h('b', null, f1(xp)));
+  return h('button.pc', { class: [t, isIn ? 'new' : ''].filter(Boolean).join(' '),
+    'aria-label': `${p.name}, ${p.club} ${p.pos}, ${fixtureText(p.fx[gi])}, ${f1(xp)} points${soldAt ? `, sold in GW${soldAt}` : ''}`,
+    onclick: () => toast(`${p.name}: player sheet (not part of this mockup).`) },
+    h('span.kit', null, shirt({ club: p.club, gk: p.pos === 'GK', size: 60, turf: true }),
+      isC || isV ? h('span.cv', { class: isC && w.chip === 'tc' ? 'tc' : '' }, isC ? (w.chip === 'tc' ? '3×' : 'C') : 'V') : null,
+      t ? h('span.fl', { html: flagSvg(t), title: p.news || '' }) : null),
+    h('span.pn', null, p.name), second);
+}
+// geometry in a 390 x 446 box (DESIGN_V2.md §4): green from y 12, goal line y 25, halfway y 303 (0.68 H) through the MID plates
+const PW = 390, PH = 446;
+function turfSvg() {
+  const bands = 11, bh = PH / bands;
+  const stripes = Array.from({ length: bands }, (_, i) => svg('rect', { x: 0, y: i * bh, width: PW, height: bh + 0.5, fill: (bands - 1 - i) % 2 ? 'var(--turf-2)' : 'var(--turf-1)' }));
+  const L = { fill: 'none', stroke: 'var(--chalk)', 'stroke-width': 1.6 };
+  return svg('svg', { viewBox: `0 0 ${PW} ${PH}`, preserveAspectRatio: 'none', 'aria-hidden': 'true' },
+    stripes,
+    svg('path', { ...L, d: 'M-2 107 L44 25 H346 L392 107' }),                 // touchlines + goal line, in perspective
+    svg('path', { ...L, d: 'M103 25 L84 66 H306 L287 25' }),                 // penalty area
+    svg('path', { ...L, d: 'M150 25 L147 45 H243 L240 25' }),                // goal area
+    svg('path', { ...L, d: 'M155 66 Q195 84 235 66' }),                      // penalty arc
+    svg('line', { ...L, x1: 0, y1: 303, x2: PW, y2: 303 }),                  // halfway line
+    svg('ellipse', { ...L, cx: 195, cy: 303, rx: 64, ry: 54 }));             // centre circle, around the MID row
+}
+function goalSvg() {   // drawn over the turf's clip so it can sit on the goal line above the green
+  const net = [];
+  for (let x = 167; x <= 223; x += 5) net.push(svg('line', { x1: x, y1: 1, x2: x, y2: 25, stroke: 'rgb(255 255 255 / .45)', 'stroke-width': .8 }));
+  for (let y = 5; y <= 25; y += 5) net.push(svg('line', { x1: 164, y1: y, x2: 226, y2: y, stroke: 'rgb(255 255 255 / .45)', 'stroke-width': .8 }));
+  return svg('svg', { class: 'goal', viewBox: `0 0 ${PW} ${PH}`, preserveAspectRatio: 'none', 'aria-hidden': 'true' },
+    svg('rect', { x: 164, y: 0, width: 62, height: 25, fill: 'rgb(0 60 30 / .35)' }), net,
+    svg('path', { fill: 'none', stroke: '#FFFFFF', 'stroke-width': 2.4, d: 'M164 25 V1 H226 V25' }));
+}
+const ROWS = ['GK', 'DEF', 'MID', 'FWD'];
+const ROW_TOP = { GK: 13, DEF: 120, MID: 226, FWD: 332 };   // px of the 446 box (FPL: 26 / 130 / 235 / 341 below its green top)
+function pitch(road, w) {
+  const by = { GK: [], DEF: [], MID: [], FWD: [] };
+  w.xi.forEach((id) => by[P[id].pos].push(id));
+  const rows = ROWS.map((pos) => h('div.prow', { style: `top:${(ROW_TOP[pos] / PH) * 100}%`, 'data-n': by[pos].length }, by[pos].map((id) => card(id, road, w))));
+  const bench = h('div.bench', { 'aria-label': w.chip === 'bb' ? 'Bench (Bench Boost: counts)' : 'Bench' }, w.bench.map((id) =>
+    h('div', null, h('div.bl', null, P[id].pos === 'GK' ? 'GKP' : P[id].pos), card(id, road, w, { bench: true }))));
+  const pitchEl = h('div.pitch', null, h('div.turf', null, turfSvg()), goalSvg(), rows);
+  return [pitchEl, h('div.benchzone', null, bench)];
+}
+
+// ---------------------------------------------------------------- transfers section (moves, rules, other options, lock)
+function modeOf() {
+  if (S.gw === A) return S.choice === 'roll' ? 'roll' : S.choice === 'hit' ? 'h1' : 'free';
+  return 'free';
+}
+function transfers(road, w) {
+  const mode = modeOf();
+  const segBtn = (key, label) => h('button', { role: 'radio', 'aria-checked': mode === key ? 'true' : 'false', onclick: () => setMode(key) }, label);
+  const mv = pairs(w);
+  const nextFt = Math.min(5, (w.ft_avail - w.ft_used) + 1);
+  const rows = mv.length ? mv.map(([o, i]) => {
+    const g = moveGain(w, o, i);
+    return h('div.mv', null,
+      h('span.grip', { 'aria-hidden': 'true', title: 'Drag to another week' }),
+      h('span', null, shirt({ club: P[i].club, gk: P[i].pos === 'GK', size: 28 })),
+      h('div.t', null,
+        h('div.a', null, h('s', null, `${P[o].name} → `), P[i].name),
+        h('div.b.num', null, `${P[o].club} ${money(P[o].price)} → ${P[i].club} ${money(P[i].price)}`)),
+      h('div.g.num', { class: tone(g.d) }, gainText(g), g.word ? h('small', null, g.word) : null),
+      h('button.more', { 'aria-label': `Options for ${P[o].name} to ${P[i].name}`, onclick: () => toast('Keep him, not him, or move to another week.') }, '⋯'));
+  }) : [h('p.empty', null, `No transfers. ${nextFt} free transfer${nextFt === 1 ? '' : 's'} in GW${S.gw + 1}.`)];
+  const out = [
+    h('div.sh', { id: 'xfers' }, h('span', null, `GW${S.gw} transfers`), h('button.lnk', { onclick: () => toast('Add a player: search sheet (not part of this mockup).') }, 'Add player')),
+    h('div.list', null,
+      h('div.segrow', null, h('div.seg', { role: 'radiogroup', 'aria-label': `GW${S.gw} transfer rule` },
+        segBtn('roll', 'Roll'), segBtn('free', 'Free only'), segBtn('h1', `${MINUS}4`), segBtn('h2', `${MINUS}8`))),
+      rows),
+    rulesBlock(road),
+  ];
+  if (S.gw === A) out.push(alternatives(road), lockBlock(w));
+  return out;
+}
+function setMode(key) {
+  if (S.gw !== A) return toast(`In the app this re-plans GW${S.gw}; the mockup has GW${A}'s options only.`);
+  if (key === 'h2') return toast(`Two hits in GW${A} needs a solve; not in this mockup.`);
+  pick({ roll: 'roll', free: 'base', h1: 'hit' }[key], { roll: `Roll GW${A}`, free: `Free only GW${A}`, h1: `${MINUS}4 allowed in GW${A}` }[key]);
+}
+function rulesBlock(road) {
+  const rules = rulesOf(S.choice);
+  if (!rules.length) return null;   // no rules: no section (critique 15)
+  const gap = total(road) - BASE_TOTAL;
+  return [
+    h('div.sh', null, h('span', null, 'Your rules'), Math.abs(gap) >= 0.05 ? h('span.aux.num', null, `${signed(gap)} vs suggested`) : null),
+    h('div.list', null, rules.map((r) => h('div.rule', null, h('span', null, r.t, h('small', null, r.s)),
+      h('button', { onclick: () => pick('base', `Removed: ${r.t}`) }, 'Remove')))),
+  ];
+}
+function moveLabel(w) {
+  const mv = pairs(w);
+  if (!mv.length) return [`Roll GW${w.gw}`];
+  return mv.flatMap(([o, i], k) => [k ? ', ' : null, h('s', null, `${nm(o)} → `), nm(i)]);
+}
+function alternatives(road) {
+  const cur = total(road);
+  const opts = [['roll', 'roll'], ...Object.keys(R.veto).map((k) => [`veto:${k}`, k])].filter(([c]) => c !== S.choice);
+  if (S.choice !== 'base') opts.unshift(['base', null]);
+  const rows = opts.map(([c, key]) => {
+    const r = roadOf(c);
+    const w = weekOf(r, A);
+    const d = total(r) - cur;
+    const sub = c === 'base' ? 'Suggested plan' : c === 'roll' ? `No transfer, ${Math.min(5, w.ft_avail + 1)} FT in GW${A + 1}` : `Adds: not ${key.split('+').map(nm).join(', not ')}`;
+    const word = S.choice === 'base' && key ? WEAK[DATA.scraped.alts[key]] : null;
+    return h('button.alt', { onclick: () => pick(c, c === 'base' ? 'Suggested plan' : c === 'roll' ? `Roll GW${A}` : `${w.in.map(nm).join(' + ')} in GW${A}`) },
+      h('span.l', null, c === 'base' ? moveLabel(w) : moveLabel(w), h('small', null, sub)),
+      h('span.v.num', { class: tone(d) }, signed(d), word ? h('small', null, word) : null));
+  });
+  return [
+    h('div.sh', null, h('span', null, 'Other options ', h('span.aux', null, 'vs your plan')),
+      h('button.lnk', { onclick: () => toast('Details sheet: model agreement, forecast drift, why not the others (not part of this mockup).') }, 'Details')),
+    h('div.list', null, rows),
+  ];
+}
+function lockBlock(w) {
+  const n = w.in.length;
+  const line = `${n ? `${n} transfer${n > 1 ? 's' : ''}` : 'No transfer'}${w.hits ? ` (${MINUS}${4 * w.hits})` : ''} · ${nm(w.captain)} captain · bank ${money(w.bank)}${w.chip ? ` · ${CHIP[w.chip]}` : ''}`;
+  return h('div.list.lock', { style: 'margin-top:16px' }, h('p.ln.num', null, line), h('button.primary', { onclick: () => set({ sheet: 'ticket' }) }, `Lock in GW${A}`));
+}
+function gwbar(road) {
+  return h('nav.gwbar', { 'aria-label': 'Gameweeks' },
+    road.weeks.map((w) => h('button', { 'aria-current': w.gw === S.gw ? 'true' : 'false', onclick: () => set({ gw: w.gw }) },
+      h('span.k', null, `GW${w.gw}`), h('span.p.num', null, f1(w.pred)),
+      h('span.m', null, w.chip ? h('span.chipmark', null, w.chip.toUpperCase()) : w.in.length ? `${w.in.length} transfer${w.in.length > 1 ? 's' : ''}` : 'roll'))),
+    h('button.tot', { 'aria-label': `${WIN} total` }, h('span.k', null, WIN), h('span.p.num', null, f1(total(road))), h('span.m', null, 'total')));
+}
+
+// ---------------------------------------------------------------- sheets
+function ticketSheet(road) {
+  const w = weekOf(road, A);
+  const ck = (t, s) => h('label.ck', null, h('input', { type: 'checkbox' }), h('span', null, t, s ? h('small', null, s) : null));
+  const benchTxt = w.bench.map((id) => nm(id)).join(', ');
+  return [h('div.scrim', { onclick: () => set({ sheet: null }) }),
+    h('div.sheet', { role: 'dialog', 'aria-label': `Lock in GW${A}` },
+      h('div.grab'),
+      h('h2', null, `Lock in GW${A}`),
+      h('p.lead', null, 'Make these changes in the FPL app, then tick each one.'),
+      h('h3', null, 'Transfers'),
+      pairs(w).length ? pairs(w).flatMap(([o, i]) => [ck(`Sell ${nm(o)}`, `${P[o].club} ${P[o].pos} · about ${money(P[o].price)}`), ck(`Buy ${nm(i)}`, `${P[i].club} ${P[i].pos} · ${money(P[i].price)}`)])
+        : ck('No transfer', 'Your free transfer carries over.'),
+      ck(`FPL shows ${money(w.bank)} in the bank`, 'Bank differs? The plan updates.'),
+      h('h3', null, 'Team'),
+      ck(`Captain ${nm(w.captain)}`), ck(`Vice-captain ${nm(w.vice)}`), ck('Bench order', benchTxt),
+      ck(w.chip ? `Play ${CHIP[w.chip]}` : 'No chip'), ck('Save team'),
+      h('div.row2', null, h('button.secondary', { onclick: () => toast('Opens FPL transfers.') }, 'FPL transfers'), h('button.secondary', { onclick: () => toast('Opens the FPL team page.') }, 'FPL team')))];
+}
+function chipSheet(c, road) {
+  const { planned } = chipState(c, road);
+  const best = chipBest(c);
+  return [h('div.scrim', { onclick: () => set({ sheet: null }) }),
+    h('div.sheet', { role: 'dialog', 'aria-label': CHIP[c] },
+      h('div.grab'),
+      h('h2', null, CHIP[c]),
+      h('p.lead', null, `Points over ${WIN} compared with not playing it.`),
+      GWS.map((g) => {
+        const v = chipGain(c, g);
+        return h('div.cgw', null, h('span', null, `GW${g}`),
+          h('span.v', { class: v == null ? '' : tone(v) }, v == null ? 'solving' : signed(v), best && best[0] === g ? h('small', null, 'best') : null),
+          planned === g ? h('button.on', { onclick: () => { set({ sheet: null }); pick('base', `${CHIP[c]} off GW${g}`); } }, 'Planned')
+            : h('button', { onclick: () => playChip(c, g) }, 'Play'));
+      }))];
+}
+
+// ---------------------------------------------------------------- screens
+function ahead() {
+  const road = roadOf(S.choice);
+  const w = weekOf(road, S.gw);
+  const sheet = S.sheet === 'ticket' ? ticketSheet(road) : S.sheet?.startsWith('chip:') ? chipSheet(S.sheet.slice(5), road) : null;
+  return [
+    header(),
+    chips(road),
+    moveStrip(road, w),
+    pitch(road, w),
+    transfers(road, w),
+    h('div.spacer'),
+    gwbar(road),
+    sheet,
+  ];
+}
+function connect() {
+  const loading = S.connect === 'loading';
+  const sub = h('div.mockbar', { style: 'border:0;background:none;padding:6px 0 0' },
+    h('button', { 'aria-pressed': !loading ? 'true' : 'false', onclick: () => set({ connect: 'form' }) }, 'Form'),
+    h('button', { 'aria-pressed': loading ? 'true' : 'false', onclick: () => set({ connect: 'loading' }) }, 'Loading'));
+  return h('section.connect', null,
+    S.bar ? sub : null,
+    h('div.top', null, h('p.name', null, 'Forkcast'),
+      h('p.what', null, 'Transfers, captain and chips for your FPL team, planned four gameweeks ahead.')),
+    h('div', null,
+      h('label', { for: 'tid' }, 'FPL team ID or team name'),
+      h('input', { id: 'tid', inputmode: 'search', autocomplete: 'off', placeholder: 'e.g. 383130', value: loading ? String(DATA.entry.id) : '' }),
+      h('button.primary.go', { disabled: loading, onclick: () => set({ screen: 'ahead' }) }, loading ? 'Loading…' : 'Continue'),
+      loading ? null : h('p.hint', null, h('button', { onclick: () => toast('On the FPL site open Points: the number after /entry/ in the address is your ID.') }, 'Where do I find my ID?'))),
+    loading ? h('div.prog.num', null, `Planning ${WIN} (5/7)`, h('div.bar', null, h('i', { style: 'width:71%' })))
+      : h('div.recent', null, h('div.sh', null, h('span', null, 'Recent')),
+        h('div.list', null, h('button.rt', { onclick: () => set({ screen: 'ahead' }) },
+          h('span', null, DATA.entry.team_name, h('small.num', null, `${DATA.entry.manager} · ${DATA.entry.id}`)),
+          h('span.pts.num', null, `${DATA.entry.total} pts`)))),
+    h('p.legal', null, 'Not affiliated with the Premier League or FPL.'));
+}
+
+function render() {
+  const app = document.getElementById('app');
+  const y = scrollY;
+  app.replaceChildren(...[
+    S.bar ? mockbar() : null,
+    S.screen === 'connect' ? connect() : ahead(),
+    S.toast ? h('div.toast', { role: 'status' }, h('span', null, S.toast.text), S.toast.undo ? h('button', { onclick: () => { const u = S.toast.undo; S.toast = null; u(); } }, 'Undo') : null) : null,
+  ].flat(Infinity).filter(Boolean));
+  scrollTo(0, y);
+}
+applyTheme();
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+/* Runs view, plus the result pieces it shares with Backtests (.rs-*) and the solve diff (.df-*). */
+
+.rs-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.rs-filters .select { flex: 0 1 190px; min-width: 0; }
+
+.rs-cmpbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-bottom: 10px; padding: 6px 8px 6px 12px; border-radius: var(--r-ctl);
+  background: var(--surface-2); border: 1px dashed var(--line-strong); color: var(--text-2);
+}
+.rs-cmpbar > .icon { color: var(--muted); }
+
+.rs-label { display: inline-block; max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.rs-sum { display: inline-block; max-width: 52ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; font-size: 13px; color: var(--text-2); }
+.rs-sum.loss { color: var(--loss); }
+
+.rs-detail-host { min-width: 0; scroll-margin-top: 72px; }
+.rs-detail-host:empty { display: none; }
+.rs-detail .card-body { display: flex; flex-direction: column; gap: 14px; }
+.rs-h { margin: 4px 0 0; font-size: 13.5px; font-weight: 650; color: var(--text-2); }
+
+.rs-cmds { display: flex; flex-direction: column; gap: 4px; }
+.rs-cmds:empty { display: none; }
+.rs-cmd {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  padding: 4px 4px 4px 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--surface-2);
+}
+.rs-cmd-label { flex: none; width: 48px; font-size: 12px; color: var(--muted); }
+.rs-cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-size: 12px; color: var(--text-2); scrollbar-width: none; }
+
+.rs-log > summary, .bt-canon-t > summary { cursor: pointer; padding: 4px 0; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.rs-log[open] > summary { margin-bottom: 6px; }
+/* the solver prints aligned tables: keep lines whole and scroll sideways */
+.rs-pre { max-height: 420px; border: 1px solid var(--line); border-radius: var(--r-ctl); white-space: pre; overflow-wrap: normal; }
+
+.rs-notes { margin: 0; padding-left: 18px; }
+.rs-notes li + li { margin-top: 4px; }
+.rs-notes:empty { display: none; }
+
+.rs-cells td { white-space: nowrap; }
+.tbl tr.rs-unplayed td { color: var(--muted); font-style: italic; }
+.tbl tr.rs-now td { background: color-mix(in oklab, var(--accent) 7%, var(--surface)); }
+.tbl tr.rs-chip td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+
+/* diff of two solves */
+.df-heads { gap: 10px; }
+.df-side { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.df-side a { overflow-wrap: anywhere; }
+.df-tag { display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 6px; font: 700 12px var(--mono); color: #fff; }
+.df-tag.a { background: var(--s1); }
+.df-tag.b { background: var(--s2); }
+.df-flags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.df-flag { padding: 2px 8px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); font-size: 12px; }
+.df-flag .df-a { color: var(--s1); }
+.df-flag .df-b { color: var(--s2); }
+.df-moves { display: flex; flex-direction: column; gap: 1px; font-size: 12.5px; line-height: 1.35; white-space: nowrap; }
+.df-moves:not(.df-diff) { opacity: .6; }
+.df-pair { display: flex; flex-direction: column; gap: 1px; font-size: 12.5px; line-height: 1.35; white-space: nowrap; }
+.df-pair .df-a { color: var(--text-2); }
+.df-diff { font-weight: 650; }
+.df-pair .df-diff { color: var(--warn); }
+.tbl tr.df-row td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+.tbl tr.df-one td { color: var(--muted); }
+
+@media (max-width: 600px) {
+  .rs-filters .select { flex: 1 1 140px; }
+  .rs-label { max-width: 22ch; }
+  .rs-sum { max-width: 30ch; }
+  .rs-cmd-label { width: auto; }
+}

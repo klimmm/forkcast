@@ -1,0 +1,67 @@
+/* Players view (#/players). Builds on app.css tokens and .tbl / .heat / .seg / .chip. */
+
+.pv-filters { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.pv-frow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
+.pv-frow .search-box { max-width: 420px; }
+.pv-frow .field .select { min-width: 132px; }
+.pv-num { width: 96px; }
+.pv-checks { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; min-height: 34px; }
+
+.pv-src { border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--surface-2); }
+.pv-src > summary {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  padding: 7px 10px; cursor: pointer; font-size: 12.5px; color: var(--text-2); list-style: none;
+}
+.pv-src > summary::-webkit-details-marker { display: none; }
+.pv-src > summary::after { content: "▾"; margin-left: auto; color: var(--muted); font-size: 11px; }
+.pv-src[open] > summary::after { content: "▴"; }
+.pv-src > summary .icon { color: var(--muted); }
+.pv-src-grid {
+  display: grid; gap: 8px 12px; padding: 0 10px 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+
+.pv-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; min-height: 28px; }
+.pv-count { font-size: 12.5px; color: var(--muted); }
+.pv-tray { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pv-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+.pv-pager:not(:empty) { padding-top: 10px; }
+
+/* player cell: + compare, name with status dot, club / status line */
+.pv-player { display: flex; align-items: center; gap: 6px; min-width: 150px; max-width: 210px; }
+.pv-who { display: flex; flex-direction: column; min-width: 0; }
+.pv-name { display: flex; align-items: center; gap: 6px; min-width: 0; font-weight: 600; color: var(--text); }
+.pv-meta { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pv-add, .pv-plan .icon-btn { width: 26px; height: 26px; border-radius: 7px; }
+.pv-add { color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
+.pv-add.on { color: var(--accent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 50%, var(--line)); background: color-mix(in oklab, var(--accent) 12%, transparent); }
+.pv-plan { display: flex; justify-content: flex-end; gap: 2px; }
+.pv-plan .icon-btn { color: var(--muted); }
+.pv-lock.on { color: var(--accent); background: color-mix(in oklab, var(--accent) 14%, transparent); }
+.pv-ban.on { color: var(--loss); background: color-mix(in oklab, var(--loss) 13%, transparent); }
+
+.tbl tr.pv-locked td:first-child { box-shadow: inset 3px 0 0 var(--accent), inset -1px 0 0 var(--line); }
+.tbl tr.pv-banned td:first-child { box-shadow: inset 3px 0 0 var(--loss), inset -1px 0 0 var(--line); }
+.tbl tr.pv-banned .pv-name > .truncate { text-decoration: line-through; color: var(--muted); }
+
+.pv-xi { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.pv-xi.warn { color: var(--warn); }
+.pv-xi.loss { color: var(--loss); }
+
+/* xP value with the GW's fixture(s) underneath (shared with Compare) */
+.pv-xp { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; cursor: help; }
+.pv-xp-v { font-weight: 600; color: var(--text); }
+.pv-fx { display: inline-flex; gap: 2px; }
+.pv-fx .heat { min-width: 0; height: 16px; padding: 0 4px; border-radius: 4px; font-size: 10px; font-weight: 600; letter-spacing: .01em; }
+.pv-fx .heat + .heat { margin-left: 0; }
+.pv-fx.blank { font: 10px var(--mono); color: var(--muted); }
+.tbl td.pv-sum { font-weight: 700; color: var(--text); }
+.tbl th.pv-gw, .tbl th.pv-sum { min-width: 58px; }
+
+@media (max-width: 600px) {
+  .pv-frow .search-box { max-width: none; flex-basis: 100%; }
+  .pv-frow .field { flex: 1 1 140px; }
+  .pv-frow .field .select, .pv-num { width: 100%; min-width: 0; }
+  .pv-player { min-width: 124px; max-width: 150px; }
+  .pv-player .pv-add { width: 24px; height: 24px; }
+}

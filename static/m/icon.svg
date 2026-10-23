@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Forkcast: your plan's path (solid, chosen) forking from the alternative (faint), on the app's turf green -->
+  <rect width="512" height="512" fill="#02A24F"/>
+  <rect y="128" width="512" height="128" fill="#009B4B"/>
+  <rect y="384" width="512" height="128" fill="#009B4B"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="44" stroke-linecap="round">
+    <path d="M256 268 C256 196 172 188 160 136" stroke-opacity=".42"/>
+    <path d="M256 268 C256 196 340 188 352 136"/>
+    <path d="M256 268 V420"/>
+  </g>
+  <circle cx="160" cy="124" r="30" fill="#02A24F" stroke="#FFFFFF" stroke-opacity=".42" stroke-width="16"/>
+  <circle cx="352" cy="124" r="38" fill="#FFFFFF"/>
+</svg>

@@ -1,0 +1,27 @@
+/* Preview view (#/preview): run forms, the solver's HTML page in a frame, recent runs. */
+
+.pv-forms { align-items: start; }
+.pv-forms .card-body { display: flex; flex-direction: column; gap: 12px; }
+.pv-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 8px 12px; }
+.pv-go { margin-top: 2px; }
+.pv-go .muted { flex: 1 1 220px; }
+.pv-entries { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.pv-entries:empty { display: none; }
+
+.pv-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.pv-title { font-size: 15px; }
+iframe.pv-frame { min-height: 420px; }
+iframe.pv-frame.scroll { height: calc(100vh - 150px); min-height: 480px; }
+
+.pv-log { margin-top: 12px; }
+.pv-log > summary { cursor: pointer; color: var(--muted); font-size: 13px; padding: 4px 0 8px; }
+.pv-log > summary:hover { color: var(--text); }
+
+.pv-label > span { display: inline-block; max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.tbl td.pv-acts { width: 1%; white-space: nowrap; }
+.pv-acts .icon-btn { width: 28px; height: 28px; }
+
+@media (max-width: 600px) {
+  .pv-label > span { max-width: 180px; }
+  iframe.pv-frame.scroll { height: calc(100vh - 110px); }
+}

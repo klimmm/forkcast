@@ -1,0 +1,36 @@
+/* Data view (#/data): freshness table, data jobs, live logs. */
+
+.dt-pool { max-width: 520px; margin-bottom: 12px; }
+.dt-pool:empty { display: none; }
+
+.tbl tr.dt-stale td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+.tbl tr.dt-missing td:first-child { box-shadow: inset 3px 0 0 var(--loss); }
+.tbl td.dt-note { min-width: 200px; color: var(--text-2); font-size: 13px; }
+.tbl td.dt-file { max-width: 260px; }
+.dt-path { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.dt-path code { font-size: 12px; color: var(--muted); }
+.dt-path .icon-btn { width: 24px; height: 24px; flex: none; }
+.dt-last { display: block; max-width: 420px; font-family: var(--mono); font-size: 12px; }
+
+.dt-ops { display: flex; flex-direction: column; margin: 12px 0; border: 1px solid var(--line); border-radius: 10px; }
+.dt-op { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; }
+.dt-op + .dt-op { border-top: 1px solid var(--line); }
+.dt-op-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: var(--surface-2); color: var(--accent); }
+.dt-op-text { min-width: 0; }
+.dt-op-title { font-weight: 620; }
+.dt-op-cmd { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.dt-activity:empty { display: none; }
+.dt-run { position: relative; }
+.dt-run .job-head { padding-right: 40px; }
+.dt-dismiss { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; }
+
+.dt-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13px; }
+.dt-dl dt { color: var(--muted); }
+.dt-dl dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 600px) {
+  .dt-op { grid-template-columns: minmax(0, 1fr) auto; }
+  .dt-op-icon { display: none; }
+  .tbl td.dt-note { min-width: 160px; }
+}

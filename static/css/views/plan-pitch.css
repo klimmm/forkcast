@@ -1,0 +1,468 @@
+/* Planner pitch (static/js/plan/pitch.js) and kit shirts (plan/kits.js).
+   renderPitch (pp-*): the pitch and bench are one dark-turf object in both themes; sizes follow the pitch's own
+   width (container units), so it scales from ~300px to a wide column without overflowing.
+   mountPitch (pm-*, Forkcast's phone pitch): the FPL-like pitch of DESIGN_V2 §4, at the bottom of this file. */
+
+.pp { container-type: inline-size; min-width: 0; }
+
+/* The turf is dark in both themes, so it resolves every light-dark() token as dark (accent, gain, warn,
+   text…). Sizes are in container units, resolved against .pp. */
+.pp-field, .pp-bench {
+  color-scheme: dark;
+  color: #fff;
+  --pp-turf-a: var(--turf-a, #1d5f42);
+  --pp-turf-b: var(--turf-b, #1a573c);
+  --pp-bench: color-mix(in oklab, var(--pp-turf-b) 72%, #000);
+  --pp-chalk: var(--chalk, rgb(255 255 255 / .22));
+  --pp-ring: var(--pp-turf-b);
+  --pp-kit: clamp(34px, 11.2cqi, 64px);
+  --pp-w: clamp(54px, 16cqi, 94px);
+  --pp-fs: clamp(10px, 2.3cqi, 12.5px);
+}
+
+/* ------------------------------------------------------------------ field */
+
+.pp-field {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex; flex-direction: column; justify-content: space-around;
+  gap: clamp(6px, 2.4cqi, 20px);
+  min-height: clamp(320px, 66cqi, 500px);
+  padding: clamp(14px, 3.6cqi, 28px) clamp(4px, 1.6cqi, 18px) clamp(18px, 4.6cqi, 34px);
+  border-radius: var(--r-card, 12px) var(--r-card, 12px) 0 0;
+  background: repeating-linear-gradient(180deg, var(--pp-turf-a) 0 12.5%, var(--pp-turf-b) 12.5% 25%);
+}
+.pp-field:not(:has(+ .pp-bench)) { border-radius: var(--r-card, 12px); }
+.pp-lines {
+  position: absolute; z-index: -1; top: 10px; left: 10px;
+  width: calc(100% - 20px); height: calc(100% - 10px);
+  border: 1.5px solid var(--pp-chalk); border-radius: 3px 3px 0 0;
+  pointer-events: none;
+}
+.pp-chalk { fill: none; stroke: var(--pp-chalk); stroke-width: 1.5; }
+.pp-spot { fill: var(--pp-chalk); }
+
+.pp-chip {
+  position: absolute; top: 16px; left: 18px; z-index: 1;
+  padding: 2px 9px; border-radius: 999px;
+  background: rgb(255 255 255 / .14); color: #fff;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+}
+
+.pp-chip-short { display: none; }
+
+.pp-row { display: flex; justify-content: center; gap: clamp(2px, 2.4cqi, 24px); min-width: 0; }
+
+/* ------------------------------------------------------------------ player node */
+
+.pp-player {
+  appearance: none; margin: 0; padding: 0; border: 0; background: none;
+  font: inherit; color: inherit; text-align: center;
+  flex: 0 1 var(--pp-w); min-width: 0;
+  display: flex; flex-direction: column; align-items: center;
+  border-radius: 7px;
+}
+button.pp-player { cursor: pointer; }
+button.pp-player:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+.pp-kit {
+  position: relative;
+  width: var(--pp-kit); aspect-ratio: 1;
+  margin-bottom: 3px;
+  filter: drop-shadow(0 3px 3px rgb(0 0 0 / .32));
+  transition: transform .18s ease, filter .18s ease;
+}
+.pp-kit .kit-shirt { display: block; width: 100%; height: 100%; }
+button.pp-player:not(:disabled):hover .pp-kit,
+button.pp-player:focus-visible .pp-kit {
+  transform: translateY(-3px);
+  filter: drop-shadow(0 7px 6px rgb(0 0 0 / .38));
+}
+
+.pp-name {
+  display: block; width: 100%;
+  padding: 2px 4px;
+  border-radius: 5px 5px 0 0;
+  background: var(--plate, rgb(9 14 30 / .86)); color: #fff;
+  font-size: var(--pp-fs); font-weight: 600; line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pp-info {
+  display: flex; width: 100%;
+  border-radius: 0 0 5px 5px; overflow: hidden;
+  font-size: calc(var(--pp-fs) - 1px); line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.pp-xp {
+  flex: 0 0 auto; min-width: 44%; padding: 0 4px;
+  background: var(--accent); color: var(--accent-ink);
+  font-weight: 700;
+}
+.pp-opp {
+  flex: 1 1 0; min-width: 0; padding: 0 3px;
+  background: rgb(255 255 255 / .93); color: #1a2232;
+  font-weight: 600; letter-spacing: .02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pp-info.dgw .pp-xp { min-width: 0; }
+.pp-info.dgw .pp-opp { letter-spacing: -.01em; font-size: .9em; }
+.pp-info.blank .pp-opp { color: #8b93a3; }
+
+/* badges on the shirt */
+.pp-badge {
+  position: absolute; top: -3px; right: -7px;
+  display: grid; place-items: center;
+  min-width: 19px; height: 19px; padding: 0 4px;
+  border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; line-height: 1;
+  box-shadow: 0 0 0 2px var(--pp-ring);
+}
+.pp-badge.cap { background: var(--accent); color: var(--accent-ink); }
+.pp-badge.vice { background: #dfe4ec; color: #222a38; }
+.pp-kit .sdot {
+  position: absolute; top: 0; left: -4px;
+  width: 11px; height: 11px;
+  box-shadow: 0 0 0 2px var(--pp-ring);
+}
+
+/* bought this GW: green ring + "IN" */
+.pp-player.is-in .pp-kit::before {
+  content: ""; position: absolute; inset: -5px; z-index: -1;
+  border: 2px solid var(--gain); border-radius: 50%;
+  background: color-mix(in oklab, var(--gain) 16%, transparent);
+}
+.pp-in {
+  position: absolute; bottom: 1px; left: -7px;
+  padding: 0 4px; border-radius: 4px;
+  background: var(--gain); color: #04170e;
+  font-size: 9px; font-weight: 800; line-height: 14px; letter-spacing: .05em;
+  box-shadow: 0 0 0 2px var(--pp-ring);
+}
+
+/* pick mode: targets get a dashed ring, the rest dim; the picked player a solid one */
+.pp-player.is-target .pp-kit::after,
+.pp-player.is-hl .pp-kit::after {
+  content: ""; position: absolute; inset: -6px; z-index: -1;
+  border-radius: 50%;
+}
+.pp-player.is-target .pp-kit::after { border: 2px dashed color-mix(in oklab, var(--accent) 80%, #fff); }
+.pp-player.is-hl .pp-kit::after {
+  border: 2px solid var(--accent);
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
+}
+.pp-player.is-hl .pp-kit { transform: translateY(-3px); }
+.pp-player.is-hl .pp-name { background: var(--accent); color: var(--accent-ink); }
+.pp-player.is-dim { opacity: .38; filter: saturate(.4); cursor: not-allowed; }
+
+.pp-player.is-new .pp-kit { animation: pp-pop .38s cubic-bezier(.2, .9, .3, 1.25); }
+@keyframes pp-pop {
+  from { transform: translateY(6px) scale(.7); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* ------------------------------------------------------------------ bench */
+
+.pp-bench {
+  --pp-ring: var(--pp-bench);
+  padding: 8px clamp(4px, 1.6cqi, 18px) 12px;
+  border-radius: 0 0 var(--r-card, 12px) var(--r-card, 12px);
+  background: var(--pp-bench);
+  border-top: 1px solid rgb(255 255 255 / .08);
+}
+.pp-bench-label {
+  display: block; margin: 0 0 6px 4px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: rgb(255 255 255 / .55);
+}
+.pp-bench.boosted { box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--accent) 70%, transparent); }
+.pp-bench.boosted .pp-bench-label { color: color-mix(in oklab, var(--accent) 65%, #fff); }
+.pp-bench-row { display: flex; justify-content: center; gap: clamp(4px, 3.4cqi, 34px); min-width: 0; }
+.pp-slot {
+  flex: 0 1 var(--pp-w); min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+}
+.pp-slot .pp-player { flex: none; width: 100%; }
+.pp-order {
+  font-size: 10px; font-weight: 700; line-height: 1; letter-spacing: .05em;
+  color: rgb(255 255 255 / .5);
+}
+
+.pp-caption { margin: 8px 2px 0; font-size: 12.5px; color: var(--muted); }
+
+/* ------------------------------------------------------------------ narrow pitches */
+
+@container (max-width: 480px) {
+  .pp-badge { top: -3px; right: -6px; min-width: 15px; height: 15px; padding: 0 3px; font-size: 9px; }
+  .pp-kit .sdot { width: 9px; height: 9px; left: -3px; }
+  .pp-in { left: -5px; font-size: 8px; line-height: 12px; padding: 0 3px; }
+  .pp-name { padding: 1px 2px; border-radius: 4px 4px 0 0; }
+  .pp-info { border-radius: 0 0 4px 4px; }
+  .pp-xp { padding: 0 2px; }
+  .pp-opp { padding: 0 2px; letter-spacing: 0; }
+  .pp-chip { top: 14px; left: 14px; padding: 1px 7px; font-size: 9.5px; }
+  .pp-chip-long { display: none; }
+  .pp-chip-short { display: inline; }
+}
+
+/* ------------------------------------------------------------------ kit shirt edge
+   contrasts with what is behind the shirt: the text colour (light on the turf, which is always dark) */
+
+.kit-shirt .kit-edge { stroke: var(--kit-edge, var(--text, #000)); }
+
+/* ------------------------------------------------------------------ list row (renderMiniPlayer) */
+
+.pp-mini { display: inline-flex; align-items: center; gap: 9px; min-width: 0; max-width: 100%; vertical-align: middle; }
+.pp-mini-kit { flex: none; width: 28px; height: 28px; filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / .22)); }
+.pp-mini-kit .kit-shirt { display: block; width: 100%; height: 100%; }
+.pp-mini-txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; text-align: left; }
+.pp-mini-name { display: flex; align-items: center; gap: 5px; min-width: 0; font-weight: 600; color: var(--text); }
+.pp-mini-nm, .pp-mini-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pp-mini-sub { font-size: 11.5px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-kit { transition: none; }
+  .pp-player.is-new .pp-kit { animation: none; }
+}
+
+/* ------------------------------------------------------------------ phone pitch (mountPitch, pm-*: DESIGN_V2 §4)
+   An edge-to-edge box (390 x 446 at 390 wide by default): an 11-band turf clipped to a perspective top, the goal over its
+   goal line, cards of --pm-card wide with a --pm-tile tall shirt tile, a white name plate and a light second plate,
+   then the bench panel over the turf fading into the page. Plates stay light in both themes. Colours are m.css's pitch
+   tokens (--turf-1/2, --chalk, --tile, --bench-*, --plate*, --warn, --out, --acc-bg). Rules are scoped under .pm so they
+   hold over the older pm-* rules m.css loads after this file.
+   SIZE (F16): --pm-card comes from the pitch's width (--pm-card-w, cqw: .pm is an inline-size container), never wider
+   than five cards with 9 px between and beside them; --pm-tile is 0.92 x card (FPL's own: its 67 pt card's tile is 0.920 of its width). A host that also has a height to fit (Ahead's .ah-pitch, a size container:
+   m-ahead.css) caps both from that height (cqh), so pitch + bench fit it; the plates' text shrinks with the card, never
+   under 9 px. The sizes such a host scales: --pm-plate (each plate's height), --pm-bench-pad (the bench panel's padding
+   top and bottom), --pm-bl / --pm-bl-gap (the bench's "GKP", "1 · DEF" … label and the gap under it). */
+
+.pm {
+  /* five cards with FPL's 9 pt between and beside them (its pick team: 62 pt cards 9 pt apart at 390 wide), never under
+     56 px (a 320-wide pitch's cards are 6.7 px apart; since the card type is --t-cap, "IN for Scott" fits whole only from
+     ~70 px, narrower cards read "IN": pitch.js) */
+  --pm-card-w: clamp(56px, calc((100cqw - 6 * 9px) / 5), 72px);
+  --pm-card: var(--pm-card-w);
+  --pm-plate: max(15px, calc(var(--t-cap, 11px) * 1.36));  /* grows with the text size (B7): the plate text is rem */
+  --pm-bench-pad: 6px;
+  --pm-bl: max(12px, var(--t-cap, 11px));
+  --pm-bl-gap: 4px;
+  --pm-sold: #3B403D;  /* a sold-later player's plate and OUT tag: neutral, apart from the buy's green and the flags' amber/red */
+  --pm-tile: calc(var(--pm-card) * .92);
+  /* B27: the tile of a card whose fixture takes a line of its own (.pm-pf.two): one plate flatter, so the card keeps its
+     height (the 2026-10-09 pitch rule: a two-line plate may flatten the tile), never flatter than a mark with its margins;
+     from whichever --pm-tile this pitch has (a height-capped host's too: m-ahead.css) */
+  --pm-tile-two: max(calc(var(--pm-tile) - var(--pm-plate)), calc(var(--pm-mark) + 6px));
+  /* the shirt's box (FPL's 220 x 290 image frame, kits.js FPL_FRAME, whose outfield shirt is 193/220 of its width): wide
+     enough that the shirt is FPL's 0.741 of the card */
+  --pm-fit: var(--pm-card);  /* the card size the shirt and the marks are drawn for (a height-capped host narrows it, never the plates) */
+  --pm-shirt-w: calc(var(--pm-fit) * .741 * 220 / 193);
+  /* C / V and the flag: FPL's are 0.15 of the card, never under 12 px, never smaller than their letter (B7) */
+  --pm-mark: max(clamp(12px, calc(var(--pm-fit) * .15), 15px), calc(var(--t-cap, 11px) * 1.3));
+  /* the app's ink on both plates and the bench labels (B4: one ink, not FPL's aubergine); opaque white chalk 2 px wide;
+     a lighter, bluer shirt tile (FPL's #0E794A on the light turf) */
+  --plate-ink: var(--ink, #17191A);
+  --plate-2-ink: var(--ink, #17191A);
+  --bench-ink: var(--ink, #17191A);
+  --chalk: light-dark(#FFFFFF, rgb(255 255 255 / .75));
+  --tile: light-dark(#0E794A, rgb(0 0 0 / .3));
+  --pm-tile-r: 6px;  /* the tile's corners (FPL's 6 pt); the plates' are 2 px less, 1 px inside it */
+  --pm-tag: calc(var(--t-cap, 11px) * 1.3);  /* a tag's height (IN / OUT, the flag, bench?) */
+  /* the cards' type (B4): m.css's --t-cap (11 px at the default size, rem: it follows the text size), one size for every
+     word on a card: the name, the second plate, the tags, C / V and the bench's GKP · DEF labels. 600 throughout, the
+     fixture 400; letter-spacing 0; the app's ink */
+  --pm-t: var(--t-cap, 11px);
+  --pm-t-name: var(--pm-t);
+  position: relative;
+  container-type: inline-size;
+  font-family: var(--f-text);
+}
+/* the card's type shrinks with a narrow card (F16: never under 9 px): a pitch under 359 px gives cards under 61 px, whose
+   plate (the card less its 1 px insets) is narrower than a fixture beside its points at --t-cap ("MUN H 3.8": 58.8 px at
+   11 px, 2026-10-12), so at the default size almost every fixture took a line of its own (B27) and its card a plate more
+   than its row has (320 × 568: rows 3–4 px into each other); 0.9 of it keeps them on one line */
+@container (max-width: 358.98px) {
+  .pm > * { --pm-t: max(9px, calc(var(--t-cap, 11px) * .9)); --pm-t-name: var(--pm-t); }
+}
+.pm .pm-field {
+  --kit-edge: #000;
+  position: relative; width: 100%; height: auto; aspect-ratio: 390 / 446;
+  overflow: visible; isolation: isolate; border-radius: 0; background: none; box-shadow: none;
+}
+/* the turf's top corners rounded as FPL's (a ~14 px radius in the 390 x 446 box: four points per corner) */
+.pm .pm-turf { position: absolute; inset: 0; clip-path: polygon(8.59% 4.66%, 9.23% 3.7%, 10.26% 3.05%, 11.92% 2.69%, 88.08% 2.69%, 89.74% 3.05%, 90.77% 3.7%, 91.41% 4.66%, 100% 23.5%, 100% 100%, 0 100%, 0 23.5%); }
+.pm .pm-lines, .pm .pm-goal { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+.pm .pm-band { fill: var(--turf-1); }
+.pm .pm-band.b { fill: var(--turf-2); }
+.pm .pm-chalk { fill: none; stroke: var(--chalk); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.pm .pm-goal-in { fill: rgb(0 60 30 / .35); }
+.pm .pm-net { stroke: rgb(255 255 255 / .45); stroke-width: .8; vector-effect: non-scaling-stroke; }
+.pm .pm-goal-frame { fill: none; stroke: #FFFFFF; stroke-width: 2.4; vector-effect: non-scaling-stroke; }
+
+.pm .pm-rows { position: absolute; inset: 0; z-index: 1; display: block; }
+.pm .pm-row {
+  position: absolute; left: 0; right: 0;
+  display: flex; justify-content: center; align-items: flex-start;
+  gap: max(4px, calc((100% - 5 * var(--pm-card)) / 6));
+}
+.pm .pm-row[data-n="5"] { justify-content: space-evenly; gap: 0; }
+
+/* a card: the shirt tile over two plates (--pm-plate tall, 15 px unless a host scales them) */
+.pm .pm-card {
+  position: relative; flex: none; width: var(--pm-card); min-width: 0; margin: 0; padding: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+  border: 0; border-radius: 0; background: none; color: var(--plate-ink); text-align: center;
+  font: inherit; -webkit-tap-highlight-color: transparent;
+}
+button.pm-card { cursor: pointer; }
+button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 3px; }
+.pm .pm-kit {
+  position: relative; width: 100%; height: var(--pm-tile);
+  background: var(--tile); border-radius: var(--pm-tile-r) var(--pm-tile-r) 0 0; perspective: 260px;
+}
+/* the shirt as FPL's card draws it (its Pick Team measured, 2026-10-06): 0.741 of the card wide, its collar 0.216 of the
+   tile's height under the tile's top (0.2 x the card in FPL's 0.92 tile), never stretched (its box is its frame's
+   220 x 290, kits.js shirt({tall}), the same for a drawn and an official shirt), and cut off by the name plate as FPL's
+   is: the tile clips it. A height-capped tile (Ahead on a short screen) draws it smaller, halfway to the tile's
+   proportions (m-ahead.css --pm-shirt-w). */
+.pm .pm-flip { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
+.pm .pm-face {
+  position: absolute; inset: auto; filter: none;
+  top: calc(var(--pm-tile) * .216 - var(--pm-shirt-w) * 4 / 220);  /* FPL's frame has its shirt 4/220 of its width down */
+  left: calc(50% - var(--pm-shirt-w) / 2); width: var(--pm-shirt-w); aspect-ratio: 220 / 290;
+}
+.pm .pm-face.back { display: none; }  /* no 3D flip (DESIGN_V2 §2 motion): m.css fades the new shirt in */
+.pm .pm-face > .kit-shirt { display: block; width: 100%; height: 100%; }
+
+/* C / V: a small solid circle (--pm-mark) 3 px in from the tile's top-left, beside the collar as FPL's (TC: "3×") */
+.pm .pm-badge.c, .pm .pm-badge.v {
+  position: absolute; top: 3px; left: 3px; right: auto; z-index: 3;
+  width: var(--pm-mark); height: var(--pm-mark); border-radius: 50%; box-shadow: none;
+  display: grid; place-items: center;
+  background: var(--plate-ink); color: #FFFFFF; font: 600 var(--pm-t)/1 var(--f-text);
+}
+.pm .pm-badge.tc { width: auto; min-width: var(--pm-mark); padding: 0 2px; border-radius: calc(var(--pm-mark) / 2); letter-spacing: 0; }
+.pm .pm-badge.pm-fly { top: 0; left: 0; z-index: 50; pointer-events: none; }
+
+/* FPL's flag (its availability only, B4), 3 px in from the tile's top-right: the warning triangle and his chance
+   ("75%") on a tag in the flag's colour; the name plate takes the colour too. WhoScored's predicted lineup is never
+   a flag (spoken on the card, written on the player sheet) */
+.pm .pm-flag {
+  position: absolute; top: 3px; right: 3px; z-index: 3; max-width: calc(100% - 6px); height: var(--pm-tag);
+  display: flex; align-items: center; gap: 2px; padding: 0 3px 0 2px; border-radius: 3px; overflow: hidden;
+  font: 600 var(--pm-t)/var(--pm-tag) var(--f-text); letter-spacing: 0; white-space: nowrap;
+}
+.pm .pm-flag { background: var(--warn); color: #1B1300; }
+.pm .pm-flag.red { background: var(--out); color: #FFFFFF; }
+.pm .pm-flag:not(:has(.pm-flag-w)) { padding: 0 2px; }
+.pm .pm-flag-g { flex: none; display: block; width: calc(var(--pm-tag) * .72); height: calc(var(--pm-tag) * .62); }
+.pm .pm-flag-t { fill: #1B1300; }
+.pm .pm-flag-i { fill: var(--warn); }
+.pm .pm-flag.red .pm-flag-t { fill: #FFFFFF; }
+.pm .pm-flag.red .pm-flag-i { fill: var(--out); }
+
+/* bought this GW (F16, M9): an "IN" badge at the tile's bottom-left, white with green text, rounded as the C and V badges
+   are (the top-left corner is theirs), the name plate green unless a flag colours it (the user, 2026-10-22: "IN for
+   Saka" became the badge) */
+.pm .pm-in, .pm .pm-out {
+  position: absolute; bottom: 0; z-index: 3; max-width: 100%; padding: 0 3px;
+  background: #FFFFFF; font: 600 var(--pm-t)/var(--pm-tag) var(--f-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0;
+}
+.pm .pm-in { left: 2px; bottom: 2px; padding: 0 4px; border-radius: calc(var(--pm-tag) / 2); color: #0B6B3A; }
+
+/* sold later (F16): "OUT GW8" on the tile's bottom-right in the same form, the name plate dark unless a buy or a flag colours it */
+.pm .pm-out { left: auto; right: 0; border-radius: 3px 0 0 0; color: var(--pm-sold); }
+/* bought and sold later (Bassey IN GW6, OUT GW9): each tag on its side, "IN GW6" a row above "OUT GW9" (in time order),
+   so neither covers the other on the narrowest card */
+.pm .pm-card.bought.sold .pm-in { bottom: calc(var(--pm-tag) + 2px); }
+
+.pm .pm-plate {
+  display: block; box-sizing: border-box; width: 100%; min-width: 0; max-width: none; margin: 0; padding: 0 1px 1px;
+  border-radius: 0 0 var(--pm-tile-r) var(--pm-tile-r); background: var(--tile); box-shadow: none; line-height: var(--pm-plate);
+}
+/* FPL's plates sit 1 px inside the tile, which runs on under them; the name plate's top corners and the fixture plate's
+   bottom ones rounded */
+.pm .pm-bench .pm-plate { background: var(--bench-tile); }
+.pm .pm-pn, .pm .pm-pf {
+  display: block; height: var(--pm-plate); padding: 0 3px; font-family: inherit; line-height: var(--pm-plate);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0;
+}
+.pm .pm-pn { padding: 0 1px; border-radius: calc(var(--pm-tile-r) - 2px) calc(var(--pm-tile-r) - 2px) 0 0; background: var(--plate); color: var(--plate-ink); font-size: var(--pm-t-name); font-weight: 600; }  /* the name gets the card's whole width (B4) */
+.pm .pm-pf {
+  display: flex; justify-content: center; gap: 3px; padding: 0;  /* no side padding: the plate's 1 px inset in the tile takes it */
+  border-radius: 0 0 calc(var(--pm-tile-r) - 2px) calc(var(--pm-tile-r) - 2px); background: var(--plate-2); color: var(--plate-2-ink);
+  font-size: var(--pm-t); font-weight: 400; font-variant-numeric: tabular-nums;
+}
+/* "SUN A 4.2" fits a 56 px card; a wider pair (a DGW's two fixtures) puts the fixture on a line of its own over
+   the points (B27, pitch.js fitFixtures: the venue stays), then ellipsises the fixture there, never the points */
+.pm .pm-fx { min-width: 0; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0; }
+.pm .pm-pf.two { flex-direction: column; align-items: center; gap: 0; height: calc(2 * var(--pm-plate)); }
+.pm .pm-pf.two .pm-fx { max-width: 100%; }
+.pm .pm-card:has(.pm-pf.two) { --pm-tile: var(--pm-tile-two); }
+.pm .pm-px { display: inline; flex: none; height: auto; padding: 0; background: none; font-family: inherit; font-size: var(--pm-t); font-weight: 600; line-height: var(--pm-plate); color: var(--plate-ink); }
+.pm .pm-pf.data .pm-px { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.pm .pm-px.approx::before { content: "≈"; margin-right: 1px; color: var(--plate-2-ink); }
+.pm .pm-card.sold .pm-pn { background: var(--pm-sold); color: #FFFFFF; }
+.pm .pm-card.bought .pm-pn { background: var(--acc-bg); color: var(--acc-ink); }
+.pm .pm-card.f-amber .pm-pn { background: var(--warn); color: #1B1300; }
+.pm .pm-card.f-red .pm-pn { background: var(--out); color: #FFFFFF; }
+
+/* the bench: the turf runs 6 px under a lighter panel, then fades into the page */
+.pm .pm-benchzone { background: linear-gradient(var(--turf-1) 0, var(--turf-1) 6px, var(--bg) 100%); padding-top: 2px; }
+.pm .pm-bench {
+  margin: 0 8px; padding: var(--pm-bench-pad) 4px;
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); justify-items: center;
+  border-radius: 12px 12px 0 0; background: var(--bench-glass);
+}
+.pm .pm-slot { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.pm .pm-bl { display: block; max-width: 100%; height: var(--pm-bl); margin-bottom: var(--pm-bl-gap); font-size: var(--pm-t-name); font-weight: 600; line-height: 1; letter-spacing: 0; color: var(--bench-ink); text-align: center; }
+.pm .pm-bl > span { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }  /* "1 · DEF" never wider than its card */
+.pm .pm-bl .pm-blo { display: none; }  /* its order's ending, "st", a host's to show (pitch.js benchPanel: Ahead's "1st") */
+/* a host's tap on a sub's label (mountPitch onBench: Ahead's sub list): the label's whole width a button, its look the
+   label's; its target reaches up over the turf (m-ahead.css) */
+.pm button.pm-bl { position: relative; align-self: stretch; min-width: 0; padding: 0; border: 0; background: none; font-family: inherit; cursor: pointer; }
+.pm .pm-bench .pm-kit { background: var(--bench-tile); }
+
+/* a blank week: the shirt greyed */
+.pm .pm-card.blank .pm-face { filter: grayscale(1) opacity(.6); }
+
+/* ------------------------------------------------------------------ official shirts (kits.js officialShirt, opt-in)
+   FPL's shirt image in place of the drawn <svg>: every shirt host is a sized box (the pitch face, .mk, .ps-kit…), so the
+   image fills it as the svg does, never stretched. The "Shirts: Drawn | Official" row (kitSourceRow) ends the Player
+   data sheet; it runs edge to edge as that sheet's options do (m-ahead.css .ah-pd). */
+img.kit-shirt { display: block; width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; user-select: none; }
+.kit-src { margin: 0 calc(-1 * var(--gutter, 16px)); padding: 10px var(--gutter, 16px) 12px; border-top: 1px solid var(--hair); }
+.kit-src-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; }
+.kit-src-l { font: 600 var(--t-body)/1.3 var(--f-text); color: var(--ink); }
+.kit-src .kit-src-seg { flex: 0 1 200px; min-width: 0; margin-top: 0; }
+.kit-src-note { margin: 6px 0 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
+
+/* ------------------------------------------------------------------ FDR on the second plate (pitch.js secondPlate)
+   Each opponent in a pale tint of FPL's fixture difficulty colour for the GW shown: 1 easy .. 5 hard. The user,
+   2026-10-09: "make colors more pale" (FPL's own chips, #01FC7A / #FF1751 sampled 2026-10-06, were the loudest ink on
+   the screen for a forecast swing of ~0.3 pts, and their red met the flag's red plate). 2 / 3 / 4 are app.css's FDR
+   tokens (the Studio's heat cells, one palette); here only the ends are paler than the Studio's strong 1 and 5, each a
+   deeper tint of its side, so 1 and 5 still read past 2 and 4 (1.4:1, 1.7:1). One ink, the plate's (B4): 7.4:1 on 5,
+   12.7:1 or more on the rest. Plates stay light in both themes. A blank or an unknown FDR stays the plate's own. */
+:root {
+  --fdr-1: #8DD3A9;
+  --fdr-5: #EB8F87;
+}
+/* the chip's colour reaches past the text by a box-shadow, not padding: the plate's text keeps its width, so
+   "LIV (A) 12.2" still fits a 65 px card (padding pushed the home/away marker into the ellipsis) */
+.pm .pm-opp.fdr-1 { --fdr-c: var(--fdr-1); }
+.pm .pm-opp.fdr-2 { --fdr-c: var(--fdr-2); }
+.pm .pm-opp.fdr-3 { --fdr-c: var(--fdr-3); }
+.pm .pm-opp.fdr-4 { --fdr-c: var(--fdr-4); }
+.pm .pm-opp.fdr-5 { --fdr-c: var(--fdr-5); }
+.pm .pm-opp[class*="fdr-"] { padding: 0; border-radius: 2px; background: var(--fdr-c); box-shadow: 0 0 0 1.5px var(--fdr-c); color: var(--plate-ink); }
+/* B27: the ends marked without colour too (the tints put easy and hard about 1.09:1 apart, one beige under
+   deuteranopia): hard (4-5) underlined, easy (1-2) a dotted underline, average plain; the weight stays. The underline
+   sits clear of the plate's edge (an em offset: it grows with the text). The legend's chips (Player data, m-a.css
+   .ah-fdrc) carry the same marks, from this one rule */
+.pm .pm-opp.fdr-1, .pm .pm-opp.fdr-2, .ah-fdrc.fdr-1, .ah-fdrc.fdr-2,
+.pm .pm-opp.fdr-4, .pm .pm-opp.fdr-5, .ah-fdrc.fdr-4, .ah-fdrc.fdr-5 {
+  text-decoration-line: underline; text-decoration-thickness: 1px; text-underline-offset: .15em;
+}
+.pm .pm-opp.fdr-1, .pm .pm-opp.fdr-2, .ah-fdrc.fdr-1, .ah-fdrc.fdr-2 { text-decoration-style: dotted; }

@@ -1,0 +1,750 @@
+/* Forkcast (static/m/): the phone app's tokens and base components. Loaded after app.css (the desktop Studio's
+   tokens; this :root overrides the shared names --accent, --gain, --loss, --warn, --turf-*, --chalk, --plate for the
+   phone app only; data-theme → color-scheme) and views/plan-pitch.css (shirt edges, renderMiniPlayer). Screen sheets
+   (m-ahead.css, m-you.css) are linked by static/m/index.html.
+
+   TOKENS (DESIGN_V2 §2; light-dark(): System, or html[data-theme=light|dark] from the You sheet. light-dark() follows
+   the color-scheme of the element that USES a token, so never set color-scheme on a subtree)
+   Page      --bg warm page, section headers · --surface rows, cards, bars, sheets · --track segmented track, grey
+             fills, avatar · --hair hairlines between rows · --border-2 inputs, outlined buttons, grip dots
+   Text      --ink · --ink-2 · --muted
+   Accent    --acc green text and links · --acc-bg green fills (primary, selected segment, Planned, GW bar marker) ·
+             --acc-ink text on --acc-bg. The ONE accent; never a verdict
+   Meaning   --xp --xp-l --xp-d forecast points, a signed gain's too (ui.js xpNum, xpGain: blue text and "xP", its sign its
+             direction; the user, 2026-10-22, after v1.3.68: no green or red number, worth doing the solid + alone) ·
+             --gain / --loss a status's and money's words (a short bank's coral) · --warn flag fill (doubtful) ·
+             --warn-ink amber text · --out flag fill (injured, suspended)
+   Pitch     --turf-1 --turf-2 stripes · --chalk markings · --tile shirt tile · --bench-glass --bench-tile
+             --bench-ink bench panel · --boost a Bench Boost bench's ring · --plate --plate-ink name plate · --plate-2 --plate-2-ink fixture plate
+   Chrome    --token --token-ink chip tokens (BB TC FH WC) · --toast --toast-ink toasts · --scrim behind sheets
+   Type      --f-text the system stack, nothing else (no Rounded, no serif); numbers tabular everywhere. ONE scale
+             (rem off -apple-system-body, Dynamic Type; px at the default size): --t-title 22/700 · --t-head 17/600 ·
+             --t-body 15/400 (600 emphasis) · --t-sub 13/400 (600 emphasis) · --t-cap 11/600 (uppercase labels, chart
+             text). Weights 400 and 600 only (700: --t-title). Line-height 1.3, titles 1.2. Letter-spacing 0, except an
+             uppercase cap label (+.04em). No other size, no inline font styles in JS. The one exception: a text
+             field's 16 px floor (iOS zooms into a smaller one). Figures are tabular only where numbers line up
+             (.m-num, columns, the tiles, the plates): tabular-nums on a whole line also widened the hyphen of
+             "Calvert-Lewin" and "re-plans" (the system font's tnum covers U+002D: "Calvert - Lewin")
+   Greys     two for text: --ink and --muted (--ink-2 only for a control's label). Green: --acc for links and the
+             selection (--gain is the same colour; never a number's since 2026-10-22: --xp)
+   Buttons   primary: filled green (.m-primary, rare) · secondary: outlined, 1px --border-2, radius 12, 600 --t-body,
+             44 pt (.m-secondary, .m-chipbtn, the sheets' button grids) · tertiary: green text (.m-link, .ah-lnk)
+   Shape     4-based · --gutter 16 · --r-sm 5 (small buttons) · --r-ctl 8 (buttons, inputs, cards, strip) · --r-sheet
+             12 · no pills, no shadows, no gradients, no blur
+   Safe area --safe-top / --safe-bot (env insets, floors for desktop)
+   Motion    --ease / --dur (150-200 ms) for sheets, toasts and state changes only. No bounce, odometer, rain, shimmer,
+             lens or drop-ins; Reduce Motion at the bottom of this file
+   Old names kept as aliases while the screens move over (do not use in new rules): --text --text-2 --accent
+   --accent-ink --accent-soft --clear --lean --coin --line --line-strong --soft --soft-2 --surface-2 --surface-3
+   --surface-elev --glass --shadow-c --f-round --f-serif --spring --bounce and the old flat tints (--card-*, --sheet-*,
+   --thumb-*, --btn-*, --night-*, --backdrop, --seg-bg)
+
+   COMPONENTS (class → use)
+   .m-card .m-link                         flat cards, text links
+   .m-primary .m-secondary .m-chipbtn .m-xbtn   buttons (primary 46pt green; secondary outlined; .done = Locked in)
+   .m-seg[style=--n:3;--i:0] > .m-seg-thumb + button[aria-checked]    segmented control (a radio group)
+   .g-clear .g-lean .g-coin .g-loss        verdict / loss text colours
+   .m-approx (≈ prefix) .m-pending (dashed outline while re-planning) .m-skel (static placeholder block)
+   .m-num (tabular figures) .m-odo (digits; ctx.odometer)
+   Sheets, the state banner and Connect are the shell's (static/js/m/app.js).
+*/
+
+:root {
+  --bg:        light-dark(#F7F7F5, #0F1110);
+  --surface:   light-dark(#FFFFFF, #181B1A);
+  --track:     light-dark(#ECECE7, #252927);
+  --hair:      light-dark(#E2E2DC, #2A2E2C);
+  --border-2:  light-dark(#CBCBC3, #3B403D);
+  --ink:       light-dark(#17191A, #ECEFED);
+  --ink-2:     light-dark(#44484A, #C4C9C6);
+  --muted:     light-dark(#63676A, #8C928F);  /* 4.8:1 on --track, 5.3:1 on --bg (the six-book review, 2026-10-09) */
+  --acc:       light-dark(#0B6B3A, #55C68A);
+  --acc-bg:    light-dark(#0B6B3A, #187A44);
+  --acc-ink:   #FFFFFF;
+  --gain:      var(--acc);  /* one green (B6): gains, links and the selection share it */
+  --loss:      light-dark(#C0281E, #FF6E61);
+  /* forecast points (the user, 2026-10-22, after v1.3.68: "is points coloring not too much, and why + still goes with
+     other colors and no xp": no chip, blue text and an "xP" by it, everywhere, the signed gains too, the sign their
+     direction; worth doing is the solid + alone): a blue apart from the green, the reds, FPL's FDR tints and the Bench
+     Boost's cyan. --xp the figures and the marker on the page's surfaces (6.0:1 on --bg, 6.4:1 on --surface, 5.4:1 on
+     --track, 4.8:1 on --soft-2 light; 8.7:1, 7.9:1, 6.7:1, 6.0:1 dark), and the bars; --xp-l on a light surface in both
+     themes (a plate, a token: 6.4:1 on white, 5.7:1 on the dark theme's plate; a shade under the chip's #2F62C4, 4.3:1
+     on --soft-2); --xp-d on the pitch's dark green (a tab, a place's header: 5.0:1 on #0A6A3F, 6.7:1 on #0B3D24). A
+     surface names its own: --xp-c (m.css .xp) */
+  --xp-l:      #2B5BB8;
+  --xp:        light-dark(var(--xp-l), #8AB0F5);
+  --xp-d:      light-dark(#CFE0FF, #9CC0FF);
+  --warn:      #F2B200;
+  --warn-ink:  light-dark(#8A5A00, #F2B200);
+  --out:       #D32F2F;
+
+  --turf-1:      light-dark(#02A24F, #0B7E41);
+  --turf-2:      light-dark(#009B4B, #08773D);
+  --chalk:       light-dark(rgb(255 255 255 / .9), rgb(255 255 255 / .7));
+  --tile:        light-dark(rgb(0 0 0 / .26), rgb(0 0 0 / .3));
+  --bench-glass: light-dark(rgb(255 255 255 / .38), rgb(255 255 255 / .08));
+  --bench-tile:  light-dark(rgb(0 0 0 / .16), rgb(0 0 0 / .28));
+  --bench-ink:   light-dark(#0E3B22, #CDEBD9);
+  --boost:       #6EECFC;  /* FPL's Bench Boost ring (sampled from its Pick Team, 2026-10-13) */
+  --plate:       light-dark(#FFFFFF, #F1F3F2);
+  --plate-ink:   #17191A;
+  --plate-2:     light-dark(#F2F4F3, #D9DEDB);
+  --plate-2-ink: #2B2F2D;
+  --token:       light-dark(#2A2E2C, #D9DEDB);
+  --token-ink:   light-dark(#FFFFFF, #111312);
+  --toast:       light-dark(#1F2221, #ECEFED);
+  --toast-ink:   light-dark(#FFFFFF, #0F1110);
+  --scrim:       light-dark(rgb(0 0 0 / .32), rgb(0 0 0 / .55));
+
+  /* old names (aliases; see the header) */
+  --text: var(--ink);
+  --text-2: var(--ink-2);
+  --accent: var(--acc);
+  --accent-ink: light-dark(#FFFFFF, #0F1110);
+  --accent-soft: color-mix(in oklab, var(--acc) 12%, transparent);
+  --clear: var(--gain);
+  --lean:  var(--warn-ink);
+  --coin:  var(--muted);
+  --pencil: var(--border-2);
+  --line: var(--hair);
+  --line-strong: var(--border-2);
+  --soft: var(--track);
+  --soft-2: color-mix(in oklab, var(--track), var(--border-2) 40%);
+  --surface-2: var(--track);
+  --surface-3: var(--hair);
+  --surface-elev: var(--surface);
+  --glass: var(--surface);
+  --shadow-c: transparent;
+  --card-top: var(--surface);  --card-bot: var(--surface);
+  --sheet-top: var(--surface); --sheet-bot: var(--surface);
+  --thumb-top: var(--surface); --thumb-bot: var(--surface);
+  --btn-top: var(--acc-bg);    --btn-bot: var(--acc-bg);   --btn-ink: var(--acc-ink);
+  --night-a: var(--bg);        --night-b: var(--bg);       --backdrop: var(--bg);
+  --seg-bg: var(--track);
+  --turf-a: var(--turf-1);     --turf-b: var(--turf-2);
+
+  --f-text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, system-ui, sans-serif;
+  --f-round: var(--f-text);
+  --f-serif: var(--f-text);
+  --font: var(--f-text);
+  /* the type scale (the user, 2026-10-08: one scale for the whole app). Five sizes, in rem so they follow the iOS text
+     size (Dynamic Type), exact px at the default 17 px; weights 400 and 600 only (700 for --t-title alone); line-height
+     1.3 (1.2 for --t-title and --t-head). Every font size in m.css, m-ahead.css, m-you.css and the phone pitch is one of
+     these (the pitch cards' two steps scale with the pitch: --pm-t, plan-pitch.css) */
+  --t-title: calc(22rem / 17);  /* 22 / 700: screen and sheet titles */
+  --t-head:  calc(17rem / 17);  /* 17 / 600: section heads, the player's name */
+  --t-body:  calc(15rem / 17);  /* 15 / 400: rows, buttons (600 for emphasis) */
+  --t-sub:   calc(13rem / 17);  /* 13 / 400: secondary lines, labels (600 for emphasis) */
+  --t-cap:   calc(11rem / 17);  /* 11 / 600: uppercase labels, chart text, small plates */
+
+  --gutter: 16px;
+  --r-sm: 5px;
+  --r-ctl: 8px;
+  --r-card: 8px;
+  --r-sheet: 12px;
+  --r-btn: 12px;  /* buttons: primary and secondary */
+  --safe-top: max(env(safe-area-inset-top), 14px);
+  --safe-bot: max(env(safe-area-inset-bottom), 8px);
+  --col-w: 430px;
+  /* the column's tallest on a larger screen: the largest iPhone's viewport, 430 × 932, as --col-w is its width. Ahead
+     fits its pitch to the column's height (ahead.js fitPitch), so a desktop window taller than a phone stretched the
+     rows apart (the user, 2026-10-22, Chrome on macOS: "why proportions are fucked"): past this the window is page */
+  --col-h: 932px;
+  --ease: cubic-bezier(.25, .1, .25, 1);
+  --dur: .18s;
+  --spring: var(--ease);
+  --bounce: var(--ease);
+}
+
+/* Dynamic Type: rem follows the iOS text size; 17px (the body size) elsewhere */
+html { font-size: 17px; }
+@supports (font: -apple-system-body) { html { font: -apple-system-body; } }
+
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+/* no double-tap zoom anywhere (iOS Safari zoomed the page ~1.15x on two quick taps, cutting its right side off:
+   the user, 2026-10-07); pinch-to-zoom still works. Elements that need less (the rail, the pitch, sheet grips) narrow it */
+html { touch-action: manipulation; }
+body {
+  margin: 0; padding: 0; min-height: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 var(--t-body)/1.3 var(--f-text);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+p { margin: 0; }
+/* the scale's base (zero specificity: any rule wins): headings, <b>, <small> and fields never bring the browser's own
+   sizes or bold (700) in; every number tabular, whatever font shorthand a rule sets */
+:where(.m-app, #toasts) :where(h1, h2, h3, h4) { margin: 0; font: inherit; }
+:where(.m-app, #toasts) :where(b, strong) { font-weight: 600; }
+:where(.m-app, #toasts) :where(small) { font-size: var(--t-sub); }
+:where(.m-app, #toasts) :where(input, textarea, select) { font: 400 var(--t-body)/1.3 var(--f-text); }
+/* tabular figures where numbers line up, never on a whole line of words: the system font's tnum also widens the
+   hyphen ("Calvert - Lewin", "re - plans": B6) */
+.m-num, .num, .m-app :is(.ah-tick .p, .ah-bg, .ah-tot, .ah-dl, .ah-fg .md, .ah-lrow .rt, .wy-cmp .c,
+  .y-stats b, .pm-pf, .pm-px, .ps-chart, .ps-rk, .ps-sv, .m-odo), #toasts .toast-msg .m-num { font-variant-numeric: tabular-nums; }
+/* a forecast number (ui.js xpNum, xpGain): the figures in the forecast's blue, no chip, then "xP" in it; a surface's own
+   blue by --xp-c (the plate's, the pitch's dark green's: m.css --xp-l, --xp-d) */
+.m-app .xp { color: var(--xp-c, var(--xp)); font-variant-numeric: tabular-nums; }
+.m-app .xp-u { margin-left: .2em; font-size: .7em; font-weight: 700; letter-spacing: .02em; color: var(--xp-c, var(--xp)); white-space: nowrap; }
+/* …on a card's plate (pitch.js secondPlate; plates are light in both themes): the light surface's blue; "xP" gone where
+   the line is short (pitch.js fitFixtures: .nomark) */
+.m-app .pm .pm-pf { --xp-c: var(--xp-l); }
+.m-app .pm .pm-px.xp { color: var(--xp-c); }  /* over plan-pitch.css .pm .pm-px's ink */
+.m-app .pm .pm-pf .xp-u { flex: none; margin-left: 0; font-size: .78em; line-height: var(--pm-plate); }
+.m-app .pm .pm-pf.nomark .xp-u { display: none; }
+/* a fixture on a line of its own (B27: .two) over the points and their marker side by side */
+.m-app .pm .pm-pf.two:has(.xp-u) { display: grid; grid-template-columns: auto auto; justify-content: center; align-content: start; column-gap: 3px; }
+.m-app .pm .pm-pf.two:has(.xp-u) .pm-fx { grid-column: 1 / -1; justify-self: center; }
+
+/* ------------------------------------------------------------------ the phone column
+   On a phone it is the screen; on a wide screen a centred phone-width column between hairlines, no taller than the
+   largest phone (--col-h), centred in a taller window. F16: 100svh tall, the
+   viewport with Safari's toolbars shown (they float over the page, so a bottom: 0 column ran on under them): Ahead
+   fits it, and a sheet's foot is above them */
+
+.m-app {
+  position: fixed; top: 0; height: 100svh; left: 50%; width: min(100vw, var(--col-w)); transform: translateX(-50%);
+  overflow: hidden; overflow: clip;  /* clip: never a scroll container (an off tab sits 14px to the right) */
+  isolation: isolate;
+  background: var(--bg);
+  user-select: none; -webkit-user-select: none;
+}
+@media (min-width: 560px) {
+  .m-app { box-shadow: 0 0 0 1px var(--hair); }
+}
+@media (min-width: 560px) and (min-height: 700px) {
+  /* --col-top: the column's top (and its bottom's gap), the toasts' too (#toasts) */
+  :root { --col-top: max(16px, calc((100svh - var(--col-h)) / 2)); }
+  .m-app { top: var(--col-top); height: min(calc(100svh - 32px), var(--col-h)); border-radius: var(--r-sheet); }
+}
+.m-app input, .m-app textarea, .m-app [contenteditable] { user-select: text; -webkit-user-select: text; }
+
+/* ------------------------------------------------------------------ the screen (Ahead, F10: no tab bar) */
+
+.m-screen {
+  position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none;
+  padding-top: var(--safe-top); padding-bottom: calc(var(--safe-bot) + 16px);
+  overscroll-behavior: contain;
+  transition: opacity var(--dur) var(--ease);
+}
+.m-screen::-webkit-scrollbar { display: none; }
+.m-screen.off { opacity: 0; pointer-events: none; transform: translateX(14px); visibility: hidden; transition: opacity var(--dur) var(--ease), visibility 0s var(--dur); }
+
+
+/* ------------------------------------------------------------------ state banner (under a screen's header): a flat
+   row; the dot is the only colour, the text stays readable */
+
+.m-banner {
+  display: flex; align-items: center; gap: 8px; margin: 0 0 8px; padding: 8px 8px 8px var(--gutter);
+  font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--ink-2);
+  background: var(--surface); border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair);
+}
+.m-banner[hidden] { display: none; }
+.m-banner .m-banner-t { flex: 1; min-width: 0; }
+.m-banner .m-banner-ic { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.m-banner.offline { color: var(--loss); }
+.m-banner.offline .m-banner-ic { background: transparent; box-shadow: inset 0 0 0 1.5px var(--loss); }
+.m-banner.updating, .m-banner.stale { color: var(--ink-2); }
+.m-banner.updating .m-banner-ic, .m-banner.stale .m-banner-ic { background: var(--warn); }
+.m-banner.baking .m-banner-ic { background: var(--acc-bg); }
+.m-banner .m-banner-bar { flex: none; width: 54px; height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.m-banner .m-banner-bar i { display: block; height: 100%; width: 0; border-radius: 2px; background: var(--acc-bg); transition: width var(--dur) var(--ease); }
+/* a bake's bar by time (app.js etaBar): drawn every second, eased over it, so it moves on its own; a sweep while nothing
+   is estimated yet */
+.m-banner .m-banner-bar i.m-eta, .m-bar i.m-eta { transition: width 1s linear; }
+.m-banner .m-banner-bar i.m-eta.sweep, .m-bar i.m-eta.sweep { width: 30%; border-radius: 2px; animation: m-sweep 1.4s linear infinite; }
+@keyframes m-sweep { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+.m-banner button { flex: none; height: 28px; padding: 0 10px; border: 1px solid var(--border-2); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); font: 600 var(--t-sub)/1.3 var(--f-text); }
+
+/* ------------------------------------------------------------------ type helpers */
+
+.m-foot { font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
+.m-para { font: 400 var(--t-body)/1.3 var(--f-text); color: var(--ink); }
+.g-clear { color: var(--clear); }
+.g-lean { color: var(--lean); }
+.g-coin { color: var(--coin); }
+.g-loss { color: var(--loss); }
+
+/* ------------------------------------------------------------------ cards + buttons: flat, no border, no shadow */
+
+.m-card { position: relative; margin: 0 var(--gutter); padding: 12px 16px 14px; border-radius: var(--r-card); background: var(--surface); }
+.m-well { padding: 12px; border-radius: var(--r-ctl); background: var(--track); }
+
+.m-link { border: 0; background: none; padding: 4px 0 4px 10px; color: var(--acc); font: 600 var(--t-body)/1.3 var(--f-text); }
+.m-primary {
+  position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 44px; margin-top: 12px;
+  border: 0; border-radius: var(--r-btn); background: var(--acc-bg); color: var(--acc-ink); font: 600 var(--t-body)/1.3 var(--f-text);
+  transition: opacity var(--dur) var(--ease);
+}
+.m-primary.lg { height: 44px; }
+.m-primary:active { opacity: .85; }
+.m-primary:disabled { opacity: .55; cursor: default; }
+.m-primary.done { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--border-2); }
+.m-secondary { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 44px; margin-top: 10px; border: 1px solid var(--border-2); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); font: 600 var(--t-body)/1.3 var(--f-text); }
+.m-secondary:active, .m-chipbtn:active, .m-xbtn:active { background: var(--track); }
+/* the secondary style at its content's width (Remove, Change team…, Copy address) */
+.m-chipbtn { flex: none; height: 44px; padding: 0 16px; border: 1px solid var(--border-2); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); font: 600 var(--t-body)/1.3 var(--f-text); }
+.m-chipbtn.ghost { border-color: transparent; background: var(--track); color: var(--ink-2); }
+.m-xbtn { position: relative; flex: none; width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--track); color: var(--ink-2); font: 600 var(--t-body)/1.3 var(--f-text); display: grid; place-items: center; }
+.m-xbtn::before { content: ""; position: absolute; inset: -7px; }  /* a 44pt target */
+/* 44pt hit boxes for small controls, without changing how they look (UX-10, Birman #16): a ::before reaching past the
+   control, only as far as the gap to its neighbour (a later neighbour's own box wins where they meet) */
+.m-link, .m-chipbtn, .ah-ghost,
+.m-where, .m-err button, .m-banner button, .ws .ws-reach, .wy-sheet .wy-tgl, .m-sheet .ah-pills button { position: relative; }
+.m-link::before, .ah-ghost::before { content: ""; position: absolute; inset: -10px -4px; }
+
+/* 28 → 44: Retry (banner, Connect), Add (Add a player), Show runs (Details) */
+.m-err button::before, .m-banner button::before, .ws .ws-reach::before, .wy-sheet .wy-tgl::before { content: ""; position: absolute; inset: -8px -4px; }
+.m-where::before { content: ""; position: absolute; inset: -6px -8px -13px; }  /* 25 → 44: 8 px under Find my team, never into it */
+.m-sheet .ah-pills button::before { content: ""; position: absolute; inset: -6px 0; }  /* 32 → 44; 6 px apart: no wider */
+/* a segment: its button reaches past the track above and below (negative margins; the track, the thumb and the label
+   stay put; a ::before would be clipped by the label's overflow: hidden) */
+.m-seg > button { margin-block: -6px; }  /* 36 → 44 */
+.m-seg.small > button { margin-block: -8px; }  /* 32 → 44 */
+.ps .ps-keep .m-seg > button { margin-block: -4px; }  /* 36 → 44 */
+
+/* segmented control: <div class="m-seg" style="--n:3; --i:1"><span class="m-seg-thumb"></span><button aria-checked>
+   (a radio group, ui.roving; aria-selected where one is a tab list). The selected segment is a white thumb with green text */
+.m-seg {
+  --n: 2; --i: 0;
+  position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; min-height: 36px; padding: 2px; margin-top: 10px;
+  border-radius: var(--r-ctl); background: var(--track);
+}
+.m-seg.small { min-height: 32px; }
+.m-seg > button { position: relative; z-index: 1; min-width: 0; border: 0; background: none; padding: 0 6px; color: var(--ink-2); font: 400 var(--t-sub)/1.3 var(--f-text); letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color var(--dur) var(--ease); }
+.m-seg > button:is([aria-selected="true"], [aria-checked="true"]) { color: var(--acc); font-weight: 600; }
+.m-seg-thumb {
+  position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / var(--n)); border-radius: 6px;
+  background: var(--surface); box-shadow: 0 0 0 1px var(--hair);
+  transform: translateX(calc(var(--i) * 100%)); transition: transform var(--dur) var(--ease);
+}
+
+/* ≈ values while re-planning: the prefix and a dashed outline (B61: in --muted, it was one of the palest lines); no
+   shimmer. A change landed (ahead.js render, B61): what it changed (the tiles, the new transfer rows, an edited tile)
+   takes one tint that fades within --dur, nothing under Reduce Motion */
+.m-approx::before { content: "≈"; margin-right: 1px; color: var(--muted); font-weight: 400; }
+.m-pending { outline: 1px dashed var(--muted); outline-offset: 2px; border-radius: 4px; }
+.m-shimmer { position: relative; }
+.m-shimmer.once { animation: m-tint var(--dur) var(--ease); }
+.m-skel { display: inline-block; min-width: 2.5em; height: .9em; border-radius: 3px; background: var(--track); vertical-align: middle; }
+.m-pencil { display: none; }  /* "pencil" (a future week) is not shown */
+.m-ink { display: inline-block; margin-left: 6px; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); vertical-align: baseline; }
+
+/* digits (ctx.odometer): one .d column of 0-9 per digit, shown at its digit */
+.m-odo { display: inline-flex; font: 600 var(--t-head)/1 var(--f-text); font-variant-numeric: tabular-nums; }
+.m-odo .d { display: inline-block; height: 1.04em; overflow: hidden; }
+.m-odo .col { display: flex; flex-direction: column; }
+.m-odo .col span, .m-odo .s { height: 1.04em; line-height: 1.04em; }
+.m-odo .s { display: inline-block; }
+.m-odo.neg { color: var(--loss); }
+
+.m-bump { animation: none; }
+
+/* ------------------------------------------------------------------ sheets (≤ 2 deep; app.js) */
+
+.m-scrim { position: absolute; inset: 0; background: var(--scrim); opacity: 0; transition: opacity var(--dur) var(--ease); }
+.m-scrim.on { opacity: 1; }
+.m-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; height: calc(100% - var(--safe-top) - 6px);
+  display: flex; flex-direction: column; border-radius: var(--r-sheet) var(--r-sheet) 0 0; outline: none;
+  background: var(--surface);
+  transform: translateY(100%); transition: transform .2s var(--ease);
+}
+.m-sheet.dragging { transition: none; }
+.m-sheet.m-fade { opacity: 0; }  /* B107: Reduce Motion's open and close (app.js createSheets): a fade where it rests */
+.m-sheet.back { filter: brightness(.94); }
+.m-grab { flex: none; height: 18px; display: grid; place-items: center; cursor: grab; touch-action: none; }
+.m-grab span { width: 36px; height: 5px; border-radius: 3px; background: var(--border-2); }
+/* a toast docked on the sheet (app.js placeToasts, QA-7 #1): the body ends --toast-dock above the sheet's bottom, so no
+   control can scroll under it; --toast-dock-room (the most a dock took) stays in the scroll range for the sheet's life,
+   so nothing in it moves when the dock comes or goes. At a small or medium detent the body also ends --sheet-off (how far
+   the sheet sits slid below the screen: app.js createSheets place) above the sheet's bottom, so it ends at the screen's
+   bottom and scrolls every control into view */
+.m-sbody {
+  flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; overscroll-behavior: contain;
+  margin-bottom: calc(var(--sheet-off, 0px) + var(--toast-dock, 0px));
+  padding: 0 var(--gutter) calc(var(--safe-bot) + 24px + var(--toast-dock-room, 0px) - var(--toast-dock, 0px));
+}
+.m-sbody::-webkit-scrollbar { display: none; }
+.m-sh { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 4px 0 10px; touch-action: none; }
+.m-sh h2 { margin: 0; font: 700 var(--t-title)/1.2 var(--f-text); }
+.m-sh .m-sub { margin: 2px 0 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }  /* every sheet's subtitle (B6) */
+.m-sec { margin-top: 18px; }
+/* a sheet's section head: a cap label (SUGGESTED's style: --t-cap 600, uppercase, +.04em, muted), so a sheet's title
+   and the player's name are its only large type (B6) */
+.m-sec > h3, .m-sec > .ps-stathead > h3 { margin: 0 0 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font: 600 var(--t-cap)/1.3 var(--f-text); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.m-sec > h3 > :not(:first-child) { flex: none; font: 400 var(--t-sub)/1.3 var(--f-text); letter-spacing: 0; text-transform: none; color: var(--muted); }  /* its aside: "GW6–10 9.3" */
+.m-kv { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--hair); font: 400 var(--t-body)/1.3 var(--f-text); }
+.m-kv > :last-child { color: var(--muted); text-align: right; }  /* a value beside its label: the second grey (B6) */
+
+/* ------------------------------------------------------------------ sheet bodies (DESIGN_V2 §3 Sheets): hairline rows,
+   grey 13/600 section headers, outlined buttons (1px, radius 8), green only for the one action and the selection; no
+   pills, no glyph marks, no sweeps. Each rule is scoped by its sheet's class (.ps Player, .rs Replace, .ws Add a player,
+   .wy-sheet Details) so it holds over the pre-v2 rules m-ahead.css still carries for these classes */
+
+/* shared: search field, GW buttons, list rows, button rows */
+.m-sheet .ah-search { min-height: 40px; margin-top: 10px; padding: 0 12px; border-radius: var(--r-ctl); background: var(--track); color: var(--muted); }
+.m-sheet .ah-search .icon { flex: none; }
+.m-sheet .ah-pills { gap: 6px; margin-top: 4px; }
+.m-sheet .ah-pills button { min-height: 32px; border: 1px solid var(--border-2); border-radius: var(--r-sm); background: var(--surface); color: var(--ink-2); font: 600 var(--t-sub)/1.3 var(--f-text); }
+.m-sheet .ah-pills button[aria-pressed="true"] { border-color: var(--acc-bg); background: var(--acc-bg); color: var(--acc-ink); }
+.m-sheet .ah-lrow { min-height: 56px; padding: 0; border-bottom: 1px solid var(--hair); }
+.m-sheet .ah-lrow .nm b { font-weight: 400; }
+.m-sheet .ah-lrow .nm span { font-size: var(--t-sub); }
+.m-sheet .ah-lrow .rt { font: 600 var(--t-body)/1.3 var(--f-text); font-variant-numeric: tabular-nums; }
+.m-sheet .ah-lrow .rt small { font: 400 var(--t-sub)/1.3 var(--f-text); }
+.m-sheet .ah-micro i { border-radius: 1px; background: var(--xp); }
+.m-sheet .ah-btnrow button { min-height: 44px; padding: 6px 10px; border: 1px solid var(--border-2); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); font: 600 var(--t-body)/1.3 var(--f-text); }
+.m-sheet .ah-btnrow button.acc { border-color: var(--acc-bg); background: var(--acc-bg); color: var(--acc-ink); }
+/* height grows with large text (the When line's and Add a player's tiles: at AX sizes a fixed 52px cut the GW and its gain;
+   the review of the first-use fixes, 2026-10-21) */
+.m-sheet .ah-ap { height: auto; min-height: 52px; padding: 4px 2px; border-radius: var(--r-ctl); background: var(--track); }
+.m-sheet .ah-ap .g { font: 600 var(--t-cap)/1.3 var(--f-text); }
+.m-sheet .ah-ap .v { font: 600 var(--t-body)/1.3 var(--f-text); font-variant-numeric: tabular-nums; }
+.m-sheet .ah-ap.sk::after { content: none; }
+.m-sheet .ah-ap.sel { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--acc-bg); }
+.m-sheet .ah-ap.fill { animation: none; }
+
+/* Player */
+.ps .ps-sub { color: var(--muted); }
+.ps .ps-grid button { min-height: 44px; height: auto; padding: 4px 10px; border: 1px solid var(--border-2); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); }
+.ps .ps-grid button.acc { border-color: var(--acc-bg); background: var(--surface); color: var(--acc); }
+.ps .ps-keep .m-seg { height: 36px; }
+.ps .ps-grid .ps-keep .m-seg > button { min-height: 0; padding: 0 4px; border: 0; background: none; }
+.ps .ps-grid .ps-tog.on { border-color: var(--acc-bg); background: var(--surface); color: var(--ink); }
+.ps .ps-tog .sw { background: var(--track); box-shadow: inset 0 0 0 1px var(--border-2); transition: background var(--dur) var(--ease); }
+.ps .ps-tog .sw::after { box-shadow: 0 0 0 1px var(--border-2); transition: transform var(--dur) var(--ease); }
+.ps .ps-tog.on .sw { background: var(--acc-bg); box-shadow: none; }
+.ps .ps-ask { border-radius: var(--r-btn); background: var(--bg); animation: none; }
+/* the card's one type rule. The user (2026-10-08, Calafiori's card: "why player cards still use random fonts") saw 14
+   size/weight/colour mixes: facts at 13 under 15 px buttons, a bold 13 "Lock him", Price/Owned/Cups at 15 beside 13 px
+   lines (they read as 17), chart text 11/600 in three colours and a "DC = defensive contribution" tooltip stuck over
+   the header. Now one rule for every text on it (the 2026-10-13 pass, the user: "fix random fonts", every label and
+   fact under the header at 13):
+   · the name, the sheet's heading: --t-head 600 (m-ahead.css .m-sh h2 .ps-title)
+   · 13 regular: his status and your rule's line in ink; the controls' labels (Keep him, Sell, Ruled out), why a
+     control can't act, the sheet's subtitle, footnotes, a stats row's name and rank muted
+   · a button 15/600; a segmented control's options 13 (the app's)
+   · the chart: its quiet labels 13 muted (GW, venue, seasons, captions, the cups' columns), its codes and values
+     13/600 ink (class "v": opponents, the bars' points and the forecasts)
+   · a section's head: the cap label (m.css .m-sec > h3, 11/600) */
+.ps :is(.ps-st, .ps-ask, .ps-off, .ps-keep-l) { font: 400 var(--t-sub)/1.3 var(--f-text); letter-spacing: 0; }
+.ps :is(.ps-st, .ps-ask) { color: var(--ink); }
+.ps :is(.ps-off, .ps-keep-l) { color: var(--muted); }
+.ps .ps-grid > button { font: 600 var(--t-body)/1.3 var(--f-text); }
+.ps .ps-grid .ps-keep .m-seg > button { font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--ink); }
+.ps .ps-grid .ps-keep .m-seg > button[aria-checked="true"] { font-weight: 600; color: var(--acc); }
+.ps :is(.ps-sub, .ps-tot, .ps-nopast, .ps-note, .ps-rk) { font: 400 var(--t-sub)/1.3 var(--f-text); letter-spacing: 0; text-transform: none; color: var(--muted); }
+/* the chart's text: 13 px (no larger than the geometry strip.js fits at 13: a larger text size keeps it), quiet by
+   default (its fill, muted, is the drawing's); a code or a value 600 */
+.ps .ps-chart svg text { font: 400 var(--t-sub)/1 var(--f-text); letter-spacing: 0; }  /* follows the text size (the six-book review) */
+.ps .ps-chart svg text.v { font-weight: 600; }
+.ps .ps-chart svg text.code { font-size: calc(var(--t-sub) * 11 / 13); }  /* an opponent's code (strip.js CODE_SCALE) */
+.ps .ps-chart svg tspan.xp-u { fill: var(--xp); font-weight: 700; }  /* the forecast caption's "xP" (player.js T `mark`) */
+/* the strip's head on a 320 pt phone: the cap label whole ("LAST 6 · NEXT 5", never "NEXT / 5"), its sums wrapping */
+.ps .ps-strip > h3 > :first-child { flex: none; white-space: nowrap; }
+.ps .ps-strip > h3 > .ps-tot { flex: 0 1 auto; min-width: 0; justify-content: flex-end; text-align: right; }
+
+/* Replace · Add a player */
+.rs .rs-sub { color: var(--muted); }
+/* the Chips sheet (sheets/chips.js: .cs) has the Replace row's mark: its chip's code, filled where the week plays it */
+:is(.rs .rs-auto, .cs) .rs-automk { display: grid; place-items: center; border-radius: var(--r-sm); background: var(--track); color: var(--ink-2); font: 600 var(--t-cap)/1.3 var(--f-text); }
+.cs .rs-automk.on { background: var(--token); color: var(--token-ink); }
+.cs .ah-lrow .nm span { white-space: normal; }  /* its fact whole ("Best week: GW10 +5.1" wraps, never cut) */
+.cs .ah-lrow .nm .cs-clock { display: inline; }  /* its checks' clock on the fact's line ("… 2 of 4 weeks · 1:12") */
+.cs .ah-lrow:disabled { opacity: 1; }  /* played this half: legible, its name grey */
+.cs .ah-lrow:disabled .nm b { color: var(--muted); }
+.ws .ws-item { border-bottom: 1px solid var(--hair); }
+.ws .ws-reach { height: 28px; padding: 0 12px; border: 1px solid var(--border-2); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); font: 600 var(--t-sub)/1.3 var(--f-text); }
+.ws .ws-x { animation: none; }
+
+/* Details: no rain, no tracked capitals */
+.wy-sheet .wy-swarm text { font-family: var(--f-text); }
+.wy-sheet .wy-swarm .dot { animation: none; }
+.wy-sheet .wy-tgl { border-radius: var(--r-sm); background: var(--track); color: var(--ink-2); }
+.wy-sheet .wy-tgl.on { background: var(--acc-bg); color: var(--acc-ink); }
+
+/* Price watch (calls.priceWatch, ahead.watchView): a GW-A move's FPL prediction under its prices (the transfer row's
+   details), then the foot: the call to act (amber when waiting puts a move out of reach; what waiting only costs or
+   gains in plain ink, B25), FPL's reading's time (muted). Arrows in
+   FPL's colours: green rises, red drops; a "likely" (said, not counted) fainter. */
+.pw-up { color: var(--gain); }
+.pw-down { color: var(--loss); }
+.pw-maybe { opacity: .65; }
+.pw-foot p { margin: 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
+.pw-foot.act .pw-line { color: var(--warn-ink); font-weight: 600; }
+.pw-foot .pw-note { color: var(--muted); font-weight: 400; }  /* the line's tail: how old FPL's reading is */
+.ah-pwatch { min-height: 48px; padding: 8px 14px 10px; }  /* a row of the Week sheet (the card draws its hairline); 48 px: Hide's 44 px target inside it */
+/* B139: "Hide" puts it away, on the right of its lines (a 44 pt target around the word); review 5 (2026-10-12): in the
+   block's link style (.ah-lnk: accent, 600), so it reads as a button, not a status */
+.ah-pwatch:has(> .pw-wait) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: center; }
+.ah-pwatch > p { grid-column: 1; }
+.pw-wait { grid-column: 2; grid-row: 1 / span 2; }  /* a link of the block (.ah-lnk: 15/600, a 44 px target) */
+
+/* ------------------------------------------------------------------ toasts (ui.js toast(), restyled) */
+
+/* one rule for every toast (QA-5 #2, QA-3 #6b): a toast never blocks a control. Taps pass through it: only its Undo
+   (the action button) takes one, and its ✕ is gone (it leaves by itself), so a row or a chip under its body stays
+   tappable.
+   One place for every toast (app.js placeToasts): the top of the screen, over the header's row (Ahead's team name, at
+   the screen's safe top: m-ahead.css .m-screen.ah), from the column's 8 px gutter to the avatar's 44 pt column (10 px
+   in from the edge), which stays clear and tappable (the left column's "Help" hides under it: m-ahead.css .ah-help); one compact line in --t-sub (36 px: the 44 pt header holds it,
+   over its team's name and GW line), two when the words need them (42 px, over the GW switcher's margin; three, the
+   most, reach into the GW tiles' top, each still taking a tap under it: m-ahead.css .ah-head): a chip's verdict, "Bench Boost: +6.2 pts over GW6–9 vs not
+   playing it · 1.2 less than GW8", is two at 375 wide; in --t-body it took three). The review of 2026-10-08: placed at the foot and nudged up until its Undo
+   covered no control, "Bassey in · +5.7 pts · Undo" sat over the pitch's midfield on the buy's own IN card for 6–60 s
+   (A9: it stays until your next touch), a later one over the Why sheet's chart, and a reviewer saw it "change
+   position"; the header's row draws GW A's deadline and the window's total since 2026-10-22 (m-ahead.css .ah-gwline):
+   an edit's change of the total waits for the toast over it to go, its seconds counted from then (ahead.js renderTotal;
+   the v1.3.75 review #18), the toast staying where it is. While a sheet is up (QA-7 #1) it keeps that place
+   over the dimmed page when the sheet rests below it, else (a sheet at full height) it docks at the sheet's foot, the
+   full width (data-place="dock": the sheet's body ends above it, .m-sbody --toast-dock, so it covers none of it) */
+#toasts {
+  --toast-col: min(100vw, var(--col-w));
+  position: fixed; top: calc(var(--toast-top, 0px) + env(safe-area-inset-top, 0px) + 4px); bottom: auto; z-index: 400;
+  left: calc(50% - var(--toast-col) / 2 + 8px); right: auto; width: calc(var(--toast-col) - 8px - 54px); transform: none;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none;
+}
+#toasts[data-place="dock"] { top: auto; bottom: calc(100lvh - 100svh + var(--safe-bot) + 8px); left: calc(50% - var(--toast-col) / 2 + 12px); width: calc(var(--toast-col) - 24px); flex-direction: column-reverse; }
+/* the column's own top and foot (.m-app, --col-top) */
+@media (min-width: 560px) and (min-height: 700px) {
+  #toasts { --toast-top: var(--col-top); }
+  #toasts[data-place="dock"] { bottom: calc(var(--col-top) + var(--safe-bot) + 8px); }
+}
+/* its buttons wrap to a line of their own under the words, at its right end, where its widest number (" · +2.6 vs
+   rolling", whole: .toast-msg's min-width) can't sit beside them (larger text on a 320–375 px phone; the review of the
+   first-use proposals, 2026-10-21: Why and Undo in its row cut it to "· +2.6 vs rolli"); all of them together (.under:
+   ui.toast's fit, once one has wrapped) */
+#toasts .toast {
+  pointer-events: none; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px 12px; width: 100%; max-width: 100%; padding: 4px 8px 4px 14px; border: 0; border-radius: var(--r-ctl);
+  background: var(--toast); color: var(--toast-ink);
+  font: 400 var(--t-sub)/1.3 var(--f-text); animation: m-toast-in var(--dur) var(--ease);
+}
+#toasts .toast > .icon { display: none; }
+/* its Undo takes a tap once it has come in (app.js placeToasts: .armed): on the page whatever has scrolled under it
+   (H1, 2026-10-09); on a sheet, one a control has slid under since it was placed dims and lets the tap through until it
+   is placed again */
+#toasts .toast .toast-msg { flex: 1; min-width: auto; max-width: 100%; }
+/* …together: a line break (its ::after, ordered after the words) before the first, none between them */
+#toasts .toast.under { row-gap: 0; }
+#toasts .toast.under > .btn { order: 1; }
+#toasts .toast.under::after { content: ''; flex-basis: 100%; height: 0; }
+/* never more than three lines (the reviews, 2026-10-11: a long toast, a drift's or a taken plan's, ran to six and
+   covered the week switcher on a small phone): its words clip, never its number (ui.js toastWords: the tail opens with
+   its last " · +x pts" and its weak word, kept whole, on the head's line when it fits, else on its own; the words after
+   it wrap under it, review 5, 2026-10-12: as one unbreakable line they ran off the toast); the whole text is read out */
+#toasts .toast .toast-msg { display: flex; flex-wrap: wrap; align-items: baseline; }
+#toasts .toast :is(.toast-head, .toast-tail) { flex: 0 1 auto; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+/* …on a line of its own the tail starts flush with the line above (the phone recheck of the first-use proposals,
+   2026-10-21: " · +2.7 vs rolling · total +6.3" sat a space right of it): its first line starts a space (--toast-sp)
+   to the left, its " · "'s space in the toast's padding (margin out, padding in: its next lines at the edge, every word
+   inside its box), and on the head's line a gap of --toast-sp gives that back, so the space between them is still its
+   own (the font's) and each line holds what it held. .28em: the system font's space at text size (SF 0.281em,
+   Helvetica and Arial 0.278em) */
+#toasts .toast .toast-msg { --toast-sp: .28em; column-gap: var(--toast-sp); }
+#toasts .toast .toast-tail { margin-inline-start: calc(-1 * var(--toast-sp)); padding-inline-start: var(--toast-sp); text-indent: calc(-1 * var(--toast-sp)); }
+/* each number whole; a take's two (" · +2.6 vs rolling · total +4.0") may break between them (ui.js toastWords) */
+#toasts .toast .toast-num > span { white-space: pre; }
+/* ui.toast, past three lines: the lines each part keeps (the tail up to two, the number on its first); in the head its
+   lead (a take's moves) clips, what follows it (.toast-also, "· Free Hit in GW8 taken off") keeps its lines, on its own
+   (the review of the first-use proposals, 2026-10-21) */
+#toasts .toast .toast-msg.long .toast-head { display: block; }
+#toasts .toast .toast-msg.long .toast-lead { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; -webkit-line-clamp: var(--lead-lines, 2); line-clamp: var(--lead-lines, 2); }
+#toasts .toast .toast-msg.long .toast-also { display: block; }
+#toasts .toast .toast-msg.long .toast-tail { -webkit-line-clamp: var(--tail-lines, 1); line-clamp: var(--tail-lines, 1); }
+/* Undo: a 44pt target (Birman #8) that takes 28 px in its row (negative margins): the toast stays one compact line,
+   the button's box reaching 4 px past it above and below, and that box is the whole target, so placeToasts' "covers
+   no control" check sees all of it */
+#toasts .toast .btn { pointer-events: none; height: 44px; margin: -8px -4px; border: 0; background: none; color: inherit; font: 600 var(--t-sub)/1.3 var(--f-text); text-decoration: underline; text-underline-offset: 2px; padding: 0 10px; transition: opacity .15s; }
+#toasts .toast.armed:not(.leaving) .btn { pointer-events: auto; }
+#toasts .toast[data-in]:not(.armed) .btn { opacity: .4; }
+#toasts .toast .icon-btn { display: none; }
+/* one leaving takes no room (out of flow, it fades where it sat first: the region's start edge), so the toast that
+   replaced it is placed where it stays, never shifted when the old one goes (QA-6 #1) */
+#toasts .toast.leaving { position: absolute; opacity: 0; transform: translateY(-6px); transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease); }
+#toasts .toast.up { animation-name: m-toast-up; }  /* one that came in at a sheet's foot (app.js): placing it again never restarts it */
+/* B64 (Johnson: a refusal or a failure looked exactly like a success): a warn or error toast shows the warning icon
+   ui.js builds, in amber, an amber edge (coral for an error) and one nudge sideways once it has come in, out and back
+   within --dur (no bounce; Reduce Motion's fade below replaces it). Info and ok toasts stay as they are */
+#toasts .toast:is(.warn, .error) { box-shadow: inset 3px 0 0 var(--warn); animation: m-toast-in var(--dur) var(--ease), m-toast-nudge var(--dur) var(--ease) var(--dur); }
+#toasts .toast.error { box-shadow: inset 3px 0 0 var(--loss); }
+#toasts .toast.up:is(.warn, .error) { animation-name: m-toast-up, m-toast-nudge; }
+#toasts .toast:is(.warn, .error) > .icon { display: block; flex: none; color: var(--warn); }
+#toasts[data-place="dock"] .toast.leaving { transform: translateY(6px); }
+
+/* ------------------------------------------------------------------ pull to refresh */
+
+.m-ptr { position: absolute; left: 50%; top: calc(var(--safe-top) + 4px); z-index: 58; width: 30px; height: 30px; margin-left: -15px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--surface); box-shadow: 0 0 0 1px var(--hair);
+  opacity: 0; transform: translateY(-40px); pointer-events: none; }
+.m-ptr i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--track); border-top-color: var(--acc-bg); }
+.m-ptr.ready i, .m-ptr.busy i { animation: m-spin .8s linear infinite; }
+
+/* ------------------------------------------------------------------ gate: Connect, first load (app.js showConnect)
+   A light page in document order (DESIGN_V2 §3): "Forkcast" in plain 22/700, the promise, the field, Find my team, the
+   ID link, what it costs (free, no login), Recent, About Forkcast for whoever reads on (m-why.css), the not-affiliated
+   line at the foot. The keyboard needs no lift: the form sits at the top */
+
+.m-gate {
+  position: absolute; inset: 0; z-index: 150; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
+  display: flex; flex-direction: column; align-items: stretch; gap: 0; color: var(--ink);  /* .m-gate.loading: not app.css .loading's row */
+  padding: calc(var(--safe-top) + 30px) var(--gutter) calc(max(var(--safe-bot), var(--kb, 0px)) + 16px);
+  background: var(--bg); transition: opacity var(--dur) var(--ease);
+}
+.m-gate[hidden] { display: none; }
+.m-gate.gone { opacity: 0; pointer-events: none; }
+.m-wordmark h1 { margin: 0; font: 700 var(--t-title)/1.2 var(--f-text); letter-spacing: 0; color: var(--ink); }
+.m-wordmark p { margin: 6px 0 0; max-width: 330px; font: 400 var(--t-body)/1.3 var(--f-text); color: var(--ink-2); }
+.m-legal { margin-top: auto; padding-top: 24px; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
+.m-form { margin-top: 24px; }
+.m-form label, .m-label { display: block; margin-bottom: 6px; font: 600 var(--t-sub)/1.3 var(--f-text); color: var(--ink-2); }
+.m-field {
+  display: block; width: 100%; height: 46px; padding: 0 14px; border: 1px solid var(--border-2); border-radius: var(--r-ctl); outline: none;
+  background: var(--surface); color: var(--ink); caret-color: var(--acc-bg);
+  font: 400 var(--t-body)/1.3 var(--f-text); font-variant-numeric: tabular-nums;
+}
+/* a field is never under 16 px: iOS zooms the page to a smaller one on focus */
+.m-app input, .m-app textarea { font-size: max(16px, 1em); }
+.m-field::placeholder { color: var(--muted); }
+.m-field:focus { border-color: var(--acc-bg); box-shadow: 0 0 0 1px var(--acc-bg); }
+.m-field.bad { border-color: var(--loss); box-shadow: 0 0 0 1px var(--loss); }
+.m-where { display: inline-block; align-self: flex-start; margin-top: 8px; border: 0; background: none; padding: 4px 0; color: var(--acc); font: 600 var(--t-body)/1.3 var(--f-text); }
+.m-err { margin-top: 10px; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--loss); display: flex; align-items: center; gap: 10px; }
+.m-err:empty { display: none; }
+.m-err.warn { color: var(--lean); }
+.m-err button { flex: none; height: 28px; padding: 0 12px; border: 1px solid var(--border-2); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); font: 600 var(--t-sub)/1.3 var(--f-text); }
+/* Recent (picker.js): a grey section header, then full-width rows between hairlines: the team, manager · ID under it,
+   its points on the right */
+.m-recent { margin: 28px calc(-1 * var(--gutter)) 0; }
+.m-recent[hidden] { display: none; }
+.m-recent-h { margin: 0; padding: 0 var(--gutter) 7px; font: 600 var(--t-sub)/1.3 var(--f-text); color: var(--ink-2); }
+.m-recent-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 11px var(--gutter);
+  border: 0; border-top: 1px solid var(--hair); border-radius: 0; background: var(--surface); text-align: left; color: var(--ink); font: 400 var(--t-body)/1.3 var(--f-text); }
+.m-recent-row:last-child { border-bottom: 1px solid var(--hair); }
+.m-recent-row:active { background: var(--track); }
+.m-recent-t { min-width: 0; }
+.m-recent-t b { display: block; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-recent-t small { display: block; margin-top: 1px; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-recent-pts { font-weight: 600; }
+.m-sheet .m-recent { margin-top: 24px; }  /* Switch team: the same list under its Find my team */
+.m-go { margin-top: 10px; }
+.m-form { display: flex; flex-direction: column; }
+.m-go .m-primary { margin-top: 0; }
+/* while the suggestions show, picking one is the way on (Enter too): the button steps aside */
+.m-gate:has(.m-tp-list:not([hidden])) .m-go { opacity: 0; pointer-events: none; }
+
+/* team picker (picker.js: Connect and Switch team): a combobox and its listbox of teams */
+.m-tp { position: relative; }
+.m-tp-list { list-style: none; margin: 6px 0 0; padding: 0; max-height: min(236px, 36vh); overflow-y: auto; overscroll-behavior: contain;
+  border: 1px solid var(--border-2); border-radius: var(--r-ctl); background: var(--surface); }
+.m-tp-list[hidden] { display: none; }
+.m-tp-opt { display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 8px; align-items: center; min-height: 52px; padding: 6px 10px; cursor: pointer; }
+.m-tp-opt + .m-tp-opt { box-shadow: inset 0 1px 0 var(--hair); }
+.m-tp-opt[aria-selected="true"], .m-tp-opt:active { background: var(--track); }
+.m-tp-flag { grid-row: span 2; font-size: var(--t-title); line-height: 1; text-align: center; }
+.m-tp-name { font: 400 var(--t-body)/1.3 var(--f-text); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-tp-name b { font-weight: 600; color: var(--ink); }
+.m-tp-sub { font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-tp-msg { margin-top: 8px; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--ink-2); }
+.m-tp-msg:empty { display: none; }
+.m-tp-msg.ok { color: var(--clear); }
+.m-tp-msg.warn { color: var(--lean); }
+.m-tp-msg.bad { color: var(--loss); }
+.m-tp-msg.quiet { color: var(--muted); }
+.m-tp-nw { white-space: nowrap; }
+.m-tp-where { position: relative; border: 0; background: none; padding: 0; color: var(--acc); font: inherit; }
+.m-form:has(.m-tp-where) .m-where { display: none; }  /* Connect's own link: the message has it then */
+/* Where do I find my ID? (app.js whereSheet): the address with the ID marked */
+.m-idurl { margin-top: 12px; padding: 12px; border-radius: var(--r-ctl); background: var(--track); font: 400 var(--t-body)/1.3 var(--f-text); overflow-wrap: anywhere; }
+.m-idurl b { padding: 1px 4px; border-radius: var(--r-sm); background: var(--acc-bg); color: var(--acc-ink); }
+.m-idnote { margin-top: 10px; }
+.m-tp-where::before { content: ""; position: absolute; inset: -12px -4px; }
+.m-go .m-foot { text-align: center; margin-top: 8px; }
+.m-note { margin-top: 14px; padding: 12px 14px; border-radius: var(--r-ctl); background: var(--surface); font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--ink-2); }
+.m-note b { color: var(--ink); }
+
+/* first load (app.js firstLoad): the form stays (dimmed, inert); one line "Planning GW6–9" and a thin green bar */
+.m-gate.loading :is(.m-recent, .m-where, .m-err, .m-tp-msg, .m-tp-list) { display: none; }
+.m-gate.loading .m-form { pointer-events: none; }
+.m-gate.loading .m-go .m-primary { opacity: .55; }
+.m-prog { margin-top: 24px; }
+.m-prog:empty { display: none; }
+.m-prog-t { font: 400 var(--t-body)/1.3 var(--f-text); color: var(--ink-2); }
+.m-prog-t.warn { margin-top: 8px; color: var(--warn-ink); }
+.m-bar { height: 4px; width: 100%; margin-top: 8px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.m-bar i { display: block; height: 100%; width: 0; background: var(--acc-bg); transition: width .3s var(--ease); }
+
+/* ------------------------------------------------------------------ phone pitch (plan/pitch.js mountPitch, pm-*)
+   Flat turf, white plates (name on --plate, forecast on --plate-2), solid C/V, no glow, vignette, flip or drop-in.
+   The pitch's own geometry (DESIGN_V2 §4) is plan/pitch.js + views/plan-pitch.css */
+
+.pm { position: relative; --pm-kit: 36px; --pm-h: 280px; }
+.pm-field {
+  --kit-edge: #000;
+  position: relative; height: var(--pm-h); overflow: hidden; isolation: isolate;
+  background: repeating-linear-gradient(180deg, var(--turf-1) 0 9.09%, var(--turf-2) 9.09% 18.18%);
+  color: #fff;
+}
+.pm-field .pp-lines { position: absolute; z-index: 0; top: 0; left: 8px; width: calc(100% - 16px); height: 100%; border: 0; pointer-events: none; }
+.pm-field .pp-chalk { fill: none; stroke: var(--chalk); stroke-width: 1.6; }
+.pm-field .pp-spot { fill: var(--chalk); }
+.pm-rows { position: absolute; inset: 6px 2px 5px; z-index: 1; display: flex; flex-direction: column; justify-content: space-between; transition: opacity var(--dur) var(--ease); }
+.pm-row { display: flex; justify-content: space-evenly; align-items: flex-start; }
+.pm-pl {
+  position: relative; width: 68px; min-width: 0; padding: 0; border: 0; background: none; color: #fff;
+  display: flex; flex-direction: column; align-items: center; touch-action: manipulation;
+  transition: opacity var(--dur) var(--ease), filter var(--dur) var(--ease);
+}
+button.pm-pl:active { opacity: .8; }
+button.pm-pl:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 2px; }
+/* a landing's tint on a name plate (ahead.js render: the cards it changed) is a wash over the plate's own colour, which
+   stays (m-tint fades a see-through background: on a plate the turf showed through) */
+.pm .pm-pn.m-shimmer.once { animation: pm-tint var(--dur) var(--ease); }
+.pm-pl.blank .pm-kit { filter: grayscale(1) opacity(.6); }
+.pm-kit { position: relative; width: var(--pm-kit); height: var(--pm-kit); }
+/* a changed shirt is drawn at once (the old one, the back face, is not shown) and fades in */
+.pm-flip { position: absolute; inset: 0; }
+.pm-face { position: absolute; inset: 0; }
+.pm-face.back { display: none; }
+.pm-pl:has(.pm-plate.chg) .pm-face.front { animation: m-fade-in var(--dur) var(--ease); }
+.pm-face svg { display: block; width: 100%; height: 100%; }
+.pm-badge { position: absolute; top: -3px; right: -5px; z-index: 3; width: 15px; height: 15px; border-radius: 50%; display: grid; place-items: center; background: #17191A; color: #fff; }
+.pm-badge.tc { width: 19px; border-radius: 8px; }
+.pm-fly { position: absolute; left: 0; top: 0; z-index: 50; pointer-events: none; }
+.pm-plate { margin-top: 2px; max-width: 68px; min-width: 50px; overflow: hidden; border-radius: 0 0 3px 3px; text-align: center; }
+.pm-pn { display: block; height: 15px; padding: 0 3px; background: var(--plate); color: var(--plate-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-px { display: block; height: 15px; padding: 0 3px; background: var(--plate-2); color: var(--plate-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pm-px.approx::before { content: "≈"; margin-right: 1px; color: var(--plate-2-ink); font-weight: 400; }
+.pm-slot { display: flex; flex-direction: column; align-items: center; }
+.pm-bs { flex: 1; min-width: 0; display: flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none; color: var(--ink); text-align: left; }
+
+/* ------------------------------------------------------------------ keyframes (functional only: the spinner, a
+   checkmark drawing itself, fades. m-pulse and m-bump are kept empty for callers that still name them) */
+
+@keyframes m-spin { to { transform: rotate(360deg); } }
+@keyframes m-sweep { from { background-position: 130% 0; } to { background-position: -90% 0; } }
+@keyframes m-draw { to { stroke-dashoffset: 0; } }
+@keyframes m-pulse { }
+@keyframes m-bump { }
+@keyframes m-cap-in { from { opacity: 0; } }
+@keyframes m-toast-in { from { transform: translateY(-6px); opacity: 0; } }
+@keyframes m-toast-up { from { transform: translateY(6px); opacity: 0; } }
+@keyframes m-toast-nudge { 50% { transform: translateX(4px); } }
+@keyframes m-fade-in { from { opacity: 0; } }
+@keyframes pm-tint { from { box-shadow: inset 0 0 0 40px color-mix(in oklab, var(--acc-bg) 40%, transparent); } }
+@keyframes m-tint { from { background-color: color-mix(in oklab, var(--acc-bg) 18%, transparent); } }
+
+/* ------------------------------------------------------------------ Reduce Motion: app.css already shortens every
+   animation and transition to nothing; this restores the short cross-fades (no movement) */
+
+@media (prefers-reduced-motion: reduce) {
+  .m-app .m-screen, .m-app .m-gate, .m-app .m-scrim { transition: opacity .15s ease !important; transform: none; }
+  .m-app .m-sheet { transition: opacity .15s ease !important; }  /* B107: placed at once, it fades (.m-fade), never slides */
+  .m-app .pm-face.front { animation-duration: .15s !important; }
+  #toasts .toast { animation: m-fade-in .15s ease !important; }
+  .m-shimmer.once { animation: none !important; }
+  i.m-eta.sweep { animation: none !important; width: 100%; opacity: .45; }  /* no sweep: the bar dimmed, whole */
+}

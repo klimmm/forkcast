@@ -1,0 +1,82 @@
+/* Forkcast: the You sheet (static/js/m/sheets/you.js, IPHONE_DESIGN §5.10). Linked by static/m/index.html
+   after m.css; uses m.css tokens only, so light and dark both follow light-dark().
+
+   .y-team .y-avatar .y-name .y-sub    team header (56pt initials avatar)
+   .y-stats .y-rate .y-cheer           rank / points tiles, the points-to-places line, the line every GW
+   .y-label .y-kvbtn .y-center         small labels, a kv row with a button
+   .y-studio                           Open Studio (Dev mode), a local page only
+   .y-share .y-qr .y-url               Open on iPhone: the QR and the address
+   .y-lead .y-help .y-why              Help: its lead, About Forkcast's row, a task section each (a button head) with its recording
+*/
+
+/* ------------------------------------------------------------------ team */
+
+.y-team { display: flex; gap: 14px; align-items: center; margin-top: 2px; }
+.y-avatar {
+  flex: none; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
+  font: 600 var(--t-head)/1.3 var(--f-text); color: var(--ink-2); background: var(--track);
+}
+.y-name { margin: 0; font: 600 var(--t-head)/1.2 var(--f-text); overflow-wrap: anywhere; }  /* the sheet's title is "You": one title per sheet (B6) */
+.y-sub { margin: 3px 0 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
+.y-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.y-stats > div { padding: 10px 12px; border-radius: var(--r-ctl); background: var(--bg); min-width: 0; }
+.y-stats b { display: block; font: 600 var(--t-head)/1.2 var(--f-text); font-variant-numeric: tabular-nums; color: var(--ink); }
+.y-stats span { display: block; margin-top: 2px; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
+.y-rate { margin-top: 8px; }
+/* the line every GW (sheets/you.js paintTeam, COPY.cheerLine): under the tiles, .m-foot's quiet type */
+.y-cheer { margin-top: 8px; }
+
+/* ------------------------------------------------------------------ settings, Dev mode */
+
+.y-label { margin: 14px 0 0; font: 600 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
+.y-label + .m-seg { margin-top: 8px; }
+/* Plan ahead (sheets/you.js weeksCtl): under the hits' line, a locked length's lock before its words */
+.y-hits ~ .m-foot + .ah-optl { margin-top: 16px; }
+.y-weeks > button svg { display: inline-block; margin-right: 3px; vertical-align: -1px; }
+.y-weeks-lock { margin-bottom: 0; }
+.y-kvbtn { align-items: center; padding: 6px 0; }
+.y-kvbtn > span { color: var(--ink); font-variant-numeric: tabular-nums; }
+.y-center { text-align: center; margin-top: 8px; }
+a.m-secondary { text-decoration: none; }
+.y-studio { color: var(--ink); }  /* a secondary button: ink, as every other (B6) */
+
+/* ------------------------------------------------------------------ Open on iPhone */
+
+.y-share { display: grid; justify-items: center; gap: 12px; margin-top: 6px; text-align: center; }
+.y-qr { width: min(220px, 62vw); aspect-ratio: 1; border-radius: var(--r-ctl); overflow: hidden; background: #fff; box-shadow: 0 0 0 1px var(--hair); }
+.y-qr svg { display: block; width: 100%; height: 100%; }
+.y-qr[hidden] { display: none; }
+.y-url { max-width: 100%; font: 600 var(--t-body)/1.3 var(--f-text); color: var(--ink); overflow-wrap: anywhere; user-select: all; -webkit-user-select: all; }
+.y-share .m-foot { margin: 0; overflow-wrap: anywhere; }
+
+/* ------------------------------------------------------------------ Help (the user, 2026-10-13: "rewrite help so it
+   readable"): the lead in body ink, then each task a 44pt row (15/600 ink, a chevron: down shut, up open) over a short
+   list; hairlines between them, Why Forkcast's row after them */
+.y-lead { margin: 2px 0 10px; font: 400 var(--t-body)/1.4 var(--f-text); color: var(--ink); }
+.y-help, .wf-more { border-top: 1px solid var(--hair); }
+/* a fold: Help's task sections (their head a button in a heading, aria-expanded: sheets/you.js helpFold), About
+   Forkcast's how it did (sheets/about.js) */
+.y-help > h3 > button, .wf-more > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 0 2px;
+  list-style: none; cursor: pointer; font: 600 var(--t-body)/1.3 var(--f-text); color: var(--ink);
+}
+.y-help > h3 > button { width: 100%; border: 0; background: none; text-align: left; }
+.wf-more > summary::-webkit-details-marker { display: none; }
+.y-help > h3 > button::after, .wf-more > summary::after {
+  content: ""; flex: none; width: 7px; height: 7px; margin: 0 4px 3px; border-right: 1.6px solid var(--muted);
+  border-bottom: 1.6px solid var(--muted); transform: rotate(45deg);
+}
+.y-help > h3 > button[aria-expanded="true"]::after, .wf-more[open] > summary::after { margin-bottom: -3px; transform: rotate(225deg); }
+.y-help > .wf-clip { margin: 0 0 12px; }  /* the recording of what its steps do, over them (sheets/about.js clip) */
+.y-help > ul { margin: 0 0 12px; padding: 0 0 0 20px; }
+.y-help li { margin: 0 0 6px; font: 400 var(--t-body)/1.4 var(--f-text); color: var(--ink); }
+.y-why {
+  display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; margin: 0 0 8px;
+  padding: 0 2px; border: 0; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); background: none;
+  font: 600 var(--t-body)/1.3 var(--f-text); color: var(--acc); text-align: left;
+}
+.y-why > span { font-size: var(--t-title); line-height: 1; }  /* the ›, on the type scale (it follows the text size) */
+
+/* Switch team (the shared picker, picker.js) and Sign out (F6b: destructive, the toast has Undo) */
+.y-switch .m-primary { margin-top: 14px; }
+.y-signout { margin-top: 28px; color: var(--loss); }  /* Birman #17: well apart from Refresh, never hit for it */
