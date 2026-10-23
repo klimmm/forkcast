@@ -136,11 +136,13 @@ const gzipOk = (accept) => (accept || '').split(',').some((e) => e.split(';')[0]
 // req answered from static/ (true), or left to the laptop (false)
 function local(req, res) {
   if (req.method !== 'GET' || !STATIC.release || laptop !== STATIC.release) return false;
-  const f = STATIC.files.get(new URL(req.url, 'http://x').pathname);
+  // the raw path, never parsed: new URL() throws on a path like //a:b/ and took the process down (the review, 2026-10-23)
+  const f = STATIC.files.get(req.url.split('?')[0]);
   if (!f) return false;
   const headers = {
     'cache-control': 'no-cache', etag: f.etag, 'x-forkcast-release': STATIC.release,
     'x-frame-options': 'SAMEORIGIN', 'content-security-policy': "frame-ancestors 'self'",
+    ...(f.gz ? { vary: 'Accept-Encoding' } : {}),
   };
   if ((req.headers['if-none-match'] || '').split(',').some((t) => t.trim() === f.etag)) {
     res.writeHead(304, headers);
@@ -149,7 +151,7 @@ function local(req, res) {
   }
   const gz = f.gz && gzipOk(req.headers['accept-encoding']);
   const body = gz ? f.gz : f.body;
-  if (gz) Object.assign(headers, { 'content-encoding': 'gzip', vary: 'Accept-Encoding' });
+  if (gz) headers['content-encoding'] = 'gzip';
   res.writeHead(200, { ...headers, 'content-type': f.type, 'content-length': body.length });
   res.end(body);
   return true;
@@ -157,8 +159,8 @@ function local(req, res) {
 
 // the laptop's release, from an answer it gave
 function noteRelease(r) {
-  const v = r.headers['x-forkcast-release'];
-  if (v) laptop = String(v);
+  // a server.py answer (2xx/3xx, not a tunnel's 502/504/530) without it: the tree's own front end, nothing served here
+  if (r.statusCode >= 200 && r.statusCode < 400) laptop = r.headers['x-forkcast-release'] ? String(r.headers['x-forkcast-release']) : null;
 }
 
 // its /api/meta every META_MS while static/ holds a release: a release change on the laptop is seen within META_MS
@@ -205,7 +207,7 @@ function forward(req, res, body, to, attempt = 0) {
     noteError(req, to, what, attempt > 0);
     r?.destroy();
     up.destroy();
-    if (res.headersSent) return res.destroy();  // the answer had begun: cut it, the browser sees a broken response
+    if (res.headersSent || res.destroyed) return res.destroy();  // the answer had begun: cut it, the browser sees a broken response
     if (again && attempt + 1 < tries) return forward(req, res, body, (await readTarget(true)) || to, attempt + 1);
     res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
     res.end(`Forkcast is not reachable right now (${what}). Try again in a minute.`);
@@ -223,6 +225,12 @@ function forward(req, res, body, to, attempt = 0) {
     }
     over = true;
     relay(r, res, own, to);
+  });
+  // the visitor gone (a reload, a closed tab): the transfer stops, never asked again (the tunnel is the scarce part)
+  res.once('close', () => {
+    if (over) return;
+    over = true;
+    up.destroy();
   });
   up.setTimeout(HEAD_MS, () => fail(`no answer in ${HEAD_MS / 1000} s`, up, null, read));
   up.on('error', (e) => fail(e.code || e.message, up));
@@ -271,6 +279,10 @@ function relay(r, res, own, to, buf = null) {
     r.destroy();
     res.destroy();
   });
+  // the tunnel gone mid-body (a reset or a close): the visitor's answer cut too, never left open (pipe ends it on 'end' only)
+  r.on('close', () => {
+    if (!r.complete) res.destroy();
+  });
   r.pipe(res);
 }
 
@@ -310,14 +322,23 @@ http.createServer((req, res) => {
   const chunks = [];
   req.on('data', (c) => chunks.push(c));
   req.on('end', async () => {
-    if (req.url === '/__target' && req.method === 'POST') return pushTarget(req, res, Buffer.concat(chunks));
-    if (local(req, res)) return;
-    const to = await readTarget();
-    if (!to) {
-      res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
-      return res.end('Forkcast is starting: no address yet. Try again in a minute.');
+    // a throw here answers 502, never ends the process (the live site; the review, 2026-10-23: one request took it down)
+    try {
+      if (req.url === '/__target' && req.method === 'POST') return pushTarget(req, res, Buffer.concat(chunks));
+      if (local(req, res)) return;
+      const to = await readTarget();
+      if (!to) {
+        res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
+        return res.end('Forkcast is starting: no address yet. Try again in a minute.');
+      }
+      forward(req, res, Buffer.concat(chunks), to, 0);
+    } catch (e) {
+      console.error(`request ${req.method} ${req.url}: ${e.stack || e}`);
+      if (!res.headersSent) {
+        res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
+        res.end('Forkcast hit an error passing this on. Try again.');
+      } else res.destroy();
     }
-    forward(req, res, Buffer.concat(chunks), to, false);
   });
 }).listen(PORT, () => {
   console.log(`forwarder on :${PORT}, target ${PINNED ? target.origin + ' (TARGET_URL)' : 'from ' + TARGET_SOURCE}, static ${STATIC.release || 'none'} (${STATIC.files.size} files)`);
