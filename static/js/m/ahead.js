@@ -2994,16 +2994,21 @@ export const settlesAt = (P, g, plans) => settleDue(weekKey(P, g, plans));
  *  else clears the noise against your plan (litCan). Never a move you took off this session (plansOf `removed`, B129),
  *  nor one the 2026-10-18 bars keep from being the week's suggestion (plansOf `early`): his place keeps it, his handle
  *  alone on the pitch where nothing else is. `D`: the places (decksOf); `toks`: the week's own choices beside the goal
- *  (decksOf), a chip there the best where its number is higher (`chip`: then no place is `best`).
- *  → Map(a → {e, best}) with .best (the best choice, a place's or a token's) and .chip (the token's, or null) */
+ *  (decksOf), a chip there the best where its number is higher (`chip`: its token ink with "Play"), the best move then
+ *  still its places' `best`, ink with its Swap (the owner, 2026-10-25, Raketa's GW9, its Free Hit +3.3 over Evanilson
+ *  +1.6: "where is black tab with green swap sign", then "fix so chips not interfer in ths behaviour").
+ *  → Map(a → {e, best}) with .best (the best choice, a place's or a token's), .chip (the token's, or null) and .move (the
+ *  best move: its places' `best`) */
 export function litOf(P, w, M, D, toks = []) {
-  const at = Object.assign(new Map(), { best: null, chip: null });
+  const at = Object.assign(new Map(), { best: null, chip: null, move: null });
   const can = litCan(P, w, M);
   const best = weekBest(P, w, M, D, toks);
   at.best = best;
   at.chip = best && toks.includes(best) ? best : null;
+  // (the best move, a chip's token aside: weekBest of the moves alone)
+  const move = at.move = at.chip ? weekBest(P, w, M, D) : best;
   const placed = (pl) => D.filter((d) => d.entries.some((e) => e.pl === pl && !e.back));
-  if (best && !at.chip) for (const d of placed(best)) at.set(d.a, { e: d.entries.find((x) => x.pl === best && !x.back), best: true });
+  if (move) for (const d of placed(move)) at.set(d.a, { e: d.entries.find((x) => x.pl === move && !x.back), best: true });
   if (!M.settled) return at;
   for (const d of D) {
     // (your own buys none: their card opens their Why sheet, 4a; design_marks/design.md §2 "After the take")
@@ -6629,8 +6634,10 @@ export function mount(el, ctx) {
     const buys = o.buys ?? [e.inId], sellers = o.sellers ?? [d.a], shown = o.shown ?? buys;
     const num = numSaid(false, pl.cmp, false, !!pl.vsRoll), places = COPY.placeSaid(nm(d.a), d.entries.length, null);
     const moves = sellers.map((a, i) => COPY.moveSaid(nm(a), nm(buys[i])));
-    const said = o.tag != null ? `${COPY.partSaid(moves[0], e.adds.filter((m) => Number(m.in) !== e.inId).map((m) => COPY.moveSaid(nm(m.out), nm(m.in))))}. ${places}`
-      : best ? `${COPY.bestSaid(moves, num)}. ${places}` : `${moves[0]}, ${num}. ${places}`;
+    // (beside a chip's ink token, the week's best: "Best move this week", litOf `chip`)
+    const move = !!S.M?.lit?.chip;
+    const said = o.tag != null ? `${COPY.partSaid(moves[0], e.adds.filter((m) => Number(m.in) !== e.inId).map((m) => COPY.moveSaid(nm(m.out), nm(m.in))), move)}. ${places}`
+      : best ? `${COPY.bestSaid(moves, num, move)}. ${places}` : `${moves[0]}, ${num}. ${places}`;
     const body = h('button.ah-spb', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': said, onClick: open },
       shown.map((id, i) => [i ? h('span.ah-spj', { 'aria-hidden': 'true' }, ' + ') : null, h('span.ah-spn', { 'aria-hidden': 'true' }, nm(id))]),
       shown.length < buys.length ? h('span.ah-spm', { 'aria-hidden': 'true' }, COPY.planMore(buys.length - shown.length)) : null,
@@ -6951,8 +6958,9 @@ export function mount(el, ctx) {
       }, word ?? COPY.placeSwap);
       // white where it beats rolling past the noise (plPays: the place's every such choice, not only the one its plate
       // names; design_marks/design.md §3), ink where it is the week's best (weekBest, as the pitch's plate), dark with an
-      // outlined Swap where it doesn't: the zero line seen without moving his card
-      const top1 = !!pl && S.M?.lit?.best === pl, pays = !top1 && !!pl && ready && plPays(pl);
+      // outlined Swap where it doesn't: the zero line seen without moving his card (the best move's beside a chip's ink
+      // token too, as its plate: litOf `move`; the owner, 2026-10-25, "fix so chips not interfer in ths behaviour")
+      const top1 = !!pl && S.M?.lit?.move === pl, pays = !top1 && !!pl && ready && plPays(pl);
       const head = h('div.ah-phead', { class: { best: top1, pays, lo: !top1 && !pays }, dataset: { deal: i }, style: { ...px(x, 0), top: tab() } },
         word ? null : h('span.ah-pv.m-num', { 'aria-hidden': 'true', class: { wait: !ready } }, num ?? numParts(g, pl)),
         go);

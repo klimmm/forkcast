@@ -925,8 +925,10 @@ export const COPY = Object.freeze({
   planMore: (n) => `& ${n} more`,
   swapSaid: (pairs, num = null) => `${COPY.swapGo(pairs.length)}: ${pairs.map(([o, i]) => `${o} for ${i}`).join(', ')}${num ? `, ${num}` : ''}`,
   moveSaid: (out, inn) => `${out} out, ${inn} in`,
-  bestSaid: (moves, num) => (moves.length > 1 ? `Best this week: ${moves.length} transfers, ${num}: ${moves.join('; ')}` : `Best this week: ${moves[0]}, ${num}`),
-  partSaid: (mine, others) => `Part of the best this week: ${mine}${others.length ? `, with ${others.join('; ')}` : ''}`,
+  // (`move`: the best move beside a chip's ink token, the week's best: never two "Best this week"; the owner, 2026-10-25,
+  // "fix so chips not interfer in ths behaviour")
+  bestSaid: (moves, num, move = false) => `Best ${move ? 'move ' : ''}this week: ${moves.length > 1 ? `${moves.length} transfers, ${num}: ${moves.join('; ')}` : `${moves[0]}, ${num}`}`,
+  partSaid: (mine, others, move = false) => `Part of the best ${move ? 'move ' : ''}this week: ${mine}${others.length ? `, with ${others.join('; ')}` : ''}`,
   placeNoneSaid: (name, n) => `${name}: ${plural(n, 'choice')} for his place, none better than rolling. Shows ${n === 1 ? 'it' : 'them'}`,
   placeSwap: 'Swap',
   placeAsGood: (name) => `about as good as ${name}`,
