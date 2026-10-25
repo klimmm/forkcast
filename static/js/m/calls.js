@@ -914,9 +914,26 @@ export const COPY = Object.freeze({
    *  beside the goal. A choice of several moves lit on several tabs: each tab its part mark, "1/3" (the main, before its
    *  number), "2/3", "3/3" (the user, 2026-10-22: "these shirt labels with words 'with' confusing", decided: part marks),
    *  read "part 2 of a 3-transfer plan, +5.8 points vs rolling", never as that one player's sale. */
-  placePart: (i, n) => `${i}/${n}`,
-  placePartSaid: (i, n, num) => `part ${i} of a ${n}-transfer plan${num ? `, ${num}` : ''}`,
-  placeOf: (name) => `${name}'s place`,
+  placeOf: (name) => `Replace ${name}`,
+  /** The marks on the pitch (ahead.renderDecks; the user, 2026-10-23: "these + points or round 2 / 3 confusing - i cant
+   *  see which transfer best"; forkcast/design_marks/DECISION.md, design.md §4): the best's worded take, "Swap", "Swap
+   *  both", "Swap all 3"; a move said "Kayode out, Truffert in"; the best plate's label, "Best this week: …"; a plan's
+   *  tag in another row, never its number twice; a handle's where nothing beats rolling. */
+  swapGo: (n) => (n > 2 ? `Swap all ${n}` : n === 2 ? 'Swap both' : 'Swap'),
+  /** A plan's plate over its sellers in one row, the buys of its sellers in other rows counted (the owner, 2026-10-25:
+   *  "Rice & 2 more +5.0 xP Swap all 3"; each of those keeps his ring and his tag). */
+  planMore: (n) => `& ${n} more`,
+  swapSaid: (pairs, num = null) => `${COPY.swapGo(pairs.length)}: ${pairs.map(([o, i]) => `${o} for ${i}`).join(', ')}${num ? `, ${num}` : ''}`,
+  moveSaid: (out, inn) => `${out} out, ${inn} in`,
+  bestSaid: (moves, num) => (moves.length > 1 ? `Best this week: ${moves.length} transfers, ${num}: ${moves.join('; ')}` : `Best this week: ${moves[0]}, ${num}`),
+  partSaid: (mine, others) => `Part of the best this week: ${mine}${others.length ? `, with ${others.join('; ')}` : ''}`,
+  placeNoneSaid: (name, n) => `${name}: ${plural(n, 'choice')} for his place, none better than rolling. Shows ${n === 1 ? 'it' : 'them'}`,
+  placeSwap: 'Swap',
+  placeAsGood: (name) => `about as good as ${name}`,
+  rollingBest: 'Rolling is best',
+  rollingBestSaid: (g) => `Rolling is best in GW${g}: no transfer beats it; shows why`,
+  chipPlay: 'Play',
+  tokTake: 'Take',
   /** A pair card's note, its other moves (ahead.noteOf; the user, 2026-10-22: "+ Gvardiol → …" began with the take's
    *  glyph): "also Semenyo → Palmer, Cunha → Rice". */
   placeAlso: (moves) => `also ${moves.join(', ')}`,

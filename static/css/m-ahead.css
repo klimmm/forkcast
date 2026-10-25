@@ -12,7 +12,7 @@
             sheet, .ah-wsheet .ah-block.ah-wk) · .ah-pitch (pitch and bench:
             one height every week, from the screen alone, ahead.js fitPitch; plan-pitch.css; .ah-pp corner pills:
             .ah-pdbtn Player data top-right, .ah-lubtn Reset lineup under it, .ah-rpbtn Reset plan under those; the
-            card behind: .ah-decks > .ah-dtab / .ah-dband / .ah-tok, a player's place .ah-place, its own section below)
+            choices: .ah-decks > .ah-sp / .ah-hd / .ah-ring / .ah-tok, a player's place .ah-place, its own section below)
             · the Week sheet's .ah-moves > .ah-mrow[.out] > .ah-veto + .ah-fg · .ah-rules
             (Your rules: .ah-rrow > .ah-rule + .ah-rmv) · the Player data sheet .ah-pdsheet (.ah-pd > .ah-pdo, .ah-radio)
             · .ah-dragghost (.ah-ghostgap the armband's gap)
@@ -332,68 +332,88 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-wk > .ah-wfacts { margin: 0; padding: 8px 14px; white-space: normal; }
 .ah-wk > .ah-wgain { padding-bottom: 0; color: var(--ink); }  /* a week of two or more transfers: its number over its facts (its rows have none) */  /* the week's facts under the title, as the week line's (drawWeek; the user, 2026-10-22) */
 
-/* ------------------------------------------------------------------ the card behind (ahead.js renderDecks; the user,
-   2026-10-20: "make palmer wait behind saka with others"; forkcast/work/pitch-design-v2/final/proposal.md): a suggested
-   buy waits behind the card of the player he would replace, in the row gap over him (--pm-tab tall: .ah-pitch .pm).
-   .ah-decks a layer over the pitch with no taps of its own (only its buttons): .ah-dtab a lit choice's tab, the top of
-   the buy's card, exactly his card's width (his kit's colour along its top, his tile's shadow at its foot; his shirt,
-   never his name; the number, green past the noise: .pays; a +; never checking; .partner a pair's second, his shirt
-   and its part mark, "2/3": .ah-dpart the main's, "1/3"); .ah-dband the edges over a player whose place holds choices (.ah-dedge, one sliver a choice, two
-   for more), the target the row gap over him; .ah-tok the week's own choices beside the goal (Roll, Rolling ✓, a
-   Wildcard or Free Hit: .two its body and its +). A target reaches up over free turf only (--up: ahead.js reachOf).
-   A sub's tab or edges rise from his own card inside the bench's panel, under his label (--pm-bl-gap holds them; the
+/* ------------------------------------------------------------------ the choices on the pitch (ahead.js renderDecks; the
+   user, 2026-10-23: "these + points or round 2 / 3 confusing - i cant see which transfer best, also its rather ugly"; the
+   design he chose: forkcast/design_marks/DECISION.md, design.md, its CSS in the app's tokens design_marks/src/base.css).
+   .ah-decks a layer over the pitch with no taps of its own (only its buttons): .ah-sp a swap plate, one flat line in the
+   row gap over the player it would replace, its foot on his tile's top (never on it: the tiles beside keep every pixel a
+   hold or a drag starts on), naming who comes in (.ah-spn, never a shirt: the owner, 2026-10-25) and what it gains vs
+   rolling (.ah-spv, blue with "xP"): .best the week's one (ink, a mint worded take .ah-spgo, "Swap", "Swap both"; a plan
+   ONE plate naming its row's buys, .ah-spj between them, the others counted, .ah-spm "& 2 more"; .part a plan's seller in
+   another row, his buy's name alone, no line to the plate), .alt a
+   quiet plate of another place whose best single beats rolling (the pitch's dark green); .ah-hd the ⇄ handle of a place
+   whose choices don't (or still checking); .ah-ring the best's sellers' cards; each plate's own fit steps (.noxp .tight
+   .noboth .cut: ahead.js renderDecks, PLATE_TRIMS). .ah-tok the week's own
+   choices beside the goal (Roll, "Rolling is best", Rolling ✓, a Wildcard or Free Hit: .two its body; .best the week's
+   best as a chip, ink with its worded "Play", .ah-tgo). A target reaches up over free turf only (--up: ahead.js reachOf).
+   A sub's plate or handle rises from his own card inside the bench's panel, under his label (--pm-bl-gap holds them; the
    user, 2026-10-22: his tab over the panel hung under the forward's plate over him).
-   .ah-place a player's place: .ah-pshade over the pitch, his own card again (.ah-pown) under .ah-phead.now, each choice
-   a pitch card (.ah-pcard) under its header (.ah-phead: the number, .ah-padd its +) over its note (.ah-pnote), "⋯ N
-   more" (.ah-pmore), a card a choice also changes ringed (.ah-pko, .ah-pkot its tag, .ah-plinks a chalk line to it),
-   the bar (.ah-walk, .top for a bench place); its row-mates step out (.ah-stepout). .ah-ghost the card a take sends
-   behind its buy (ahead.js landFly) */
+   .ah-place a player's place: .ah-pshade over the pitch, his own card again (.ah-pown) under .ah-phead.now ("Keep",
+   outlined: .ah-pkeep.outl), each choice a pitch card (.ah-pcard) under its header (.ah-phead: the number and its worded
+   take .ah-pgo, "Swap"; .best ink, .pays white, .lo dark with an outlined take) over its note (.ah-pnote), "⋯ N more"
+   (.ah-pmore), a card a choice also changes ringed (.ah-pko, .ah-pkot its tag, .ah-plinks a chalk line to it), the bar
+   (.ah-walk, .top for a bench place); its row-mates step out (.ah-stepout). .ah-ghost the card a take sends behind its
+   buy (ahead.js landFly) */
 .ah-pitch .pm { --pm-back: light-dark(#0A6A3F, #0B3D24); }
 .ah-decks { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-/* under an open place the tab layer hides (the user, 2026-10-22: its chalk dots and counts showed through the shade and
+/* under an open place the plates' layer hides, rings and handles too (the user, 2026-10-22: its chalk dots and counts showed through the shade and
    seemed to join rival choices) */
 .pm:has(> .ah-place) > .ah-decks { visibility: hidden; }
 .ah-decks button { pointer-events: auto; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; }
-/* a tab: one line at every height (--th, its own: deckTab; the user, 2026-10-22: never a name, "confusing that it shows
-   sometimes names and sometimes not"), its number 12 px at the default text size in its 18 (.67 of it, as at 24 px
-   tall it was .5; the shirt .7) (the user, 2026-10-22: "TABS 24 -> 18 px"): its body (.ah-dtb: the buy's shirt and the number) opens his place, as his edges
-   do, and its + (.ah-dtp) alone takes it (the user, 2026-10-22: one way in for every stack); a pair's second its shirt and
-   its part mark ("2/3"; the user, 2026-10-22: part marks, never "with"), no + */
-.ah-dtab {
-  position: absolute; box-sizing: border-box; height: var(--pm-tab); display: flex; align-items: stretch;
-  border-radius: var(--pm-tile-r) var(--pm-tile-r) 0 0; background: var(--pm-back); color: #FFFFFF; pointer-events: auto;
-  box-shadow: inset 0 2px 0 var(--kit, #FFFFFF), inset 0 -4px 3px -3px rgb(0 0 0 / .5), 0 -1px 2px rgb(0 0 0 / .18);
-  font: 700 min(calc(var(--pm-tab) * .67), calc(var(--th, var(--pm-tab)) * .67))/1 var(--f-text);
+/* the swap plates' three weights (design.md §1, §7): the best's ink (the C / V badge's, both themes: white 17.6:1, the
+   blue 13.2 / 9.6 on it; on the dark turf a white hairline holds its edge, 3.4:1 alone), its take the app's "worth
+   doing" mint (#05341C on it 10.2:1), the quiet plate and the handle the pitch's dark green (white 6.7 / 12.3:1, --xp-d
+   5.0 / 6.7: the bench tile's wash held the blue at 2.4:1, so the same solid on the bench); the ring white with a faint
+   halo (3.3:1 on the turf, 3.7 on the bench glass); on the pitch, so the place's headers and the chip token share them */
+.ah-pitch .pm {
+  /* (#17191A itself, m.css --plate-ink's: on the pitch --plate-ink is --ink, plan-pitch.css, which goes light in dark) */
+  --sp-ink: #17191A; --sp-go: #8EF2B3; --sp-go-ink: #05341C; --sp-alt: var(--pm-back);
+  --sp-ring: #FFFFFF; --sp-halo: light-dark(rgb(23 25 26 / .6), rgb(0 0 0 / .55));
+  --sp-edge: inset 0 0 0 1px light-dark(transparent, rgb(255 255 255 / .22));
+}
+/* a plate: one line, as wide as its words (ahead.js renderDecks then sets its width: never narrower than his card, its
+   middle over his card's middle third), its height the room over him (--pm-tab at most: inline); 11 px words in its 18
+   (11.5 the best's) at the default text size, as the old tab's number. Its body (.ah-spb) opens his place; only its
+   Swap takes (the user, 2026-10-22: only the explicit action takes) */
+.ah-sp {
+  position: absolute; z-index: 1; box-sizing: border-box; width: max-content; display: flex; align-items: center;
+  border-radius: calc(var(--pm-tile-r) - 1px); background: var(--sp-alt); color: #FFFFFF; pointer-events: auto;
+  font: 600 calc(var(--pm-tab) * .61)/1 var(--f-text); white-space: nowrap; --xp-c: var(--xp-d);
   -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none;
 }
-.ah-dtab::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--up, 4px); }  /* its target over free turf: his place */
-/* its line never wider than his card (a large text size): the body clips it, never the tab, whose stack's edge, count and
-   target stand over it (the user's iPhone, 2026-10-22: Saka's bench count cut in half; WebKit clips both ways under an
-   overflow-x: clip, bugs.webkit.org 271457) */
-.ah-dtb { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px; padding: 1px 0 0 3px; border: 0; background: none;
-  overflow: hidden; color: inherit; font: inherit; text-align: left; cursor: pointer; touch-action: manipulation; }
-:is(.ah-dtb, .ah-dtp):focus-visible { outline: 2px solid #FFFFFF; outline-offset: -2px; border-radius: 4px; }
-.ah-dtab:active, .ah-dband:active .ah-dedge { transform: translateY(-2px); }
-.ah-dtk { flex: none; }
-.ah-dtk > * { display: block; width: min(calc(var(--pm-tab) * .7), calc(var(--th, var(--pm-tab)) - 4px)); height: min(calc(var(--pm-tab) * .7), calc(var(--th, var(--pm-tab)) - 4px)); }
-/* a tab's number never cut, a place header's too, a token's words (ahead.js fitNum): its "xP" goes first (as a plate's:
-   fitFixtures), then the marks, then a smaller size */
-:is(.ah-dtab, .ah-phead, .ah-tok).noxp .xp-u { display: none; }
-:is(.ah-dtab, .ah-phead).nomark :is(.ah-dchip, .ah-dhit) { display: none; }
-:is(.ah-dtab, .ah-phead).nopart .ah-dpart { display: none; }  /* a plan's "1/3" goes last (ahead.js fitNum) */
-.ah-dtab.tight .ah-dtv, .ah-phead.tight .ah-pv, .ah-tok.tight .ah-tnum { font-size: .85em; }
-.ah-dtv { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; font-variant-numeric: tabular-nums; color: #D6ECDF; }
-/* the pitch's dark green's blue for a tab's number and a place header's (m.css --xp-d; the user, 2026-10-22, after
-   v1.3.68: a gain is forecast points, blue with "xP", its sign its direction; green and red no number's) */
-.ah-dtab, .ah-phead { --xp-c: var(--xp-d); }
-.ah-phead.now, .ah-tok { --xp-c: var(--xp-l); }  /* a light pill on the pitch */
-.ah-dtab.pays .ah-dtp { color: #8EF2B3; }  /* worth doing: the + alone (its number blue as every forecast's: --xp-d) */
-.ah-dtp { flex: none; display: grid; place-items: center; width: calc(1.05em + 7px); padding: 0 4px 0 3px; border: 0; background: none;
-  color: #D6ECDF; font: inherit; cursor: pointer; touch-action: manipulation; }
-.ah-dtp:disabled { opacity: .45; cursor: default; }
-.ah-dtp .ah-glyph { width: 100%; height: 100%; }
-.ah-dtw { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; font-weight: 500; color: #D6ECDF; }
-.ah-dtab.partner { background: color-mix(in oklab, var(--pm-back), #000 18%); }
+.ah-sp::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--up, 0px); }  /* its target over free turf: his place */
+.ah-spb {
+  flex: 1 1 auto; min-width: 0; height: 100%; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 6px;
+  border: 0; background: none; color: inherit; font: inherit; cursor: pointer; touch-action: manipulation;
+}
+.ah-spn { flex: none; }
+.ah-spj { flex: none; margin: 0 -1px; font-weight: 400; opacity: .8; }  /* a plan's "Hill + Doku" (DECISION.md) */
+/* a plan's buys in other rows counted, "Rice & 2 more" (the owner, 2026-10-25), never shortened */
+.ah-spm { flex: none; font-weight: 400; opacity: .85; }
+.ah-spv { flex: none; font-variant-numeric: tabular-nums; }
+.ah-sp.best { background: var(--sp-ink); box-shadow: var(--sp-edge); font-size: calc(var(--pm-tab) * .64); }
+.ah-sp.best .ah-spb { justify-content: flex-start; gap: 3px; padding: 0 5px 0 6px; }
+.ah-sp.best.part .ah-spb { justify-content: center; padding: 0 7px; }
+.ah-spgo {
+  position: relative; flex: none; height: calc(100% - 4px); margin: 0 2px 0 0; padding: 0 6px; border: 0; border-radius: calc(var(--pm-tile-r) - 2.5px);
+  background: var(--sp-go); color: var(--sp-go-ink); font: 700 calc(var(--pm-tab) * .61)/1 var(--f-text); cursor: pointer; touch-action: manipulation;
+}
+.ah-spgo::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: calc(var(--up, 0px) + 2px); }  /* its target up over the free turf, as the plate's (its 2 px inset too): never past its sides (no cut take) */
+.ah-spgo:disabled { opacity: .45; cursor: default; }
+:is(.ah-spb, .ah-spgo, .ah-hd):focus-visible { outline: 2px solid #FFFFFF; outline-offset: -2px; border-radius: 4px; }
+.ah-spgo:focus-visible { outline-color: var(--sp-go-ink); }
+/* each plate fitted on its own (ahead.js renderDecks, PLATE_TRIMS; the owner, 2026-10-25: "Each plate fits on its own.
+   Cramped quiet plates turn into ⇄ handles first, so the black best always shows its full name. A name still too long is
+   shortened like the cards do. No shirts."): its "xP", a smaller type, the best's "both"; then, past every quiet plate
+   beside it, its names shortened with "…" (.cut, as the cards' "Calvert-L..."), never its number, "& 2 more" or Swap */
+.ah-sp.noxp .xp-u { display: none; }
+.ah-sp.noboth .ah-spgo .both { display: none; }
+.ah-sp.tight, .ah-sp.tight .ah-spgo { font-size: calc(var(--pm-tab) * .56); }
+.ah-sp.tight .ah-spgo { padding: 0 5px; }
+.ah-sp.cut .ah-spn { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* the best's sellers: a white ring with a faint halo outside the card (still: no motion of its own), under the next
+   row's plate (the plate draws over it) */
+.ah-ring { position: absolute; z-index: 0; border-radius: var(--pm-tile-r); box-shadow: 0 0 0 2px var(--sp-ring), 0 0 0 3.5px var(--sp-halo); pointer-events: none; }
 /* a hold's progress at the finger (ahead.js holdFill: a tab's hold to its place, the C's to the Triple Captain, the
    bench's to the Bench Boost; the user, 2026-10-22, Saffer's review: "nothing on screen changes until the hold fires"):
    a ring round the finger filling over the hold (--ms), unseen for a tap's first 120 ms, the chip it plays over it; gone
@@ -408,26 +428,18 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 @keyframes ah-hold-fill { to { stroke-dashoffset: 0; } }
 /* Reduce Motion keeps the fill's time (app.css cuts every animation short): a ring full before its hold fires would lie */
 @media (prefers-reduced-motion: reduce) { .ah-hold .fl { animation-duration: var(--ms) !important; } }
-/* edges and an open place let the page scroll up and down and leave a sideways move to the pitch's swipe (the edges') and
-   the place's own close: pan-y, as the pitch is */
-.ah-dband { position: absolute; padding: 0; border: 0; background: none; cursor: pointer; touch-action: pan-y; }
-.ah-dband::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--up, 0px); }
-.ah-dband:focus-visible { outline: 2px solid #FFFFFF; outline-offset: -2px; border-radius: 6px; }
-/* light edges, a dark outline (the user, 2026-10-22, "are stacked cards visible enough": #0A6A3F on the turf was about
-   2:1; white on it over 3:1 in both themes), the one behind paler; how many choices his place holds beside them (.ah-dcount) */
-.ah-dedge {
-  position: absolute; bottom: 0; left: calc(var(--gx) + 3px); right: calc(var(--gx) + 3px); height: min(6px, 100%);
-  border-radius: 5px 5px 0 0; background: #FFFFFF; box-shadow: 0 0 0 1px var(--pm-back); transition: transform .1s;
+/* a place with choices, none better than rolling (or the week still checking): the handle, a 26 px stub in the quiet
+   plate's green with FPL's ⇄ arrows, no number, no count (the user, 2026-10-23: "round 2 / 3 confusing"); ink where it is
+   the best's with no room for its plate (a short pitch, a large text size); its target over free turf (--up). Pan-y: a
+   sideways move from it is the pitch's swipe */
+.ah-hd {
+  position: absolute; z-index: 1; box-sizing: border-box; width: 26px; display: grid; place-items: center; padding: 0; border: 0;
+  border-radius: calc(var(--pm-tile-r) - 1px); background: var(--sp-alt); color: #FFFFFF; cursor: pointer; touch-action: pan-y;
 }
-.ah-dedge + .ah-dedge { z-index: -1; left: calc(var(--gx) + 7px); right: calc(var(--gx) + 7px); height: min(10px, 100%); background: color-mix(in oklab, #FFFFFF, var(--pm-back) 30%); }
-.ah-dcount { position: absolute; z-index: 1; padding: 0 4px; border-radius: 7px; background: #FFFFFF; color: #0B6B3A;
-  box-shadow: 0 0 0 1px var(--pm-back); font: 700 10px/14px var(--f-text); pointer-events: none; }
-.ah-dband > .ah-dcount { right: calc(var(--gx) - 3px); bottom: 2px; }
-.ah-dtab > .ah-dcount { right: 1px; top: -11px; }
-.ah-dtab > .ah-dcount.corner { left: 1px; right: auto; top: -7px; }  /* no turf over it for its stack's edge (a bench tab): the count alone, at its top-left corner */
-.ah-dtab > .ah-dedge { bottom: auto; top: -4px; left: 4px; right: 4px; height: 4px; }  /* a lit place with more: its stack's next edge */
-.ah-dband.lit .ah-dedge { background: var(--acc-bg); box-shadow: inset 0 2px 0 var(--kit, #FFFFFF); }  /* a lit choice where a tab has no room */
-.ah-dband.lit .ah-dedge + .ah-dedge { background: color-mix(in oklab, var(--acc-bg), #000 18%); }
+.ah-hd.best { background: var(--sp-ink); box-shadow: var(--sp-edge); }
+.ah-hd::before { content: ""; position: absolute; left: -9px; right: -9px; bottom: 100%; height: var(--up, 0px); }
+.ah-hd::after { content: ""; position: absolute; inset: 0 -9px; }  /* 44 px wide where the room allows */
+.ah-hd .ah-glyph { display: block; width: 13px; height: 10px; }
 .ah-tok {
   position: absolute; left: 6px; display: flex; align-items: center; gap: 6px; height: 26px; max-width: calc(50% - var(--pm-card) / 2 - 14px);
   padding: 0 10px; border: 0; border-radius: 13px; background: var(--plate); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .3);
@@ -445,15 +457,28 @@ button.ah-tok { cursor: pointer; }
 .ah-tok.two::before { content: none; }
 .ah-tbody, .ah-tpb { position: relative; display: flex; align-items: center; gap: 5px; height: 100%; min-width: 0; padding: 0 4px 0 10px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
 .ah-tbody::before, .ah-tpb::before { content: ""; position: absolute; inset: -9px 0; }
-.ah-tpb { flex: none; padding: 0 4px 0 0; }  /* its + whole, never squeezed past the pill's edge by its words (ahead.js renderDecks gives them room) */
+.ah-tpb { flex: none; padding: 0 4px 0 0; }  /* its take whole, never squeezed past the pill's edge by its words (ahead.js renderDecks gives them room) */
 .ah-tpb::before { inset: -9px -6px -9px -2px; }
 .ah-tbody > span:first-child { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .ah-tnum { font-variant-numeric: tabular-nums; color: var(--muted); }
-.ah-tp { flex: none; display: grid; place-items: center; width: 19px; height: 19px; box-sizing: border-box; border: 1.5px solid var(--acc); border-radius: 50%; color: var(--acc); }
+/* its take in words, "Take" (a Roll that takes a buy of yours back; the user, 2026-10-23: no "+" but a gain's sign) */
+.ah-tp { flex: none; display: grid; place-items: center; height: 20px; box-sizing: border-box; padding: 0 7px; border: 1.5px solid var(--acc); border-radius: 10px; color: var(--acc); font-weight: 700; font-size: var(--t-cap); }
 .ah-tok.pays .ah-tp { background: var(--acc); color: #FFFFFF; }
+/* a token's words and number never cut (ahead.js fitNum): its "xP" first, then a smaller number */
+.ah-tok { --xp-c: var(--xp-l); }
+.ah-tok.noxp .xp-u { display: none; }
+.ah-tok.tight .ah-tnum { font-size: .85em; }
+/* the week's best when it is a chip (ahead.js weekBest): ink, its worded take "Play" in the plates' mint (design.md §2,
+   from hero: one take on the pitch); its number the ink's blue */
+.ah-tok.two.best { background: var(--sp-ink); color: #FFFFFF; box-shadow: 0 1px 2px rgb(0 0 0 / .3), var(--sp-edge); --xp-c: var(--xp-d); }
+.ah-tok.best .ah-tnum { color: var(--xp-d); }
+.ah-tok.best .ah-tw { color: rgb(255 255 255 / .7); }
+.ah-tgo { position: relative; flex: none; height: 20px; margin: 0 3px 0 0; padding: 0 8px; border: 0; border-radius: 10px; background: var(--sp-go); color: var(--sp-go-ink); font: 700 var(--t-cap)/20px var(--f-text); cursor: pointer; }
+.ah-tgo::before { content: ""; position: absolute; inset: -12px -6px -12px -2px; }  /* 44 px tall over the turf beside the goal */
+.ah-tgo:focus-visible, .ah-tok .ah-tbody:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; border-radius: 10px; }
 /* a solving token fades its words and buttons, never its clock (the only sign it is working: findings #2) */
 .ah-tok :disabled { cursor: default; }
-.ah-tok .ah-tbody:disabled > *, .ah-tok .ah-tpb:disabled { opacity: .45; }
+.ah-tok .ah-tbody:disabled > *, .ah-tok .ah-tpb:disabled, .ah-tgo:disabled { opacity: .45; }
 .ah-pitch .pm .pm-card.ah-stepout { opacity: 0; pointer-events: none; transition: opacity .15s; }
 .ah-pitch .pm .pm-card.ah-ghost { position: absolute; z-index: -1; margin: 0; pointer-events: none; }
 .ah-pitch .pm .pm-card.ah-landed :is(.pm-in, .pm-pn) { animation: ah-in .15s .17s both; }
@@ -467,41 +492,50 @@ button.ah-tok { cursor: pointer; }
 /* a choice's link between its places: yellow dots, never white dashes (the user, 2026-10-21: "pitch design with central
    circle now confuse with dash lines on the pitch"): nothing the pitch draws is yellow or dotted */
 .ah-plinks path { fill: none; stroke: #FFD84A; stroke-width: 3.5; stroke-dasharray: 0.1 7; stroke-linecap: round; filter: drop-shadow(0 0 1px rgb(0 0 0 / .45)); }
-/* (over every note of its place, z-index 3: a bench note ends 2 px over the headers, and the +'s and Keep's targets reach
-   up over it; the v1.3.75 review #12: a tap there hit the note, nothing) */
+/* (over every note of its place, z-index 3: a bench note ends 2 px over the headers, and the Swap's and Keep's targets
+   reach up over it; the v1.3.75 review #12: a tap there hit the note, nothing). A dealt card's header (design.md §3: its
+   slot and size unchanged, his card's width, flush on its top) holds its number and its take in words where the + was
+   (.ah-pgo, "Swap"; a take-back its own word, "Remove", "Roll"): .best ink, the week's best as on the pitch; .pays white,
+   the choice beats rolling; .lo the dark, its Swap outlined: the zero line seen without moving his card */
 .ah-phead {
   position: absolute; z-index: 3; box-sizing: border-box; height: var(--pm-tab); display: flex; align-items: center; gap: 2px; padding: 0 2px 0 4px;
   border-radius: var(--pm-tile-r) var(--pm-tile-r) 0 0; background: var(--pm-back); color: #FFFFFF; box-shadow: inset 0 1px 0 rgb(255 255 255 / .3);
   font: 700 calc(var(--pm-tab) * .62)/1 var(--f-text); font-variant-numeric: tabular-nums; white-space: nowrap;  /* 11 px at 18 px tall, as at 24 */
 }
 .ah-phead.now { justify-content: center; padding: 0 4px; background: rgb(255 255 255 / .9); color: var(--ink); }
+.ah-phead { --xp-c: var(--xp-d); justify-content: space-between; }
+.ah-phead.now { --xp-c: var(--xp-l); justify-content: center; }  /* a light pill on the pitch */
+.ah-phead:not(:has(.ah-pv)) { justify-content: center; }  /* a take-back's word alone */
+.ah-phead.pays { background: var(--plate); color: var(--plate-ink); box-shadow: none; --xp-c: var(--xp-l); }
+.ah-phead.best { background: var(--sp-ink); box-shadow: var(--sp-edge); --xp-c: var(--xp-d); }
+.ah-phead.lo .ah-pv { opacity: .85; }
+/* its number never cut (ahead.js fitNum, one look per place: drawPlace): its "xP" first, then the marks, then a smaller size */
+.ah-phead.noxp .xp-u { display: none; }
+.ah-phead.nomark :is(.ah-dchip, .ah-dhit) { display: none; }
+.ah-phead.tight .ah-pv { font-size: .85em; }
 /* "Keep" over his own card (a player the choices would sell): his slot's no-transfer, a button; its target up into the
    shade over it */
 button.ah-phead.ah-pkeep { border: 0; color: var(--acc); cursor: pointer; }
 button.ah-phead.ah-pkeep::after { content: ""; position: absolute; inset: -14px 0 -2px; }
 button.ah-phead.ah-pkeep:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 1px; }
-.ah-pv { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: #D6ECDF; }
-/* a pair's card: "+" and the other buy's shirt before its number (ahead.js drawPlace; the reviews, 2026-10-22: the same
-   buy alone and in a pair looked like one card twice) */
-.ah-pwith { flex: none; display: flex; align-items: center; color: #D6ECDF; }
-.ah-pwith .ah-glyph { width: .7em; height: .7em; }
-.ah-pwith > :not(.ah-glyph) { display: block; width: calc(var(--pm-tab) * .7); height: calc(var(--pm-tab) * .7); }
-/* …where its number would be cut, the shirts give way to their count, "+2" (ahead.js fitNum; its note names the moves) */
-.ah-pwith > .ah-pwn, .ah-phead.nopair .ah-pwith > :not(.ah-glyph, .ah-pwn) { display: none; }
-.ah-phead.nopair .ah-pwith > .ah-pwn { display: block; width: auto; height: auto; margin-right: 2px; }
-/* …and where even that cuts it, the count goes too: the number whole (its note names the moves) */
-.ah-phead.nowith .ah-pwith { display: none; }
+/* …outlined (design.md §3; the user, 2026-10-21: one tap, nothing changes): white words in a white outline on the shade */
+button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .85); font-weight: 600; }
+.ah-pv { flex: 0 1 auto; min-width: 0; overflow: hidden; color: #D6ECDF; }
+.ah-phead.pays .ah-pv { color: inherit; }
 /* "Yours +12.5 xP" over his own card fitted as a number (fitNum), in the light pill's ink */
 .ah-phead.now .ah-pv { flex: 0 1 auto; color: inherit; }
 .ah-pv.wait { font-weight: 500; font-style: italic; }
-.ah-dpart { margin-right: 3px; font-size: .82em; font-weight: 600; color: #FFFFFF; }  /* a lit tab's part of a plan of several moves, "1/3" */
 .ah-dhit { margin-right: 2px; font-size: .82em; font-weight: 700; color: #FFC9C2; }  /* the −4 before a number on the pitch */
 .ah-dchip { margin-right: 2px; font-size: .82em; font-weight: 700; color: #FFE7A3; }  /* a Bench Boost / Triple Captain its tap plays too */
-.ah-padd { position: relative; flex: none; display: grid; place-items: center; width: calc(var(--pm-tab) * .86); height: calc(var(--pm-tab) * .86); box-sizing: border-box; padding: 0; border: 1.5px solid #FFFFFF; border-radius: 50%; background: none; color: #FFFFFF; cursor: pointer; }
-.ah-padd::after { content: ""; position: absolute; inset: -14px -5px -4px -24px; }  /* over the header and the shaded gap above it: its card's tap is its Why */
-.ah-padd.pays { background: #FFFFFF; color: var(--acc-bg); }
-.ah-padd:disabled { opacity: .35; cursor: default; }
-.ah-padd:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
+/* the take, worded (design.md §3: "Swap" where the ⊕ was; the same handler, ahead.js takeFrom), its target up into the
+   shade over the header and over the number beside it (its card's tap is its Why) */
+.ah-pgo { position: relative; flex: none; height: calc(100% - 4px); box-sizing: border-box; padding: 0 3px; border: 0; border-radius: calc(var(--pm-tile-r) - 2.5px);
+  background: var(--acc-bg); color: #FFFFFF; font: 700 calc(var(--pm-tab) * .56)/1 var(--f-text); cursor: pointer; }
+.ah-pgo::after { content: ""; position: absolute; inset: -14px -2px -4px -10px; }
+.ah-phead.best .ah-pgo { background: var(--sp-go); color: var(--sp-go-ink); }
+.ah-phead.lo .ah-pgo { background: none; color: #FFFFFF; box-shadow: inset 0 0 0 1.25px rgb(255 255 255 / .8); }
+.ah-pgo:disabled { opacity: .35; cursor: default; }
+.ah-pgo:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
 .ah-pnote { position: absolute; z-index: 2; box-sizing: border-box; width: max-content; padding: 1px 4px; border-radius: 6px; background: rgb(0 0 0 / .6); color: #FFFFFF; font: 400 var(--t-cap)/1.25 var(--f-text); text-align: center; overflow-wrap: break-word; transform: translateX(-50%); }  /* names break between words, never "Muharemovi/ć" (the user, 2026-10-22): centred on its card, its width up to the pitch's edge (ahead.js drawPlace) */
 .ah-pnote.up { transform: translate(-50%, -100%); }
 .ah-pnote.warn { background: rgb(120 0 0 / .75); }
@@ -970,7 +1004,7 @@ button.ah-phead.ah-pkeep:focus-visible { outline: 2px solid #FFFFFF; outline-off
 .m-app, #toasts { --press: color-mix(in oklab, var(--track), var(--border-2) 55%); }
 
 :where(.m-app, #toasts) :where(button:active:not(:disabled, .m-primary, .m-secondary, .m-chipbtn, .m-xbtn, .m-recent-row,
-  .ah-brow, .ah-add, .ah-x, .ah-pp, .ah-pdo, .pm-card, .ah-lrow, .ah-rule:not(.all), .ah-ap, .ah-tick, .ah-avatar, .ah-dtab, .ah-dband, .ah-tok, .ah-tbody, .ah-tpb, .ah-padd, .ah-walk button,
+  .ah-brow, .ah-add, .ah-x, .ah-pp, .ah-pdo, .pm-card, .ah-lrow, .ah-rule:not(.all), .ah-ap, .ah-tick, .ah-avatar, .ah-tok, .ah-tbody, .ah-tpb, .ah-walk button,
   .ws-reach, .wy-tgl, .ps-grid > button, .ah-btnrow button, .ah-pills button,
   .m-banner button, .m-err button, .ws-name)) { opacity: .55; transition-duration: 0s; }
 
