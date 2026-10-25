@@ -481,7 +481,7 @@ button.ah-tok { cursor: pointer; }
 .ah-tok .ah-tbody:disabled > *, .ah-tok .ah-tpb:disabled, .ah-tgo:disabled { opacity: .45; }
 .ah-pitch .pm .pm-card.ah-stepout { opacity: 0; pointer-events: none; transition: opacity .15s; }
 .ah-pitch .pm .pm-card.ah-ghost { position: absolute; z-index: -1; margin: 0; pointer-events: none; }
-.ah-pitch .pm .pm-card.ah-landed :is(.pm-in, .pm-pn) { animation: ah-in .15s .17s both; }
+.ah-pitch .pm .pm-card.ah-landed .pm-pn { animation: ah-in .15s .17s both; }
 @keyframes ah-in { from { opacity: 0; } }
 .ah-place { position: absolute; inset: 0; z-index: 3; touch-action: pan-y; }
 .ah-pshade { position: absolute; inset: 0; background: rgb(2 30 13 / .58); }

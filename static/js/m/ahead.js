@@ -579,7 +579,7 @@ export const squadBefore = (P, g) => squadInto((x) => weekOf(P, x), g, P.A, P.ow
  *  rule left behind); never the week's alone, whose sales would then be buyable again. → Set(id) */
 export const inTeamAt = (P, g) => new Set([...squadBefore(P, g), ...(weekOf(P, g)?.squad ?? [])]);
 
-/** M9 / M5: {id: name} for the players week w buys, each with the player he comes in for (pitch.js: the "IN" badge, the
+/** M9 / M5: {id: name} for the players week w buys, each with the player he comes in for (pitch.js: the ink name plate, the
  *  player he replaces said on his card; the pitch tags only the viewed GW's own moves, never a later sale). A Wildcard or Free Hit week is a new
  *  squad, not swaps: each buy is just "IN" (true; the user, 2026-10-07: "for someone" makes no sense there). */
 export function inFor(P, w) {
@@ -3185,12 +3185,11 @@ export function failedWords(P, pl) {
  *  or Triple Captain it plays, "as good in GW9" (earlyWords: the same move made then is worth no less; the user,
  *  2026-10-21: listed, never lit); last, a move you took off this session, "removed by you" (plansOf `removed`, as its
  *  Week sheet row says it: B129; the user, 2026-10-21: fix the known issues). `e`: its entry in the place (decksOf). Pure. */
-export function noteOf(P, w, e, a = null, top = null) {
+export function noteOf(P, w, e, a = null) {
   const nm = P.L.name, pl = e.pl, chip = pl?.choice.chips?.[w.gw];
-  // a card as good as his place's best (`top`: its first checked choice) within the noise: "about as good as Truffert"
-  // (design_marks/design.md §2 "Several close", the coin-band test: E.verdictLabel), first
-  const close = top && top !== e && pl?.state === 'ready' && top.pl !== pl && E.verdictLabel(top.pl.cmp.delta - pl.cmp.delta, P.noise ?? 0) === 'coin' ? COPY.placeAsGood(nm(top.inId)) : null;
-  const said = (...xs) => [close, ...xs, earlyWords(pl), pl?.removed ? COPY.removedByYou : null].filter(Boolean).join(' · ') || null;
+  // (no "about as good as Truffert" under a card: the owner, 2026-10-25, "why needed these silly comments 'about as good
+  // as tavernier' which only takes space not adding any value")
+  const said = (...xs) => [...xs, earlyWords(pl), pl?.removed ? COPY.removedByYou : null].filter(Boolean).join(' · ') || null;
   if (pl?.state === 'solving') return said(COPY.pairChecking);
   if (pl?.state === 'failed') return said(failedWords(P, pl).note);
   // in the place of a buy of yours (`a`: the place's player) every card takes that buy back: its title says so ("Rice's
@@ -6610,7 +6609,7 @@ export function mount(el, ctx) {
     for (const m of marks.filter((x) => x.kind === 'hd')) append(decks, deckHandle(P, g, m.d, m.c, m.up, m.best, M.settled && !m.L, m.best ? planKey(g, m.L.e.pl) : null));
     // each sub's label a target to the choices drawn (reachLabels)
     reachLabels(root);
-    // (as a landing's IN tag and plate: in 150 ms after 170 ms, m-ahead.css ah-in; Reduce Motion: the 150 ms fade, as land's)
+    // (as a landing's ink name plate: in 150 ms after 170 ms, m-ahead.css ah-in; Reduce Motion: the 150 ms fade, as land's)
     if (lights) for (const x of decks.querySelectorAll('.ah-sp, .ah-ring, .ah-tok.best')) x.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: reduceMotion() ? 0 : 170, fill: 'backwards' });
     if (S.place) drawPlace(false);
   }
@@ -6964,7 +6963,7 @@ export function mount(el, ctx) {
       const head = h('div.ah-phead', { class: { best: top1, pays, lo: !top1 && !pays }, dataset: { deal: i }, style: { ...px(x, 0), top: tab() } },
         word ? null : h('span.ah-pv.m-num', { 'aria-hidden': 'true', class: { wait: !ready } }, num ?? numParts(g, pl)),
         go);
-      const text = noteOf(P, w, e, d.a, entries.find((x) => !takesBack(x) && x.pl?.state === 'ready') ?? null);
+      const text = noteOf(P, w, e, d.a);
       // under his card (a bench place's over its header: the bar is at the pitch's head then, the bench's foot is the screen's);
       // a failed check's in the warning colour, never a pair's move that needs its other sale (checked: it can't alone)
       // centred on its card, as wide as its words want up to the pitch's edge on its nearer side, so a name never breaks

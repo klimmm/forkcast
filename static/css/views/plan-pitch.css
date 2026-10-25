@@ -361,21 +361,12 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
 .pm .pm-flag.red .pm-flag-t { fill: #FFFFFF; }
 .pm .pm-flag.red .pm-flag-i { fill: var(--out); }
 
-/* bought this GW (F16, M9): an "IN" badge at the tile's bottom-left, white with green text, rounded as the C and V badges
-   are (the top-left corner is theirs), the name plate green unless a flag colours it (the user, 2026-10-22: "IN for
-   Saka" became the badge) */
-.pm .pm-in, .pm .pm-out {
-  position: absolute; bottom: 0; z-index: 3; max-width: 100%; padding: 0 3px;
-  background: #FFFFFF; font: 600 var(--pm-t)/var(--pm-tag) var(--f-text);
+/* sold later (F16): "OUT GW8" on the tile's bottom-right, the name plate dark unless a buy of this GW or a flag colours it */
+.pm .pm-out {
+  position: absolute; bottom: 0; right: 0; z-index: 3; max-width: 100%; padding: 0 3px; border-radius: 3px 0 0 0;
+  background: #FFFFFF; color: var(--pm-sold); font: 600 var(--pm-t)/var(--pm-tag) var(--f-text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0;
 }
-.pm .pm-in { left: 2px; bottom: 2px; padding: 0 4px; border-radius: calc(var(--pm-tag) / 2); color: #0B6B3A; }
-
-/* sold later (F16): "OUT GW8" on the tile's bottom-right in the same form, the name plate dark unless a buy or a flag colours it */
-.pm .pm-out { left: auto; right: 0; border-radius: 3px 0 0 0; color: var(--pm-sold); }
-/* bought and sold later (Bassey IN GW6, OUT GW9): each tag on its side, "IN GW6" a row above "OUT GW9" (in time order),
-   so neither covers the other on the narrowest card */
-.pm .pm-card.bought.sold .pm-in { bottom: calc(var(--pm-tag) + 2px); }
 
 .pm .pm-plate {
   display: block; box-sizing: border-box; width: 100%; min-width: 0; max-width: none; margin: 0; padding: 0 1px 1px;
@@ -404,7 +395,9 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
 .pm .pm-pf.data .pm-px { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .pm .pm-px.approx::before { content: "≈"; margin-right: 1px; color: var(--plate-2-ink); }
 .pm .pm-card.sold .pm-pn { background: var(--pm-sold); color: #FFFFFF; }
-.pm .pm-card.bought .pm-pn { background: var(--acc-bg); color: var(--acc-ink); }
+/* bought this GW (M9, `is-in`): the name plate ink, as the plates of the moves suggested over the pitch, no badge and no
+   green, a buy of an earlier week plain (the owner, 2026-10-25: "the player transferred in must be highlited in same style as transfer suggested like with black or something not with green tab and sign 'in' in it it looks sily overall"; then "Transfer week only") */
+.pm .pm-card.is-in .pm-pn { background: var(--plate-ink); color: var(--plate); }
 .pm .pm-card.f-amber .pm-pn { background: var(--warn); color: #1B1300; }
 .pm .pm-card.f-red .pm-pn { background: var(--out); color: #FFFFFF; }
 

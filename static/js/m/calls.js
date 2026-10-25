@@ -931,7 +931,6 @@ export const COPY = Object.freeze({
   partSaid: (mine, others, move = false) => `Part of the best ${move ? 'move ' : ''}this week: ${mine}${others.length ? `, with ${others.join('; ')}` : ''}`,
   placeNoneSaid: (name, n) => `${name}: ${plural(n, 'choice')} for his place, none better than rolling. Shows ${n === 1 ? 'it' : 'them'}`,
   placeSwap: 'Swap',
-  placeAsGood: (name) => `about as good as ${name}`,
   rollingBest: 'Rolling is best',
   rollingBestSaid: (g) => `Rolling is best in GW${g}: no transfer beats it; shows why`,
   chipPlay: 'Play',
