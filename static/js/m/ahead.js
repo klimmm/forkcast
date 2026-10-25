@@ -1913,7 +1913,8 @@ export function chipPlan(ctx, g, chip, road = null, { less = null } = {}) {
   const was = plannedAt(P, chip, g);
   const { what, swap, taken } = chipWords(P, g, chip, drop);
   const row = SQUAD_CHIPS.has(chip) && P.mem?.hold ? chipStates(ctx, P, g, chipSource(ctx, P)).find((x) => x.chip === chip) : null;
-  const gap = row?.cmp && row.best && row.best.gw !== g && row.best.delta != null ? COPY.chipLess(row.best.delta - row.cmp.delta, row.best.gw) : null;
+  // (both on one basis: a week of yours counts against your plan, another against rolling, decision K)
+  const gap = row?.cmp && row.best && row.best.gw !== g && row.best.delta != null && row.best.vs === row.vs ? COPY.chipLess(row.best.delta - row.cmp.delta, row.best.gw) : null;
   // the gain is the new plan against the one before: against the chip it replaces when it replaces one, named as such
   // (the review, 2026-10-08: "Wildcard … +14.8 vs not playing it" was +14.8 vs the Free Hit it replaced); H15: and then
   // no "less than" the best week: that week's figure kept the chip this one replaces (BB for TC in GW9 "5.1 less than
@@ -1921,7 +1922,7 @@ export function chipPlan(ctx, g, chip, road = null, { less = null } = {}) {
   return edit(ctx, {
     pins, drop, road, draft: road ? null : E.planChip(draftOf(ctx), g, chip),
     from: g, strict: false, what, taken,
-    text: row ? () => COPY.chipRolled(what, row.cmp, gap) : (Q, prev) => {
+    text: row ? () => COPY.chipRolled(what, row.cmp, gap, row.vs) : (Q, prev) => {
       const c = compare(ctx, { weeks: Q.weeks }, { weeks: prev.weeks });
       // against no chip only when it replaced none, here or in another week: then its row's number too (chipGain)
       if (was == null && !swap && SQUAD_CHIPS.has(chip)) chipTold(Q, g, c);
@@ -2692,7 +2693,14 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // (vsMine by what its + gives, the week alone against your plan, where both keep your later weeks: in your Wildcard
     // or Free Hit week, your picks in it; a Wildcard row; your transfers' plan failed)
     const vsMine = chipMine || (now.length && (heldOf(x.choice) || !yoursToo)) ? x.alone : yoursToo ? compare(ctx, x.fullEv, yoursToo.ev) : null;
-    return { ...x, cmp: compare(ctx, x.fullEv, r.ev), refEv: r.ev, vsRoll: true, refRow: forkKey(x.choice, g) === rollK, ...(vsMine ? { vsMine } : {}) };
+    // decision K (the owner, 2026-10-25, GW9 after João Pedro → Evanilson +1.8, Cherki's place "+1.6 Swap Tavernier":
+    // "shouldnt it compare + poitns not to rolling now but to transfer made … it seems that cherking to tavrnier is
+    // better by 1.6 poitns than jp to evanilson wichj is not it actually worse"): in a week of yours the number shown
+    // (the order, the plates, the cards, the rows, the toast) is `vsMine`, what the choice changes on your plan as it
+    // stands (a choice in place of your transfer −0.2 there, a 2nd transfer what it adds to yours); a week with none of
+    // yours, your plan the roll, as before. There the rows count against your plan, not the roll: the roll that takes
+    // yours back is a choice as any, its number yours turned round (no reference row: `refRow` only with none of yours)
+    return { ...x, cmp: vsMine ?? compare(ctx, x.fullEv, r.ev), refEv: r.ev, vsRoll: true, refRow: !vsMine && forkKey(x.choice, g) === rollK, ...(vsMine ? { vsMine } : {}) };
   };
   const rolls = (x) => rollOffered && !x.choice.moves.length && !Object.keys(x.choice.chips).length;
   // B129: a choice whose + makes again only what you took off GW g this session (every move of it your plan doesn't make
@@ -2753,7 +2761,16 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     if (r?.state === 'solving') return { wait: true };
     if (r?.state !== 'ready') return null;
     const m = measured(chip === 'fh' ? { ...r, chips: { [g]: chip }, draft: weekOnto(r.draft, p.draft, g) } : p);
-    return m ? { cmp: vsRollOf(ctx, m, r), vs: COPY.planVsRoll } : null;
+    if (!m) return null;
+    // in a week of yours against your plan, as its row would count (vsRef's `vsMine`; decision K, the owner, 2026-10-25:
+    // "compare + poitns not to rolling now but to transfer made"): a Free Hit's plan against your transfers' (Forkcast's
+    // later moves on both sides), a Wildcard's, or either in your chip week, by what its + gives (`alone`)
+    if (now.length && !chipMine && own?.state === 'solving') return { wait: true };
+    if (chipMine || now.length) {
+      const v = chip === 'fh' && !chipMine && yoursToo ? compare(ctx, m.ev, yoursToo.ev) : alone({ ...m, state: 'ready', choice: { moves: [], chips: { [g]: chip } } }).alone;
+      return v ? { cmp: v, vs: COPY.planVs(true) } : null;
+    }
+    return { cmp: vsRollOf(ctx, m, r), vs: COPY.planVsRoll };
   };
   list.chipOf = (chip, road) => {
     if (followed || !road || !SQUAD_CHIPS.has(chip)) return null;
@@ -2808,9 +2825,15 @@ const plansListed = (ctx, P, g) => {
   return pk.gw.get(g);
 };
 const PEEKS = new WeakMap();
-/** What a choice's number counts against, in words (its row's, its token's, its tab's: planSaid; Chips…: chipShown):
- *  rolling under the hold once the roll's plan is in (plansOf `vsRoll`), else your plan as it stands (COPY.planVs). */
-const choiceVs = (P, pl) => (pl.vsRoll ? COPY.planVsRoll : COPY.planVs(mineAny(P)));
+/** What a choice's number counts against, in words (its row's, its token's, its tab's, its plate's and card's spoken
+ *  number, its toast, its Why sheet: planSaid, plNumSaid; Chips…: chipShown): your plan in a week with a transfer of
+ *  yours or your Wildcard or Free Hit (plansOf `vsMine`, decision K: the owner, 2026-10-25, "compare + poitns not to
+ *  rolling now but to transfer made"), else rolling under the hold once the roll's plan is in (plansOf `vsRoll`), else
+ *  your plan as it stands (COPY.planVs). */
+const choiceVs = (P, pl) => (pl.vsMine ? COPY.planVs(true) : pl.vsRoll ? COPY.planVsRoll : COPY.planVs(mineAny(P)));
+/** GW w has a transfer of yours or your Wildcard or Free Hit: under the hold its choices count against your plan
+ *  (plansOf's `vsMine`, from `now` and `chipMine`: decision K), its plans heading and a place's bar say so (plansVs). */
+const yoursAt = (w) => !!w && (SQUAD_CHIPS.has(w.chip) || w.moves.length > 0);
 /** The one Free Hit number (the user, 2026-10-22: the pitch's "+5.9 vs rolling" and Chips…'s "+6.2" or "Best week: GW9
  *  +2.9" vs not playing it, for one chip one tap apart): Wildcard or Free Hit `c` in GW g as the pitch shows it, its
  *  choice there (plansOf, never a solve asked: plansListed) once ready → {cmp, pays (plPays: its token green), vs
@@ -3851,7 +3874,8 @@ export function addPlan(ctx, g, pl) {
     ? (head?.startsWith(rg) && roll.label.startsWith(rg) ? roll.label.slice(rg.length) : roll.label) : null;
   // the transfers it takes back in one clause, its GW said once (the first-use findings, 2026-10-21: "GW8 roll · GW8 Groß →
   // Dewsbury-Hall removed · GW8 Calvert-Lewin → …" ran to three lines over the header)
-  // its number is the whole GW-g plan's against rolling (pl.cmp): where the week keeps transfers of yours beside its own,
+  // its number is the row's (pl.cmp), against rolling, in a week of yours against your plan ("· −0.2 vs your plan":
+  // choiceVs, decision K; the owner, 2026-10-25): where the week keeps transfers of yours beside its own,
   // their count named before it (the user, 2026-10-22: "GW8 Semenyo → Palmer + Cunha → Rice · frozen · 3 transfers in
   // GW8 · +5.8 vs rolling · total +18.2"; COPY.planGain's tail as ui.js toastParts reads it)
   const nAt = pl.moves.filter((m) => m.gw === g).length;
@@ -3868,7 +3892,7 @@ export function addPlan(ctx, g, pl) {
     // a Roll + that takes nothing back and changes no number says the rule it made (rollMade; saffer r7 §7: "GW8 roll ·
     // total 0.0")
     text: locks && !own.length && !chips.length && !gone.length && !back ? () => COPY.rollMade(g)
-      : pl.vsRoll && !pl.refRow ? (Q, prev) => `${COPY.planGain(what, pl.cmp.delta, total(Q, prev))}${captainMoved(Q, prev, g)}` : withPoints(ctx, what, (Q, prev) => captainMoved(Q, prev, g), { total: true }),
+      : pl.vsRoll && !pl.refRow ? (Q, prev) => `${COPY.planGain(what, pl.cmp.delta, total(Q, prev), choiceVs(P, pl))}${captainMoved(Q, prev, g)}` : withPoints(ctx, what, (Q, prev) => captainMoved(Q, prev, g), { total: true }),
     more: own.length ? [whyAct(g, own[0].in)] : [],
   });
 }
@@ -4049,7 +4073,9 @@ export function removeMove(ctx, m, { both = false, alone = false } = {}) {
     const w = weekOf(P, g);
     const rolls = !!w && !squadWeek(w) && !onward.length && named.every((y) => y.gw === g) && w.moves.every((x) => named.some((y) => x.out === y.out && x.in === y.in));
     const vr = rolls ? weekRollOf(ctx, P, w, (x) => plansListed(ctx, P, x)) : null;
-    return withPoints(ctx, vr ? `${what} · ${COPY.vsRolling(-vr.delta)}` : what, end(g, named), { total: true });
+    // (the week's Roll in its place is a choice of a week of yours: its number against your plan, the transfer's turned
+    // round, decision K; the owner, 2026-10-25: "compare + poitns not to rolling now but to transfer made")
+    return withPoints(ctx, vr ? `${what} · ${COPY.pointsVs(-vr.delta, COPY.planVs(true))}` : what, end(g, named), { total: true });
   };
   // B56 (saffer Part 4 §3: the removed transfer stayed on screen with a ≈ gain until the re-plan landed): its ≈ is the
   // plan without the moves it takes off (dropDrafted), as keep's is, your later sale of his buy first (dropMove would
@@ -6631,7 +6657,7 @@ export function mount(el, ctx) {
     const th = Math.max(PLATE_MIN, Math.min(c.bench ? tabH - 2 : tabH, up));
     const open = () => openPlace(d.a);
     const buys = o.buys ?? [e.inId], sellers = o.sellers ?? [d.a], shown = o.shown ?? buys;
-    const num = numSaid(false, pl.cmp, false, !!pl.vsRoll), places = COPY.placeSaid(nm(d.a), d.entries.length, null);
+    const num = plNumSaid(P, pl), places = COPY.placeSaid(nm(d.a), d.entries.length, null);
     const moves = sellers.map((a, i) => COPY.moveSaid(nm(a), nm(buys[i])));
     // (beside a chip's ink token, the week's best: "Best move this week", litOf `chip`)
     const move = !!S.M?.lit?.chip;
@@ -6659,7 +6685,7 @@ export function mount(el, ctx) {
    *  took off this session (B129, as litOf). */
   const placeLabel = (P, d) => {
     const nm = P.L.name, best = d.entries.find((x) => !x.back && x.pl?.state === 'ready' && !x.pl.removed);
-    return COPY.placeSaid(nm(d.a), d.entries.length, best && `${nm(best.inId)}, ${numSaid(false, best.pl.cmp, false, !!best.pl.vsRoll)}`);
+    return COPY.placeSaid(nm(d.a), d.entries.length, best && `${nm(best.inId)}, ${plNumSaid(P, best.pl)}`);
   };
   /** A place with choices and no plate (design_marks/design.md §1: none of them beats rolling, or the week still checks,
    *  `settled` false; the user, 2026-10-23: no count, "round 2 / 3 confusing"): a small handle over his card with FPL's
@@ -6670,7 +6696,7 @@ export function mount(el, ctx) {
     const hh = Math.min(c.bench ? 14 : 16, up);
     return h('button.ah-hd', {
       type: 'button', class: { best }, 'aria-haspopup': 'dialog', dataset: { row: `deck:${d.a}`, deck: d.a, ...(plan ? { plan } : {}), ...(c.bench ? { bench: '' } : {}) },
-      'aria-label': best || !settled ? placeLabel(P, d) : COPY.placeNoneSaid(P.L.name(d.a), d.entries.length),
+      'aria-label': best || !settled ? placeLabel(P, d) : COPY.placeNoneSaid(P.L.name(d.a), d.entries.length, plansVs(P, g)),
       style: { left: `${c.x + c.w / 2 - 13}px`, top: `${c.y - hh}px`, height: `${hh}px`, '--up': `${Math.max(0, up - hh)}px` },
       onClick: () => openPlace(d.a),
     }, glyph('swap'));
@@ -6709,7 +6735,7 @@ export function mount(el, ctx) {
       const chip = !!pl.choice.chips?.[g], best = lit.chip === pl;
       const what = planWeeks(P, { ...pl.choice, moves: [], hits: {} }, g, false).find(([x]) => x === g)?.[1] ?? COPY.planRoll(null);
       out.push(h('span.ah-tok.two', { class: { pays: s.pays, wait: !!s.wait, best }, dataset: { plan: key } },
-        h('button.ah-tbody', { type: 'button', disabled: !!s.wait, dataset: { row: `tok:${key}` }, 'aria-label': `${best ? `${COPY.bestSaid([what], numSaid(false, pl.cmp, false, !!pl.vsRoll))}; ` : `${s.label}; `}shows why`, onClick: () => openPlanWhy(P, g, pl) },
+        h('button.ah-tbody', { type: 'button', disabled: !!s.wait, dataset: { row: `tok:${key}` }, 'aria-label': `${best ? `${COPY.bestSaid([what], plNumSaid(P, pl))}; ` : `${s.label}; `}shows why`, onClick: () => openPlanWhy(P, g, pl) },
           // (still checking: "checking…" under its words, never a clock in its number's slot: waitClock)
           h('span', null, what, said ? h('small.ah-tw', null, COPY.planInsteadOf(lost)) : null, pl.state === 'solving' ? h('small.ah-tw', null, COPY.pairChecking) : null),
           // (its number blue with "xP", as every forecast's: ui.js xpGain)
@@ -6909,12 +6935,11 @@ export function mount(el, ctx) {
     Object.assign(own.style, px(c.x, c.y));
     // (his real card focused first: the sheet it opens gives focus back to it)
     own.addEventListener('click', (e) => { e.stopPropagation(); c.n.focus({ preventScroll: true }); closePlace(false); c.n.click(); });
-    // "Yours +0.4" over a transfer of yours (its row's number: none while it checks, ≈ an estimate); "Now" over a player
-    // or a buy Forkcast made (a week it re-picks: no rule of yours)
+    // "Yours" over a transfer of yours, with no number: the choices beside it count against your plan, which yours is
+    // (decision K; its own number vs rolling stays on the week line: "Yours +1.6" beside "−2.9" read as a 4.5-point gap,
+    // the vsplan review, 2026-10-25); "Now" over a player or a buy Forkcast made (a week it re-picks: no rule of yours)
     const myMove = d.mine ? w.moves.find((m) => Number(m.in) === d.a) : null;
-    // (in a week of two or more transfers the week's own number, the line's: one baseline per place, as the choices beside
-    // it count the whole week against rolling; the user, 2026-10-22: shareWeek)
-    const yours = myMove && pinOfMove(P, { ...myMove, gw: g }) ? shareWeek(w) ? { ...weekGain(P, w), ap: ap0(P, g) } : moveNum(P, w, myMove) : null;
+    const yours = !!myMove && !!pinOfMove(P, { ...myMove, gw: g });
     // a player the choices would sell (not a buy of yours): "Keep", his slot's no-transfer as the Roll is a buy's: a GW-g
     // Keep of him (keep), every choice selling him gone, at once with Undo (the user, 2026-10-21: "what if i do not want
     // to sell de cuyper": three taps on his card before)
@@ -6925,7 +6950,7 @@ export function mount(el, ctx) {
       : h('div.ah-phead.now', { 'aria-hidden': 'true', style: { ...px(c.x, 0), top: tab() } },
         // (your number blue with "xP": xpGain)
         // (in a span fitNum fits, as a dealt card's number: "Yours +12.5 xP" spilled out of its plate)
-        yours ? h('span.ah-pv.m-num', null, COPY.placeYours, yours.cmp && !yours.wait ? [' ', xpGain(yours.cmp.delta, 'span', null, true, yours.ap ? '≈' : '')] : null) : COPY.placeNow);
+        yours ? h('span.ah-pv.m-num', null, COPY.placeYours) : COPY.placeNow);
     const dealt = [], kos = new Map(), lines = [];
     shown.forEach((e, i) => {
       const x = room[i], pl = e.pl, s = pl ? planSaid(P, g, pl) : null;
@@ -6947,12 +6972,14 @@ export function mount(el, ctx) {
       // its take in words where the + was (the user, 2026-10-23: "these + points ... confusing"; design_marks/design.md
       // §3): "Swap" (a pair's card swaps all its moves: its note names the others), a take-back its own word ("Remove",
       // "Roll"), the number beside it; the same handler and fly-in as before (takeFrom)
-      const word = e.remove || pl.refRow ? num : null;
+      // (the Roll of a week of yours, a choice counted against your plan: its word and its number, decision K)
+      const rollBack = !!pl && !pl.refRow && !pl.choice.moves.length && !Object.keys(pl.choice.chips).length;
+      const word = e.remove || pl.refRow ? num : rollBack && ready ? COPY.planRoll(null) : null;
       const swaps = e.remove ? [] : [[nm(d.a), nm(e.inId)], ...e.pair.map((q) => [nm(q.out), nm(q.in)])];
       const go = h('button.ah-pgo', {
         type: 'button', disabled: !ready || frozenAt(P, g),
         dataset: { add: pl ? `plan:${planKey(g, pl)}` : `rm:${e.remove.out}>${e.remove.in}` },
-        'aria-label': e.remove ? said : pl.refRow ? COPY.planTake(s.head) : COPY.swapSaid(swaps, ready ? numSaid(false, pl.cmp, false, !!pl.vsRoll) : null),
+        'aria-label': e.remove ? said : pl.refRow ? COPY.planTake(s.head) : rollBack && ready ? `${COPY.planTake(s.head)}, ${plNumSaid(P, pl)}` : COPY.swapSaid(swaps, ready ? plNumSaid(P, pl) : null),
         onClick: (ev) => takeFrom(ev, P, g, pl, card, d.a, e.inId, e.remove ? () => removeMove(ctx, e.remove) : undefined),
       }, word ?? COPY.placeSwap);
       // white where it beats rolling past the noise (plPays: the place's every such choice, not only the one its plate
@@ -6961,7 +6988,7 @@ export function mount(el, ctx) {
       // token too, as its plate: litOf `move`; the owner, 2026-10-25, "fix so chips not interfer in ths behaviour")
       const top1 = !!pl && S.M?.lit?.move === pl, pays = !top1 && !!pl && ready && plPays(pl);
       const head = h('div.ah-phead', { class: { best: top1, pays, lo: !top1 && !pays }, dataset: { deal: i }, style: { ...px(x, 0), top: tab() } },
-        word ? null : h('span.ah-pv.m-num', { 'aria-hidden': 'true', class: { wait: !ready } }, num ?? numParts(g, pl)),
+        word && !(rollBack && ready) ? null : h('span.ah-pv.m-num', { 'aria-hidden': 'true', class: { wait: !ready } }, num ?? numParts(g, pl)),
         go);
       const text = noteOf(P, w, e, d.a);
       // under his card (a bench place's over its header: the bar is at the pitch's head then, the bench's foot is the screen's);
@@ -7467,16 +7494,22 @@ export function mount(el, ctx) {
   /** A number's cell on a line (the week line's, a transfer row's): "· …" while it solves (`wait`), "· 0:12" once its
    *  checks have taken LATE_S (waitClock's `late`; the clock in "checking…"'s place: both beside the words cut
    *  "1 transfer" to "1 tran…" on a 390 px phone, the review of the first-use fixes, 2026-10-21), else its gain (gainOf), else nothing; and as its label says it ("checking…",
-   *  "about +6.2 points vs rolling": `vs`; the user, 2026-10-22: one baseline phrase, VoiceOver reads it "versus"). */
+   *  "about +6.2 points vs rolling": `vs`, true for rolling, else its words, "vs your plan": decision K; the user,
+   *  2026-10-22: one baseline phrase, VoiceOver reads it "versus"). */
   const numOf = (wait, cmp, ap) => (wait ? h('span.ah-bq2', { 'aria-hidden': 'true' }, waitClock('', { late: true, pre: ' · …', sep: ' · ' }) ?? [' · ', COPY.pairChecking]) : cmp ? gainOf(cmp, ap) : null);
-  const numSaid = (wait, cmp, ap, vs = false) => (wait ? COPY.pairChecking : cmp ? `${ap ? 'about ' : ''}${fmt.signed(cmp.delta)} points${vs ? ` vs ${COPY.planVsRoll}` : ''}` : '');
+  const numSaid = (wait, cmp, ap, vs = false) => (wait ? COPY.pairChecking : cmp ? `${ap ? 'about ' : ''}${fmt.signed(cmp.delta)} points${vs ? ` vs ${vs === true ? COPY.planVsRoll : vs}` : ''}` : '');
+  /** …a checked choice's number as a plate, a place's card, a token and a handle say it, against what its row counts
+   *  (choiceVs: "vs your plan" in a week of yours, decision K; none off the hold, as before). */
+  const plNumSaid = (P, pl) => numSaid(false, pl.cmp, false, pl.vsRoll && choiceVs(P, pl));
   /** The −4 of n hits beside a line's words (the week line's, a transfer's, a choice's), quiet, and as its label says it. */
   const hitTag = (n) => (n ? h('small.ah-hit.m-num', { 'aria-hidden': 'true' }, `${MINUS}${E.HIT_COST * n}`) : null);
   const hitSaid = (n) => (n ? `, a ${MINUS}${E.HIT_COST * n} hit included` : '');
-  /** What GW g's suggested plans count against (the plans heading, a row, its Why sheet): rolling once the week's roll plan
-   *  is in (plansOf `ref`), none while it solves (`refWait`: the user, 2026-10-21, fix all (first-use proposal #8): it
-   *  read "vs no transfers", then "vs rolling"), else your plan (COPY.planVs). → its words | null */
-  const plansVs = (P, g) => { const L = plansOf(ctx, P, g); return L.ref ? COPY.planVsRoll : L.refWait ? null : COPY.planVs(mineAny(P)); };
+  /** What GW g's suggested plans count against (the plans heading, a row, its Why sheet, a place's bar): rolling once the
+   *  week's roll plan is in (plansOf `ref`), your plan then in a week of yours (yoursAt, its rows' `vsMine`: decision K;
+   *  the owner, 2026-10-25: "Gain vs rolling" under Cherki's place in a week of his transfer), none while it solves
+   *  (`refWait`: the user, 2026-10-21, fix all (first-use proposal #8): it read "vs no transfers", then "vs rolling"),
+   *  else your plan (COPY.planVs). → its words | null */
+  const plansVs = (P, g) => { const L = plansOf(ctx, P, g); return L.ref ? (yoursAt(weekOf(P, g)) ? COPY.planVs(true) : COPY.planVsRoll) : L.refWait ? null : COPY.planVs(mineAny(P)); };
   /** B47: a row's main part is its button (its Why sheet), never the whole row: inside a row that was one button
    *  VoiceOver reached none of its own controls, so its +, ×, other buys and "+n" are controls of their own beside it.
    *  The row keeps its tap on its empty part and its gestures. Spoken `label` ("…; shows why"), Enter / Space; `row`
@@ -7669,7 +7702,7 @@ export function mount(el, ctx) {
     // choice worth no less a week later says so after it (earlyWords)
     const ew = earlyWords(pl);
     const label = wait ? `${who}: ${wait}` : pl.refRow ? `${who}, ${COPY.planRefSaid}`
-      : `${who}, ${fmt.signed(pl.cmp.delta)} points over ${span(P.gws.filter((x) => x >= g))} vs ${pl.vsRoll ? COPY.planVsRoll : plansVs(P, g)}${ew ? `, ${ew}` : ''}`;
+      : `${who}, ${fmt.signed(pl.cmp.delta)} points over ${span(P.gws.filter((x) => x >= g))} vs ${pl.vsRoll ? choiceVs(P, pl) : plansVs(P, g)}${ew ? `, ${ew}` : ''}`;
     return { head, label, wait, pays: !wait && plPays(pl) };
   }
   /** A choice's + (a Week sheet row's, a token's): GW g alone taken (planTake, addPlan) through addOnce; `then` once it
@@ -7726,7 +7759,7 @@ export function mount(el, ctx) {
       h('span.ah-bt', whyPart(`${s.label}; shows why`, why, `plan:${key}`), h('span.ah-bn', null, line), hit, gain), add);
   }
   /** A plan's Why sheet: the two plans the row's number compares side by side (under the hold its plan and the roll's,
-   *  Forkcast's later moves in both: plansOf `vsRoll`; the roll's own row's plan against the best other row's, `vsBest`; else what
+   *  Forkcast's later moves in both: plansOf `vsRoll`; in a week of yours its plan and yours: `vsMine`, decision K; the roll's own row's plan against the best other row's, `vsBest`; else what
    *  its + gives against your plan), titled with its GW-g choice alone (the user, 2026-10-12: only this week's moves; its
    *  −4 among what else it changes, the user 2026-10-19: one fact once), as openWhy is laid out: its buttons (the row's
    *  own, "Take it", said "Take GW7 Scott → Dewsbury-Hall": planTake, filled as the row's + is solid: litPays, `lit`; a "Not Groß · GW6" per GW-g
@@ -7748,13 +7781,18 @@ export function mount(el, ctx) {
     const titleOf = (x) => planWeeks(P, { ...x, moves: moved(x), hits: {} }, g, false).find(([y]) => y === g)?.[1] ?? COPY.planRoll(null);
     const now = moved(pl);
     const best = pl.refRow && pl.vsBest ? pl.best : null;
+    // in a week of yours its plan against yours, Forkcast's later moves in both (plansOf `vsMine`, the list's `mine`:
+    // decision K; the owner, 2026-10-25, "compare + poitns not to rolling now but to transfer made"), where vsMine is
+    // that; else (your chip week, a Wildcard row) what its + gives against your plan, as below
+    const mine = pl.vsMine && pl.vsMine !== pl.alone && !pl.refRow ? plansOf(ctx, P, g).mine : null;
     const [ev, other, cmp, vs, short] = best ? [pl.bestFrom ?? pl.fullEv, best.fullEv, pl.vsBest, titleOf(best), titleOf(best)]
-      : pl.vsRoll && !pl.refRow ? [pl.fullEv, pl.refEv, pl.cmp, COPY.planVsRoll, COPY.planRoll(null)]
-        : [pl.ev, without, pl.alone ?? pl.cmp, COPY.planVs(mineAny(P)), COPY.planVs(mineAny(P))];
+      : mine ? [pl.fullEv, mine.ev, pl.cmp, COPY.planVs(true), COPY.planVs(true)]
+        : pl.vsRoll && !pl.refRow && !pl.vsMine ? [pl.fullEv, pl.refEv, pl.cmp, COPY.planVsRoll, COPY.planRoll(null)]
+          : [pl.ev, without, pl.alone ?? pl.cmp, COPY.planVs(!!pl.vsMine || mineAny(P)), COPY.planVs(!!pl.vsMine || mineAny(P))];
     const d0 = draftOf(ctx);
     // (the user, 2026-10-22: one baseline per sheet): a miss set on the header's number where it counts against rolling
     // (onBase), never against your plan under it; a Wildcard or Free Hit says the chip it spends and when the next comes
-    const onHead = best || (pl.vsRoll && !pl.refRow) ? cmp.delta : null;
+    const onHead = best || mine || (pl.vsRoll && !pl.refRow && !pl.vsMine) ? cmp.delta : null;
     const sqChip = SQUAD_CHIPS.has(pl.chips?.[g]) ? pl.chips[g] : null;
     const facts = [...new Set([...now.flatMap((m) => whyFacts(ctx, P, g, m, pl.ev, without, { drafts: [pl.taken ?? pl.draft, d0], head: onHead })),
       ...(sqChip ? [COPY.chipUses(chipName(sqChip), chipBack(P, g))] : []),
@@ -7764,7 +7802,7 @@ export function mount(el, ctx) {
     const title = titleOf(pl);
     // the two plans' later weeks, rolling's (else what it counts against) first
     const later = countedAfter(P, g, best ? [[COPY.countedRoll, ev], [short, other]]
-      : pl.vsRoll && !pl.refRow ? [[COPY.countedRoll, other], [title, ev]] : [[short[0].toUpperCase() + short.slice(1), other], [title, ev]]);
+      : pl.vsRoll && !pl.refRow && !pl.vsMine ? [[COPY.countedRoll, other], [title, ev]] : [[short[0].toUpperCase() + short.slice(1), other], [title, ev]]);
     // what its + gives in GW g (pl.ev, paired as the Week sheet will pair it once taken: takenKeep), a player your Keep
     // holds there "kept: your rule"
     const sq = SQUAD_CHIPS.has(pl.chips?.[g]) ? squadChanges(P, g, pl.ev, takenKeep(P, g, pl)) : [];

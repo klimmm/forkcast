@@ -438,6 +438,8 @@ export const COPY = Object.freeze({
       // one phrase for the baseline, "vs rolling" (the user, 2026-10-22: no "beats rolling", "against rolling")
       'A transfer\'s number: its gain vs rolling that GW, to the end of the plan.',
       'A plan\'s number: its gain vs rolling that GW. Roll has no number: the others are vs it.',
+      // decision K (the owner, 2026-10-25: "compare + poitns not to rolling now but to transfer made")
+      'In a GW with a transfer, Wildcard or Free Hit of yours, every choice, Roll too, is vs your plan: worse than yours is negative.',
       'Vs rolling, both sides get Forkcast\'s best later moves (none after a Wildcard), so the free transfer rolling saves can be used.',
       'Taking a choice adds its GW\'s moves alone, not the later ones its number counts, so the total can move by another amount.',
       'Its message names both: its number vs rolling, then total, what your total moved by.',
@@ -576,7 +578,7 @@ export const COPY = Object.freeze({
   /** …a Wildcard or Free Hit under your team as it is (the user, 2026-10-22: "vs rolling everywhere"): its Chips… row's
    *  number against the week's roll plan (ahead.chipNumber), as the pitch's token, the row and the week line say it, and
    *  what it gives up against that row's best week (chipLess, both vs rolling); either left out where it isn't known. */
-  chipRolled: (what, cmp = null, less = null) => [what, cmp ? COPY.vsRolling(cmp.delta) : null, less].filter(Boolean).join(' · '),
+  chipRolled: (what, cmp = null, less = null, vs = COPY.planVsRoll) => [what, cmp ? COPY.pointsVs(cmp.delta, vs ?? COPY.planVsRoll) : null, less].filter(Boolean).join(' · '),
   /** …when the planner's own count parts from the points (QA: a rule is never called better by a count the planner
    *  disagrees with): the points, then why, plainly. way: 'better' | 'worse' by its count, 'no better' | 'no worse' with
    *  none (B39: an estimate claims no count; a count inside the noise is changeLevel's). */
@@ -929,7 +931,7 @@ export const COPY = Object.freeze({
   // "fix so chips not interfer in ths behaviour")
   bestSaid: (moves, num, move = false) => `Best ${move ? 'move ' : ''}this week: ${moves.length > 1 ? `${moves.length} transfers, ${num}: ${moves.join('; ')}` : `${moves[0]}, ${num}`}`,
   partSaid: (mine, others, move = false) => `Part of the best ${move ? 'move ' : ''}this week: ${mine}${others.length ? `, with ${others.join('; ')}` : ''}`,
-  placeNoneSaid: (name, n) => `${name}: ${plural(n, 'choice')} for his place, none better than rolling. Shows ${n === 1 ? 'it' : 'them'}`,
+  placeNoneSaid: (name, n, vs = null) => `${name}: ${plural(n, 'choice')} for his place, none better than ${vs ?? 'rolling'}. Shows ${n === 1 ? 'it' : 'them'}`,
   placeSwap: 'Swap',
   rollingBest: 'Rolling is best',
   rollingBestSaid: (g) => `Rolling is best in GW${g}: no transfer beats it; shows why`,
@@ -1011,8 +1013,12 @@ export const COPY = Object.freeze({
    *  it (the week alone) where that differs. */
   planVsRoll: 'rolling',
   planRefSaid: 'what the plans count against',
-  planGain: (what, delta, total) => `${what} · ${COPY.vsRolling(delta)} · ${COPY.changeNum(total, true)}`,
-  vsRolling: (delta) => `${pts(delta)} vs rolling`,
+  planGain: (what, delta, total, vs = COPY.planVsRoll) => `${what} · ${COPY.pointsVs(delta, vs)} · ${COPY.changeNum(total, true)}`,
+  vsRolling: (delta) => COPY.pointsVs(delta, COPY.planVsRoll),
+  /** A number and what it counts against, "+1.6 vs rolling"; in a week with a transfer, Wildcard or Free Hit of yours
+   *  "−0.2 vs your plan" (decision K, the owner, 2026-10-25: "compare + poitns not to rolling now but to transfer made";
+   *  ahead.choiceVs). */
+  pointsVs: (delta, vs) => `${pts(delta)} vs ${vs}`,
   planAdds: (delta) => `Your total: ${pts(delta)} when you take it`,
   /** A choice's Why sheet, what its number counts after its week (ahead.countedAfter; the user, 2026-10-21: fix all
    *  (first-use proposal #3)): its head, the roll's plan named, and a plan's line, "Rolling: GW9 Saka → Palmer · GW11

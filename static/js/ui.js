@@ -542,9 +542,9 @@ if (typeof addEventListener === 'function') {
  *  with, B145); the words after it (an edit's ending, "· Forkcast rates them level: …") the rest, which wraps under it
  *  (review 5, 2026-10-12: held whole with the number they ran off the toast). A take's or a removal's two numbers are
  *  one, " · +2.6 vs rolling · total +4.0" (COPY.planGain, changeNum: the user, 2026-10-21, fix all (first-use proposal
- *  #1)), so neither clips. No number: [m, '', '']. */
+ *  #1); "vs your plan" in a week of yours: decision K, 2026-10-25), so neither clips. No number: [m, '', '']. */
 export const toastParts = (m) => {
-  const cut = [...m.matchAll(/ · (?:[+−-]?\d[\d.,]* pts\b(?: \([a-z ]+\))?|(?:[+−-]?\d[\d,]*(?:\.\d+)? vs rolling · )?total [+−-]?\d[\d,]*(?:\.\d+)?)/g)].at(-1);
+  const cut = [...m.matchAll(/ · (?:[+−-]?\d[\d.,]* pts\b(?: \([a-z ]+\))?|(?:[+−-]?\d[\d,]*(?:\.\d+)? vs (?:rolling|your plan) · )?total [+−-]?\d[\d,]*(?:\.\d+)?)/g)].at(-1);
   return cut ? [m.slice(0, cut.index), cut[0], m.slice(cut.index + cut[0].length)] : [m, '', ''];
 };
 /** A toast's head (toastParts') in parts → [lead, also]: its first part, to its first " · " (a take's moves: what clips),

@@ -49,14 +49,15 @@ export function open(ctx, { gw } = {}) {
         // (the weeks of its half past the plan's said with a clear best week too: the user, 2026-10-22; the best week's
         // number its baseline beside it where the row has none of its own)
         if (r.best) {
-          return COPY.chipFact(r.best.gw === g ? COPY.chipBestHere : COPY.chipBestAt(r.best.gw, r.best.delta, vs ? null : r.best.vs ?? (r.best.delta != null ? COPY.chipNoChip : null)),
+          return COPY.chipFact(r.best.gw === g ? COPY.chipBestHere : COPY.chipBestAt(r.best.gw, r.best.delta, vs && r.best.vs === r.vs ? null : r.best.vs ?? (r.best.delta != null ? COPY.chipNoChip : null)),
             vs, r.after != null ? COPY.chipAfter(r.after) : null);
         }
         if (!r.final) return COPY.chipFact(r.wait ? COPY.chipBestChecking(r.wait.g, r.wait.i, r.wait.n) : null, vs) || null;
         // (a best week clear of the next whose own gain is inside the noise gains nothing to act on: not "too close to
         // call", which says two weeks tie; the review of round 7, 2026-10-22)
         // (a Wildcard's or Free Hit's against rolling names its weeks bare: their gains are the pre-solves', vs not playing it)
-        return COPY.chipFact(r.top && !r.top.clear ? COPY.chipNoBest(r.top, r.after, r.vs === COPY.planVsRoll) : COPY.chipNoGain, vs);
+        // (or against your plan in a week of yours, decision K: rolled either way, under the hold)
+        return COPY.chipFact(r.top && !r.top.clear ? COPY.chipNoBest(r.top, r.after, (r.chip === 'fh' || r.chip === 'wc') && !!P?.mem?.hold) : COPY.chipNoGain, vs);
       };
       /** B87b: the checks' clock after the fact (ahead.waitedText, Add a player's), put in place each second by the
        *  sheet's tick, never a whole draw; not read out (the row's label has the fact). */
