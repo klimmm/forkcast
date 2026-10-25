@@ -918,9 +918,11 @@ export const COPY = Object.freeze({
    *  read "part 2 of a 3-transfer plan, +5.8 points vs rolling", never as that one player's sale. */
   placeOf: (name) => `Replace ${name}`,
   /** The marks on the pitch (ahead.renderDecks; the user, 2026-10-23: "these + points or round 2 / 3 confusing - i cant
-   *  see which transfer best"; forkcast/design_marks/DECISION.md, design.md §4): the best's worded take, "Swap", "Swap
-   *  both", "Swap all 3"; a move said "Kayode out, Truffert in"; the best plate's label, "Best this week: …"; a plan's
-   *  tag in another row, never its number twice; a handle's where nothing beats rolling. */
+   *  see which transfer best"; forkcast/design_marks/DECISION.md, design.md §4): a take's words, "Swap", "Swap both",
+   *  "Swap all 3", spoken now by a place's card ("Swap both: …", swapSaid; the pitch's plates take nothing since the
+   *  owner, 2026-10-25, after v1.3.79: "no need green 'swap' in preview"); a move said "Kayode out, Truffert in"; the
+   *  best plate's label, "Best this week: …"; a plan's tag in another row, never its number twice; a place's first
+   *  choice's plate where nothing there beats rolling (placeNoneSaid: no ⇄ handle since the same day). */
   swapGo: (n) => (n > 2 ? `Swap all ${n}` : n === 2 ? 'Swap both' : 'Swap'),
   /** A plan's plate over its sellers in one row, the buys of its sellers in other rows counted (the owner, 2026-10-25:
    *  "Rice & 2 more +5.0 xP Swap all 3"; each of those keeps his ring and his tag). */

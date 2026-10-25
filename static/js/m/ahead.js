@@ -2509,8 +2509,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     if (!choices.has(forkKey(c, g))) return;
     // a choice that splits is never one take, with no exception (the owner, 2026-10-25: "when transfers can be splitted
     // they are shown separately"): each of its groups a choice of its own first, a single as any single, a funded group
-    // of two or more one choice with your GW-g transfers (asked, measured, the week's best with "Swap both" where it
-    // is), in the room the choice itself would have taken (the pairs' `need`). Where the ask budget (FORK_MAX) can't hold
+    // of two or more one choice with your GW-g transfers (asked, measured, the week's best where it is, its place's
+    // card "Swap" taking both), in the room the choice itself would have taken (the pairs' `need`). Where the ask budget (FORK_MAX) can't hold
     // them all none is offered: the whole can't be one take (the owner's rule C), and a part without the others would
     // offer the plan's moves as if the rest weren't worth making; its moves stay as the week's other choices offer them
     if (split.has(forkKey(c, g)) && !offerGroups(c)) return;
@@ -3011,14 +3011,16 @@ export const settlesAt = (P, g, plans) => settleDue(weekKey(P, g, plans));
  *  cant see which transfer best, also its rather ugly"; the design he chose: forkcast/design_marks/DECISION.md, design.md),
  *  none until the week's choices are settled (M.settled: weekSettled; the user, 2026-10-21: fix all (first-use proposal
  *  #8), so the best is shown once and never one still checking): the week's one best (weekBest: an ink plate, its places
- *  `best`, the only take on the pitch) and each other place's best single move that beats rolling (`best` false: a quiet
+ *  `best`; no take on the pitch, his place's headers take: the owner, 2026-10-25, after v1.3.79, "make it always first
+ *  click on tab and then click swap inside") and each other place's best single move that beats rolling (`best` false: a quiet
  *  green plate, named and numbered, so the best single stays seen where a plan wins; the user, 2026-10-22: "the one ...
  *  and combinations of two if they higher"). Each beats rolling while the week has no transfer, chip or Roll of yours,
  *  else clears the noise against your plan (litCan). Never a move you took off this session (plansOf `removed`, B129),
- *  nor one the 2026-10-18 bars keep from being the week's suggestion (plansOf `early`): his place keeps it, his handle
- *  alone on the pitch where nothing else is. `D`: the places (decksOf); `toks`: the week's own choices beside the goal
+ *  nor one the 2026-10-18 bars keep from being the week's suggestion (plansOf `early`): his place keeps it, a plate of
+ *  his place's first choice on the pitch where nothing else is (placeFirst, renderDecks: no ⇄ handle since the owner,
+ *  2026-10-25). `D`: the places (decksOf); `toks`: the week's own choices beside the goal
  *  (decksOf), a chip there the best where its number is higher (`chip`: its token ink with "Play"), the best move then
- *  still its places' `best`, ink with its Swap (the owner, 2026-10-25, Raketa's GW9, its Free Hit +3.3 over Evanilson
+ *  still its places' `best`, ink (the owner, 2026-10-25, Raketa's GW9, its Free Hit +3.3 over Evanilson
  *  +1.6: "where is black tab with green swap sign", then "fix so chips not interfer in ths behaviour").
  *  → Map(a → {e, best}) with .best (the best choice, a place's or a token's), .chip (the token's, or null) and .move (the
  *  best move: its places' `best`) */
@@ -3051,7 +3053,7 @@ const litCan = (P, w, M) => {
 };
 /** The week's one best (the user, 2026-10-23: "i cant see which transfer best"; design_marks/design.md: one ink plate):
  *  the choice that beats rolling with the highest number, single moves and plans of several together (a plan only where
- *  its number is higher: the user, 2026-10-22, "combinations of two if they higher"), never one whose Swap would also
+ *  its number is higher: the user, 2026-10-22, "combinations of two if they higher"), never one whose take would also
  *  take back a buy or chip of yours (litEdges: one tap would change more than the plate shows; the next best is the
  *  best then, that one a quiet plate whose place says "instead of …"); a Wildcard or Free Hit beside the goal (`toks`)
  *  where its number is higher still. None until the week settles. Pure. → pl | null */
@@ -3068,9 +3070,17 @@ export function weekBest(P, w, M, D, toks = []) {
 /** The choices the pitch shows lit, green (the user, 2026-10-22: the Week sheet greened every gain while the pitch lit
  *  two; one rule): those litOf lights that pay (plPays: a lit lead inside the noise has its tab, never green), and a
  *  token beside the goal that pays (a Wildcard, a Free Hit, `toks`: decksOf's). The Week sheet's rows green with a solid
- *  + exactly these (planRow), the others neutral with an outlined +. Pure. → Set(pl) */
+ *  + exactly these (planRow), the others neutral with an outlined +. Each other place's plate too, its first choice
+ *  (placeFirst), once the week settles, where it pays (a pair's, one past the best): every place has a plate since the
+ *  owner's 2026-10-25 "instead use either names with points ... or just points if space tough", and the sheet's green
+ *  follows the pitch (the owner, 2026-10-25: "Follow the pitch"); a number-only plate the same, never one that doesn't
+ *  pay, nor one at a place the pitch as last drawn gave no plate (`D.drawn`: renderDecks' places, none under a plan's
+ *  plate or with no turf over him; the review of plates3, 2026-10-25: such a row stayed green); the best's wherever it
+ *  is (ringed). Pure. → Set(pl) */
 export function litShown(P, w, M, D, toks = [], lit = litOf(P, w, M, D)) {
-  return new Set([...[...lit.values()].map((x) => x.e.pl), ...toks.filter((pl) => pl.state === 'ready' && !pl.refRow)].filter(plPays));
+  const on = (a) => !D.drawn || D.drawn.has(a);
+  const first = M.settled ? D.filter((d) => !lit.has(d.a) && on(d.a)).map(placeFirst).filter((e) => e?.pl?.state === 'ready').map((e) => e.pl) : [];
+  return new Set([...[...lit].filter(([a, x]) => x.best || on(a)).map(([, x]) => x.e.pl), ...first, ...toks.filter((pl) => pl.state === 'ready' && !pl.refRow)].filter(plPays));
 }
 /** The Roll of a week you roll (plansOf `rolls`: no transfer, chip or Roll of yours there): its + would only make the
  *  roll one of your rules, changing nothing on screen, so it has none (the user, 2026-10-22: "+" offered only where it
@@ -3182,6 +3192,20 @@ export const placeDealt = (entries, n) => {
 export const placeOrder = (entries) => {
   const tier = (e) => (takesBack(e) ? 2 : e.pl?.state === 'ready' ? 0 : 1);
   return entries.map((e, i) => [e, i]).sort(([a, i], [b, j]) => tier(a) - tier(b) || (tier(a) === 0 ? b.pl.cmp.delta - a.pl.cmp.delta : 0) || i - j).map(([e]) => e);
+};
+/** The most cards a player's place deals beside him (drawPlace: slotsBeside's n). */
+const PLACE_SLOTS = 4;
+/** A place's first choice, the card it deals first (placeDealt in placeOrder's order): the plate of a place no plate of
+ *  litOf's names (the owner, 2026-10-25, after v1.3.79, of the ⇄ handle: "instead use either names with points
+ *  (positive or negative like with gabriel) or just points if space tough; this sign is confsing as suggest differnt
+ *  behaviour which it isnt"), its number whatever its sign; none for your own buy's place (its card opens its Why
+ *  sheet) nor one with no choice checked or checking (as the handle was). Pure. → its entry | null */
+export const placeFirst = (d) => {
+  const live = (e) => !takesBack(e) && (e.pl?.state === 'ready' || e.pl?.state === 'solving');
+  if (d.mine || !d.entries.some(live)) return null;
+  // (a failed one listed before one still checking: the checking one, "checking…", never "can't check" while it may land)
+  const dealt = placeDealt(placeOrder(d.entries), PLACE_SLOTS);
+  return dealt.find(live) ?? dealt[0];
 };
 /** Up to n x's for a place's dealt cards beside his card at x0, `step` apart, each a whole card (cw) inside [3, W − 3], in
  *  one direction so the rank reads outward from him (the reviews, 2026-10-22: right, left, right zig-zagged): rightwards,
@@ -5352,12 +5376,10 @@ const chipPins = (P) => {
 
 
 /** The round controls' glyphs (× remove, + add): drawn, never text (no font of their own). */
-const glyph = (k) => (k === 'swap'
-  // FPL's transfer arrows (its Transfers tab's ⇄): a place's handle (deckHandle; design_marks/design.md §1)
-  ? svg('svg', { viewBox: '0 0 16 12', width: 13, height: 10, 'aria-hidden': 'true', class: 'ah-glyph' },
-    svg('path', { d: 'M2.5 3.5h10M10 1l2.5 2.5L10 6M13.5 8.5h-10M6 6 3.5 8.5 6 11', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }))
-  : svg('svg', { viewBox: '0 0 12 12', width: 12, height: 12, 'aria-hidden': 'true', class: 'ah-glyph' },
-    svg('path', { d: k === '+' ? 'M6 1.5v9M1.5 6h9' : 'M2.5 2.5l7 7M9.5 2.5l-7 7', fill: 'none', stroke: 'currentColor', 'stroke-width': k === '+' ? 1.8 : 1.6, 'stroke-linecap': 'round' })));
+// (no ⇄ any more: a place's handle is a plate, its first choice named and numbered; the owner, 2026-10-25, "this sign is
+// confsing as suggest differnt behaviour which it isnt (its more like subs then transfers actuavlly)")
+const glyph = (k) => svg('svg', { viewBox: '0 0 12 12', width: 12, height: 12, 'aria-hidden': 'true', class: 'ah-glyph' },
+  svg('path', { d: k === '+' ? 'M6 1.5v9M1.5 6h9' : 'M2.5 2.5l7 7M9.5 2.5l-7 7', fill: 'none', stroke: 'currentColor', 'stroke-width': k === '+' ? 1.8 : 1.6, 'stroke-linecap': 'round' }));
 
 /** A number never cut on the pitch (a place header's, "Yours" over his own card: `v` its number's box inside `el`): its
  *  "xP" first (as a plate's: fitFixtures; the user, 2026-10-22, after v1.3.68), then its chip and −4 marks (its label
@@ -5376,12 +5398,13 @@ const fitNum = (el, v, steps = ['noxp', 'nomark', 'tight']) => {
 /** A GW's deadline (epoch seconds): the bundle's per-GW meta.deadlines, else GW A's meta.deadline_epoch. */
 /** A plate's own trims, each never hiding who comes in (the owner, 2026-10-25, "Best keeps its name": "Each plate fits on
  *  its own. Cramped quiet plates turn into ⇄ handles first, so the black best always shows its full name. A name still
- *  too long is shortened like the cards do. No shirts."): its "xP", a smaller type, then the best's "both" / "all 3"
- *  (in the owner's order; its "Swap all 4" says more than an "xP": m-ahead.css .ah-sp.noxp .tight .noboth; fitNum,
- *  renderDecks). */
-const PLATE_TRIMS = ['noxp', 'tight', 'noboth'];
+ *  too long is shortened like the cards do. No shirts."; the handles since the number alone, .only: the owner,
+ *  2026-10-25, after v1.3.79, "or just points if space tough"): its "xP", then a smaller type (m-ahead.css .ah-sp.noxp
+ *  .tight; fitNum, renderDecks). The best's "both" / "all 3" went with its Swap (the same day: "no need green 'swap'
+ *  in preview"). */
+const PLATE_TRIMS = ['noxp', 'tight'];
 /** The least of a buy's name a shortened plate shows (m-ahead.css .ah-sp.cut: a few letters and "…", as the cards'
- *  "Calvert-L..."), in its type's ems; under it the best is its ink handle (renderDecks). */
+ *  "Calvert-L..."), in its type's ems; under it the best shows its number alone, ink (.only: renderDecks). */
 const NAME_LEAST = 3;
 const deadlineOf = (b, A, g) => b?.meta?.deadlines?.[g] ?? (g === A ? b?.meta?.deadline_epoch : null) ?? null;
 /** The countdown, only under 7 days (DESIGN_V2 §3.2; the header line puts it after a " · "). */
@@ -5416,7 +5439,9 @@ export const reachOf = (c, walls, m = 2) => Math.max(0, c.y - 44, ...walls.filte
 /** The least room over a card for a tab (its one line) and for edges (their slivers), px; the most of the gap beside a
  *  card a sliver of his took each side once, px (resetFits keeps that room). */
 export const TAB_MIN = 16, EDGE_MIN = 6, GAP_MAX = 8;
-/** The least room over a card for a plate (renderDecks: its one line at its .tight 10 px type), px; under it a handle. */
+/** The least room over a card for a plate (renderDecks: its one line at its .tight 10 px type), px; under it its number
+ *  alone (.only), as short as the room (the ⇄ handle's place before the owner's 2026-10-25 "or just points if space
+ *  tough"). */
 export const PLATE_MIN = 14;
 /** Boxes a and b on the pitch ({x, y, w, h}) meet, b taken `down` px taller (a target under it). */
 export const boxesMeet = (a, b, down = 0) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h + down && b.y < a.y + a.h;
@@ -6119,7 +6144,10 @@ export function mount(el, ctx) {
     const settled = weekSettled(P, g, all), key = weekKey(P, g, all);
     const { decks, toks } = decksOf(P, w, { sq, plans });
     const lit = litOf(P, w, { sq, plans, settled }, decks, toks);
-    // what the pitch shows lit and green, the Week sheet's green too (litShown; the user, 2026-10-22: one rule)
+    // what the pitch shows lit and green, the Week sheet's green too (litShown; the user, 2026-10-22: one rule), as the
+    // pitch last drew this week's places (renderDecks' `drawn`, drawn again after this: sheetFollows; the owner,
+    // 2026-10-25, "Follow the pitch")
+    decks.drawn = S.decks?.gw === g ? S.decks.drawn : null;
     const shown = litShown(P, w, { sq, plans, settled }, decks, toks, lit);
     // how far the week's checks are (weekWait); the checks' clock from its first draw with a choice or its transfers'
     // number waiting, until none waits (waitClock), from 0:00 again for checks of their own (weekKey: the phone recheck
@@ -6381,7 +6409,7 @@ export function mount(el, ctx) {
    *  draws none too. */
   function reachLabels(root) {
     const b = root.getBoundingClientRect(), boxes = cardBoxes(root);
-    const behind = [...decks.querySelectorAll('.ah-sp, .ah-hd')].map((n) => boxOf(n, b));
+    const behind = [...decks.querySelectorAll('.ah-sp')].map((n) => boxOf(n, b));
     for (const c of boxes.filter((x) => x.bench)) {
       const bl = c.n.previousElementSibling;
       if (!bl?.matches('button.pm-bl')) continue;
@@ -6398,12 +6426,13 @@ export function mount(el, ctx) {
    *  reached). */
   const labelWalls = (root, b) => [...root.querySelectorAll(':scope > .pm-benchzone .pm-bl')].map((n) => boxOf(n, b));
   /** The room a plate over card c (a plan's span of its sellers) may take past his card on each side (design_marks/design.md
-   *  §1; in place of the edges' gap beside him): to a row-mate with a plate of his own (`held`: card → 'plate' | 'hd'),
+   *  §1; in place of the edges' gap beside him): to a row-mate with a plate of his own (`held`: the cards with one),
    *  the gap less 2 px and less what that plate, centred, takes of it (`ext`(card) px: half the gap less 1 px where not
    *  given), but never more than this plate takes of it centred (`own` px), so two plates never meet (the QA,
    *  2026-10-25: half the gap each cramped a bench best between a quiet plate and a card at 393×702, design.md
-   *  §1: nothing past step 1 there); to one with a handle, the gap and his half card less the handle's half and 2 px; to one with
-   *  neither, the gap and his half card less 4 px (free turf over him); 6 px short of a touchline (`W` the pitch's width);
+   *  §1: nothing past step 1 there); to one with none (under a plan's plate, or no turf over him), the gap and his half
+   *  card less 4 px (free turf over him; no ⇄ handle since the owner, 2026-10-25, after v1.3.79: every place a plate);
+   *  6 px short of a touchline (`W` the pitch's width);
    *  2 px short of anything else in the plate's band beside him (`side`: the walls, a card hanging into the row gap, a
    *  sub's label, a token beside the goal, a corner pill; the QA, 2026-10-25: GW12's Free Hit token over the keeper's
    *  plate at 390×844, and at a 28 px text size Gabriel's plate over Raya's card; `th` the plate's height). `free`: the
@@ -6411,9 +6440,7 @@ export function mount(el, ctx) {
    *  with a mark, a touchline or whatever hangs into its band. → [left, right], px */
   const sideRoom = (c, boxes, held, W, side = [], th = 0, ext = null, own = Infinity, free = false) => {
     const mates = boxes.filter((q) => Math.abs(q.y - c.y) < 2 && (q.x + q.w <= c.x + 0.5 || q.x >= c.x + c.w - 0.5) && (!free || held.has(q)));
-    // (a freed plate short of a handle's side targets too, 9 px: m-ahead.css .ah-hd::after; the reach review, 2026-10-25
-    // second pass: its Swap's last pixels opened the handle's place)
-    const to = (q, gap) => (held.get(q) === 'plate' ? Math.min(gap - 2 - (ext?.(q) ?? gap / 2 - 1), own) : held.get(q) === 'hd' ? gap + q.w / 2 - 15 - (free ? 9 : 0) : gap + q.w / 2 - 4);
+    const to = (q, gap) => (held.has(q) ? Math.min(gap - 2 - (ext?.(q) ?? gap / 2 - 1), own) : gap + q.w / 2 - 4);
     // (the nearest row-mate each side: one further off is past his card, whose own terms are less; a plate there never
     // caps this one at `own`: the fit review, 2026-10-25, a quiet plate across the row kept the best from free turf)
     const lm = mates.filter((q) => q.x < c.x).sort((a, b) => b.x - a.x)[0], rm = mates.filter((q) => q.x > c.x).sort((a, b) => a.x - b.x)[0];
@@ -6446,16 +6473,21 @@ export function mount(el, ctx) {
    * The choices on the pitch as drawn (decksOf, litOf; S.M: the week's model renderWeek drew), placed from the mounted
    * cards' boxes (the user, 2026-10-23: "these + points or round 2 / 3 confusing - i cant see which transfer best, also
    * its rather ugly"; the design he chose: forkcast/design_marks/DECISION.md, design.md): the week's one best an ink
-   * plate over the player it replaces naming the buy, its gain and a worded Swap (swapPlate; a plan of several moves ONE
-   * plate naming every buy with the plan's one number and "Swap both", over its sellers in the top-most of their rows,
-   * each other seller a small ink tag of his buy, every seller ringed: the user, 2026-10-23, DECISION.md; the plate naming
-   * its own row's buys and "& 2 more", no dots to the tags: the owner, 2026-10-25), each other
-   * place whose best single move beats rolling a quiet named plate, every other place with a choice ready or checking a
-   * ⇄ handle (deckHandle; your own buys none: their card opens their Why sheet, 4a); nothing named until the week's
-   * checks are in, then once with a fade; the week's own choices beside the goal (tokensOf); a hidden heading naming
-   * them for VoiceOver. Nothing where nothing can act (a plan you can't change, GW A under way: weekModel lists none).
-   * An open place is drawn again in its held order (drawPlace). Drawn after the pitch mounts (render), after a solve
-   * lands (renderPair) and on a resize (refitPitch).
+   * plate over the player it replaces naming the buy and its gain (swapPlate; a plan of several moves ONE plate naming
+   * every buy with the plan's one number, over its sellers in the top-most of their rows, each other seller a small ink
+   * tag of his buy, every seller ringed: the user, 2026-10-23, DECISION.md; the plate naming its own row's buys and "& 2
+   * more", no dots to the tags: the owner, 2026-10-25), each other place whose best single move beats rolling a quiet
+   * named plate, every other place with a choice ready or checking a quiet plate of its first choice (placeFirst), named
+   * with its number whatever its sign, "checking…" in its number's place while the week checks (your own buys none:
+   * their card opens their Why sheet, 4a); every plate the same, a tap opening his place, whose dealt cards' headers take
+   * ("+1.8 Swap"), the best only ink (the owner, 2026-10-25, after v1.3.79: "no need green 'swap' in preview - make it
+   * always first click on tab and then click swap inside when players for selection are shown . so all tabs are same but
+   * the best transfer just highlighted black"; of the ⇄ handle: "instead use either names with points (positive or
+   * negative like with gabriel) or just points if space tough"); nothing named until the week's checks are in, then
+   * once with a fade; the week's own choices beside the goal (tokensOf); a hidden heading naming them for VoiceOver.
+   * Nothing where nothing can act (a plan you can't change, GW A under way: weekModel lists none). An open place is
+   * drawn again in its held order (drawPlace). Drawn after the pitch mounts (render), after a solve lands (renderPair)
+   * and on a resize (refitPitch).
    */
   function renderDecks() {
     const root = pitchHost.querySelector(':scope > .pm');
@@ -6466,8 +6498,8 @@ export function mount(el, ctx) {
     S.decks = Object.assign(D, { gw: g });  // the week they are drawn for (deckOf)
     // the draw that names the week's choices, none named on its draw before, its checks just in (litOf; the user,
     // 2026-10-21: fix all (first-use proposal #8)), its checks asked again in too (the phone recheck of the first-use
-    // proposals, 2026-10-21: lit with no fade a minute after an Undo): a re-flow (addOnce, B31: a handle under a finger
-    // became a plate, whose Swap takes), shown with a landing's fade. The same checks drawn on a plan view made anew are
+    // proposals, 2026-10-21: lit with no fade a minute after an Undo): a re-flow (addOnce, B31: a place's header under a
+    // finger as its cards re-deal), shown with a landing's fade. The same checks drawn on a plan view made anew are
     // the same week (weekKey)
     const n = lit.size + (lit.chip ? 1 : 0);
     const was = S.litAt?.key === M.key ? S.litAt : null;
@@ -6512,19 +6544,17 @@ export function mount(el, ctx) {
     const walls = [...boxes, ...labelWalls(root, b), ...[...root.querySelectorAll(':scope > .ah-pp:not([hidden]), .ah-tok')].map((x) => boxOf(x, b))];
     // a plate's height (m-ahead.css --pm-tab: the text size's), in whole px
     const tabH = Math.round(cssPx(decks, 'var(--pm-tab)')[0]);
-    // each place's mark: the best's plate (`best`), a quiet plate (`alt`), a handle (`hd`), by the free turf over him
-    // (`up`: reachOf; a sub's from his own card, under his label: labelWalls); a plate where the turf holds one at its
-    // least (PLATE_MIN), else a handle, ink for the best (design.md §2: a short pitch, a large text size); none under a
-    // handle's least either (EDGE_MIN: the Week sheet lists them)
+    // each place's plate: the best's (`best`), a quiet plate (`alt`: litOf's, else his place's first choice, placeFirst),
+    // by the free turf over him (`up`: reachOf; a sub's from his own card, under his label: labelWalls); its number alone
+    // where the turf holds less than a plate at its least (PLATE_MIN: a short pitch, a large text size; `only`), none
+    // under EDGE_MIN (the Week sheet lists them)
     const marks = [];
     for (const d of D) {
-      const c = boxes.find((x) => x.id === d.a), L = lit.get(d.a);
-      if (!c) continue;
+      const c = boxes.find((x) => x.id === d.a), first = lit.has(d.a) ? null : placeFirst(d), L = lit.get(d.a) ?? (first && { e: first, best: false, first: true });
+      if (!c || !L) continue;
       const up = c.y - reachOf(c, walls);
-      const open = !d.mine && d.entries.some((e) => !takesBack(e) && (e.pl?.state === 'ready' || e.pl?.state === 'solving'));
-      const kind = L ? (L.best ? 'best' : 'alt') : open ? 'hd' : null;
-      if (!kind || up < EDGE_MIN) continue;
-      marks.push({ d, c, L, up, kind: kind !== 'hd' && up < PLATE_MIN ? 'hd' : kind, best: kind === 'best' });
+      if (up < EDGE_MIN) continue;
+      marks.push({ d, c, L, up, kind: L.best ? 'best' : 'alt', best: !!L.best, only: up < PLATE_MIN });
     }
     // the best's places: ringed (still: no motion of its own), over his card, hidden with the decks under a place
     for (const m of marks.filter((x) => x.best)) append(decks, h('div.ah-ring', { 'aria-hidden': 'true', dataset: { deck: m.d.a }, style: { left: `${m.c.x}px`, top: `${m.c.y}px`, width: `${m.c.w}px`, height: `${m.c.h}px` } }));
@@ -6536,35 +6566,38 @@ export function mount(el, ctx) {
     const span = row0.length ? (() => { const l = row0[0].c, r = row0.at(-1).c; return { x: l.x, y: l.y, w: r.x + r.w - l.x, h: l.h, bench: l.bench }; })() : null;
     // (a row-mate under the span keeps no mark of his own there: his place is his card's, the Week sheet's and ‹ ›'s)
     const under = (x) => span && !x.best && Math.abs(x.c.y - span.y) < 2 && x.c.x >= span.x && x.c.x + x.c.w <= span.x + span.w;
-    const covered = marks.filter(under);
     marks.splice(0, marks.length, ...marks.filter((x) => !under(x)));
+    // (the places drawn, for the Week sheet's green: sheetFollows)
+    D.drawn = new Set(marks.map((x) => x.d.a));
     const plates = marks.filter((x) => x.kind === 'alt' || (x.kind === 'best' && tags.includes(x)));
-    // its neighbours' room by what each holds (sideRoom)
-    const held = new Map(marks.map((x) => [x.c, x.kind === 'hd' ? 'hd' : 'plate']));
+    // its neighbours' room by whether each holds a plate (sideRoom)
+    const held = new Set(marks.map((x) => x.c));
     const drawn = [];
     // (its row's buys named, the others' "& 2 more": the owner, 2026-10-25, "Rice & 2 more +5.0 xP Swap all 3")
     // (every move of the plan counted and said, its row's first, a seller drawn as no plate too: one with no room is
-    // still one of its moves, its Swap "Swap both" all the same)
+    // still one of its moves)
     const rest = span ? row0[0].L.e.adds.filter((m) => !row0.some((x) => x.L.e.inId === Number(m.in))) : [];
-    if (span) drawn.push({ el: swapPlate(P, g, row0[0].d, row0[0].L, span, Math.min(...row0.map((x) => x.up)), tabH, { buys: [...row0.map((x) => x.L.e.inId), ...rest.map((m) => Number(m.in))], shown: row0.map((x) => x.L.e.inId), sellers: [...row0.map((x) => x.d.a), ...rest.map((m) => Number(m.out))], go: true }), c: span, m: row0[0] });
-    for (const m of plates) drawn.push({ el: swapPlate(P, g, m.d, m.L, m.c, m.up, tabH, m.best ? { tag: bests.find((x) => !tags.includes(x)).d.a } : {}), c: m.c, m });
+    if (span) drawn.push({ el: swapPlate(P, g, row0[0].d, row0[0].L, span, Math.min(...row0.map((x) => x.up)), tabH, { buys: [...row0.map((x) => x.L.e.inId), ...rest.map((m) => Number(m.in))], shown: row0.map((x) => x.L.e.inId), sellers: [...row0.map((x) => x.d.a), ...rest.map((m) => Number(m.out))], only: row0.some((x) => x.only) }), c: span, m: row0[0] });
+    for (const m of plates) drawn.push({ el: swapPlate(P, g, m.d, m.L, m.c, m.up, tabH, { ...(m.best ? { tag: bests.find((x) => !tags.includes(x)).d.a } : {}), only: m.only }), c: m.c, m });
     for (const p of drawn) append(decks, p.el);
     // each card's plate (a plan's span: every seller's), and how far past his card a plate takes the gap beside it, centred
-    // (as wide as its words at the fit step tried; none once it is gone: a handle stays inside his card)
+    // (as wide as its words at the fit step tried)
     const plateOf = new Map(drawn.flatMap((p) => (p.c === span ? row0.map((x) => [x.c, p]) : [[p.c, p]])));
-    const over = (p) => (p?.el.isConnected ? Math.max(0, (p.el.getBoundingClientRect().width - p.c.w) / 2) : 0);
+    const over = (p) => (p ? Math.max(0, (p.el.getBoundingClientRect().width - p.c.w) / 2) : 0);
     // (a freed plate's mate with a plate: as far as that plate may reach toward it, its room that side, never only its
     // centred half: the reach review, 2026-10-25 second pass, a quiet plate one card along moved toward the freed best,
     // its own room set by the free card between them)
-    const reach = (q, p) => { const x = plateOf.get(q); return Math.max(over(x), x?.el.isConnected && x.room ? x.room[x.c.x < p.c.x ? 1 : 0] : 0); };
+    const reach = (q, p) => { const x = plateOf.get(q); return Math.max(over(x), x?.room ? x.room[x.c.x < p.c.x ? 1 : 0] : 0); };
     const roomOf = (p) => sideRoom(p.c, boxes, held, W, walls, parseFloat(p.el.style.height), (q) => (p.free ? reach(q, p) : over(plateOf.get(q))), over(p), p.free);
     // each plate fitted on its own, never the whole pitch at once (the owner, 2026-10-25, "Best keeps its name": "Each plate
     // fits on its own. Cramped quiet plates turn into ⇄ handles first, so the black best always shows its full name. A
-    // name still too long is shortened like the cards do. No shirts."), never a cut number nor a cut take
+    // name still too long is shortened like the cards do. No shirts."; its number alone in the handle's place: the owner,
+    // 2026-10-25, after v1.3.79, "or just points if space tough"), never a cut number
     // (its middle over his card's middle third, it reads as his; the best's past its room the free turf's whole: `free`)
     const most = (p) => { const [l, r] = (p.room = roomOf(p)), s = p.free ? Infinity : p.c.w / 3; return p.c.w + Math.min(l, r + s) + Math.min(r, l + s); };
     const wider = (p) => p.el.getBoundingClientRect().width > most(p) + 0.5;
     const quiet = (p) => p.el.matches('.alt');
+    const named = (p) => !p.el.matches('.only');
     // (1) its own trims that never hide who (PLATE_TRIMS: fitNum), again while one's gave a neighbour room
     const trim = () => {
       for (let i = 0; i < 4; i++) {
@@ -6573,134 +6606,150 @@ export function mount(el, ctx) {
         if (!moved) break;
       }
     };
-    // a place's plate gone, his mark a handle (the plan's plate: its tags too, every seller a handle, ink)
-    const toHandle = (p) => {
-      const gone = p.c === span ? drawn.filter((q) => q.el.matches('.best')) : [p];
-      for (const q of gone) { q.el.remove(); drawn.splice(drawn.indexOf(q), 1); }
-      for (const m of p.c === span ? bests : marks.filter((x) => x.c === p.c)) { m.kind = 'hd'; held.set(m.c, 'hd'); }
-      // (the plan's plate gone: the row-mates under it keep their own mark again, a handle: the decision E's "no mark of
-      // his own" holds only under the plate)
-      if (p.c === span) for (const m of covered.splice(0)) { m.kind = 'hd'; marks.push(m); held.set(m.c, 'hd'); }
-    };
-    // the nearest cards beside a plate's (its span's) in his row, each side, with a quiet plate still drawn
+    // a plate's number alone, its names gone (m-ahead.css .ah-sp.only; a plan's "& 2 more" too; a tag his plan's number)
+    const toOnly = (p) => { p.el.classList.remove('cut'); p.el.style.removeProperty('width'); p.el.classList.add('only'); };
+    // (its gain: one still checking the lowest)
+    const gain = (p) => (p.m.L.e.pl.state === 'ready' ? p.m.L.e.pl.cmp.delta : -Infinity);
+    // the nearest cards beside a plate's (its span's) in his row, each side, with a quiet plate still named
     const beside = (p) => [boxes.filter((q) => Math.abs(q.y - p.c.y) < 2 && q.x + q.w <= p.c.x + 0.5).sort((a, b) => b.x - a.x)[0],
       boxes.filter((q) => Math.abs(q.y - p.c.y) < 2 && q.x >= p.c.x + p.c.w - 0.5).sort((a, b) => a.x - b.x)[0]]
-      .map((q) => q && plateOf.get(q)).filter((q) => q?.el.isConnected && quiet(q));
+      .map((q) => q && plateOf.get(q)).filter((q) => q && quiet(q) && named(q));
     trim();
-    // (2) still over its room: quiet plates become ⇄ handles, those beside an ink plate over its room first, then the
-    // lowest gain (a tie: the right-hand one), each yield fitting them all again
+    // (2) still over its room: quiet plates show their number alone ("−0.4", "+0.7": in A's ⇄ handles' order), those
+    // beside an ink plate over its room first, then the lowest gain (a tie: the right-hand one), each fitting them all
+    // again
     for (;;) {
       const long = drawn.filter(wider);
       const ink = long.filter((p) => !quiet(p)).flatMap(beside);
-      const cands = ink.length ? ink : [...long.filter(quiet), ...long.flatMap(beside)];
+      const cands = ink.length ? ink : [...long.filter((p) => quiet(p) && named(p)), ...long.flatMap(beside)];
       if (!cands.length) break;
-      toHandle(cands.sort((a, b) => a.m.L.e.pl.cmp.delta - b.m.L.e.pl.cmp.delta || b.c.x - a.c.x)[0]);
+      toOnly(cands.sort((a, b) => gain(a) - gain(b) || b.c.x - a.c.x)[0]);
       trim();
     }
     // (2b) an ink plate (the best's: a single, a plan, a tag) still over: it reaches over the free turf past his card's
-    // middle third, as far as its band is clear (no plate, handle, card or label hanging into it; a touchline: sideRoom
+    // middle third, as far as its band is clear (no plate, card or label hanging into it; a touchline: sideRoom
     // `free`), his ring keeping it his (the owner, 2026-10-25: "Best keeps its name ... the black best always shows its
     // full name"; Raketa's GW10, its plan an ink handle over Murillo with his row-mates' turf free); quiet plates keep
     // the middle third
-    for (const p of drawn.filter((x) => !quiet(x) && wider(x))) p.free = true;
+    for (const p of drawn.filter((x) => !quiet(x) && named(x) && wider(x))) p.free = true;
     trim();
-    // (3) an ink plate still over (no quiet plate beside it left, nor free turf enough): its names shortened as the cards' are, never its
-    // number, its "& 2 more" nor its Swap (m-ahead.css .ah-sp.cut), each showing NAME_LEAST at least; (4) else his
-    // place's ink handle
-    for (const p of drawn.filter((x) => !quiet(x) && wider(x))) {
-      if (!p.el.isConnected) continue;  // (a tag of the plan whose plate went: a handle already)
+    // (3) an ink plate still over (no quiet plate beside it left named, nor free turf enough): its names shortened as the
+    // cards' are, never its number nor its "& 2 more" (m-ahead.css .ah-sp.cut), each showing NAME_LEAST at least; (4)
+    // else its number alone, ink (the best keeps its name longest: the owner, 2026-10-25, after v1.3.79)
+    for (const p of drawn.filter((x) => !quiet(x) && named(x) && wider(x))) {
       p.el.classList.add('cut');
       // (its room counts its own width: set until it holds, so the width checked is the width drawn)
       for (let i = 0; i < 6; i++) { const wd = most(p); if (Math.abs(wd - parseFloat(p.el.style.width)) < 0.5) break; p.el.style.width = `${wd}px`; }
       const body = p.el.querySelector('.ah-spb'), least = NAME_LEAST * parseFloat(getComputedStyle(body).fontSize);
       const shows = [...body.querySelectorAll('.ah-spn')].every((n) => n.scrollWidth <= n.clientWidth + 0.5 || n.clientWidth >= least);
-      if (!shows || body.scrollWidth > body.clientWidth + 0.5) toHandle(p);
+      if (!shows || body.scrollWidth > body.clientWidth + 0.5) toOnly(p);
     }
-    // (the rest fitted again to the room those left: a trim no longer needed back off)
     trim();
+    // (its number alone only where its name had no room: each quiet one named again, the highest first, where it and
+    // every plate beside it still fit, the room the steps after (2) left: the free turf, a shortened name)
+    // (never one beside an ink plate showing its number alone: the best keeps its name longest; nor where any plate's
+    // excess past its room grows: the fit review of plates3, 2026-10-25)
+    const excess = (q) => q.el.getBoundingClientRect().width - most(q);
+    const nearInk = new Set(drawn.filter((x) => !quiet(x) && !named(x)).flatMap((x) => [...plateOf].filter(([q]) => Math.abs(q.y - x.c.y) < 2 && (Math.abs(q.x + q.w - x.c.x) < q.w || Math.abs(x.c.x + x.c.w - q.x) < q.w)).map(([, y]) => y)));
+    for (const p of drawn.filter((x) => quiet(x) && !named(x) && !x.m.only && !nearInk.has(x)).sort((a, b) => gain(b) - gain(a))) {
+      const was = new Map(drawn.map((q) => [q, Math.max(0, excess(q))]));
+      p.el.classList.remove('only');
+      trim();
+      if (wider(p) || drawn.some((q) => q !== p && Math.max(0, excess(q)) > was.get(q) + 0.5)) { p.el.classList.add('only'); trim(); }
+    }
     // as wide as its words, never narrower than his card (the span), centred on him, moved aside only as far as a
     // touchline or a plated neighbour makes it, its middle over his card's middle third (it reads as his; the best's past
     // its room over the free turf: 2b)
     // (every room read before any width is set: a neighbour's is its words' at the step the fit ended on)
-    const wide = new Map(drawn.map((p) => [p, Math.min(Math.max(p.c.w, Math.ceil(p.el.getBoundingClientRect().width)), most(p))]));
+    const wide = new Map(drawn.map((p) => { const m = most(p); return [p, [Math.min(Math.max(p.c.w, Math.ceil(p.el.getBoundingClientRect().width)), m), m]]; }));
     for (const p of drawn) {
-      const wd = wide.get(p), extra = wd - p.c.w;
+      const [wd, room] = wide.get(p), extra = wd - p.c.w;
       const r = Math.min(extra - Math.min(extra / 2, p.room[0]), p.room[1]), left = p.c.x - (extra - r), top = parseFloat(p.el.style.top);
       Object.assign(p.el.style, { width: `${wd}px`, left: `${left}px` });
-      // its target (and its Swap's: m-ahead.css .ah-spgo::before) up over the free turf over its own width as drawn, to
-      // 44 px over his card at most (reachOf: a plate wider than his card never reaches onto a card over the next column)
+      // (the most it may take, for the QA: a number alone only where its name had no room)
+      p.el.dataset.room = Math.floor(room);
+      // its target up over the free turf over its own width as drawn, to 44 px over his card at most (reachOf: a plate
+      // wider than his card never reaches onto a card over the next column)
       p.el.style.setProperty('--up', `${Math.max(0, top - Math.max(reachOf({ n: p.el, x: left, y: top, w: wd }, walls), p.c.y - 44))}px`);
     }
-    // (a place whose plate had no room says its best as the plate did, never "none better than rolling")
-    for (const m of marks.filter((x) => x.kind === 'hd')) append(decks, deckHandle(P, g, m.d, m.c, m.up, m.best, M.settled && !m.L, m.best ? planKey(g, m.L.e.pl) : null));
     // each sub's label a target to the choices drawn (reachLabels)
     reachLabels(root);
-    // (as a landing's ink name plate: in 150 ms after 170 ms, m-ahead.css ah-in; Reduce Motion: the 150 ms fade, as land's)
-    if (lights) for (const x of decks.querySelectorAll('.ah-sp, .ah-ring, .ah-tok.best')) x.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: reduceMotion() ? 0 : 170, fill: 'backwards' });
+    // (as a landing's ink name plate: in 150 ms after 170 ms, m-ahead.css ah-in; Reduce Motion: the 150 ms fade, as land's;
+    // a place's first choice drawn while the week checked too: no fade)
+    if (lights) for (const x of decks.querySelectorAll('.ah-sp:not(.first), .ah-ring, .ah-tok.best')) x.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: reduceMotion() ? 0 : 170, fill: 'backwards' });
     if (S.place) drawPlace(false);
+    sheetFollows(P, w, M);
   }
-  /** A named plate (litOf; m-ahead.css .ah-sp; design_marks/design.md §1): one flat line in the row gap over the player
-   *  it would replace (`c` his card's box, a plan's span of its sellers in one row; a sub's under his label: labelWalls),
-   *  its foot on his tile's top, `tabH` tall at the most (less where the turf over him, `up`, holds less: never under
-   *  PLATE_MIN), its target the free turf over it. It names who comes in (the user, 2026-10-23: "i cant see which
-   *  transfer best"; a name on every plate, never a shirt, shortened only as the cards' are: the owner, 2026-10-25, "A
-   *  name still too long is shortened like the cards do. No shirts.", renderDecks) and what it gains vs rolling (blue
-   *  with "xP": numParts). The best (`L.best`) ink with a mint worded take, "Swap" ("Swap both", "Swap all 3": a plan's
-   *  one take, `o.go`, on its one plate naming the buys of its row's sellers, `o.shown`, and the others' count, "Rice &
-   *  2 more" (the owner, 2026-10-25), said whole, every buy, `o.buys`, in its sellers' order, `o.sellers`), the only take
-   *  on the pitch (takeFrom: one tap, a toast with Undo; the user, 2026-10-22: only the
-   *  explicit action takes); a plan's other seller in another row its buy's name alone (`o.tag`: his plan's main
-   *  seller), no number, no take; any other a quiet green plate, the buy and the gain. Its body opens his place (his
-   *  choices, best first). → its element */
-  function swapPlate(P, g, d, { e, best }, c, up, tabH, o = {}) {
+  /** The Week sheet's green as the pitch was just drawn (the owner, 2026-10-25: "Follow the pitch"): the week's `shown`
+   *  again from the places as drawn (litShown: `D.drawn`) and, where that changed it, the open sheet of that week drawn
+   *  again (a resize, a text size, a take: whatever drew the pitch again). */
+  function sheetFollows(P, w, M) {
+    const shown = litShown(P, w, M, M.decks, M.toks, M.lit);
+    if (shown.size === M.shown.size && [...shown].every((pl) => M.shown.has(pl))) return;
+    M.shown = shown;
+    if (S.week?.g === w.gw) drawWeek(P, w, M);
+  }
+  /** A named plate (litOf, placeFirst; m-ahead.css .ah-sp; design_marks/design.md §1): one flat line in the row gap over
+   *  the player it would replace (`c` his card's box, a plan's span of its sellers in one row; a sub's under his label:
+   *  labelWalls), its foot on his tile's top, `tabH` tall at the most (less where the turf over him, `up`, holds less:
+   *  never under PLATE_MIN, but for its number alone, `o.only`), its target the free turf over it. It names who comes in
+   *  (the user, 2026-10-23: "i cant see which transfer best"; a name on every plate, never a shirt, shortened only as
+   *  the cards' are: the owner, 2026-10-25, "A name still too long is shortened like the cards do. No shirts.",
+   *  renderDecks) and what it gains vs rolling (blue with "xP": numParts), or its number alone where its name has no
+   *  room (.only; the owner, 2026-10-25, after v1.3.79, of the ⇄ handle: "instead use either names with points
+   *  (positive or negative like with gabriel) or just points if space tough"). The best (`L.best`) ink (a plan's one
+   *  plate naming the buys of its row's sellers, `o.shown`, and the others' count, "Rice & 2 more" (the owner,
+   *  2026-10-25), said whole, every buy, `o.buys`, in its sellers' order, `o.sellers`); a plan's other seller in another
+   *  row its buy's name alone (`o.tag`: his plan's main seller), no number but where his name has no room; any other a
+   *  quiet green plate, the buy and the gain: litOf's, or his place's first choice (`L.first`: placeFirst, a pair's
+   *  other buys counted, "Rice & 1 more", its number whatever its sign; while the week checks "checking…" in its
+   *  number's place, as his place's header says it, never a clock: waitClock). No take on any (the owner, 2026-10-25,
+   *  after v1.3.79: "no need green 'swap' in preview - make it always first click on tab and then click swap inside when
+   *  players for selection are shown . so all tabs are same but the best transfer just highlighted black"): its body
+   *  opens his place (his choices, best first), whose headers take ("+1.8 Swap"). → its element */
+  function swapPlate(P, g, d, { e, best, first }, c, up, tabH, o = {}) {
     const nm = P.L.name, pl = e.pl, s = planSaid(P, g, pl);
-    const th = Math.max(PLATE_MIN, Math.min(c.bench ? tabH - 2 : tabH, up));
+    const th = Math.max(o.only ? Math.min(up, PLATE_MIN) : PLATE_MIN, Math.min(c.bench ? tabH - 2 : tabH, up));
     const open = () => openPlace(d.a);
-    const buys = o.buys ?? [e.inId], sellers = o.sellers ?? [d.a], shown = o.shown ?? buys;
-    const num = plNumSaid(P, pl), places = COPY.placeSaid(nm(d.a), d.entries.length, null);
+    const buys = o.buys ?? (o.tag != null ? [e.inId] : [e.inId, ...e.pair.map((q) => q.in)]), sellers = o.sellers ?? [d.a, ...e.pair.map((q) => q.out)], shown = o.shown ?? [e.inId];
+    // (a first choice: its number once the week settles, else "checking…", or why it can't be checked: as his place's header)
+    const ready = pl.state === 'ready' && (!first || !!S.M?.settled);
+    const v = ready ? numParts(g, pl) : pl.state === 'failed' ? failedWords(P, pl).head : COPY.pairChecking;
+    const num = ready ? plNumSaid(P, pl) : v, places = COPY.placeSaid(nm(d.a), d.entries.length, null);
     const moves = sellers.map((a, i) => COPY.moveSaid(nm(a), nm(buys[i])));
     // (beside a chip's ink token, the week's best: "Best move this week", litOf `chip`)
     const move = !!S.M?.lit?.chip;
+    // (a first choice: what his place holds as the handle said it, "none better than rolling" where none gains; a move you
+    // removed or one the 2026-10-18 bars hold back said so, as its note: the review of plates3, 2026-10-25)
+    const none = !!first && ready && !d.entries.some((x) => x.pl?.state === 'ready' && (plPays(x.pl) || x.pl.cmp.delta > 0.05));
+    const why = first && ready ? [earlyWords(pl), pl.removed ? COPY.removedByYou : null].filter(Boolean).map((x) => `, ${x}`).join('') : '';
     const said = o.tag != null ? `${COPY.partSaid(moves[0], e.adds.filter((m) => Number(m.in) !== e.inId).map((m) => COPY.moveSaid(nm(m.out), nm(m.in))), move)}. ${places}`
-      : best ? `${COPY.bestSaid(moves, num, move)}. ${places}` : `${moves[0]}, ${num}. ${places}`;
+      : best ? `${COPY.bestSaid(moves, num, move)}. ${places}`
+        : `${moves.join('; ')}, ${num}${why}. ${!first ? places : !ready ? placeLabel(P, d) : none ? COPY.placeNoneSaid(nm(d.a), d.entries.length, plansVs(P, g)) : places}`;
     const body = h('button.ah-spb', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': said, onClick: open },
       shown.map((id, i) => [i ? h('span.ah-spj', { 'aria-hidden': 'true' }, ' + ') : null, h('span.ah-spn', { 'aria-hidden': 'true' }, nm(id))]),
       shown.length < buys.length ? h('span.ah-spm', { 'aria-hidden': 'true' }, COPY.planMore(buys.length - shown.length)) : null,
-      o.tag != null ? null : h('span.ah-spv.m-num', { 'aria-hidden': 'true' }, numParts(g, pl)));
-    const n = buys.length, go = best && o.go
-      ? h('button.ah-spgo', { type: 'button', 'aria-label': COPY.swapSaid(sellers.map((a, i) => [nm(a), nm(buys[i])])), disabled: frozenAt(P, g), dataset: { row: `take:${d.a}` },
-        onClick: (ev) => takeFrom(ev, P, g, pl, plate, d.a, e.inId) }, COPY.swapGo(1), n > 1 ? h('span.both', null, ` ${COPY.swapGo(n).slice(COPY.swapGo(1).length + 1)}`) : null)
-      : null;
+      // (a tag's his plan's number, shown only where his name has no room: .only)
+      h('span.ah-spv.m-num', { 'aria-hidden': 'true', class: { wait: !ready } }, v));
     const plate = h('div.ah-sp', {
       // (a sub's by data-bench, never a class: app.css .bench is the desktop bench's panel)
-      class: { best, alt: !best, part: o.tag != null, pays: s.pays },
+      class: { best, alt: !best, first: !!first, part: o.tag != null, pays: ready && s.pays, only: !!o.only },
       dataset: { row: `deck:${d.a}`, deck: d.a, plan: planKey(g, pl), in: e.inId, ...(c.bench ? { bench: '' } : {}) },
-      style: { left: `${c.x}px`, top: `${c.y - th}px`, height: `${th}px`, '--up': `${Math.max(0, up - th)}px` },
-      // the free turf over it (its ::before) opens his place too, never a take
+      // (its number alone in less than a plate's least height: its type no taller than the turf, never onto his card;
+      // the fit review of plates3, 2026-10-25)
+      style: { left: `${c.x}px`, top: `${c.y - th}px`, height: `${th}px`, '--up': `${Math.max(0, up - th)}px`, ...(th < PLATE_MIN ? { fontSize: `${th - 1}px` } : {}) },
+      // the free turf over it (its ::before) opens his place too
       onClick: (ev) => { if (ev.target === plate) open(); },
-    }, body, go);
+    }, body);
     return plate;
   }
-  /** What a player's place holds, said (a handle's label while the week checks: COPY.placeSaid), its best never a move you
-   *  took off this session (B129, as litOf). */
+  /** What a player's place holds, said (a first choice's plate while the week checks: COPY.placeSaid), its best never a
+   *  move you took off this session (B129, as litOf). */
   const placeLabel = (P, d) => {
-    const nm = P.L.name, best = d.entries.find((x) => !x.back && x.pl?.state === 'ready' && !x.pl.removed);
+    // (in the order his place deals them, as the plate names its first: placeOrder)
+    const nm = P.L.name, best = placeOrder(d.entries).find((x) => !x.back && x.pl?.state === 'ready' && !x.pl.removed);
     return COPY.placeSaid(nm(d.a), d.entries.length, best && `${nm(best.inId)}, ${plNumSaid(P, best.pl)}`);
   };
-  /** A place with choices and no plate (design_marks/design.md §1: none of them beats rolling, or the week still checks,
-   *  `settled` false; the user, 2026-10-23: no count, "round 2 / 3 confusing"): a small handle over his card with FPL's
-   *  transfer arrows, no number, centred on him in the row gap (`up` over free turf: reachOf), its target that turf
-   *  (`--up`); ink where it is the best's (a plate with no room: a short pitch, a large text size; `plan` its key, as
-   *  the plate's data-plan). A tap opens his place. */
-  function deckHandle(P, g, d, c, up, best, settled, plan = null) {
-    const hh = Math.min(c.bench ? 14 : 16, up);
-    return h('button.ah-hd', {
-      type: 'button', class: { best }, 'aria-haspopup': 'dialog', dataset: { row: `deck:${d.a}`, deck: d.a, ...(plan ? { plan } : {}), ...(c.bench ? { bench: '' } : {}) },
-      'aria-label': best || !settled ? placeLabel(P, d) : COPY.placeNoneSaid(P.L.name(d.a), d.entries.length, plansVs(P, g)),
-      style: { left: `${c.x + c.w / 2 - 13}px`, top: `${c.y - hh}px`, height: `${hh}px`, '--up': `${Math.max(0, up - hh)}px` },
-      onClick: () => openPlace(d.a),
-    }, glyph('swap'));
-  }
   /** The week's own choices beside the goal (top-left; the corner pills' look, m-ahead.css .ah-tok): your Wildcard or
    *  Free Hit there ("Wildcard · yours": the Chips sheet), the Roll while the week has no transfer of yours, "Rolling is
    *  best" once the week is settled and nothing beats it (the user, 2026-10-23; design_marks/design.md, from strip),
@@ -6916,7 +6965,7 @@ export function mount(el, ctx) {
     const mates = boxes.filter((q) => q !== c && q.n.closest('.pm-row, .pm-bench') === row);
     const xs = [c, ...mates].map((q) => q.x).sort((p, q) => p - q);
     const step = c.bench && xs.length > 1 ? Math.min(...xs.slice(1).map((x, i) => x - xs[i])) : c.w + Math.max(4, (W - 5 * c.w) / 6);
-    const room = slotsBeside(c.x, step, 4, W, c.w);
+    const room = slotsBeside(c.x, step, PLACE_SLOTS, W, c.w);
     const over = entries.length > room.length;
     const shown = placeDealt(entries, room.length);
     // his row steps aside only where a dealt card (or "⋯ N more") takes a row-mate's slot: the rest stay, under the shade
@@ -7941,7 +7990,7 @@ export function mount(el, ctx) {
       const hits = () => {
         const r = n.getBoundingClientRect();
         const meets = (b) => b.left < r.right && r.left < b.right && b.top < r.bottom && r.top < b.bottom;
-        return [...pitchHost.querySelectorAll('.pm-pl, .pm-bs, .ah-pp:not([hidden]), .ah-sp, .ah-hd, .ah-tok')]
+        return [...pitchHost.querySelectorAll('.pm-pl, .pm-bs, .ah-pp:not([hidden]), .ah-sp, .ah-tok')]
           .map((x) => [x, x.getBoundingClientRect()]).filter(([, b]) => meets(b));
       };
       n.style.removeProperty('--ph-lift');
@@ -7949,7 +7998,7 @@ export function mount(el, ctx) {
       // the chips' hint lifts over a sub's card behind in the field's foot (the review of the first-use proposals,
       // 2026-10-21: #5 moved a bench sub's tab up into its corner, and the hint went for good); over anything else, or
       // still over it lifted, it hides
-      if (k === 'chips' && over.length && over.every(([x]) => x.matches('.ah-sp, .ah-hd'))) {
+      if (k === 'chips' && over.length && over.every(([x]) => x.matches('.ah-sp'))) {
         const top = Math.min(...over.map(([, b]) => b.top));
         n.style.setProperty('--ph-lift', `${Math.ceil(n.getBoundingClientRect().bottom - top + 4)}px`);
         over = hits();
@@ -8241,9 +8290,9 @@ export function mount(el, ctx) {
 
   pitchHost.addEventListener('pointerdown', (e) => {
     // a tab (a bench player's too: the Bench Boost is the empty bench's), a token and an open place have their own taps
-    // and hold (renderDecks, drawPlace): no lift, swipe or Bench Boost starts there; a player's edges (never
-    // over a shirt, a sub's under his label: labelWalls) are the pitch's too: a swipe
-    if (e.button > 0 || e.target.closest('.ah-place, .ah-decks button:not(.ah-hd)')) return;
+    // and hold (renderDecks, drawPlace): no lift, swipe or Bench Boost starts there (a plate's every one, since the ⇄
+    // handle that let a swipe through is a plate: the owner, 2026-10-25, after v1.3.79)
+    if (e.button > 0 || e.target.closest('.ah-place, .ah-decks button')) return;
     const P = plan(ctx);
     // the C's armband or the V's (the user, 2026-10-13: "also vices")
     const badge = e.target.closest('.pm-badge[data-badge="c"], .pm-badge[data-badge="v"]');
@@ -8282,8 +8331,8 @@ export function mount(el, ctx) {
   const benchBare = (e) => {
     const inside = (n) => { const r = n.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; };
     const bench = pitchHost.querySelector('.pm-bench');
-    // (nor a sub's edges, on his card under his label: labelWalls; their tap opens his place)
-    return !!bench && inside(bench) && ![...bench.querySelectorAll('.pm-bs'), ...decks.querySelectorAll('.ah-hd')].some(inside);
+    // (nor a sub's plate, on his card under his label: labelWalls; its tap opens his place)
+    return !!bench && inside(bench) && ![...bench.querySelectorAll('.pm-bs'), ...decks.querySelectorAll('.ah-sp')].some(inside);
   };
   pitchHost.addEventListener('pointermove', (e) => {
     const st = S.drag?.pitch;

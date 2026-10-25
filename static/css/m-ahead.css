@@ -12,7 +12,7 @@
             sheet, .ah-wsheet .ah-block.ah-wk) · .ah-pitch (pitch and bench:
             one height every week, from the screen alone, ahead.js fitPitch; plan-pitch.css; .ah-pp corner pills:
             .ah-pdbtn Player data top-right, .ah-lubtn Reset lineup under it, .ah-rpbtn Reset plan under those; the
-            choices: .ah-decks > .ah-sp / .ah-hd / .ah-ring / .ah-tok, a player's place .ah-place, its own section below)
+            choices: .ah-decks > .ah-sp / .ah-ring / .ah-tok, a player's place .ah-place, its own section below)
             · the Week sheet's .ah-moves > .ah-mrow[.out] > .ah-veto + .ah-fg · .ah-rules
             (Your rules: .ah-rrow > .ah-rule + .ah-rmv) · the Player data sheet .ah-pdsheet (.ah-pd > .ah-pdo, .ah-radio)
             · .ah-dragghost (.ah-ghostgap the armband's gap)
@@ -338,12 +338,14 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
    .ah-decks a layer over the pitch with no taps of its own (only its buttons): .ah-sp a swap plate, one flat line in the
    row gap over the player it would replace, its foot on his tile's top (never on it: the tiles beside keep every pixel a
    hold or a drag starts on), naming who comes in (.ah-spn, never a shirt: the owner, 2026-10-25) and what it gains vs
-   rolling (.ah-spv, blue with "xP"): .best the week's one (ink, a mint worded take .ah-spgo, "Swap", "Swap both"; a plan
-   ONE plate naming its row's buys, .ah-spj between them, the others counted, .ah-spm "& 2 more"; .part a plan's seller in
-   another row, his buy's name alone, no line to the plate), .alt a
-   quiet plate of another place whose best single beats rolling (the pitch's dark green); .ah-hd the ⇄ handle of a place
-   whose choices don't (or still checking); .ah-ring the best's sellers' cards; each plate's own fit steps (.noxp .tight
-   .noboth .cut: ahead.js renderDecks, PLATE_TRIMS). .ah-tok the week's own
+   rolling (.ah-spv, blue with "xP"; .wait "checking…" while the week checks), every plate the same, a tap its place, no
+   take on the pitch (the owner, 2026-10-25, after v1.3.79: "so all tabs are same but the best transfer just highlighted
+   black"): .best the week's one (ink; a plan ONE plate naming its row's buys, .ah-spj between them, the others counted,
+   .ah-spm "& 2 more"; .part a plan's seller in another row, his buy's name alone, no line to the plate), .alt a quiet
+   plate of another place, its best single that beats rolling, else its first choice whatever its sign (.first: no ⇄
+   handle since the owner, 2026-10-25, "instead use either names with points ... or just points if space tough"; the
+   pitch's dark green); .ah-ring the best's sellers' cards; each plate's own fit steps (.noxp .tight .cut .only, its
+   number alone: ahead.js renderDecks, PLATE_TRIMS). .ah-tok the week's own
    choices beside the goal (Roll, "Rolling is best", Rolling ✓, a Wildcard or Free Hit: .two its body; .best the week's
    best as a chip, ink with its worded "Play", .ah-tgo). A target reaches up over free turf only (--up: ahead.js reachOf).
    A sub's plate or handle rises from his own card inside the bench's panel, under his label (--pm-bl-gap holds them; the
@@ -356,13 +358,13 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
    buy (ahead.js landFly) */
 .ah-pitch .pm { --pm-back: light-dark(#0A6A3F, #0B3D24); }
 .ah-decks { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-/* under an open place the plates' layer hides, rings and handles too (the user, 2026-10-22: its chalk dots and counts showed through the shade and
+/* under an open place the plates' layer hides, rings too (the user, 2026-10-22: its chalk dots and counts showed through the shade and
    seemed to join rival choices) */
 .pm:has(> .ah-place) > .ah-decks { visibility: hidden; }
 .ah-decks button { pointer-events: auto; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; }
 /* the swap plates' three weights (design.md §1, §7): the best's ink (the C / V badge's, both themes: white 17.6:1, the
-   blue 13.2 / 9.6 on it; on the dark turf a white hairline holds its edge, 3.4:1 alone), its take the app's "worth
-   doing" mint (#05341C on it 10.2:1), the quiet plate and the handle the pitch's dark green (white 6.7 / 12.3:1, --xp-d
+   blue 13.2 / 9.6 on it; on the dark turf a white hairline holds its edge, 3.4:1 alone), a take's the app's "worth
+   doing" mint (#05341C on it 10.2:1: a place's best header, the chip token's Play), the quiet plate the pitch's dark green (white 6.7 / 12.3:1, --xp-d
    5.0 / 6.7: the bench tile's wash held the blue at 2.4:1, so the same solid on the bench); the ring white with a faint
    halo (3.3:1 on the turf, 3.7 on the bench glass); on the pitch, so the place's headers and the chip token share them */
 .ah-pitch .pm {
@@ -373,8 +375,9 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 }
 /* a plate: one line, as wide as its words (ahead.js renderDecks then sets its width: never narrower than his card, its
    middle over his card's middle third), its height the room over him (--pm-tab at most: inline); 11 px words in its 18
-   (11.5 the best's) at the default text size, as the old tab's number. Its body (.ah-spb) opens his place; only its
-   Swap takes (the user, 2026-10-22: only the explicit action takes) */
+   (11.5 the best's) at the default text size, as the old tab's number. Its body (.ah-spb) opens his place, whose cards'
+   headers take (the user, 2026-10-22: only the explicit action takes; the owner, 2026-10-25: "make it always first click
+   on tab and then click swap inside") */
 .ah-sp {
   position: absolute; z-index: 1; box-sizing: border-box; width: max-content; display: flex; align-items: center;
   border-radius: calc(var(--pm-tile-r) - 1px); background: var(--sp-alt); color: #FFFFFF; pointer-events: auto;
@@ -392,25 +395,22 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-spm { flex: none; font-weight: 400; opacity: .85; }
 .ah-spv { flex: none; font-variant-numeric: tabular-nums; }
 .ah-sp.best { background: var(--sp-ink); box-shadow: var(--sp-edge); font-size: calc(var(--pm-tab) * .64); }
-.ah-sp.best .ah-spb { justify-content: flex-start; gap: 3px; padding: 0 5px 0 6px; }
-.ah-sp.best.part .ah-spb { justify-content: center; padding: 0 7px; }
-.ah-spgo {
-  position: relative; flex: none; height: calc(100% - 4px); margin: 0 2px 0 0; padding: 0 6px; border: 0; border-radius: calc(var(--pm-tile-r) - 2.5px);
-  background: var(--sp-go); color: var(--sp-go-ink); font: 700 calc(var(--pm-tab) * .61)/1 var(--f-text); cursor: pointer; touch-action: manipulation;
-}
-.ah-spgo::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: calc(var(--up, 0px) + 2px); }  /* its target up over the free turf, as the plate's (its 2 px inset too): never past its sides (no cut take) */
-.ah-spgo:disabled { opacity: .45; cursor: default; }
-:is(.ah-spb, .ah-spgo, .ah-hd):focus-visible { outline: 2px solid #FFFFFF; outline-offset: -2px; border-radius: 4px; }
-.ah-spgo:focus-visible { outline-color: var(--sp-go-ink); }
+.ah-sp.best.part .ah-spb { padding: 0 7px; }
+/* "checking…" in its number's place while the week checks, as a place's header says it (.ah-pv.wait) */
+.ah-spv.wait { font-weight: 500; font-style: italic; }
+.ah-spb:focus-visible { outline: 2px solid #FFFFFF; outline-offset: -2px; border-radius: 4px; }
 /* each plate fitted on its own (ahead.js renderDecks, PLATE_TRIMS; the owner, 2026-10-25: "Each plate fits on its own.
    Cramped quiet plates turn into ⇄ handles first, so the black best always shows its full name. A name still too long is
-   shortened like the cards do. No shirts."): its "xP", a smaller type, the best's "both"; then, past every quiet plate
-   beside it, its names shortened with "…" (.cut, as the cards' "Calvert-L..."), never its number, "& 2 more" or Swap */
+   shortened like the cards do. No shirts."): its "xP", a smaller type; then, past every quiet plate beside it, its names
+   shortened with "…" (.cut, as the cards' "Calvert-L..."), never its number or "& 2 more"; where a name has no room
+   its number alone (.only, "−0.4", in the ⇄ handle's place: the owner, 2026-10-25, after v1.3.79, "or just points if
+   space tough"), a plan's tag his plan's number then (no number of its own while named) */
 .ah-sp.noxp .xp-u { display: none; }
-.ah-sp.noboth .ah-spgo .both { display: none; }
-.ah-sp.tight, .ah-sp.tight .ah-spgo { font-size: calc(var(--pm-tab) * .56); }
-.ah-sp.tight .ah-spgo { padding: 0 5px; }
+.ah-sp.tight { font-size: calc(var(--pm-tab) * .56); }
 .ah-sp.cut .ah-spn { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ah-sp.only :is(.ah-spn, .ah-spj, .ah-spm), .ah-sp.part:not(.only) .ah-spv { display: none; }
+/* "checking…" alone shortened as a name is ("chec…": the fit review of plates3, 2026-10-25), never past its plate */
+.ah-sp.only .ah-spv.wait { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* the best's sellers: a white ring with a faint halo outside the card (still: no motion of its own), under the next
    row's plate (the plate draws over it) */
 .ah-ring { position: absolute; z-index: 0; border-radius: var(--pm-tile-r); box-shadow: 0 0 0 2px var(--sp-ring), 0 0 0 3.5px var(--sp-halo); pointer-events: none; }
@@ -428,18 +428,6 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 @keyframes ah-hold-fill { to { stroke-dashoffset: 0; } }
 /* Reduce Motion keeps the fill's time (app.css cuts every animation short): a ring full before its hold fires would lie */
 @media (prefers-reduced-motion: reduce) { .ah-hold .fl { animation-duration: var(--ms) !important; } }
-/* a place with choices, none better than rolling (or the week still checking): the handle, a 26 px stub in the quiet
-   plate's green with FPL's ⇄ arrows, no number, no count (the user, 2026-10-23: "round 2 / 3 confusing"); ink where it is
-   the best's with no room for its plate (a short pitch, a large text size); its target over free turf (--up). Pan-y: a
-   sideways move from it is the pitch's swipe */
-.ah-hd {
-  position: absolute; z-index: 1; box-sizing: border-box; width: 26px; display: grid; place-items: center; padding: 0; border: 0;
-  border-radius: calc(var(--pm-tile-r) - 1px); background: var(--sp-alt); color: #FFFFFF; cursor: pointer; touch-action: pan-y;
-}
-.ah-hd.best { background: var(--sp-ink); box-shadow: var(--sp-edge); }
-.ah-hd::before { content: ""; position: absolute; left: -9px; right: -9px; bottom: 100%; height: var(--up, 0px); }
-.ah-hd::after { content: ""; position: absolute; inset: 0 -9px; }  /* 44 px wide where the room allows */
-.ah-hd .ah-glyph { display: block; width: 13px; height: 10px; }
 .ah-tok {
   position: absolute; left: 6px; display: flex; align-items: center; gap: 6px; height: 26px; max-width: calc(50% - var(--pm-card) / 2 - 14px);
   padding: 0 10px; border: 0; border-radius: 13px; background: var(--plate); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .3);
