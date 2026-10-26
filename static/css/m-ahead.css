@@ -472,9 +472,7 @@ button.ah-tok { cursor: pointer; }
    number), then its names shortened as the plates' (.cut), never "Best:", "& 1 more" nor its number */
 .ah-tok.mv { background: var(--sp-ink); color: #FFFFFF; box-shadow: 0 1px 2px rgb(0 0 0 / .3), var(--sp-edge); --xp-c: var(--xp-d); }
 .ah-tok.mv > .ah-tl { display: flex; align-items: center; gap: .25em; }
-.ah-tok.mv :is(.ah-tb, .ah-tn, .ah-spj, .ah-spm) { flex: none; }
-.ah-tok.mv .ah-spj { margin: 0 -.15em; font-weight: 400; opacity: .8; }
-.ah-tok.mv .ah-spm { font-weight: 400; opacity: .85; }
+.ah-tok.mv .ah-tn { flex: none; }
 .ah-tok.mv .ah-tnum { flex: none; color: var(--xp-d); }
 .ah-tok.mv.cut .ah-tn { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ah-tok.mv:focus-visible { outline: 2px solid #FFFFFF; outline-offset: -2px; }

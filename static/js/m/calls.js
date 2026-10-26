@@ -937,8 +937,8 @@ export const COPY = Object.freeze({
   placeNoneSaid: (name, n, vs = null) => `${name}: ${plural(n, 'choice')} for his place, none better than ${vs ?? 'rolling'}. Shows ${n === 1 ? 'it' : 'them'}`,
   placeSwap: 'Swap',
   /** The week's best move as a token beside the goal, first in its stack (ahead.tokensOf; the owner, 2026-10-26: "Ink
-   *  token, top of stack"): "Best: Evanilson +1.6", said "Best move this week: …, shows his choices". */
-  bestTok: 'Best:',
+   *  token, top of stack"): "Evanilson +1.6" (no "Best:" since "yes do both"), said "Best move this week: …, shows his
+   *  choices". */
   showsChoices: 'shows his choices',
   /** A buy of yours's plate (ahead.swapPlate; the owner, 2026-10-26: "i bough justin but where is no tab on his head so i
    *  can keep prebious player"): the player you sold, said "Keep Gabriel, not Justin, +0.8 points vs your plan". */

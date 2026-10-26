@@ -6567,7 +6567,7 @@ export function mount(el, ctx) {
       t.style.maxWidth = `${t.offsetWidth + Math.ceil(Math.max(...tw.map((x) => x.scrollWidth - x.clientWidth)))}px`;
       if (fitNum(t, tw) && !meetsCard(t, 9, 6)) return true;
       // the best move's token (.mv) then its name shortened as the plates' are (m-ahead.css .ah-tok.mv.cut), never its
-      // number nor "& 1 more", in the room it has (its CSS max-width), each name NAME_LEAST at least, before anything else
+      // number, in the room it has (its CSS max-width), each name NAME_LEAST at least, before anything else
       // in the stack gives way (the owner, 2026-10-26, "Ink token, top of stack"); else it gives way as the others
       if (!t.matches('.mv')) return false;
       t.style.removeProperty('max-width');
@@ -6821,8 +6821,9 @@ export function mount(el, ctx) {
    *  the goal; any other chip none: its Why sheet's Play; the user, 2026-10-23: no "+" but a gain's sign), a chip alone;
    *  while one solves, "checking…" under its words and no number (never a clock in its slot: waitClock), its buttons off.
    *  First, above them all, the week's best move while one beats your plan or rolling (litOf `move`; `lead` its places
-   *  in its plate's top-most row: renderDecks' topRow), ink, its plate's words and number, "Best: Evanilson +1.6",
-   *  "Best: Tavernier & 1 more +3.8", a tap opening that player's place as his plate does, no take (G) (the owner,
+   *  in its plate's top-most row: renderDecks' topRow), ink, its plate's first buy and its number, "Evanilson +1.6", a
+   *  plan's too, "Tavernier +3.8" (no "Best:", no "+ Vuskovic" or "& 1 more": its ink says it is the best, and its plate
+   *  names the plan whole; the owner, 2026-10-26, of a token that gave way at 320 wide and for every plan: "yes do both" (drop "Best:", and a plan's "& 1 more" in the token)), VoiceOver the move whole, a tap opening that player's place as his plate does, no take (G) (the owner,
    *  2026-10-26: "also find if best transfer suggestion which marked black somehow can be also mentioned as tab or
    *  similiar where chips and rolling are (top left corner) so it no lost somewhere on bench for example and user
    *  instanrtly see what it was suggested"; chosen: "Ink token, top of stack"; the plate stays). */
@@ -6830,13 +6831,11 @@ export function mount(el, ctx) {
     const g = w.gw, out = [], sq = squadWeek(w), named = lit.size > 0;
     const mv = lit.move, top = mv && lead?.[0]?.L.e.pl === mv ? lead : null;
     if (top) {
-      const nm = P.L.name, e = top[0].L.e, shown = top.map((x) => x.L.e.inId), more = e.adds.length - shown.length;
+      const nm = P.L.name, e = top[0].L.e;
       const moves = e.adds.map((m) => COPY.moveSaid(nm(m.out), nm(m.in)));
       out.push(h('button.ah-tok.mv', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:best:${g}`, deck: top[0].d.a, best: planKey(g, mv) },
         'aria-label': `${COPY.bestSaid(moves, plNumSaid(P, mv), true)}, ${COPY.showsChoices}`, onClick: () => openPlace(top[0].d.a) },
-        h('span.ah-tl', { 'aria-hidden': 'true' }, h('span.ah-tb', null, COPY.bestTok),
-          shown.map((id, i) => [i ? h('span.ah-spj', null, ' + ') : null, h('span.ah-tn', null, nm(id))]),
-          more > 0 ? h('span.ah-spm', null, COPY.planMore(more)) : null),
+        h('span.ah-tl', { 'aria-hidden': 'true' }, h('span.ah-tn', null, nm(e.inId))),
         // (its number as its plate's, blue with "xP", as every forecast's: numParts)
         h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, numParts(g, mv))));
     }
