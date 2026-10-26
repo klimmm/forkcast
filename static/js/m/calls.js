@@ -930,7 +930,7 @@ export const COPY = Object.freeze({
   planMore: (n) => `& ${n} more`,
   swapSaid: (pairs, num = null) => `${COPY.swapGo(pairs.length)}: ${pairs.map(([o, i]) => `${o} for ${i}`).join(', ')}${num ? `, ${num}` : ''}`,
   moveSaid: (out, inn) => `${out} out, ${inn} in`,
-  // (`move`: the best move beside a chip's ink token, the week's best: never two "Best this week"; the owner, 2026-10-25,
+  // (`move`: the best move beside a chip's token, the week's best: never two "Best this week"; the owner, 2026-10-25,
   // "fix so chips not interfer in ths behaviour")
   bestSaid: (moves, num, move = false) => `Best ${move ? 'move ' : ''}this week: ${moves.length > 1 ? `${moves.length} transfers, ${num}: ${moves.join('; ')}` : `${moves[0]}, ${num}`}`,
   partSaid: (mine, others, move = false) => `Part of the best ${move ? 'move ' : ''}this week: ${mine}${others.length ? `, with ${others.join('; ')}` : ''}`,
@@ -950,8 +950,6 @@ export const COPY = Object.freeze({
   placeOr: (what) => `or ${what ? what.replace(/^a (?=\d)/, '') : 'alone'}`,
   rollingBest: 'Rolling is best',
   rollingBestSaid: (g) => `Rolling is best in GW${g}: no transfer beats it; shows why`,
-  chipPlay: 'Play',
-  tokTake: 'Take',
   /** A pair card's note, its other moves (ahead.noteOf; the user, 2026-10-22: "+ Gvardiol → …" began with the take's
    *  glyph): "also Semenyo → Palmer, Cunha → Rice". */
   placeAlso: (moves) => `also ${moves.join(', ')}`,
@@ -987,12 +985,12 @@ export const COPY = Object.freeze({
    *  was "numbers: gain over rolling, GW8–11"); while what they count against
    *  is still checked (ahead.plansVs null), its weeks alone. */
   placeNumbers: (vs, gws) => `${vs ? `Gain vs ${vs} · ` : ''}${span(gws)}`,
+  /** Your Roll beside the goal (ahead.tokensOf), alone: no "until you take a move" under it (the first-use run,
+   *  2026-10-21, "Why is it still dangling Silva in front of me?", had it say a move's Swap takes the Roll back; the
+   *  owner, 2026-10-26: "remove 'until you take a move'"). */
   rollingOn: 'Rolling ✓',
-  /** …under it while a move stays lit on the pitch (ahead.tokensOf; the first-use run, 2026-10-21: "I just said no
-   *  transfers. Why is it still dangling Silva in front of me?"): any move's + there takes the Roll back. */
-  rollingUntil: 'until you take a move',
   chipYours: (chip) => `${chip} · yours`,
-  rollingSaid: (g, until = false) => `Rolling in GW${g}${until ? ` ${COPY.rollingUntil}` : ''}; takes the roll off`,
+  rollingSaid: (g) => `Rolling in GW${g}; takes the roll off`,
   /** The Roll row's Why sheet in a week you roll (ahead.openPlanWhy; the first-use run, 2026-10-21: "Take GW8 roll" beside
    *  "No transfers yet"): nothing to take, so no Take there (the user, 2026-10-22: "+" offered only where it would change
    *  something). */

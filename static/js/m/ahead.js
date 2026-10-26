@@ -2614,10 +2614,28 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const heldK = `${rollK}|held`, wcRow = { moves: [], chips: { [g]: 'wc' } };
   const apart = !followed && !refs.has(heldK) && chipMine !== 'wc' && chipsAvail(P, g).includes('wc') && plannedAt(P, 'wc', g) == null
     && fitsAt(ctx, P, g, wcRow, d0) ? [[heldK, { ...roll, held: true }]] : [];
-  // …and a Free Hit the week lists no row of, its own solve (Forkcast's later moves after it: the later weeks Chips… and
-  // its toast count it on, as the week line does once it is played: chipApart, `ours`)
-  const fhK = forkKey({ moves: [], chips: { [g]: 'fh' } }, g), fhRow = { moves: [], chips: { [g]: 'fh' } };
-  if (!followed && !chipMine && !choices.has(fhK) && chipsAvail(P, g).includes('fh') && plannedAt(P, 'fh', g) == null && fitsAt(ctx, P, g, fhRow, d0)) apart.push([fhK, fhRow]);
+  // the owner, 2026-10-26 (fhland; asked "Closing it means choosing one squad for both; I'd make the token describe the
+  // squad Chips… actually lands": "yes"): under the hold a Wildcard or Free Hit row's squad is the plan Chips…'s tap
+  // lands, your rules' preparation of it (prepItems: chipEdit's values, which useChip lands and the row's + then lands
+  // too, memory.offer), asked as the row's own solve (`land`) where Chips… hasn't prepared it yet, never a solve of its
+  // own that picks another squad (the fork's values, GW A's exact pre-solve: fixnums, "Left as it was", the token and
+  // its toast said one squad, the week line another). Not in a week with your transfers: the row's + takes them back
+  // and the preparation keeps them (planTake's `gone`), so its + lands neither
+  // (the tap's own values where Chips… prepares none, its chip planned in the other half or the roads re-baking: chipEdit's,
+  // as its heal sends them; the fhland review, 2026-10-26)
+  const landOf = (c) => {
+    const chip = c.chips?.[g];
+    if (followed || now.length || c.moves.length || !SQUAD_CHIPS.has(chip)) return null;
+    const it = prepItems(ctx, P).find((x) => x.chip === chip && x.gw === g);
+    if (it) return it;
+    const e = chipEdit(P, g, chip), values = valuesFor(ctx, e.pins, e.drop);
+    return { chip, gw: g, values, key: valuesKey(P, values) };
+  };
+  // …and a Free Hit the week lists no row of, or one whose row is its preparation (landOf), its own solve (`fhLater`:
+  // Forkcast's later moves after it, the later weeks Chips…, its toast and its row count it on, as the week line does
+  // once it is played: chipApart, `ours`)
+  const fhK = forkKey({ moves: [], chips: { [g]: 'fh' } }, g), fhRow = { moves: [], chips: { [g]: 'fh' } }, fhLater = `${fhK}|later`;
+  if (!followed && !chipMine && (!choices.has(fhK) || landOf(choices.get(fhK))) && chipsAvail(P, g).includes('fh') && plannedAt(P, 'fh', g) == null && fitsAt(ctx, P, g, fhRow, d0)) apart.push([fhLater, fhRow]);
   const ready = (list, c) => ({ ...list.sort(byGain)[0], state: 'ready', choice: c });
   // a reference whose solve makes no move your plan doesn't is your plan itself (never a row: L1)
   const self = (c) => ({ state: 'ready', choice: c, self: true, moves: [], chips: c.chips, draft: d0, ev: asIs, cmp: compare(ctx, asIs, asIs), hits: {}, road: null, model: false });
@@ -2628,7 +2646,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     if (c.held && !now.length && !chipMine) return [{ k, c, roads: [], same: true }];  // rolling, your later weeks as they are: your plan
     // (a pair's move the week can't make alone: its row, no solve)
     if (!fitsAt(ctx, P, g, c, d0)) return needs.has(k) ? [{ k, c, roads: [], need: needs.get(k) }] : [];
-    const roads = known.get(k) ?? [];
+    const land = choices.has(k) ? landOf(c) : null;
+    if (land) return [{ k, c, roads: [], land, ask: { key: land.key, values: land.values, gw: g, ...(prep ? { prep } : {}) } }];
+    const roads = known.get(k === fhLater ? fhK : k) ?? [];
     if (roads.some((p) => p.exact)) return [{ k, c, roads }];
     const values = forkValues(ctx, P, g, c);
     return [{ k, c, roads, ask: { key: valuesKey(P, values), values, gw: g, ...(prep ? { prep } : {}) } }];
@@ -2651,17 +2671,32 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // a week whose flight was let go draws "checking…" from no flight: every memo goes (no re-draw: this draw asks its
   // own), so going back to it asks again (review 5, 2026-10-12: rows stuck at "checking…" after GW6 → GW8 → GW6 → GW8)
   if (letGo) PLANS.set(P, (by = { rev: ++PAIR.rev, gw: new Map() }));
-  const solveOf = ({ k, c, roads, ask, same, need }) => {
+  // (chip's plan p, {draft}, on plan r's later weeks: a Free Hit's week alone, its squad reverting after it, a Wildcard's
+  // plan as it is, its squad lasting; chipApart's and a row's of its preparation on its own solve's, your own chip week's
+  // on its solve below)
+  const chipOn = (chip, r, p) => (chip === 'fh' ? { ...r, chips: { [g]: chip }, draft: weekOnto(r.draft, p.draft, g) } : p);
+  const solveOf = ({ k, c, roads, ask, same, need, land }) => {
     if (same) return self(c);
     if (need) return { state: 'failed', choice: c, why: 'needs', needs: need.ids, problem: need.problem };
     if (!ask) return ready(roads, c);
     const key = ask.key;
-    const got = peek ? forkRead(key) : forkAsk(ctx, P, ask);
+    // (a row of its preparation: Chips…'s where it has prepared it, else asked here and kept as that preparation, so
+    // Chips… and its tap find it: one solve)
+    const kept = land ? PREPS.get(key) : null;
+    const got = kept?.weeks ? kept : peek ? forkRead(key) : forkAsk(ctx, P, ask);
+    if (land && !peek && got?.weeks && kept !== got) prepKeep(key, got);
     if (got && typeof got === 'object') {
       const x = planOfRoad(ctx, P, got, g, d0);
-      const p = x?.plan && forkKey(x.plan, g) === forkKey(c, g) ? x.plan : null;
+      let p = x?.plan && forkKey(x.plan, g) === forkKey(c, g) ? x.plan : null;
       // its solve made no move after the choice your plan doesn't: the choice is your plan, or a road's
       if (p && !chipMine && movesSig(p.moves) === mineFrom && !Object.keys(p.chips).length) return roads.length ? ready(roads, c) : refs.has(k) ? self(c) : null;
+      // a Free Hit row of its preparation: its week on its own solve's later weeks, as chipApart counts it (the roll
+      // plan's where that failed)
+      if (p && land?.chip === 'fh') {
+        const f = solveK(fhLater), r = f?.state === 'ready' ? f : solved.get(rollK);
+        if (f?.state === 'solving' || r?.state === 'solving') return { state: 'solving', choice: c, wait: (f?.state === 'solving' ? f : r).wait };
+        if (r?.state === 'ready') p = chipOn('fh', r, p);
+      }
       const m = measured(p);
       if (m) return ready([...roads, { ...m, road: got, model: false }], c);
     }
@@ -2669,8 +2704,11 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     if (got) return roads.length ? ready(roads, c) : { state: 'failed', choice: c, why };
     return { state: 'solving', choice: c, wait: forkFlights().some(([, f]) => f.key === key) ? 'flight' : P.healing ? 'heal' : 'queue' };
   };
-  // the references asked first, each row still waiting in its own place
-  const solved = new Map([...asks.filter((a) => refs.has(a.k)), ...asks.filter((a) => !refs.has(a.k))].map((a) => [a.k, solveOf(a)]));
+  // the references asked first, each row still waiting in its own place (a Free Hit row of its preparation asks its
+  // later weeks with it: solveK)
+  const solved = new Map(), byK = new Map(asks.map((a) => [a.k, a]));
+  const solveK = (k) => { if (!solved.has(k) && byK.has(k)) solved.set(k, solveOf(byK.get(k))); return solved.get(k); };
+  for (const a of [...asks.filter((x) => refs.has(x.k)), ...asks.filter((x) => !refs.has(x.k))]) solveK(a.k);
   // (the Roll row of a week you roll stays where rolling, Forkcast's later moves after it, is your plan itself: no move
   // after it; the first-use run, 2026-10-21: Raketa's Roll there in GW8 and GW9, gone in GW10 once its check landed)
   const out = asks.filter((a) => choices.has(a.k)).map((a) => solved.get(a.k)).filter((x) => x && (!x.self || rollOffered));
@@ -2752,9 +2790,6 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // the two plans your week's transfer row sets side by side (rollOf): the roll's and your own choice's, each with
   // Forkcast's later moves; `pending` while either still solves (the row says so, never the week alone in its place)
   if (ref?.state === 'ready') Object.assign(list, { ref, mine: ours });
-  // (chip's plan p, {draft}, on plan r's later weeks: a Free Hit's week alone, its squad reverting after it, a Wildcard's
-  // plan as it is, its squad lasting; chipApart's on the roll plan, your own chip week's on its solve below)
-  const chipOn = (chip, r, p) => (chip === 'fh' ? { ...r, chips: { [g]: chip }, draft: weekOnto(r.draft, p.draft, g) } : p);
   // …in your Wildcard or Free Hit week your chip's plan against its own roll (refOf: a Wildcard's keeps your later weeks
   // as its row's did, `held`), as the pitch's token set that chip's (weekRollOf's `mineRef`). Its week is your plan's
   // own, the squad its tap landed and the pitch draws, as Chips… and its toast counted it before the tap: QA chipweek N7
@@ -2790,7 +2825,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     const r = chip === 'wc' ? solved.get(heldK) : ref;
     if (r?.state === 'solving') return { wait: true };
     if (r?.state !== 'ready') return null;
-    const f = chip === 'fh' ? solved.get(fhK) : null;
+    const f = chip === 'fh' ? solved.get(fhLater) : null;
     if (f?.state === 'solving') return { wait: true };
     const m = measured(chipOn(chip, f?.state === 'ready' ? f : r, p));
     if (!m) return null;
@@ -2851,8 +2886,10 @@ const plansListed = (ctx, P, g) => {
   const got = by?.rev === PAIR.rev ? by.gw.get(g) : null;
   if (got) return got;
   // a peek kept per plan view until a solve lands (PAIR.rev), so a sheet drawn each second (Chips…: chipShown) peeks once
+  // (…or a preparation lands, PREP.gen: a Wildcard or Free Hit row is its preparation, plansOf's `land`; the fhland
+  // review, 2026-10-26: Chips… opened from another week read "checking…" for it until a fork landed)
   let pk = PEEKS.get(P);
-  if (!pk || pk.rev !== PAIR.rev) PEEKS.set(P, (pk = { rev: PAIR.rev, gw: new Map() }));
+  if (!pk || pk.rev !== PAIR.rev || pk.gen !== PREP.gen) PEEKS.set(P, (pk = { rev: PAIR.rev, gen: PREP.gen, gw: new Map() }));
   if (!pk.gw.has(g)) pk.gw.set(g, plansOf(ctx, P, g, { peek: true }));
   return pk.gw.get(g);
 };
@@ -2983,10 +3020,13 @@ export function squadChanges(P, g, ev, keep = []) {
   return [...viewOfState(s, P.L, keep).moves, ...kept];
 }
 /** A lit choice drawn as its place's edges, never a one-tap tab (renderDecks), where its + takes back more than the
- *  player it waits behind: a buy of yours elsewhere, or your Wildcard or Free Hit in your chip week (chipBackOf; the user,
- *  2026-10-21: fix all (first-use proposal #7): Kenji's "Petrović +3.3" tab inside his Free Hit), so his place says so
- *  ("instead of Free Hit": noteOf) before its +. `a`: the player whose place it is; `e`: its entry there (decksOf). Pure. */
-export const litEdges = (P, g, a, e) => !!e.taken?.some((t) => Number(t.in) !== Number(a)) || !!chipBackOf(P, g, e.pl?.choice);
+ *  player it waits behind: a buy of yours elsewhere, so his place says so ("instead of Palmer": noteOf) before its +.
+ *  Your Wildcard or Free Hit in your chip week no longer (chipBackOf; the user, 2026-10-21, Kenji's "Petrović +3.3" tab
+ *  inside his Free Hit, was a one-tap take): no plate takes since the owner's 2026-10-25 "make it always first click on
+ *  tab and then click swap inside", and its place says "instead of Free Hit" before its Swap, so the best move there is
+ *  ink as in any week (the owner, 2026-10-26, asked "should the best one be marked black like in other weeks?": "yes").
+ *  `a`: the player whose place it is; `e`: its entry there (decksOf). Pure. */
+export const litEdges = (a, e) => !!e.taken?.some((t) => Number(t.in) !== Number(a));
 /** Value `v` kept under key `k` of `map` as its newest, the oldest let go past `max` (an entry used again is kept
  *  longest). → v */
 const keepNewest = (map, k, v, max) => {
@@ -3051,8 +3091,10 @@ export const settlesAt = (P, g, plans) => settleDue(weekKey(P, g, plans));
  *  nor one the 2026-10-18 bars keep from being the week's suggestion (plansOf `early`): his place keeps it, a plate of
  *  his place's first choice on the pitch where nothing else is (placeFirst, renderDecks: no ⇄ handle since the owner,
  *  2026-10-25). `D`: the places (decksOf); `toks`: the week's own choices beside the goal
- *  (decksOf), a chip there the best where its number is higher (`chip`: its token ink with "Play"), the best move then
- *  still its places' `best`, ink (the owner, 2026-10-25, Raketa's GW9, its Free Hit +3.3 over Evanilson
+ *  (decksOf), a chip there the best where its number is higher (`chip`: its token drawn as any, never ink and no Play
+ *  since the owner's 2026-10-26 "make that free hit tab on top left not coloroud black and remove button 'play' from
+ *  it"; "Rolling is best" none then), the best move then still its places' `best`, ink (the owner, 2026-10-25, Raketa's
+ *  GW9, its Free Hit +3.3 over Evanilson
  *  +1.6: "where is black tab with green swap sign", then "fix so chips not interfer in ths behaviour").
  *  → Map(a → {e, best}) with .best (the best choice, a place's or a token's), .chip (the token's, or null) and .move (the
  *  best move: its places' `best`) */
@@ -3087,7 +3129,7 @@ const litCan = (P, w, M) => {
 /** The week's one best (the user, 2026-10-23: "i cant see which transfer best"; design_marks/design.md: one ink plate):
  *  the choice that beats rolling with the highest number, single moves and plans of several together (a plan only where
  *  its number is higher: the user, 2026-10-22, "combinations of two if they higher"), never one whose take would also
- *  take back a buy or chip of yours (litEdges: one tap would change more than the plate shows; the next best is the
+ *  take back a buy of yours elsewhere (litEdges: its Swap would change more than the plate shows; the next best is the
  *  best then, that one a quiet plate whose place says "instead of …"); a Wildcard or Free Hit beside the goal (`toks`)
  *  where its number is higher still. None until the week settles. Pure. → pl | null */
 export function weekBest(P, w, M, D, toks = []) {
@@ -3096,7 +3138,7 @@ export function weekBest(P, w, M, D, toks = []) {
   const can = litCan(P, w, M);
   const ok = (pl) => !pl.refRow && !pl.removed && !pl.early && can(pl);
   const placed = (pl) => D.filter((d) => d.entries.some((e) => e.pl === pl && !e.back));
-  const moves = M.plans.filter((pl) => ok(pl) && placed(pl).length && !placed(pl).some((d) => litEdges(P, g, d.a, d.entries.find((e) => e.pl === pl && !e.back))));
+  const moves = M.plans.filter((pl) => ok(pl) && placed(pl).length && !placed(pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl && !e.back))));
   const chips = toks.filter((pl) => ok(pl) && !rollOnly(pl) && !!pl.choice.chips?.[g]);
   return [...moves, ...chips].reduce((m, pl) => (!m || pl.cmp.delta > m.cmp.delta ? pl : m), null);
 }
@@ -5289,6 +5331,13 @@ const PREP = { mem: null, flight: null, timer: null, until: 0, gen: 0 };  // gen
 const PREPS_MAX = 96;
 const PREP_AGAIN_MS = 1500;   // your plan healing, this browser's speculative slot busy, a preparation superseded
 const PREP_HOLD_MS = 30000;   // the plan service refused one (busy) or was away
+/** A preparation landed (pumpPreps; a Wildcard or Free Hit row of it, plansOf's `land`): kept, the newest PREPS_MAX,
+ *  and chipPreps' views made again (a landing counts only under the rules it was made for). */
+function prepKeep(key, got) {
+  PREPS.set(key, got);
+  while (PREPS.size > PREPS_MAX) PREPS.delete(PREPS.keys().next().value);
+  PREP.gen++;
+}
 
 /** What the chip preparations of a plan view are made of besides the data (PREP_MEMO's key): the roads, whether you
  *  may edit, GW A, your pins (what they ask: never when or in which words, so the same rules made again, a chip tapped
@@ -5406,11 +5455,8 @@ function pumpPreps(ctx, P, items) {
   while (PREP_ASKED.size > PREPS_MAX) PREP_ASKED.delete(PREP_ASKED.keys().next().value);
   solveKept(ctx.api, { entry: Number(P.entry), purpose: 'chipprep', values: next.values })
     .then((res) => {
-      if (res.road || res.state === 'error') {
-        PREPS.set(next.key, res.road ?? 'error');
-        while (PREPS.size > PREPS_MAX) PREPS.delete(PREPS.keys().next().value);
-        PREP.gen++;  // a landing counts only under the rules it was made for
-      } else if (ours()) PREP.until = Date.now() + PREP_AGAIN_MS;  // superseded (a Wish took the slot) or cancelled (a full queue)
+      if (res.road || res.state === 'error') prepKeep(next.key, res.road ?? 'error');
+      else if (ours()) PREP.until = Date.now() + PREP_AGAIN_MS;  // superseded (a Wish took the slot) or cancelled (a full queue)
     }, () => { if (ours()) PREP.until = Date.now() + PREP_HOLD_MS; })  // busy (429) or away: later
     .finally(() => {
       if (PREP.flight === flight) PREP.flight = null;
@@ -5476,6 +5522,15 @@ const fitNum = (el, v, steps = ['noxp', 'nomark', 'tight']) => {
   for (const k of steps) if (over()) el.classList.add(k);
   return !over();
 };
+/** One look across `els` (a place's dealt headers; a pitch's plates and its tokens beside the goal): each class of `ks`
+ *  ("noxp", "tight": fitNum's trims) one of them took, every one takes (a place's: design_marks/design.md §3; the
+ *  pitch's "xP": the owner, 2026-10-26, "why it sometimes write xp sometimes not write fix", renderDecks). → the
+ *  classes taken */
+export const oneLook = (els, ks) => {
+  const on = ks.filter((k) => els.some((x) => x.classList.contains(k)));
+  for (const x of els) x.classList.add(...on);
+  return on;
+};
 /** The least type of a place's header, px: its last trim (headScale) goes no smaller. */
 const HEAD_LEAST = 8;
 /** A place's header still over its card after its own trims (fitNum's: "xP", the marks, the smaller number): the scale
@@ -5491,7 +5546,8 @@ export const headScale = (need, room, px) => (need <= room + 0.5 ? 1 : Math.max(
  *  too long is shortened like the cards do. No shirts."; the handles since the number alone, .only: the owner,
  *  2026-10-25, after v1.3.79, "or just points if space tough"): its "xP", then a smaller type (m-ahead.css .ah-sp.noxp
  *  .tight; fitNum, renderDecks). The best's "both" / "all 3" went with its Swap (the same day: "no need green 'swap'
- *  in preview"). */
+ *  in preview"). Its "xP" the pitch's: off on one plate or token beside the goal, off on all (the owner, 2026-10-26: "why
+ *  it sometimes write xp sometimes not write fix"; renderDecks' oneXp). */
 const PLATE_TRIMS = ['noxp', 'tight'];
 /** The least of a buy's name a shortened plate shows (m-ahead.css .ah-sp.cut: a few letters and "…", as the cards'
  *  "Calvert-L..."), in its type's ems; under it the best shows its number alone, ink (.only: renderDecks). */
@@ -6620,7 +6676,7 @@ export function mount(el, ctx) {
     // the Free Hit's "instead of Muharemov/ić + Palmer + Rice" at 390 px; the user, 2026-10-22: a name broken mid-word is
     // a bug): its "xP", then a smaller number give its words room, as a plate's number (fitNum); then it is as much wider as
     // they still want, measured as drawn as a place's note is (fitNotes), while it and its side target (6 px: m-ahead.css
-    // .ah-tpb::before) clear the cards; else it is the Week sheet's, as one that meets a card. Its name too (the owner,
+    // .ah-tok::before) clear the cards; else it is the Week sheet's, as one that meets a card. Its name too (the owner,
     // 2026-10-25: GW12's "Fre… +4.6 xP Play" at 393×702; "A name still too long is shortened like the cards do" is the
     // plates', never a chip's): its words' line (.ah-tbody's first span, ellipsed by m-ahead.css) whole
     const fits = (t) => {
@@ -6712,17 +6768,33 @@ export function mount(el, ctx) {
     // (its middle over his card's middle third, it reads as his; the best's past its room the free turf's whole: `free`)
     const most = (p) => { const [l, r] = (p.room = roomOf(p)), s = p.free ? Infinity : p.c.w / 3; return p.c.w + Math.min(l, r + s) + Math.min(r, l + s); };
     const wider = (p) => p.el.getBoundingClientRect().width > most(p) + 0.5;
+    const excess = (q) => q.el.getBoundingClientRect().width - most(q);
     const quiet = (p) => p.el.matches('.alt');
     // (a Remove of yours, its name and no number, is never a number alone: .bare, it yields as a quiet plate does by its
     // name shortened to the plates' least instead, .cut, m-ahead.css; the review of cards4, 2026-10-26: beside the best
     // it kept its name whole while the best's went)
     const named = (p) => !p.el.matches('.only, .bare.cut');
-    // (1) its own trims that never hide who (PLATE_TRIMS: fitNum), again while one's gave a neighbour room
+    // (one named again past (2), `was` the excess of every plate as it was named: over too while it crowds one past
+    // that, its own trims giving that room back; the fixreset QA, 2026-10-26, 353468 GW10 at 390×844: Evanilson
+    // "+0.5 xP" alone, his name tried again in his room's type, with its "xP", crowded Vuskovic's beside him, at its own
+    // smallest 86 px in 89; the owner: "yes" fix it)
+    const cramped = (p) => wider(p) || (!!p.was && drawn.some((q) => q !== p && Math.max(0, excess(q)) > p.was.get(q) + 0.5));
+    // "xP" one look per pitch (the owner, 2026-10-26, of "Silva −4 −2.4 xP" beside "Thomas −1.2": "why it sometimes
+    // write xp sometimes not write fix"): where any plate or token beside the goal drops its "xP", every one drops it,
+    // as a place's dealt headers do; from then a plate's own trims are its smaller type alone, its size its own
+    let steps = PLATE_TRIMS;
+    const oneXp = () => {
+      if (!steps.includes('noxp') || !oneLook([...decks.querySelectorAll('.ah-sp, .ah-tok')], ['noxp']).length) return false;
+      steps = PLATE_TRIMS.filter((k) => k !== 'noxp');
+      return true;
+    };
+    // (1) its own trims that never hide who (PLATE_TRIMS: fitNum), again while one's gave a neighbour room, its "xP"
+    // the pitch's (oneXp) before any name is shortened or gone
     const trim = () => {
       for (let i = 0; i < 4; i++) {
         let moved = false;
-        for (const p of drawn.filter((x) => !x.el.matches('.cut'))) { const was = p.el.className; fitNum(p.el, () => wider(p), PLATE_TRIMS); moved ||= was !== p.el.className; }
-        if (!moved) break;
+        for (const p of drawn.filter((x) => !x.el.matches('.cut'))) { const was = p.el.className; fitNum(p.el, () => cramped(p), steps); moved ||= was !== p.el.className; }
+        if (!oneXp() && !moved) break;
       }
     };
     // a plate's number alone, its names gone (m-ahead.css .ah-sp.only; a plan's "& 2 more" too; a tag his plan's number)
@@ -6770,13 +6842,22 @@ export function mount(el, ctx) {
     // every plate beside it still fit, the room the steps after (2) left: the free turf, a shortened name)
     // (never one beside an ink plate showing its number alone: the best keeps its name longest; nor where any plate's
     // excess past its room grows: the fit review of plates3, 2026-10-25)
-    const excess = (q) => q.el.getBoundingClientRect().width - most(q);
     const nearInk = new Set(drawn.filter((x) => !quiet(x) && !named(x)).flatMap((x) => [...plateOf].filter(([q]) => Math.abs(q.y - x.c.y) < 2 && (Math.abs(q.x + q.w - x.c.x) < q.w || Math.abs(x.c.x + x.c.w - q.x) < q.w)).map(([, y]) => y)));
+    // (its name tried at its own trims as far as they go, never at the type its own room allows alone: cramped; fitted
+    // first, before the plates beside it, so none of theirs answers for it; and taking no other plate's trim: the
+    // platefit review, 2026-10-26)
+    const excesses = () => new Map(drawn.map((q) => [q, Math.max(0, excess(q))]));
+    const took = (x, k) => { const was = k.split(' '); return [...x.classList].some((c) => c !== 'noxp' && !was.includes(c)); };
     for (const p of drawn.filter((x) => quiet(x) && !named(x) && !x.m.only && !nearInk.has(x)).sort((a, b) => gain(b) - gain(a))) {
-      const was = new Map(drawn.map((q) => [q, Math.max(0, excess(q))]));
+      const look = new Map([...decks.querySelectorAll('.ah-sp, .ah-tok')].map((x) => [x, x.className])), was = steps;
+      p.was = excesses();
       p.el.classList.remove(yielded(p));
+      fitNum(p.el, () => cramped(p), steps);
       trim();
-      if (wider(p) || drawn.some((q) => q !== p && Math.max(0, excess(q)) > was.get(q) + 0.5)) { p.el.classList.add(yielded(p)); trim(); }
+      // (else every plate and token as before it, the pitch's "xP" too, each room read again; the pitch's "xP" off is
+      // no plate's trim: it only frees room)
+      if (cramped(p) || [...look].some(([x, k]) => x !== p.el && took(x, k))) { delete p.was; for (const [x, k] of look) x.className = k; steps = was; trim(); }
+      else p.was = excesses();
     }
     // as wide as its words, never narrower than his card (the span), centred on him, moved aside only as far as a
     // touchline or a plated neighbour makes it, its middle over his card's middle third (it reads as his; the best's past
@@ -6797,7 +6878,7 @@ export function mount(el, ctx) {
     reachLabels(root);
     // (as a landing's ink name plate: in 150 ms after 170 ms, m-ahead.css ah-in; Reduce Motion: the 150 ms fade, as land's;
     // a place's first choice drawn while the week checked too: no fade)
-    if (lights) for (const x of decks.querySelectorAll('.ah-sp:not(.first), .ah-ring, .ah-tok:is(.best, .mv)')) x.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: reduceMotion() ? 0 : 170, fill: 'backwards' });
+    if (lights) for (const x of decks.querySelectorAll('.ah-sp:not(.first), .ah-ring, .ah-tok.mv')) x.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: reduceMotion() ? 0 : 170, fill: 'backwards' });
     if (S.place) drawPlace(false);
     sheetFollows(P, w, M);
   }
@@ -6845,7 +6926,7 @@ export function mount(el, ctx) {
     const back = d.mine && takesBack(e);
     const num = ready ? plNumSaid(P, pl) : v, places = COPY.placeSaid(nm(d.a), d.entries.length, null);
     const moves = sellers.map((a, i) => COPY.moveSaid(nm(a), nm(buys[i])));
-    // (beside a chip's ink token, the week's best: "Best move this week", litOf `chip`)
+    // (beside a chip's token, the week's best: "Best move this week", litOf `chip`)
     const move = !!S.M?.lit?.chip;
     // (a first choice: what his place holds as the handle said it, "none better than rolling" (in a week of yours "than
     // your plan": plansVs, decision K) where none gains; a move you removed or one the 2026-10-18 bars hold back said
@@ -6883,11 +6964,13 @@ export function mount(el, ctx) {
   /** The week's own choices beside the goal (top-left; the corner pills' look, m-ahead.css .ah-tok): your Wildcard or
    *  Free Hit there ("Wildcard · yours": the Chips sheet), the Roll while the week has no transfer of yours, "Rolling is
    *  best" once the week is settled and nothing beats it (the user, 2026-10-23; design_marks/design.md, from strip),
-   *  "Rolling ✓" once locked (a tap unlocks it: removeRule; "until you take a move" under it while a move stays named
-   *  past it, `lit`: any move's Swap takes it back, rollingAt), a Wildcard or Free Hit in its best week with its number
-   *  (its body its Why sheet; the week's best, `lit.chip`: ink with a worded "Play" that plays it, the only take beside
-   *  the goal; any other chip none: its Why sheet's Play; the user, 2026-10-23: no "+" but a gain's sign), a chip alone;
-   *  while one solves, "checking…" under its words and no number (never a clock in its slot: waitClock), its buttons off.
+   *  "Rolling ✓" once locked (a tap unlocks it: removeRule; any move's Swap takes it back, rollingAt; nothing under it:
+   *  the owner, 2026-10-26, "remove 'until you take a move'"), a Wildcard or Free Hit in its best week with its number
+   *  (the user, 2026-10-23: no "+" but a gain's sign), a chip alone, a Roll that takes yours back ("instead of Free
+   *  Hit"): each its body alone, its Why sheet, whose Play or Take takes it, never ink, the week's best chip too (the
+   *  owner, 2026-10-26: "make that free hit tab on top left not coloroud black and remove button 'play' from it", "remove
+   *  button 'take'"); while one solves, "checking…" under its words and no number (never a clock in its slot:
+   *  waitClock), its body off.
    *  First, above them all, the week's best move while one beats your plan or rolling (litOf `move`; `lead` its places
    *  in its plate's top-most row: renderDecks' topRow), ink, its plate's first buy and its number, "Evanilson +1.6", a
    *  plan's too, "Tavernier +3.8" (no "Best:", no "+ Vuskovic" or "& 1 more": its ink says it is the best, and its plate
@@ -6898,7 +6981,7 @@ export function mount(el, ctx) {
    *  somewhere on bench for example and user instanrtly see what it was suggested"; chosen: "Ink token, top of stack";
    *  the plate stays). */
   function tokensOf(P, w, toks, lit = new Map(), lead = null) {
-    const g = w.gw, out = [], sq = squadWeek(w), named = lit.size > 0;
+    const g = w.gw, out = [], sq = squadWeek(w);
     const mv = lit.move, top = mv && lead?.[0]?.L.e.pl === mv ? lead : null;
     if (top) {
       const nm = P.L.name, e = top[0].L.e;
@@ -6912,8 +6995,8 @@ export function mount(el, ctx) {
     // your Wildcard or Free Hit week: the chip is yours, "Wildcard · yours" (its sheet: take it off there)
     if (sq) out.push(h('button.ah-tok.done', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:chip:${g}` }, 'aria-label': COPY.chipsSaid(g, sq), onClick: () => openChips(g) }, h('span.ah-tl', null, COPY.chipYours(chipName(sq)))));
     if (rollingAt(P, g)) {
-      out.push(h('button.ah-tok.done', { type: 'button', dataset: { row: `tok:roll:${g}` }, 'aria-label': COPY.rollingSaid(g, named), onClick: () => removeRule(ctx, `roll:${g}`) },
-        h('span.ah-tl', null, COPY.rollingOn, named ? h('small.ah-tw', null, COPY.rollingUntil) : null)));
+      out.push(h('button.ah-tok.done', { type: 'button', dataset: { row: `tok:roll:${g}` }, 'aria-label': COPY.rollingSaid(g), onClick: () => removeRule(ctx, `roll:${g}`) },
+        h('span.ah-tl', null, COPY.rollingOn)));
     }
     for (const pl of toks) {
       // what its take takes back of yours, under its words: a take never takes a transfer of yours back unsaid; but a
@@ -6930,18 +7013,16 @@ export function mount(el, ctx) {
           h('span.ah-tl', null, isBest ? COPY.rollingBest : COPY.rollingNow)));
         continue;
       }
-      const chip = !!pl.choice.chips?.[g], best = lit.chip === pl;
+      // no take on any token, a chip the week's best too, never ink: its body its Why sheet, whose Play or Take takes it
+      // (the owner, 2026-10-26: "make that free hit tab on top left not coloroud black and remove button 'play' from
+      // it", then of the Roll's "Take": "remove button 'take'"; as G's plates: a tap opens, the take is inside)
       const what = planWeeks(P, { ...pl.choice, moves: [], hits: {} }, g, false).find(([x]) => x === g)?.[1] ?? COPY.planRoll(null);
-      out.push(h('span.ah-tok.two', { class: { pays: s.pays, wait: !!s.wait, best }, dataset: { plan: key } },
-        h('button.ah-tbody', { type: 'button', disabled: !!s.wait, dataset: { row: `tok:${key}` }, 'aria-label': `${best ? `${COPY.bestSaid([what], plNumSaid(P, pl))}; ` : `${s.label}; `}shows why`, onClick: () => openPlanWhy(P, g, pl) },
+      out.push(h('span.ah-tok.two', { class: { pays: s.pays, wait: !!s.wait }, dataset: { plan: key } },
+        h('button.ah-tbody', { type: 'button', disabled: !!s.wait, dataset: { row: `tok:${key}` }, 'aria-label': `${s.label}; shows why`, onClick: () => openPlanWhy(P, g, pl) },
           // (still checking: "checking…" under its words, never a clock in its number's slot: waitClock)
           h('span', null, what, said ? h('small.ah-tw', null, COPY.planInsteadOf(lost)) : null, pl.state === 'solving' ? h('small.ah-tw', null, COPY.pairChecking) : null),
           // (its number blue with "xP", as every forecast's: ui.js xpGain)
-          s.wait || pl.refRow ? null : xpGain(pl.cmp.delta, 'span.ah-tnum.m-num')),
-        best ? h('button.ah-tgo', { type: 'button', disabled: frozenAt(P, g), dataset: { add: `plan:${key}` }, 'aria-label': COPY.planTake(s.head), onClick: takePlan(P, g, pl) }, COPY.chipPlay)
-          // a chip not the week's best: no take on the pitch (its Why sheet's Play); a Roll that takes yours back its word
-          : chip ? null : h('button.ah-tpb', { type: 'button', disabled: !!s.wait || frozenAt(P, g), dataset: { add: `plan:${key}` }, 'aria-label': COPY.planTake(s.head), onClick: takePlan(P, g, pl) },
-            h('span.ah-tp', null, COPY.tokTake))));
+          s.wait || pl.refRow ? null : xpGain(pl.cmp.delta, 'span.ah-tnum.m-num'))));
     }
     return out;
   }
@@ -7260,7 +7341,7 @@ export function mount(el, ctx) {
     ctx.pitch.fitFixtures(layer);
     // (one look per place: "xP" from every header together, then a smaller number for all; design_marks/design.md §3)
     for (const head of [nowHead, ...dealt.map(([, x]) => x)]) fitNum(head, head.querySelector('.ah-pv'));
-    for (const k of ['noxp', 'tight']) if (dealt.some(([, x]) => x.classList.contains(k))) for (const [, x] of dealt) x.classList.add(k);
+    oneLook(dealt.map(([, x]) => x), ['noxp', 'tight']);
     // then, still over, the whole header's type smaller (headScale), the dealt ones by one scale (one look per place)
     scaleHeads([nowHead]);
     scaleHeads(dealt.map(([, x]) => x));

@@ -176,8 +176,9 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
 /* a GW whose lineup is yours (a sub, the armband: the pitch's "Reset lineup" there): a small dot in its corner */
 .ah-tick.lu::after { content: ""; position: absolute; top: 5px; right: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--acc); }
 /* B61: a GW a change landed in, not shown since: a short bar along its bottom edge (static, so it stays under Reduce
-   Motion) */
-.ah-tick.chg::before { content: ""; position: absolute; left: 50%; bottom: 3px; width: 12px; height: 2px; margin-left: -6px; border-radius: 1px; background: var(--acc); }
+   Motion), on the edge itself: 3 px up it crossed the number's digits once the tiles were 40 px (the owner, 2026-10-26:
+   "what this green line and why it overlap a number") */
+.ah-tick.chg::before { content: ""; position: absolute; left: 50%; bottom: 0; width: 12px; height: 2px; margin-left: -6px; border-radius: 1px; background: var(--acc); }
 .ah-approx { color: var(--muted); font-weight: 400; margin-right: 1px; }
 /* a drag onto a GW (a shirt, a move, a chip): the GWs it may go to, the one under the finger */
 .ah-tick.glow { box-shadow: inset 0 0 0 1.5px var(--acc-bg); }
@@ -346,8 +347,8 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
    handle since the owner, 2026-10-25, "instead use either names with points ... or just points if space tough"; the
    pitch's dark green); .ah-ring the best's sellers' cards; each plate's own fit steps (.noxp .tight .cut .only, its
    number alone: ahead.js renderDecks, PLATE_TRIMS). .ah-tok the week's own
-   choices beside the goal (Roll, "Rolling is best", Rolling ✓, a Wildcard or Free Hit: .two its body; .best the week's
-   best as a chip, ink with its worded "Play", .ah-tgo). A target reaches up over free turf only (--up: ahead.js reachOf).
+   choices beside the goal (Roll, "Rolling is best", Rolling ✓, a Wildcard or Free Hit: .two its body, no take on any:
+   the owner, 2026-10-26). A target reaches up over free turf only (--up: ahead.js reachOf).
    A sub's plate or handle rises from his own card inside the bench's panel, under his label (--pm-bl-gap holds them; the
    user, 2026-10-22: his tab over the panel hung under the forward's plate over him).
    .ah-place a player's place: .ah-pshade over the pitch, his own card again (.ah-pown) under .ah-phead.now ("Keep",
@@ -364,9 +365,10 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-decks button { pointer-events: auto; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; }
 /* the swap plates' three weights (design.md §1, §7): the best's ink (the C / V badge's, both themes: white 17.6:1, the
    blue 13.2 / 9.6 on it; on the dark turf a white hairline holds its edge, 3.4:1 alone), a take's the app's "worth
-   doing" mint (#05341C on it 10.2:1: a place's best header, the chip token's Play), the quiet plate the pitch's dark green (white 6.7 / 12.3:1, --xp-d
-   5.0 / 6.7: the bench tile's wash held the blue at 2.4:1, so the same solid on the bench); the ring white with a faint
-   halo (3.3:1 on the turf, 3.7 on the bench glass); on the pitch, so the place's headers and the chip token share them */
+   doing" mint (#05341C on it 10.2:1: a place's best header; the chip token's Play none since the owner, 2026-10-26), the
+   quiet plate the pitch's dark green (white 6.7 / 12.3:1, --xp-d 5.0 / 6.7: the bench tile's wash held the blue at 2.4:1,
+   so the same solid on the bench); the ring white with a faint halo (3.3:1 on the turf, 3.7 on the bench glass); on the
+   pitch, so the place's headers and the best move's token share them */
 .ah-pitch .pm {
   /* (#17191A itself, m.css --plate-ink's: on the pitch --plate-ink is --ink, plan-pitch.css, which goes light in dark) */
   --sp-ink: #17191A; --sp-go: #8EF2B3; --sp-go-ink: #05341C; --sp-alt: var(--pm-back);
@@ -449,24 +451,14 @@ button.ah-tok { cursor: pointer; }
 .ah-tok.done { color: var(--acc); }
 .ah-tok.two { padding: 0; }
 .ah-tok.two::before { content: none; }
-.ah-tbody, .ah-tpb { position: relative; display: flex; align-items: center; gap: 5px; height: 100%; min-width: 0; padding: 0 4px 0 10px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
-.ah-tbody::before, .ah-tpb::before { content: ""; position: absolute; inset: -9px 0; }
-.ah-tpb { flex: none; padding: 0 4px 0 0; }  /* its take whole, never squeezed past the pill's edge by its words (ahead.js renderDecks gives them room) */
-.ah-tpb::before { inset: -9px -6px -9px -2px; }
+.ah-tbody { position: relative; display: flex; align-items: center; gap: 5px; height: 100%; min-width: 0; padding: 0 10px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.ah-tbody::before { content: ""; position: absolute; inset: -9px 0; }
 .ah-tbody > span:first-child { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .ah-tnum { font-variant-numeric: tabular-nums; color: var(--muted); }
-/* its take in words, "Take" (a Roll that takes a buy of yours back; the user, 2026-10-23: no "+" but a gain's sign) */
-.ah-tp { flex: none; display: grid; place-items: center; height: 20px; box-sizing: border-box; padding: 0 7px; border: 1.5px solid var(--acc); border-radius: 10px; color: var(--acc); font-weight: 700; font-size: var(--t-cap); }
-.ah-tok.pays .ah-tp { background: var(--acc); color: #FFFFFF; }
 /* a token's words and number never cut (ahead.js fitNum): its "xP" first, then a smaller number */
 .ah-tok { --xp-c: var(--xp-l); }
 .ah-tok.noxp .xp-u { display: none; }
 .ah-tok.tight .ah-tnum { font-size: .85em; }
-/* the week's best when it is a chip (ahead.js weekBest): ink, its worded take "Play" in the plates' mint (design.md §2,
-   from hero: one take on the pitch); its number the ink's blue */
-.ah-tok.two.best { background: var(--sp-ink); color: #FFFFFF; box-shadow: 0 1px 2px rgb(0 0 0 / .3), var(--sp-edge); --xp-c: var(--xp-d); }
-.ah-tok.best .ah-tnum { color: var(--xp-d); }
-.ah-tok.best .ah-tw { color: rgb(255 255 255 / .7); }
 /* the week's best move, first in the stack (ahead.js tokensOf; the owner, 2026-10-26, "Ink token, top of stack"): ink as
    its plate, its plate's first buy and number, "Evanilson +1.6" (a plan's too: "yes do both"); fitted as the other
    tokens (its "xP", a smaller number), then its name shortened as the plates' (.cut), never its number */
@@ -476,12 +468,10 @@ button.ah-tok { cursor: pointer; }
 .ah-tok.mv .ah-tnum { flex: none; color: var(--xp-d); }
 .ah-tok.mv.cut .ah-tn { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ah-tok.mv:focus-visible { outline: 2px solid #FFFFFF; outline-offset: -2px; }
-.ah-tgo { position: relative; flex: none; height: 20px; margin: 0 3px 0 0; padding: 0 8px; border: 0; border-radius: 10px; background: var(--sp-go); color: var(--sp-go-ink); font: 700 var(--t-cap)/20px var(--f-text); cursor: pointer; }
-.ah-tgo::before { content: ""; position: absolute; inset: -12px -6px -12px -2px; }  /* 44 px tall over the turf beside the goal */
-.ah-tgo:focus-visible, .ah-tok .ah-tbody:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; border-radius: 10px; }
-/* a solving token fades its words and buttons, never its clock (the only sign it is working: findings #2) */
+.ah-tok .ah-tbody:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; border-radius: 10px; }
+/* a solving token fades its words, never its clock (the only sign it is working: findings #2) */
 .ah-tok :disabled { cursor: default; }
-.ah-tok .ah-tbody:disabled > *, .ah-tok .ah-tpb:disabled, .ah-tgo:disabled { opacity: .45; }
+.ah-tok .ah-tbody:disabled > * { opacity: .45; }
 .ah-pitch .pm .pm-card.ah-stepout { opacity: 0; pointer-events: none; transition: opacity .15s; }
 .ah-pitch .pm .pm-card.ah-ghost { position: absolute; z-index: -1; margin: 0; pointer-events: none; }
 .ah-pitch .pm .pm-card.ah-landed .pm-pn { animation: ah-in .15s .17s both; }
@@ -1018,7 +1008,7 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .m-app, #toasts { --press: color-mix(in oklab, var(--track), var(--border-2) 55%); }
 
 :where(.m-app, #toasts) :where(button:active:not(:disabled, .m-primary, .m-secondary, .m-chipbtn, .m-xbtn, .m-recent-row,
-  .ah-brow, .ah-add, .ah-x, .ah-pp, .ah-pdo, .pm-card, .ah-lrow, .ah-rule:not(.all), .ah-ap, .ah-tick, .ah-avatar, .ah-tok, .ah-tbody, .ah-tpb, .ah-walk button,
+  .ah-brow, .ah-add, .ah-x, .ah-pp, .ah-pdo, .pm-card, .ah-lrow, .ah-rule:not(.all), .ah-ap, .ah-tick, .ah-avatar, .ah-tok, .ah-tbody, .ah-walk button,
   .ws-reach, .wy-tgl, .ps-grid > button, .ah-btnrow button, .ah-pills button,
   .m-banner button, .m-err button, .ws-name)) { opacity: .55; transition-duration: 0s; }
 
