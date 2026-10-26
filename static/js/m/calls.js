@@ -922,7 +922,8 @@ export const COPY = Object.freeze({
    *  "Swap all 3", spoken now by a place's card ("Swap both: …", swapSaid; the pitch's plates take nothing since the
    *  owner, 2026-10-25, after v1.3.79: "no need green 'swap' in preview"); a move said "Kayode out, Truffert in"; the
    *  best plate's label, "Best this week: …"; a plan's tag in another row, never its number twice; a place's first
-   *  choice's plate where nothing there beats rolling (placeNoneSaid: no ⇄ handle since the same day). */
+   *  choice's plate where nothing there beats rolling, or your plan in a week of yours (placeNoneSaid's `vs`: decision
+   *  K; no ⇄ handle since the same day). */
   swapGo: (n) => (n > 2 ? `Swap all ${n}` : n === 2 ? 'Swap both' : 'Swap'),
   /** A plan's plate over its sellers in one row, the buys of its sellers in other rows counted (the owner, 2026-10-25:
    *  "Rice & 2 more +5.0 xP Swap all 3"; each of those keeps his ring and his tag). */
@@ -935,6 +936,18 @@ export const COPY = Object.freeze({
   partSaid: (mine, others, move = false) => `Part of the best ${move ? 'move ' : ''}this week: ${mine}${others.length ? `, with ${others.join('; ')}` : ''}`,
   placeNoneSaid: (name, n, vs = null) => `${name}: ${plural(n, 'choice')} for his place, none better than ${vs ?? 'rolling'}. Shows ${n === 1 ? 'it' : 'them'}`,
   placeSwap: 'Swap',
+  /** The week's best move as a token beside the goal, first in its stack (ahead.tokensOf; the owner, 2026-10-26: "Ink
+   *  token, top of stack"): "Best: Evanilson +1.6", said "Best move this week: …, shows his choices". */
+  bestTok: 'Best:',
+  showsChoices: 'shows his choices',
+  /** A buy of yours's plate (ahead.swapPlate; the owner, 2026-10-26: "i bough justin but where is no tab on his head so i
+   *  can keep prebious player"): the player you sold, said "Keep Gabriel, not Justin, +0.8 points vs your plan". */
+  keepSoldSaid: (sold, buy) => `Keep ${sold}, not ${buy}`,
+  /** The line under a place's card, its buy's next way (ahead.drawPlace, placeLine; the owner, 2026-10-26: "find if there
+   *  is a way to combine 'a second transfer' and 'instead of..' for a player in one card not two"; chosen: "Better one +
+   *  line"): "or 2nd transfer", "or instead of Evanilson", the way it differs (its note, placeNth's "a" dropped), "or
+   *  alone" where it has none (a pair's buy alone). */
+  placeOr: (what) => `or ${what ? what.replace(/^a (?=\d)/, '') : 'alone'}`,
   rollingBest: 'Rolling is best',
   rollingBestSaid: (g) => `Rolling is best in GW${g}: no transfer beats it; shows why`,
   chipPlay: 'Play',
