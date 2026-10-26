@@ -26,10 +26,12 @@
 // ================================================================ PLAN VIEW (exports)
 // "Your plan" is plan memory's (./memory.js, B7: pins, the plan's road, the heal solve, baked-road reuse,
 // lineup, pencil diff). Ahead adds what a touch needs on top of it:
-//   · the phone's ≈ at once: an engine estimate of the edit (best XI per week from the edited GW), drawn for
-//     the affected weeks with "≈" until memory's heal lands (or the exact road, when a solve already gave it);
+//   · an edit records rules; the plan drawn stays the one the solver returned until its plan for the new rules lands
+//     (a bundle road that fits, or memory's heal), the weeks from the edited one waiting meanwhile: never an engine
+//     estimate of the edit (the owner, 2026-10-26: "fix so every squad is solver squad, no hardcoded logic whatsoever");
 //   · the honest one-line verdict when it lands (calls.changeText: forecast points, and the planner's own count
-//     whenever it parts from them), with Undo; a failed heal undoes the edit and says why (§7.9);
+//     whenever it parts from them), with Undo; a heal that finds no plan keeps your rules and says what it couldn't keep
+//     (§7.9, RULES_V2 §5);
 //   · phone-only lineups for the later GWs (GW A's XI, bench and armband are memory's lineup: F7), kept in
 //     localStorage fc:ahead:lu:<entry>:<gw>; engine.applyLineup plays them.
 // Every gap it shows is calls.compare's one measure (forecast points minus hits, labelled by the pooled delta alone);
@@ -39,11 +41,12 @@
 // pre-solved, the hits preview) is the plan at once: offered to memory (memory.offer), it is the plan when it fits your
 // pins, and otherwise memory's heal asks the plan service for the same values and gets its cache.
 //
-// plan(ctx) → P | null    the plan as the screens draw it:
+// plan(ctx) → P | null    the plan as the screens draw it (null: none yet; under the hold, your team before its solve):
 //   {A, gws, end, L (engine lookup), b (bundle), d (ctx.data), base (the model's Road), road (your Road),
-//    mem (memory.getPlan()), pins ([Pin]), weeks: [ViewWeek], total, approx: Set(gw) (≈ weeks), forced (memory.forcedHits:
-//    the hits a shown week takes that the rules its road was solved under don't allow, or that its planner never priced,
-//    never a ≈ week's), healing,
+//    mem (memory.getPlan()), pins ([Pin]), weeks: [ViewWeek] (every one the plan the solver returned, memory's: never an
+//    edit's estimate, the owner 2026-10-26), total, approx: Set(gw) (the weeks waiting on an edit's solve, the plan
+//    before it drawn), mark (the edited week), forced (memory.forcedHits: the hits a shown week takes that the rules its
+//    road was solved under don't allow, or that its planner never priced, never a waiting week's), healing,
 //    cmp (calls.compare yours vs the model), onLine, editable, why (when not editable),
 //    lineupGap ({delta, gws}: your lineup edits against the plan's own lineups), rules (calls.rulesCost of your
 //    rules: the planner's count, ≥ 0) | null, comparable (your road and the model's are solves of the same data)}
@@ -55,8 +58,8 @@
 //   test for green, a solid +, a filled button and a "Best") · editable(ctx)
 // The bank: baseOf(ctx) → the engine base GW A starts from (memory.withBank: the entry's, with your "Bank as FPL
 //   shows" rule's bank). Every bank shown (the week line, the rail, Replace) counts from it.
-// Estimates: draftOf(ctx) → engine draft of the plan · estimate(ctx, draft, from) → engine evaluate() (best XI
-//   from `from`) · addMove(ctx, draft, gw, out, in) → {draft, ev, problem} · dropMove(draft, move) ·
+// Estimates (what a list or a check counts, never a squad drawn: the owner, 2026-10-26): draftOf(ctx) → engine draft of
+//   the plan (the solver's) · estimate(ctx, draft, from) → engine evaluate() (best XI from `from`) · addMove(ctx, draft, gw, out, in) → {draft, ev, problem} · dropMove(draft, move) ·
 //   problemOf(ctx, ev, from) · problemsOf(ctx, ev, from) · problemText(ctx, problem, name?) · compare(ctx, a, b)
 //   (calls.compare: the one measure) · asYours(ctx, road) → {weeks} (a road with your lineups on it: what a solve
 //   of an alternative is measured in against your plan) · inputsOf(ctx) (calls.planInputs, memoised) · baked(ctx, extraPins) → the
@@ -65,14 +68,14 @@
 //   memory.pinRoll(gw, k) (no transfers in GW gw but your k exact moves there: the solver's own per-round cap)
 // Solves: valuesFor(ctx, extraPins, drop) → memory.values() (+ extra) · solveFor(ctx, extraPins, purpose, drop) → api.solve
 //   · wishSolve(ctx, P, id, g, purpose) (him from GW g, your later buy of him off)
-// Edits (the phone's ≈ at once, memory's heal 600 ms after the last edit, then the verdict with Undo in the pending
-//   toast's place: pendingTick(ctx) its age meanwhile, pendingAgain(ctx) that toast again after a reload (B141), a
+// Edits (rules only: the plan drawn the solver's last until memory's heal, 600 ms after the last edit, lands, then the
+//   verdict with Undo in the pending toast's place; what the solver couldn't keep said: fail, clashParts; pendingTick(ctx) its age meanwhile, pendingAgain(ctx) that toast again after a reload (B141), a
 //   failed check's "Try again" (fail, B89), endingOf(Q, prev, gw, {own, named}) the verdict's one ending;
-//   false with a toast when blocked): sellFrom(ctx, gw, out, in) · sellAny(ctx, gw, out, best) (sell him, the plan
+//   false with a toast when blocked): sellFrom(ctx, gw, out, in) · sellAny(ctx, gw, out) (sell him, the plan
 //   picks the buy) · moveTo(ctx, move, gw) (the Why sheet's When line) · veto(ctx, move, {scope}) (F11: 'gw' — not him in the move's GW, the
 //   default — or 'all') · want(ctx, id, gw, road) · keep(ctx, id, {gw, scope, from}) (F11: 'gw' — in GW gw
 //   only — or 'all': from `from`, a transfer's GW, else from when the plan has him, to the end; a sale of yours it
-//   takes back goes as its row's × takes it, the buys that needed its money with it) · never(ctx, id) ·
+//   takes back goes, named) · never(ctx, id) ·
 //   rescope(ctx, pin, scope) (scopeLabels(kind, gw, end): the two scopes in words; the rule it was goes, a Keep's
 //   verdict the Keep's one wording, a veto's the change's, before → after) ·
 //   liftAsk(ctx, pinId) (one ask off) · removeRule(ctx, pinId) (every Remove: a rule whose move the plan shows as its
@@ -97,7 +100,7 @@
 // No yes/no asks (critique v3 A6, the user's 2026-10-07 decision over RULES_V2 §3): a newer ask that takes back a rule
 //   of yours acts at once, its verdict toast names what it took back (withTaken: "· Keep Saka removed"; no Roll rule is left to name, "· auto-plan back on in GW7", since
 //   memory.normalizeAccepted drops an older plan's on load) and its one Undo restores every rule as it was; so does Clear all ("Removed 3 rules: …").
-//   sellOut(ctx, gw, out, in | null, best) (sellFrom, or sellAny with the plan's pick)
+//   sellOut(ctx, gw, out, in | null) (sellFrom, or sellAny with the plan's pick)
 // An edit drops the asks it contradicts (memory.pinConflicts) and, for a Keep or a veto, the same player's Keeps or
 //   vetoes whose weeks meet it (one rule says when); its verdict reads the planner's count against the way the pins
 //   moved (memory.pinsDir: a chip or cash is another plan, never "looser").
@@ -110,15 +113,15 @@
 //   GW g keeps in its squads (a Free Hit week: only a Keep of that week) · barringRule(P, id, g?) → the ask that keeps
 //   him out (B90b; barringRules: every one) ·
 //   clashLine(P) → {text, pins} the status row of a re-plan that
-//   couldn't keep your choices (B12) · buyCandidates(P, {pos, from, not, limit}) → [id] the
-//   buys a ≈ may guess (never one your rules bar) · blockersOf(P) → [{pin, icon, text, desc, why, locked, lineup}]
+//   couldn't keep your choices (B12; clashParts: what the solver couldn't keep) · buyCandidates(P, {pos, from, not,
+//   limit}) → [id] the buys a bring-in may weigh (never one your rules bar) · blockersOf(P) → [{pin, icon, text, desc, why, locked, lineup}]
 //   what keeps your plan off the model's (F5; a lineup of yours too, F7: no pin, nothing to drop) ·
 // GW A and the deadline: watchOf(ctx) → GW A's price watch for the plan as drawn (calls.priceWatch) | null · watchView(watch, {move, wait}) → its
 //   nodes (a GW-A transfer row's details and their foot, "Hide" putting it away: B139) · deadlineInfo(epoch) · isLive(ctx) · inkAt(ctx, P, g) (B7: no
 //   edit reaches GW g, GW A under way: no suggested plan, + or Bring in a player… there) · liftsLive(ctx, P, p)
 //   (B7: taking ask p off would re-plan GW A under way: no Remove or Off for it) · initials(entry)
 // A heal that can't keep every rule leaves them all in place (RULES_V2 §5): the Week sheet's status row says so, Undo takes back the
-//   newest, and the copy names the rule that broke the set (its ≈ shortfall when the phone saw one).
+//   newest, and the copy names the rule that broke the set and what the solver couldn't keep (clashParts).
 // The fix pass (2026-10-08; the core rule: an action does only what it says, anything more is asked first):
 //   A1 buyPlan(ctx, id, g, {out}) → {kind: 'one' | 'two' | 'none', out, in, fund?, short?, draft, ev, cmp, hits}: a buy as
 //     exact moves of yours (his best sale that fits; else that sale with one more that frees the money, asked first:
@@ -134,8 +137,8 @@
 //     takes the one buy only, the rest of its squad held (memory.holdOf).
 //   A2 movesInOrder(P, w) (a week's transfers in the order made), rowGains(ctx, P, w) (each measured on top of the ones
 //     before it: the free transfers go first, a hit is the extra move's, the rows add up), pinOfMove(P, m),
-//     fundingOf(P, g, m) (a funding sale and the buy it pays for), paysFor(ctx, P, m) (B95: the later weeks' buys a
-//     sale of yours pays for, as × on it takes them), removeMove(ctx, m, {both, alone}).
+//     fundingOf(P, g, m) (a funding sale and the buy it pays for: its rows' ties), removeMove(ctx, m) (its own rule
+//     alone: the owner, 2026-10-26, "no hardcoded logic whatsoever").
 //   whyFacts(ctx, P, g, m, withIt, without, {drafts, c, yours, vs}) (what a move changes besides its two players' numbers,
 //     the Why sheet's list: B54 its money in words, a hit, what it replaces, the next GW's free transfers, a later hit,
 //     B29 ifMisses(ctx, P, g, m, dWith, dWithout), the move if its buy misses GW g; B5b a better use of its free
@@ -242,14 +245,14 @@ const memPlan = (ctx) => memOf(ctx)?.getPlan() ?? null;
 
 // ---------------------------------------------------------------- what Ahead keeps beside memory
 
-/** The edit being healed: {mem, entry, A, from (the chain's first edited GW), ev (estimate) | road (exact), draft, prevP,
- *  text, plain (B24: its words landed at once), guess (the newest edit's own: ovFor), chain, armed}. */
+/** The edit being healed: {mem, entry, A, from (the chain's first edited GW), prevP (the plan before it: the solver's),
+ *  text, plain (B24: its words landed at once), more, take (the newest edit's own: ovFor), chain, armed}. */
 let OV = null;
 /** OV when it is an edit of this page's memory, team and GW A (a memory let go, by a sign-out, takes its edit along:
- *  never a stale ≈ or "before" under another memory's plan), else null. I: info(ctx). */
+ *  never a stale "before" under another memory's plan), else null. I: info(ctx). */
 const ovOf = (ctx, I) => (OV && OV.mem === memOf(ctx) && OV.entry === I?.entry && OV.A === I?.A ? OV : null);
-/** OV for `chain`, the edits made while the full plan checks them (B133): the newest one's own (its ≈, the plan before
- *  it and its verdict), its weeks from the chain's first edited GW. */
+/** OV for `chain`, the edits made while the full plan checks them (B133): the newest one's own (the plan before it and
+ *  its verdict), its weeks from the chain's first edited GW. */
 const ovFor = (ctx, I, chain) => ({ mem: memOf(ctx), entry: I.entry, A: I.A, ...chain.at(-1).own, from: Math.min(...chain.map((c) => c.own.from)), chain, armed: false });
 /** A sheet's ask to open GW g's Your rules on Ahead (openRules), taken by the screen's next draw of that week. */
 let RULES_ASK = null;
@@ -484,36 +487,36 @@ export function plan(ctx) {
     memo.key = key;
     return memo.P;
   }
+  // under the hold, before the solver's first plan for your rules lands, there is none to draw: Ahead waits as for the
+  // bake (render's renderBaking; memory.getPlan: never the phone's evaluation of your moves, holdRoad, which drew four
+  // Arsenal players on the owner's phone, 2026-10-26: "fix so every squad is solver squad, no hardcoded logic whatsoever
+  // so shit like this not happens")
+  if (gp?.hold && !gp.road?.weeks?.length) return null;
   const ov = ovOf(ctx, I);
   const road = gp?.road?.weeks?.length ? gp.road : I.base;
   const byGw = new Map(road.weeks.map((w) => [Number(w.gw), w]));
-  const ovGw = ov?.road ? new Map(ov.road.weeks.map((w) => [Number(w.gw), w])) : null;
   const pins = gp?.pins || [];
   // B141: after a reload, the week the edit being checked changes (memory's pending.edit), not the earliest pin's
   const pendFrom = gp?.pending ? gp.pending.edit?.gw ?? Math.min(I.end, ...pins.map((p) => num(p.gw) ?? I.A)) : null;
   const from = ov?.from ?? pendFrom;
-  const approx = new Set(from == null ? [] : I.gws.filter((g) => g >= from && !ov?.road));
-  // A7: while the full plan checks an edit, only the edited week is marked ≈ (its tile, its rows, its pitch); the
-  // weeks memory has no plan for yet are the plan before the edit (never another plan's moves standing in for them)
+  // every week is the plan the solver returned (memory's: a bundle road that fits your rules, or a heal's), with your
+  // lineups on it; while it plans an edit, the plan before it, its weeks from the edit's on waiting (the shimmer) and
+  // the edited week marked (A7). The phone's ≈ of an edit (B56: drawn at once, "never the old plan with the move you
+  // just undid", QA-5; a removal's or a Keep's drawn over budget or a club's three, its bank in coral) is never drawn:
+  // the owner, 2026-10-26, after a Remove drew four Arsenal players: "fix so every squad is solver squad"
+  const approx = new Set(from == null ? [] : I.gws.filter((g) => g >= from));
   const mark = new Set(from != null && approx.has(from) ? [from] : []);
-  const before = ov && !ov.ev && !ov.road && gp?.pending ? new Map((ov.prevP?.weeks || []).map((w) => [w.gw, w])) : null;
   const made = pairsOf(pins);
-  const view = (r, w) => viewOfRoadWeek(w, I.L, { bank: banksOf(ctx, r)[Number(w.gw)], keep: made });
   const weeks = I.gws.map((g) => {
-    let w = null;
-    if (ov?.ev && g >= ov.from) w = viewOfState(ov.ev.gws.find((x) => x.gw === g), I.L, made);
-    else if (ovGw?.has(g) && g >= ov.from) w = view(ov.road, ovGw.get(g));
-    else if (before?.has(g)) return { ...before.get(g), approx: mark.has(g) };
-    else if (byGw.has(g)) w = view(road, byGw.get(g));
-    if (!w) return null;
+    if (!byGw.has(g)) return null;
+    const w = viewOfRoadWeek(byGw.get(g), I.L, { bank: banksOf(ctx, road)[g], keep: made });
     w.approx = mark.has(g);
     return withLineup(w, lineupOf(ctx, I, gp, g), I.L);
   }).filter(Boolean);
   const total = sum(weeks.map((w) => w.points));
   // QA-5 #3: the hits a shown week takes that the rules its road was solved under don't allow, or that its planner never
-  // priced (QA-7 #3; memory.forcedHits), from the road that week is drawn from (never a ≈ week's: the full plan says)
-  const drawn = (list) => [...list(road).filter((f) => !approx.has(f.gw) && !(ovGw && f.gw >= ov.from)),
-    ...(ovGw ? list(ov.road).filter((f) => f.gw >= ov.from) : [])];
+  // priced (QA-7 #3; memory.forcedHits), never a week waiting on the solver's plan (the full plan says)
+  const drawn = (list) => list(road).filter((f) => !approx.has(f.gw));
   const forced = drawn((r) => forcedHits(r, I.gws));
   // F15a: each shown week's hits, FPL's against the planner's (calls.hitBook: a hit the LP books a GW before FPL's order)
   const book = drawn((r) => (hitBook(r) || []).filter((b) => I.gws.includes(b.gw)));
@@ -535,7 +538,7 @@ export function plan(ctx) {
   const ok = editable(ctx);
   const P = {
     ...I, mem: gp, road, pins, weeks, total, approx, mark, forced, book, healing: !!(ov || gp?.pending), cmp, onLine,
-    editable: ok, why: ok ? '' : OFFLINE_EDIT, guess: ov?.guess ?? null, lineupGap, rules, comparable,
+    editable: ok, why: ok ? '' : OFFLINE_EDIT, lineupGap, rules, comparable,
   };
   memo = { key, P };
   return P;
@@ -609,12 +612,11 @@ export function boughtIn(P, g) {
 
 // ---------------------------------------------------------------- phone estimates (the engine, instantly)
 
-/** The plan as an engine draft: the estimate being healed, else your road's (with the phone lineups). */
+/** The plan as an engine draft: your road's, the solver's (with the phone lineups); never an edit's ≈ (none since the
+ *  owner, 2026-10-26: "fix so every squad is solver squad"), so every choice is measured against the plan drawn. */
 export function draftOf(ctx) {
-  const ov = ovOf(ctx, info(ctx));
-  if (ov?.draft) return ov.draft;
   const P = plan(ctx);
-  let d = roadDraft(ctx, ov?.road ?? P.road);
+  let d = roadDraft(ctx, P.road);
   for (const w of P.weeks) if (w.lineup) d = E.setLineup(d, w.gw, { xi: w.xi, bench: w.bench, captain: w.captain, vice: w.vice });
   return d;
 }
@@ -765,7 +767,7 @@ export function dropMove(draft, m) {
   return withMoves(draft, list.filter((x) => !sameMove(x, m)).map((x) => (x.gw > m.gw && x.out === m.in ? { ...x, out: m.out } : x)));
 }
 /** The draft's own move for transfer x ({gw, out, in}) | undefined, and the draft without it (dropMove; as it is when
- *  it has none): how a removal takes its moves off its ≈ (removeMove, dependentBuys). */
+ *  it has none): what a take's sale frees (addPlan's funder) and a bring-in measured without your later buys of him. */
 const draftMove = (d, x) => flatMoves(d).find((y) => sameMove(y, x));
 const dropDrafted = (d, x) => { const y = draftMove(d, x); return y ? dropMove(d, y) : d; };
 
@@ -804,7 +806,7 @@ export function solveFor(ctx, extra, purpose, drop = []) {
   const go = () => solveKept(ctx.api, { entry: Number(I.entry), purpose, values: valuesFor(ctx, extra, drop) });
   // The plan service runs one user-class solve per browser and a newer one supersedes the older
   // (api/mobile.py solve_post): a user-class solve waits for a pending plan heal instead of
-  // cancelling it (which would leave the edit at ≈ until the next change).
+  // cancelling it (which would leave the edit waiting until the next change).
   if (ctx.api.SOLVE_CLASS[purpose] !== 'user') return go();
   let inner = null, stopped = false;
   const p = memOf(ctx).settled().then(() => (stopped ? { key: null, state: 'cancelled', road: null, error: null } : (inner = go())));
@@ -819,7 +821,7 @@ export function baked(ctx, extra = [], drop = [], P = plan(ctx)) {
   return findRoad(P.b.roads, c, P.gws);
 }
 
-// ---------------------------------------------------------------- edits: ≈ now, the heal, the verdict
+// ---------------------------------------------------------------- edits: rules now, the solver's plan, the verdict
 
 const BACK = 'Back to the suggested plan.';
 /** The roads version a plan view's road was solved on (the model's road: the roads'), for like-with-like counts. */
@@ -935,7 +937,7 @@ let REOPENED = null;  // the receipt (its `at`) pendingAgain raised its toast fo
 /** B141 (review3 Part 4 §11: the app reopened during a check showed neither your edit nor its wait): an edit noted before
  *  the reload whose check is the one running (memory's pending.edit) has its pending toast again, as edit raised it,
  *  its Undo your rules as they were before it (memory.restorePins); its verdict takes this toast's place (memory.receipt,
- *  replaces 'pending'), and its week is the one marked ≈ (plan's pendFrom). Mount's render, every draw. */
+ *  replaces 'pending'), and its week is the one marked waiting (plan's pendFrom). Mount's render, every draw. */
 export function pendingAgain(ctx, gp = memPlan(ctx)) {
   const e = gp?.pending?.edit;
   if (!e || ovOf(ctx, info(ctx)) || REOPENED === e.at) return;
@@ -984,7 +986,9 @@ export function sayCheer(ctx, P) {
 /** The state an edit can be undone to: memory's pins and plan, You → Hits (hitsMax), GW A's lineup, the later GWs' lineups and the moves you removed (B129). */
 function snapshot(ctx) {
   const I = info(ctx), gp = memPlan(ctx);
-  return { pins: clone(gp?.pins || []), road: gp?.source === 'yours' ? clone(gp.road) : null, hitsMax: gp?.hitsMax ?? null, lineup: clone(gp?.lineup ?? null), lus: clone(lineups(ctx, I)), removed: clone(removedBy(I)) };
+  // (its road only where it is the plan solved for these rules: none while one is solved or after a failure, so an Undo
+  // never stamps an older plan as theirs; reviewer 1 of solversquad, 2026-10-26)
+  return { pins: clone(gp?.pins || []), road: gp?.source === 'yours' && !gp.pending && !gp.error ? clone(gp.road) : null, hitsMax: gp?.hitsMax ?? null, lineup: clone(gp?.lineup ?? null), lus: clone(lineups(ctx, I)), removed: clone(removedBy(I)) };
 }
 /** Memory's derived pins (the hold's, You → Hits'): never removed or added by an Undo, made again from the rest. */
 const derivedPin = (p) => p.id === 'hold' || p.id === 'hits';
@@ -996,8 +1000,13 @@ const pinSig = (p) => JSON.stringify([p.id, p.must, p.excl, p.max_hits ?? 0, p.h
 /** Undo: memory's pins, plan and lineup back as they were (memory's own undo stops at the next write, and a
  *  heal landing is one), the phone lineups and the moves you removed. */
 function restore(ctx, snap) {
-  const mem = memOf(ctx), I = info(ctx);
+  const mem = memOf(ctx);
   OV = null;
+  mem.batch(() => restoreIn(ctx, mem, snap));
+}
+/** restore's changes, planned once (memory.batch). */
+function restoreIn(ctx, mem, snap) {
+  const I = info(ctx);
   removedBy(I);
   REMOVED.by = clone(snap.removed ?? {});
   const want = new Map(snap.pins.map((p) => [p.id, p]));
@@ -1026,14 +1035,28 @@ function listen(ctx) {
   if (!mem || listening === mem) return;
   listening = mem;
   mem.onChange((gp, why) => {
-    if (!OV?.armed || OV.mem !== mem) return;
+    // (never another team's or GW's landing: a switch mid-solve; reviewer 2 of solversquad, 2026-10-26)
+    if (!OV?.armed || OV.mem !== mem || OV.entry !== String(gp.entry) || OV.A !== gp.gw) return;
     if (why === 'plan' && !gp.pending) land(ctx);
     else if (why === 'error') fail(ctx, gp.error);
+    else if (why === 'heal' && !gp.pending) {
+      // a heal that ended with neither a plan nor an error (cancelled or superseded by the plan service, the rules
+      // already planned): once the re-plan it may start has had its turn, the edit lands on the plan for its rules, or
+      // says it couldn't finish, with Try again; never "Checking…" for ever (reviewer 2 of solversquad, 2026-10-26)
+      const ov = OV;
+      setTimeout(() => {
+        const now = memPlan(ctx);
+        if (OV !== ov || !ov.armed || !now || now.pending) return;
+        if (now.error) fail(ctx, now.error);
+        else if (now.current) land(ctx);
+        else fail(ctx, { code: 'solver', plain: COPY.unfinished });
+      }, 0);
+    }
   });
 }
 
 /** The edit's plan has landed: its verdict. instant: it landed in the edit's own tap (a baked or prepared road fitted),
- *  so its ≈ was never drawn and there is no "GW8 checked: …" to say against it (QA-6 #3). */
+ *  so it says what happened in its own words (B24: ov.plain). */
 function land(ctx, { instant = false } = {}) {
   const ov = OV;
   OV = null;
@@ -1042,32 +1065,16 @@ function land(ctx, { instant = false } = {}) {
   const P = plan(ctx);
   // B61: what it changed against the plan before the edit, flashed once and marked until shown (mount's render)
   FLASH = { ...changedOf(P, ov.prevP), at: Date.now() };
-  let differ = null;
-  if (ov.ev && !instant) {
-    // "GW8 checked: Szoboszlai → Gibbs-White, Tavernier → E.Le Fée and Scott → Janelt" when the solve makes a move the
-    // phone's ≈ you saw didn't: the first week it parts in, with every move that week makes, as its rows read them
-    const est = ov.ev.gws.filter((s) => s.gw >= ov.from).map(viewOfState);
-    for (const e of est) {
-      const w = weekOf(P, e.gw);
-      if (!w || sameSet(e.squad, w.squad)) continue;
-      // a Wildcard or Free Hit week is a new squad, never "a better move" (the review: "Lammens → Raya" for 12 changes)
-      if (w.chip === 'wc' || w.chip === 'fh' || e.chip === 'wc' || e.chip === 'fh') break;
-      if (w.moves.some((x) => !e.moves.some((y) => y.out === x.out && y.in === x.in))) differ = { gw: w.gw, moves: movesInOrder(P, w).map((m) => `${P.L.name(m.out)} → ${P.L.name(m.in)}`) };
-      break;
-    }
-  }
   // B24 (review3 Part 4 §9: "+7.5" three times): landed at once, the default verdict says what happened (the edit's
   // words and its ending, ov.plain), its number on the total and its row; after a check, its points
   const verdict = instant && ov.plain ? ov.plain : ov.text;
   // QA-5 #3: a hit the new plan takes that its rules don't allow is said with it, plainly
   const line = withForced(verdict(P, ov.prevP), P.forced, ov.prevP?.forced);
-  // …said once: none when the verdict names every one of those moves already (its ending's "adds Tavernier → Groß")
-  if (differ) differ = differ.moves.some((t) => !line.includes(t)) ? COPY.solverDisagrees(differ.gw, differ.moves) : null;
   memOf(ctx).markSeen();  // your own edit is not "new data re-planned your pencil weeks" (§5.5)
   memOf(ctx).claimEdit();  // this toast is its receipt
   // B133: the newest edit's verdict, against the plan before it (ov.prevP), and its Undo takes back that one only (B24:
   // said once, "Undone: …": undoOf), its other actions before it (edit's `more`)
-  say(ctx, differ ? `${differ} ${line}` : line, undoOf(ctx, chainSaid(ov.chain.slice(-1)), () => undoNewest(ctx, ov.chain)), 'info', null, ov.more ?? [], ov.take ?? null);
+  say(ctx, line, undoOf(ctx, chainSaid(ov.chain.slice(-1)), () => undoNewest(ctx, ov.chain)), 'info', null, ov.more ?? [], ov.take ?? null);
 }
 /** B61 (johnson A6: nothing marked where a change landed): the weeks plan view Q changes against `prev` (weekChanged),
  *  each one's transfers `prev` didn't make there, its cards that changed (changedCards), and each changed week as
@@ -1143,9 +1150,11 @@ const chainSaid = (chain) => {
 
 /**
  * The heal could not keep every rule (RULES_V2 §5): the rules stay (nothing you said is silently dropped) and the
- * plan stays the last one that worked; the Week sheet's status row says which can't all be kept, and Undo takes back
- * the newest. A shortfall the phone saw on its ≈ names the rule that needs the money; a solver failure that is not
- * about your rules (code 'solver') just says so.
+ * plan stays the last one the solver returned; the toast says the solver's answer (clashParts: the player its plan
+ * dropped, else the week it found no plan for and your choices there) with the choice that broke it, and Undo takes
+ * back the newest; the Week sheet's status row says the same, a Remove on each. Never a shortfall the phone counted on
+ * its ≈ (COPY.ruleShort went with the ≈: the owner, 2026-10-26, "no hardcoded logic whatsoever"). A solver failure that
+ * is not about your rules (code 'solver') just says so.
  */
 function fail(ctx, error) {
   const ov = OV;
@@ -1156,11 +1165,15 @@ function fail(ctx, error) {
   const P = plan(ctx);
   const rules = aboutRules(error);
   // the rule that first broke the set stays the one named while it is still yours (a later ask is not to blame)
-  if (!CLASH || !P.pins.some((p) => p.id === CLASH.id)) CLASH = rules && newest?.id ? { id: newest.id, what: newest.what, problem: newest.problem } : null;
-  const c = CLASH ?? newest;
+  if (!CLASH || !P.pins.some((p) => p.id === CLASH.id)) CLASH = rules && newest?.id ? { id: newest.id, what: newest.what } : null;
+  // an edit that adds no rule (a removal, Reset plan, "Without …") is named by its own words, then what the rules left
+  // can't keep (the owner's phone, 2026-10-26: Remove of Calafiori → Hill left Leno → Raya and João Pedro → Evanilson,
+  // four Arsenal players: no plan keeps your GW9 choices)
+  const c = P ? clashParts(P, CLASH) : { what: null };
+  // (an edit that added no rule is always named by its own words, whatever earlier rule still clashes: reviewer 2 of
+  // solversquad, 2026-10-26)
   const text = !rules ? error?.plain || COPY.unfinished
-    : c?.problem?.code === 'budget' ? COPY.ruleShort(c.what, c.problem.short, c.problem.gw, asksOf(P).length > 1)
-      : COPY.rulesClash(c?.what ?? null);
+    : newest?.id ? COPY.rulesClash(c.what ?? null, CLASH?.what ?? newest.what) : COPY.dropClash(newest?.said ?? null, c.what);
   // B89 (johnson Part 3 §12: "couldn't finish checking" with nothing to do about it): a failure not about your choices
   // (the solver's own, the connection's) offers "Try again": the same check at once (memory.heal), its pending toast back
   // and the edit armed again, so its verdict is spoken; Undo stays beside it
@@ -1173,50 +1186,76 @@ function fail(ctx, error) {
   } }];
   say(ctx, text, newest ? undoOf(ctx, chainSaid([newest]), () => undoNewest(ctx, ov.chain)) : null, 'warn', null, again);
 }
-/** The rule named when the full plan can't keep them all: {id, what, problem} (cleared once a plan lands). */
+/** The rule named when the full plan can't keep them all: {id, what} (cleared once a plan lands). */
 let CLASH = null;
 /** A heal's error about your choices (no plan keeps them all), not the solver's own or the connection's. */
 const aboutRules = (error) => !error?.code || error.code === 'infeasible' || error.code === 'pins';
 /**
+ * What the solver couldn't keep, while memory's error about your choices stands: the player its plan dropped
+ * (memory.solveKept's error.dropped, the first) as "Groß in GW6", with the choice of yours that holds him then (composePins'
+ * cell: a sale's buy, a Wish, a slide, a Keep); else the week it found no plan for (the server's error.gw, api/mobile.py
+ * _road_error; a dropped player's GW) and your choices there ("your GW9 choices"; the owner's phone, 2026-10-26: after a
+ * Remove no plan kept Leno → Raya and João Pedro → Evanilson, and nothing said which). `clash`: the choice fail named
+ * (CLASH). Pure. → {what: string | null, pins: [Pin] (each with a Remove: `clash`'s first)}
+ */
+export function clashParts(P, clash = CLASH) {
+  const err = P.mem?.error;
+  const asks = asksOf(P);
+  const by = asks.find((p) => p.id === clash?.id) ?? null;
+  const d = err?.dropped?.[0] ?? null;
+  const cell = d && composePins(asks, { from: P.A, to: P.end }).cells.get(Number(d.id))?.get(Number(d.gw));
+  const held = cell?.want === 'in' ? asks.find((p) => p.id === cell.pin) ?? null : null;
+  const g = num(err?.gw) ?? num(d?.gw);
+  // your rules that GW: made there, or holding a player in or out then (a transfer from an earlier week)
+  const at = (p) => num(p.gw) === g || ((w) => !!w && w[0] <= g && g <= w[1])(windowOf(p));
+  const there = !d && g != null ? asks.filter((p) => p !== by && at(p)) : [];
+  const what = d && !(by && held === by) ? `${P.L.name(d.id)} in GW${d.gw}`
+    : there.length ? COPY.choicesAt(g, there.map((p) => plainRule(P, p))) : null;
+  // nothing narrower known: a Remove on every rule of yours (reviewer 2 of solversquad, 2026-10-26: "all of these" with
+  // no Remove at all)
+  const rest = !what && !by ? asks : [];
+  const pins = [by, what ? held : null, ...there, ...rest].filter((p, i, xs) => p && xs.indexOf(p) === i && ruleOf(P, p).removable);
+  return { what, pins };
+}
+/**
  * B12 (johnson A1: once fail's toast went, the plan looked as if it kept every choice, and the one that clashed was never
- * named): the Week sheet's status row (its words the week line's second line) while memory's error stands (not while an edit is checked), in every week: "No
- * plan keeps Groß in GW6 with Keep Scott · GW6. Remove one." The choice fail named (CLASH) as its row says it
- * (rowName), and the player the solve dropped (memory.solveKept's error.dropped, the first) with the choice of yours
- * that holds him then (composePins' cell: a sale's buy, a Wish, a slide, a Keep), each with a Remove (`pins`); "all of
- * these" when no player is known or that choice is the one fail named. A failure not about your choices (aboutRules)
- * says its own words, nothing to remove. Pure. → {text, pins: [Pin]} | null
+ * named): the Week sheet's status row (its words the week line's second line) while memory's error stands (not while an
+ * edit is checked), in every week: "No plan keeps Groß in GW6 with Keep Scott · GW6. Remove one." What the solver
+ * couldn't keep (clashParts) with the choice fail named (CLASH) as its row says it (rowName), each with a Remove (`pins`);
+ * "all of these" when nothing is known. A failure not about your choices (aboutRules) says its own words, nothing to
+ * remove. Pure. → {text, pins: [Pin]} | null
  */
 export function clashLine(P, clash = CLASH) {
   const err = P.mem?.error;
   if (!err || P.healing) return null;
   if (!aboutRules(err)) return { text: err.plain || COPY.unfinished, pins: [] };
-  const asks = asksOf(P);
-  const by = asks.find((p) => p.id === clash?.id) ?? null;
-  const d = err.dropped?.[0] ?? null;
-  const cell = d && composePins(asks, { from: P.A, to: P.end }).cells.get(Number(d.id))?.get(Number(d.gw));
-  const held = cell?.want === 'in' ? asks.find((p) => p.id === cell.pin) ?? null : null;
-  const what = d && !(by && held === by) ? `${P.L.name(d.id)} in GW${d.gw}` : null;
-  const pins = [by, what ? held : null].filter((p, i, xs) => p && xs.indexOf(p) === i && ruleOf(P, p).removable);
+  const by = asksOf(P).find((p) => p.id === clash?.id) ?? null;
+  const { what, pins } = clashParts(P, clash);
   return { text: COPY.rulesStuck(what, by ? rowName(P, by) : null), pins };
 }
 
 /**
- * One edit: `pins` added to memory (after `drop`, the ids it replaces), shown at once as the phone's ≈
- * (`draft`) or as `road` when a solve already gave it. A move you make (`strict`) is checked for budget and
- * club first (§5.5 "the phone engine blocks the move before any solve"); a constraint (keep, veto, never)
- * lets the solve re-plan around it, so a ≈ that doesn't add up is just not drawn (the weeks shimmer instead).
- * Memory finds a baked road (or `road`, offered to it: memory.offer) or heals; the verdict says when it lands. A
- * ≈ that breaks the budget or club limit for a constraint is still drawn (QA-5: never the old plan with the move you just undid), its week's bank in
- * coral until the full plan balances it. `what` names the edit for its receipt (memory.noteEdit: a heal that
- * lands after a reload still says what it did, its direction dirOf the pins before and after, as vsPrev reads it).
- * Its verdict is `text(Q, prev)`, else `what` with its points named as what your total moves by, as the Sell and Bring
- * in lists whose picks take this default name them (withPoints `total`: "total +3.3"; the review of the first-use
- * proposals, 2026-10-21: "≈ +3.3 total" in the list, "+3.3 pts" on its toast), and `ending(Q, prev)` after them
- * (endingOf, B21); that default landed at once is `what` and its ending alone (B24: its number is on the total and its row). Every edit
- * passes one of the two: land has no verdict of its own. `more`: actions its verdict toast carries before its Undo (a
- * take's Why: whyAct); `take`: its verdict a take's receipt, the clauses of its words that may clip (addPlan; ui.toast).
+ * One edit: `pins` added to memory (after `drop`, the ids it replaces); it records rules only. The plan drawn stays the
+ * last one the solver returned (plan: the weeks from the edit's on waiting, its pending toast "Checking…") until the
+ * solver's plan for the new rules lands: at once when a bundle road fits them, or `road`, offered to memory
+ * (memory.offer: a solved choice's, a Wish pill's, a prepared chip's); else memory heals (one solve), and the verdict
+ * says when it lands (land), or what the solver couldn't keep (fail). The owner, 2026-10-26 (a Remove drew the phone's ≈
+ * of the rules left, four Arsenal players and its bank in coral, until the heal: "fix so every squad is solver squad, no
+ * hardcoded logic whatsoever so shit like this not happens"): no squad the phone builds is ever drawn or measured
+ * against, not even for the seconds a solve takes (B56's ≈ at once and QA-5's "never the old plan with the move you
+ * just undid" overturned). A move you make is checked for budget and club before any solve by its own door (§5.5,
+ * sellFrom, moveTo, addPlan: whether a solve is worth asking), never here. `what` names the edit for its receipt
+ * (memory.noteEdit: a heal that lands after a reload still says what it did, its direction dirOf the pins before and
+ * after, as vsPrev reads it). Its verdict is `text(Q, prev)`, else `what` with its points named as what your total
+ * moves by, as the Sell and Bring in lists whose picks take this default name them (withPoints `total`: "total +3.3";
+ * the review of the first-use proposals, 2026-10-21: "≈ +3.3 total" in the list, "+3.3 pts" on its toast), and
+ * `ending(Q, prev)` after them (endingOf, B21); that default landed at once is `what` and its ending alone (B24: its
+ * number is on the total and its row). Every edit passes one of the two: land has no verdict of its own. Nothing goes
+ * with it that it doesn't name (RULES_V2 §5): what else a rule needs is the solver's to plan, or to say it can't (fail).
+ * `more`: actions its verdict toast carries before its Undo (a take's Why: whyAct); `take`: its verdict a take's
+ * receipt, the clauses of its words that may clip (addPlan; ui.toast).
  */
-function edit(ctx, { pins = [], drop = [], draft = null, road = null, from, text = null, strict = true, guess = null, what = null, also = null, inPlace = null, ending = null, taken = [], more = [], take = null }) {
+function edit(ctx, { pins = [], drop = [], road = null, from, text = null, what = null, also = null, inPlace = null, ending = null, taken = [], more = [], take = null }) {
   if (!editable(ctx)) { toastOf(ctx)(OFFLINE_EDIT, 'warn'); return false; }
   const ink = memOf(ctx).inkOf(pins);  // GW A under way is FPL's (B7)
   if (ink) { toastOf(ctx)(ink.text, 'warn'); return false; }
@@ -1226,17 +1265,10 @@ function edit(ctx, { pins = [], drop = [], draft = null, road = null, from, text
   listen(ctx);
   const I = info(ctx);
   const f = from ?? I.A;
-  let ev = null, soft = null;
-  if (draft) {
-    ev = estimate(ctx, draft, f);
-    const p = problemOf(ctx, ev, f);
-    if (p && strict) { toastOf(ctx)(problemText(ctx, p), 'warn'); return false; }
-    soft = p;
-  }
   const prevP = plan(ctx);
-  // each edit of a chain still healing keeps its own way back, its ≈ and its verdict (B133: Undo takes back the newest
-  // only, undoNewest); under a chain the plan memory holds is the one before its first edit, never the plan for these
-  // pins, so this edit's Undo leaves memory to plan them again (restore sets no road)
+  // each edit of a chain still healing keeps its own way back and its verdict (B133: Undo takes back the newest only,
+  // undoNewest); under a chain the plan memory holds is the one before its first edit, never the plan for these pins,
+  // so this edit's Undo leaves memory to plan them again (restore sets no road)
   const cur = ovOf(ctx, I);
   const here = cur ? { ...snapshot(ctx), road: null } : snapshot(ctx);
   const said = what ?? (pins.length ? ruleOf(I, pins[0]).text : null);
@@ -1245,7 +1277,7 @@ function edit(ctx, { pins = [], drop = [], draft = null, road = null, from, text
   const plain = text || !ending ? null : (Q, prev) => `${what}${ending(Q, prev)}`;
   const chain = [...(cur?.chain || []), {
     // `what`: the choice as its row says it (rowName: a transfer "Scott → Groß · GW6", never as a rule), fail's name
-    snap: here, id: pins[0]?.id ?? null, what: pins.length ? rowName(I, pins[0]) : null, said, problem: soft, own: { from: f, ev, draft, road, prevP, text: verdict, plain, guess, more, take },
+    snap: here, id: pins[0]?.id ?? null, what: pins.length ? rowName(I, pins[0]) : null, said, own: { from: f, prevP, text: verdict, plain, more, take },
   }];
   OV = ovFor(ctx, I, chain);
   bump(ctx);
@@ -1255,27 +1287,21 @@ function edit(ctx, { pins = [], drop = [], draft = null, road = null, from, text
   // a + took it back still marked); after the snapshot, so its Undo puts the mark back
   noteRemoved(I, pins.filter((p) => soldBy(p) != null && boughtBy(p) != null).map((p) => ({ gw: Number(p.gw), out: Number(soldBy(p)), in: Number(boughtBy(p)) })), false);
   also?.();  // a phone-only part of the edit (a lineup reset, the moves you removed), after the snapshot Undo goes back to
-  // a road solved for these pins (a chip prepared with your rules, a Wish pill) is the plan at once when it fits them
+  // a road solved for these pins (a chip prepared with your rules, a Wish pill, a solved choice) is the plan at once when
+  // it fits them
   if (road) mem.offer(road);
-  const asked = asksOf(mem.getPlan());
-  for (const id of drop) if (mem.getPlan().pins.some((p) => p.id === id)) mem.removePin(id);
-  for (const p of pins) mem.addPin(p);
-  // a later sale of yours whose player no rule of yours brings in any more goes with the edit, said in its verdict, part
-  // of its Undo (orphanedBy; removeMove names its own before it gets here): every door, never a rule no plan can keep
-  const orphans = orphanedBy(I.owned, asked, asksOf(mem.getPlan()));
-  if (orphans.length) {
-    for (const q of orphans) mem.removePin(q.id);
-    const tail = ` · ${COPY.alsoRemoved(orphans.map((q) => saleSaid(I.L.name, q)))}`;
-    const more = (fn) => (fn ? (Q, prev) => `${fn(Q, prev)}${tail}` : fn);
-    for (const o of [chain.at(-1).own, OV]) { o.text = more(o.text); o.plain = more(o.plain); }
-  }
-  // a rule remade in its place (`inPlace`, its id: sellFrom's and sellAny's chain) keeps its place among your asks, as
-  // the snapshot had it
-  if (inPlace) {
-    const now = mem.getPlan().pins, was = here.pins.map((p) => p.id);
-    const ordered = inPlaceOf(now, inPlace, was);
-    if (ordered.some((p, i) => p !== now[i])) mem.restorePins(ordered);
-  }
+  // its rules changed as one (memory.batch: planned once, never for the rules half changed)
+  mem.batch(() => {
+    for (const id of drop) if (mem.getPlan().pins.some((p) => p.id === id)) mem.removePin(id);
+    for (const p of pins) mem.addPin(p);
+    // a rule remade in its place (`inPlace`, its id: sellFrom's and sellAny's chain) keeps its place among your asks, as
+    // the snapshot had it
+    if (inPlace) {
+      const now = mem.getPlan().pins, was = here.pins.map((p) => p.id);
+      const ordered = inPlaceOf(now, inPlace, was);
+      if (ordered.some((p, i) => p !== now[i])) mem.restorePins(ordered);
+    }
+  });
   OV.armed = true;
   if (!mem.getPlan().pending) land(ctx, { instant: true });   // a baked or offered road fitted (memory.findRoad), or nothing to solve
   // s48 (QA check6: an own pick's Undo came only with its verdict, 38 s later): the newest edit's toast at once, its Undo
@@ -1293,7 +1319,7 @@ const pendingSay = (ctx, chain) => sayPending(ctx, chainSaid(chain.slice(-1)), (
 /**
  * B133 (johnson Part 4 §7; the user, 2026-10-10: Undo takes back only the newest edit, everywhere): the newest edit of
  * `chain` taken back (its snapshot). The edits before it, checked with it, are checked again without it: the one before
- * is the edit again (OV, its own ≈ and verdict) and its toast comes back with its own Undo (its pending toast, or its
+ * is the edit again (OV, its own verdict) and its toast comes back with its own Undo (its pending toast, or its
  * verdict when memory has the plan for its rules at once: land). → 'again' then (undoOf says no "Undone" over it)
  */
 function undoNewest(ctx, chain) {
@@ -1390,8 +1416,9 @@ function chainOf(P, g, moves) {
 }
 
 /** M6 / §5.7: sell `out` from GW g for `inn` (memory.pinSell: out gone from g, in held from g). Its verdict names what
- *  the pick did to the rest of GW g (sideEffects), and its one Undo brings all of it back. The ≈ meanwhile is addYours
- *  (in a week Forkcast re-picks, in place of one of its transfers there, as the suggestion's number). */
+ *  the pick did to the rest of GW g (sideEffects), and its one Undo brings all of it back. addYours checks it first
+ *  (in a week Forkcast re-picks, in place of one of its transfers there, as the suggestion's number): one that can't
+ *  fit is refused before any solve; meanwhile the plan before it is drawn. */
 export function sellFrom(ctx, g, out, inn) {
   const P = plan(ctx);
   const r = addYours(ctx, P, g, out, inn);
@@ -1406,16 +1433,16 @@ export function sellFrom(ctx, g, out, inn) {
   const what = withTaken(P, COPY.cameIn([P.L.name(inn)], g === P.A ? null : g), taken);
   // (B129: a move you removed and add again is no longer "removed by you": edit, as every door that makes it yours)
   return edit(ctx, {
-    pins: [pin, ...chain], drop: [...wishDrop(P, inn), ...taken.map((q) => q.id)], draft: r.draft, from: g, what, taken, inPlace: chain[0]?.id ?? null,
+    pins: [pin, ...chain], drop: [...wishDrop(P, inn), ...taken.map((q) => q.id)], from: g, what, taken, inPlace: chain[0]?.id ?? null,
     ending: (Q, prev) => endingOf(Q, prev, g, { own: out }),
   });
 }
 
 /** "Sell him from GW g, the plan picks who comes in" (UX-4): memory.pinSell without a pick (he goes from g on,
- *  the heal names the buy). best: {id, draft} the ≈ to draw meanwhile as a guess (Replace's best legal row). Replace's
+ *  the heal names the buy; meanwhile the plan before it, never the phone's guess of the buy: the owner, 2026-10-26). Replace's
  *  "Let Forkcast choose" in both modes (the user, 2026-10-13: "only add player to must sell list and let model choose
  *  alternative"): under the hold that week keeps the rest of its squad and takes the one buy (memory.holdOf). */
-export function sellAny(ctx, g, out, best = null) {
+export function sellAny(ctx, g, out) {
   const P = plan(ctx);
   const nm = P.L.name;
   // the sale the full plan made: from GW g, or earlier (the rule keeps him out from g; the plan may sell him sooner)
@@ -1429,8 +1456,7 @@ export function sellAny(ctx, g, out, best = null) {
   const said = (Q) => { const m = sold(Q); return withTaken(P, m ? `${nm(out)} → ${nm(m.in)} in GW${m.gw}` : sale, taken); };
   return edit(ctx, {
     pins: [pin, ...chain], drop: taken.map((q) => q.id), inPlace: chain[0]?.id ?? null,
-    draft: best?.draft ?? null, guess: best ? new Set([best.id]) : null, from: g, strict: false,
-    what: withTaken(P, sale, taken), taken, text: withPoints(ctx, said, (Q, prev) => endingOf(Q, prev, sold(Q)?.gw ?? g, { own: out }), { total: true }),
+    from: g, what: withTaken(P, sale, taken), taken, text: withPoints(ctx, said, (Q, prev) => endingOf(Q, prev, sold(Q)?.gw ?? g, { own: out }), { total: true }),
   });
 }
 
@@ -1447,46 +1473,36 @@ export function veto(ctx, m, { scope = 'gw' } = {}) {
   // veto of him whose weeks meet it: one rule says when (a wider one replaces it, a narrower one too: "Not him · GW6"
   // from "all weeks"). B90b (saffer rule 3: one rule, one name): every week's is said as its chip, "Not Groß · all weeks"
   const said = one ? `Not ${nm(m.in)} in GW${m.gw}` : ruleOf(P, pin).text;
-  const d0 = draftOf(ctx);
   // B19 (the user, 2026-10-10: "released, the row springs back with the new buy in place, never fades to nothing"; the
   // reviews, 2026-10-11: on your own transfer the swipe took your sale back): your sale stays and only its buy changes,
-  // under the hold to the best other buy that fits (your exact transfer, as a + makes it), off it to the plan's pick
-  // (the sale without a buy, sellAny's rule); none fits under the hold: as before
+  // to the solver's pick (the sale without a buy, sellAny's rule; under the hold that week keeps the rest of its squad:
+  // memory.holdOf), named once it lands. Never a buy the phone picks by its estimate (the best other buy that fit, made
+  // your exact transfer under the hold, until the owner, 2026-10-26: "no hardcoded logic whatsoever")
   const mine = (() => { const q = pinOfMove(P, m); return q?.kind === 'sell' && Number(q.in) === Number(m.in) ? q : null; })();
   if (mine) {
-    const alts = buyCandidates(P, { pos: P.L.pos(m.out), from: m.gw, not: [m.in, ...pin.excl.map(([x]) => x)] })
-      .map((id) => ({ id, d: withMoves(d0, swapIn(flatMoves(d0), { gw: m.gw, out: m.out, in: m.in }, id)) }));
-    const best = alts.length ? bestOf(ctx, alts.map((a) => a.d), m.gw) : null;
-    const inn = best && !best.problem ? alts.find((a) => a.d === best.draft).id : null;
-    if (inn != null || !P.mem?.hold) {
-      const g0 = Number(mine.gw);
-      const sale = P.mem?.hold ? pinSell(m.out, g0, P.end, { in: inn, label: `${nm(m.out)} → ${nm(inn)} from GW${g0}` }) : pinSell(m.out, g0, P.end, { label: `Sell ${nm(m.out)} from GW${g0}` });
-      // the sale's own clashes too: off the hold it is open (the plan picks the buy), which the week's Roll (a plan's +)
-      // forbids, so the Roll goes with it, named, and the week is Forkcast's again (the review, 2026-10-13: no plan fit)
-      const others = [...new Map([...clashing(P, pin), ...clashing(P, sale, asksOf(P).filter((q) => q.id !== mine.id))].filter((q) => q.id !== mine.id).map((q) => [q.id, q])).values()];
-      const what = withTaken(P, P.mem?.hold ? `${said} · ${COPY.cameInFor(nm(inn), nm(m.out), m.gw === P.A ? null : m.gw)}` : said, others);
-      return edit(ctx, {
-        pins: [pin, sale], drop: [mine.id, ...others.map((q) => q.id), ...meeting(P, ['veto', 'never'], m.in, pin)], draft: best?.draft ?? d0, from: m.gw,
-        text: withFlag(ctx, m.in, vsPrev(ctx, what)), strict: false, guess: P.mem?.hold || inn == null ? null : new Set([inn]), what, taken: others,
-      });
-    }
+    const g0 = Number(mine.gw);
+    const sale = pinSell(m.out, g0, P.end, { label: `Sell ${nm(m.out)} from GW${g0}` });
+    // the sale's own clashes too: it is open (the plan picks the buy), which the week's Roll (a plan's +) forbids, so
+    // the Roll goes with it, named, and the week is Forkcast's again (the review, 2026-10-13: no plan fit)
+    const others = [...new Map([...clashing(P, pin), ...clashing(P, sale, asksOf(P).filter((q) => q.id !== mine.id))].filter((q) => q.id !== mine.id).map((q) => [q.id, q])).values()];
+    // the buy the solver made in his place, as its row will read ("Not Groß in GW6 · Xhaka in for Scott")
+    const what = (Q) => {
+      const x = weekOf(Q, m.gw)?.moves.find((y) => y.out === m.out);
+      return withTaken(P, x ? `${said} · ${COPY.cameInFor(nm(x.in), nm(m.out), m.gw === P.A ? null : m.gw)}` : said, others);
+    };
+    return edit(ctx, {
+      pins: [pin, sale], drop: [mine.id, ...others.map((q) => q.id), ...meeting(P, ['veto', 'never'], m.in, pin)], from: m.gw,
+      text: withFlag(ctx, m.in, vsPrev(ctx, what)), what: withTaken(P, said, others), taken: others,
+    });
   }
   const taken = clashing(P, pin);
   const what = withTaken(P, said, taken);
   const text = withFlag(ctx, m.in, vsPrev(ctx, what));
   const drop = [...taken.map((q) => q.id), ...meeting(P, ['veto', 'never'], m.in, pin)];
+  // the bake's veto road is that plan at once when it fits (memory.findRoad would find it too: offered, it lands so from
+  // GW A); else the solver plans without him
   const road = baked(ctx, [pin], drop);
-  if (road) return edit(ctx, { pins: [pin], drop, road, from: P.A, text, strict: false, what, taken });
-  // the phone's Plan B: keep the player sold, or the same sale for the best other buy, never one your rules keep
-  // out (buyCandidates: the root of the Groß → Le Fée → Janelt → Le Fée loop was this guess skipping only the
-  // player just vetoed). It is a guess: the row reads "X?" (aria: "maybe X") until the heal names the buy.
-  const opts = [dropMove(d0, m)];
-  for (const id of buyCandidates(P, { pos: P.L.pos(m.out), from: m.gw, not: [m.in, ...pin.excl.map(([x]) => x)] })) {
-    opts.push(withMoves(d0, swapIn(flatMoves(d0), { gw: m.gw, out: m.out, in: m.in }, id)));
-  }
-  const best = bestOf(ctx, opts, m.gw);
-  const guess = new Set(flatMoves(best.draft).filter((x) => x.gw === m.gw && x.out === m.out).map((x) => x.in));
-  return edit(ctx, { pins: [pin], drop, draft: best.draft, from: m.gw, text, strict: false, guess, what, taken });
+  return edit(ctx, { pins: [pin], drop, road, from: road ? P.A : m.gw, text, what, taken });
 }
 
 /** M9 / M14: him from GW g, with the road the Wish pill already returned for him (null: the phone's
@@ -1517,52 +1533,38 @@ export function keepPin(P, id, { gw = P.A, scope = 'all', from = null } = {}) {
  *  row's Keep, the rule's chip: rescope), whichever Keep of his it remakes: one that leaves your plan as it is says what
  *  it changed, the suggestions (COPY.keptFromChoices); one that changes it says what and its points, even landed at once
  *  (a sale it takes back leaves no row to carry its number, as a removal's: removeMove), in two lines at most (no FPL
- *  flag since 2026-10-22: his card has it). A sale of yours it takes back goes as its row's × takes it: with the buys of yours
- *  that needed its money (dependentBuys), named as the × names them, removed by you (B129), one Undo. */
+ *  flag since 2026-10-22: his card has it). A sale of yours it takes back goes, named, removed by you (B129), one Undo;
+ *  what your other rules then need is the solver's (the buys that needed its money no longer go with it by the phone's
+ *  count, dependentBuys: the owner, 2026-10-26, "no hardcoded logic whatsoever"). */
 export function keep(ctx, id, { gw, scope = 'all', from = null } = {}) {
   const P = plan(ctx);
   const nm = P.L.name;
   const pin = keepPin(P, id, { gw, scope, from });
   const [, a, b] = pin.must[0];
-  const sales = flatMoves(draftOf(ctx)).filter((m) => m.out === id && m.gw >= a && m.gw <= b);
+  const sales = P.weeks.filter((w) => w.gw >= a && w.gw <= b).flatMap((w) => w.moves.filter((m) => m.out === id).map((m) => ({ gw: w.gw, ...m })));
   // "in GW6" | "" (all weeks) | "from GW8": the rule's own scope (memory.scopeOf), as its chip reads
   const sc = scopeOf(pin, { start: P.A, end: P.end });
   const when = sc === 'all weeks' ? '' : sc.startsWith('from') ? ` ${sc}` : ` in ${sc}`;
   // what it overrules goes (a sale or a veto of him then: its verdict names it), and a keep of him whose weeks meet it
   // (narrowed or widened by it: one rule says when)
   const taken = clashing(P, pin);
-  // a sale of yours it takes back goes with the buys of yours that needed its money, as the × takes them (the user,
-  // 2026-10-21: fix the known issues: Tavernier's Force keep · GW8 took back Tavernier → Gomez alone and left GW8
-  // −£1.0m for Groß → Mbeumo, its toast without a money word); Forkcast's sale of him goes alone (the plan re-plans)
-  let d = draftOf(ctx);
-  const needed = [], gone = [];
-  for (const m of sales) {
-    const q = pinOfMove(P, m);
-    if (!q || !taken.some((x) => x.id === q.id)) { d = dropMove(d, m); continue; }
-    const r = dependentBuys(ctx, P, m, d);
-    d = r.draft;
-    gone.push(m, ...r.deps.map((x) => x.move));
-    if (r.deps.length) needed.push({ m, q, deps: r.deps });
-  }
-  const deps = needed.flatMap((x) => x.deps);
-  // B90: "Raya kept in GW6", "Raya kept", "Raya kept from GW8": the act done, as every receipt; a sale with the buys
-  // that needed its money said as the × says them ("… removed: Mbeumo needed the money"), the other rules it takes back
-  // after it; a sale of his it takes back alone said with him, what a choice undoes in its one form ("Saka kept in GW8
-  // instead of Palmer": the user, 2026-10-22, two lines at most; "Saka kept · Saka → Palmer removed" named him twice)
-  const own = taken.filter((q) => q.kind === 'sell' && Number(q.player) === Number(id) && q.in != null && !needed.some((x) => x.q.id === q.id));
-  const said = [`${nm(id)} kept${when}${own.length ? ` ${COPY.planInsteadOf(own.map((q) => nm(q.in)).join(' + '))}` : ''}`, ...needed.map((x) => neededSaid(nm, x.m, x.deps))].join(' · ');
-  const what = withTaken(P, said, taken.filter((q) => !needed.some((x) => x.q.id === q.id) && !own.includes(q)), own);
+  // B90: "Raya kept in GW6", "Raya kept", "Raya kept from GW8": the act done, as every receipt; a sale of his it takes
+  // back said with him, what a choice undoes in its one form ("Saka kept in GW8 instead of Palmer": the user, 2026-10-22,
+  // two lines at most; "Saka kept · Saka → Palmer removed" named him twice), the other rules it takes back after it
+  const own = taken.filter((q) => q.kind === 'sell' && Number(q.player) === Number(id) && q.in != null);
+  const what = withTaken(P, `${nm(id)} kept${when}${own.length ? ` ${COPY.planInsteadOf(own.map((q) => nm(q.in)).join(' + '))}` : ''}`, taken.filter((q) => !own.includes(q)), own);
   // the rules of yours it takes off; the Keep of his it remakes is none of them (its words say its weeks now)
-  const off = [...taken.map((q) => q.id), ...deps.map((x) => x.pin.id)];
+  const off = taken.map((q) => q.id);
   // a Keep of a Free Hit week stands beside a wider one, which never reaches that week (memory.composePins)
   const fhOnly = scope === 'gw' && squadWeek(weekOf(P, a)) === 'fh';
   const drop = [...off, ...(fhOnly ? [] : meeting(P, 'keep', id, pin))];
   const g = sales.length ? Math.min(...sales.map((m) => m.gw)) : a;  // the first week it changes: its ending's
-  // the ending never names the buys its words name (endingOf's `named`); no FPL flag after it (B29's withFlag until the
-  // user, 2026-10-22: two lines at most, saffer r7 §6: his card says it)
-  const ending = (Q, prev) => endingOf(Q, prev, g, { own: id, named: deps.map((x) => x.move) });
+  // its sales of yours it takes back, remembered as removed by you (B129); no FPL flag after it (B29's withFlag until
+  // the user, 2026-10-22: two lines at most, saffer r7 §6: his card says it)
+  const gone = sales.filter((m) => taken.some((q) => q.id === pinOfMove(P, m)?.id));
+  const ending = (Q, prev) => endingOf(Q, prev, g, { own: id });
   return edit(ctx, {
-    pins: [pin], drop, draft: d, strict: false, from: g, what, taken, also: gone.length ? () => noteRemoved(P, gone) : null,
+    pins: [pin], drop, from: g, what, taken, also: gone.length ? () => noteRemoved(P, gone) : null,
     text: vsPrevOr(ctx, () => COPY.keptFromChoices(nm(id), when || ` through GW${P.end}`), off, withPoints(ctx, what, ending, { total: true })),
   });
 }
@@ -1580,7 +1582,7 @@ export function never(ctx, id) {
   const drop = [...taken.map((q) => q.id), ...meeting(P, ['veto', 'never'], id, pin)];
   const said = ruleOf(P, pin).text;
   const what = withTaken(P, said, taken);
-  return edit(ctx, { pins: [pin], drop, draft: draftOf(ctx), from: P.A, strict: false, what, taken, text: vsPrevOr(ctx, () => sentence(said), drop, vsPrev(ctx, what)) });
+  return edit(ctx, { pins: [pin], drop, from: P.A, what, taken, text: vsPrevOr(ctx, () => sentence(said), drop, vsPrev(ctx, what)) });
 }
 
 /** F11: a Keep's or a veto's two scopes in words, {gw, all}: Keep · "GW8 only" | "GW8–9" (B144: its span, COPY.span);
@@ -1684,10 +1686,10 @@ export const barringRules = (P, id, g = null) => rulesOf(P).filter((p) => parseS
   .some(([x, a, b]) => x === Number(id) && a <= P.end && b >= (g ?? P.A)));
 export const barringRule = (P, id, g = null) => barringRules(P, id, g)[0] ?? null;
 
-/** Sell `out` from GW g: for `inn` (sellFrom), or the plan's pick with `best` as the ≈ meanwhile (sellAny). A Keep of
+/** Sell `out` from GW g: for `inn` (sellFrom), or the plan's pick (sellAny). A Keep of
  *  him then or a Roll of that GW goes with it at once, named in its verdict (A6: no ask first; Undo brings them back). */
-export function sellOut(ctx, g, out, inn = null, best = null) {
-  return inn == null ? sellAny(ctx, g, out, best) : sellFrom(ctx, g, out, inn);
+export function sellOut(ctx, g, out, inn = null) {
+  return inn == null ? sellAny(ctx, g, out) : sellFrom(ctx, g, out, inn);
 }
 
 /** Take one ask off (a veto lifted, a Keep released…): the plan re-plans without it (UX-6). */
@@ -1698,7 +1700,7 @@ export function liftAsk(ctx, id) {
   // GW A under way is FPL's (liftsLive: a drop adds no pin for memory.inkClash to judge), as removeMove
   if (liftsLive(ctx, P, pin)) { toastOf(ctx)(COPY.live(P.A), 'warn'); return false; }
   const what = `Without “${ruleOf(P, pin).text}”`;
-  return edit(ctx, { drop: [id], from: liftFrom(P, pin), strict: false, what, text: vsPrev(ctx, what) });
+  return edit(ctx, { drop: [id], from: liftFrom(P, pin), what, text: vsPrev(ctx, what) });
 }
 
 /** B4 (saffer A5, johnson A4: the card's Remove on a sale only dropped the rule, over budget and unchecked, while the
@@ -1922,8 +1924,8 @@ function chipWords(P, g, chip, drop, { inPlace = false } = {}) {
 }
 
 /** M11 / F12 / F14: a chip made the plan (chipEdit). road: the solve of exactly these pins (a chip prepared with your
- *  rules, or with none the bake's pre-solve): the plan at once (memory.offer / findRoad); else the plan heals with the ≈
- *  meanwhile (a preparation of it still solving is the same values: the plan service joins it at your priority). The
+ *  rules, or with none the bake's pre-solve): the plan at once (memory.offer / findRoad); else the plan heals, the plan
+ *  before it drawn meanwhile (a preparation of it still solving is the same values: the plan service joins it at your priority). The
  *  Roll or hits rule of GW g it takes off (a Wildcard or Free Hit) is named in its verdict ("Wildcard planned for GW6 ·
  *  Up to −4 in GW6 removed", B58: autoRuleName), and its one Undo brings both back. M1: the verdict is the chip's gap against not playing it (or
  *  against the week it was planned in), never "better than before"; `less`: what this week gives up against the chip's
@@ -1944,8 +1946,7 @@ export function chipPlan(ctx, g, chip, road = null, { less = null } = {}) {
   // no "less than" the best week: that week's figure kept the chip this one replaces (BB for TC in GW9 "5.1 less than
   // GW8", BB in GW8 measured with TC still in GW9; moved there, BB lost 0.6)
   return edit(ctx, {
-    pins, drop, road, draft: road ? null : E.planChip(draftOf(ctx), g, chip),
-    from: g, strict: false, what, taken,
+    pins, drop, road, from: g, what, taken,
     text: row ? () => COPY.chipRolled(what, row.cmp, gap, row.vs) : (Q, prev) => {
       const c = compare(ctx, { weeks: Q.weeks }, { weeks: prev.weeks });
       // against no chip only when it replaced none, here or in another week: then its row's number too (chipGain)
@@ -1955,19 +1956,17 @@ export function chipPlan(ctx, g, chip, road = null, { less = null } = {}) {
   });
 }
 
-/** The chip GW g plays taken off (a pin of yours goes; the model's own chip there is lifted by a 'none' pin). Its ≈ is
- *  engine.planChip's: a free hit's week loses its moves with it (they lasted that week only), and a wildcard's has none
- *  (its remake as ordinary transfers would be a plan of hits nobody makes: QA-6 #3), so the weeks wait for the solve.
+/** The chip GW g plays taken off (a pin of yours goes; the model's own chip there is lifted by a 'none' pin): the
+ *  weeks wait for the solve, the plan before it drawn (engine.planChip's ≈ went: the owner, 2026-10-26).
  *  B58: the Roll and hits rules your chip took off (chipEdit's `restores`) come back in the same edit, named in its toast
  *  ("No chip in GW7 · Up to −4 in GW7 back"); its one Undo takes back both. */
 export function chipOff(ctx, g) {
   const P = plan(ctx);
-  const d = E.planChip(draftOf(ctx), g, null);
   const { mine, picks, pins: back, drop } = chipOffParts(P, g);
   const off = withTaken(P, `No chip in GW${g}`, picks);
-  if (!mine) return edit(ctx, { pins: [pinChip(g, null)], drop, draft: d, from: g, strict: false, what: off, taken: picks, text: vsPrev(ctx, off) });
+  if (!mine) return edit(ctx, { pins: [pinChip(g, null)], drop, from: g, what: off, taken: picks, text: vsPrev(ctx, off) });
   const what = [off, ...back.map((q) => COPY.chipBack(autoRuleName(q, g)))].join(' · ');
-  return edit(ctx, { pins: back, drop, draft: d, from: g, strict: false, what, taken: picks, text: vsPrev(ctx, what) });
+  return edit(ctx, { pins: back, drop, from: g, what, taken: picks, text: vsPrev(ctx, what) });
 }
 /** F14 / M1: chip c played in GW g, or taken off when GW g already plays it (the user, 2026-10-13: from the pitch, the
  *  Bench Boost by holding the bench and the Triple Captain by holding the C still; any chip from the week line's Chips…, sheets/chips.js; a Wildcard or Free Hit also as a suggested plan's +, addPlan). Its background solve (chipSource: prepared with your rules,
@@ -2065,7 +2064,7 @@ export function adoptModel(ctx, { drop = null } = {}) {
     const words = [...off.map((p) => ruleOf(P, p).text), ...lus.map((g) => `your GW${g} lineup`)];
     const what = `Without ${words.join(', ')}`;
     return edit(ctx, {
-      drop: off.map((p) => p.id), from: P.A, strict: false, what, also: () => resetLineups(ctx, lus),
+      drop: off.map((p) => p.id), from: P.A, what, also: () => resetLineups(ctx, lus),
       text: (Q, prev) => (Q.onLine ? BACK : vsPrev(ctx, what)(Q, prev)),
     });
   }
@@ -2948,7 +2947,8 @@ export function chipNumber(ctx, P, g, c, pre = null) {
   if (pre?.state === 'solving') return { wait: true };
   return pre?.state === 'ready' ? plansListed(ctx, P, g).chipOf?.(c, pre.road) ?? null : null;
 }
-/** GW g of plan view P is the ≈ of the edit the full plan is still checking (A7: the edited week alone is marked). */
+/** GW g of plan view P is the week of the edit the full plan is still checking, the plan before it drawn (A7: the edited
+ *  week alone is marked). */
 const approxAt = (P, g) => (P.mark ?? P.approx).has(g);
 /** Your week w's transfers against rolling: your plan against the week's roll plan, Forkcast's later moves on both
  *  sides (plansOf's `mine` and `ref`, from `listed(g)`: its list, or as they stand: plansListed), as every choice
@@ -3242,7 +3242,7 @@ export function decksOf(P, w, M) {
   });
   for (const m of mine) {
     const a = Number(m.in);
-    if (!on.has(a) || P.guess?.has(m.in)) continue;
+    if (!on.has(a)) continue;
     if (!by.has(a)) by.set(a, { a, mine: true, rank: -1, entries: [] });
     // the Roll that takes this transfer alone back, once it can be taken (checking or failed: Remove, which acts at once);
     // dealt last, as every take-back is (placeOrder)
@@ -3474,7 +3474,9 @@ function asTaken(ctx, P, d, from, score = {}, held = true) {
   if (!held || !P.mem?.hold) return ev;
   let y = x;
   for (const s of ev.gws) {
-    const lu = s.gw >= from && P.gws.includes(s.gw) && !weekOf(P, s.gw)?.lineup ? solvedLineup(inputs(ctx).roads, s.gw, s.squad, s.chip ?? null) : null;
+    // the solve's lineup for that squad: your plan's own road first (the solver's, memory's), then a bundle road's
+    // (reviewer 1 of solversquad, 2026-10-26: a heal's lineups were the xP order's here, never the pitch's)
+    const lu = s.gw >= from && P.gws.includes(s.gw) && !weekOf(P, s.gw)?.lineup ? solvedLineup({ base: P.road }, s.gw, s.squad, s.chip ?? null) ?? solvedLineup(inputs(ctx).roads, s.gw, s.squad, s.chip ?? null) : null;
     if (lu) y = E.setLineup(y, s.gw, lu);
   }
   return y === x ? ev : run(y);
@@ -3850,9 +3852,8 @@ export function whenOf(ctx, P, m) {
 /**
  * The review (2026-10-08): "There is no 'move to next week'. It took 4 steps: remove it in GW6, open GW7, find the same
  * suggestion again, tap +." Your transfer m ({gw, out, in}) made in GW g2 instead, keeping its buy, in ONE edit (one
- * Undo): its sale rule (memory.pinSell, keyed by the player sold: sell:<out>) dropped and made again from g2, the ≈ your
- * plan without it (dropMove) with it added in g2 (addMove, the When line's own measure), the phone lineups from the
- * earlier of the two GWs left to the engine. Made again it is your newest rule, so in a week that has a transfer of
+ * Undo): its sale rule (memory.pinSell, keyed by the player sold: sell:<out>) dropped and made again from g2, checked
+ * first on your plan without it (dropMove) with it added in g2 (addMove, the When line's own measure). Made again it is your newest rule, so in a week that has a transfer of
  * yours already it is the extra one (rowGains: the hit is its own). A rule of yours it contradicts goes and is named
  * (withTaken), as sellFrom's; a move into GW A under way is refused (edit: memory.inkOf judges the new sale, B7; one out of it is never offered: whenOf, whyActs). Its toast "Chilwell → Bassey moved to GW7 ·
  * −2.2 pts" (vsPrev) with Undo. → bool
@@ -3874,7 +3875,7 @@ export function moveTo(ctx, m, g2) {
   const what = withTaken(P, COPY.movedTo(`${nm(m.out)} → ${nm(m.in)}`, to), taken);
   // its row leaves the week on screen: its points even when it lands at once (B24's premise fails; the reviews, 2026-10-11)
   return edit(ctx, {
-    pins: [next], drop: [pin.id, ...wishDrop(P, m.in), ...taken.map((q) => q.id)], draft: r.draft, from: lo, what, taken,
+    pins: [next], drop: [pin.id, ...wishDrop(P, m.in), ...taken.map((q) => q.id)], from: lo, what, taken,
     text: withPoints(ctx, what, (Q, prev) => endingOf(Q, prev, to, { own: m.out })),
   });
 }
@@ -4052,10 +4053,14 @@ export function addPlan(ctx, g, pl) {
   const said = [swapped ? `${head} ${COPY.planInsteadOf(nm(gone[0].in))}` : head, made, kept, gone.length && !swapped ? COPY.removed(gone.map((m, i) => `${head || i ? '' : `GW${g} `}${move(m)}`)) : null, off ? COPY.chipTakenOff(chipName(back), g) : null,
     ...(off?.pins ?? []).map((q) => COPY.chipBack(autoRuleName(q, g))), ...rule.map((q) => COPY.chipRemoves(autoRuleName(q, g)))].filter(Boolean);
   const what = withTaken(P, said.join(' · '), taken);
+  // a choice the solver hasn't planned (no road of its own) is checked for budget and club before its solve is asked
+  // (§5.5: whether a solve is worth asking; never what is drawn: the solver's plan is, once it lands)
+  const p = !pl.road && !chips.some(([, c]) => SQUAD_CHIPS.has(c)) ? problemOf(ctx, ev, g) : null;
+  if (p) { toastOf(ctx)(problemText(ctx, p), 'warn'); return false; }
   return edit(ctx, {
-    pins, drop: [...own.flatMap((m) => wishDrop(P, m.in)), ...drop, ...taken.map((q) => q.id)], draft, road: pl.road, inPlace: chain.keys().next().value ?? null,
+    pins, drop: [...own.flatMap((m) => wishDrop(P, m.in)), ...drop, ...taken.map((q) => q.id)], road: pl.road, inPlace: chain.keys().next().value ?? null,
     // a GW-g armband the plan moves is said, as every edit's ending says it (B21; review 5, 2026-10-12)
-    from: g, what, taken: [...chipTaken, ...rule, ...taken], strict: !chips.some(([, c]) => SQUAD_CHIPS.has(c)),
+    from: g, what, taken: [...chipTaken, ...rule, ...taken],
     // a Roll + that takes nothing back and changes no number says the rule it made (rollMade; saffer r7 §7: "GW8 roll ·
     // total 0.0")
     text: locks && !own.length && !chips.length && !gone.length && !back ? () => COPY.rollMade(g)
@@ -4117,182 +4122,54 @@ export function fundingOf(P, g, m) {
   return main && fund && mp && mp !== fp ? { fund: { pin: fp, move: fund }, main: { pin: mp, move: main } } : null;
 }
 
-/** The buys of yours that needed the money transfer `m` (GW m.gw) frees: the buy it was made to pay for when it is a
- *  funding sale (fundingOf), then one more at a time while the plan without them is over budget, each the first that
- *  clears it, else the first that lessens it (the checker, 2026-10-09: Haaland → Thiago took B.Fernandes with it and
- *  left Scott → Gibbs-White £1.8m over budget, its row "≈ price drift"). The week's own buys first, the last made
- *  first, then later weeks'. One rule for its row's ×, its "Pays for" mark (paysFor) and a Keep that takes it back
- *  (keep). d0: the draft they come off (draftOf). → {deps: [{pin, move}] ([] when nothing needed it), draft (d0 without
- *  m and them: the removal's ≈, B56)} */
-function dependentBuys(ctx, P, m, d0 = draftOf(ctx)) {
-  const g = m.gw;
-  const short = (d) => { const p = problemOf(ctx, estimate(ctx, d, g), g); return p?.code === 'budget' ? p.short : 0; };
-  const f0 = fundingOf(P, g, m);
-  const first = f0 && pinOfMove(P, m) === f0.fund.pin ? f0.main : null;
-  const deps = first ? [{ pin: first.pin, move: { ...first.move, gw: g } }] : [];
-  let d = deps.reduce((dd, x) => dropDrafted(dd, x.move), dropDrafted(d0, m));
-  const others = P.weeks.filter((w) => w.gw >= g).flatMap((w) => (w.gw === g ? movesInOrder(P, w).slice().reverse() : w.moves).map((x) => ({ ...x, gw: w.gw })))
-    .filter((x) => !(x.gw === g && x.out === m.out && x.in === m.in));
-  for (let s = short(d); s > 0;) {
-    const tries = others.filter((x) => !deps.some((y) => y.move.gw === x.gw && y.move.out === x.out && y.move.in === x.in))
-      .map((x) => ({ x, pin: pinOfMove(P, x) })).filter((t) => t.pin && draftMove(d, t.x)).map((t) => ({ ...t, s: short(dropDrafted(d, t.x)) }));
-    const t = tries.find((y) => y.s === 0) ?? tries.find((y) => y.s < s - 1e-9);
-    if (!t) break;
-    deps.push({ pin: t.pin, move: t.x });
-    d = dropDrafted(d, t.x);
-    s = t.s;
-  }
-  return { deps, draft: d };
-}
-
-/** B95 (johnson): the later weeks' buys of yours that need the money sale `m` (GW m.gw) of yours frees, the ones × on
- *  it takes along (dependentBuys as removeMove asks it: a funding sale's own buy first; a later week's only when the
- *  week's own buys don't clear it), for its row's "Pays for B.Fernandes in GW8" (there was no mark until × removed
- *  both). Once per plan view and move (as rowGains); [] for a move that isn't a sale of yours. → [{in, gw}] */
-const PAYS = new WeakMap();
-export function paysFor(ctx, P, m) {
-  let by = PAYS.get(P);
-  if (!by) PAYS.set(P, (by = new Map()));
-  const k = `${m.gw}:${m.out}>${m.in}`;
-  if (!by.has(k)) {
-    const pin = pinOfMove(P, m);
-    by.set(k, pin?.kind !== 'sell' ? [] : dependentBuys(ctx, P, m).deps
-      .filter((x) => x.move.gw > m.gw).map((x) => ({ in: x.move.in, gw: x.move.gw })));
-  }
-  return by.get(k);
-}
-
 /** The player a sale of yours sells (a sale's own; a slide's `out`), and the one a rule of yours brings in (a sale's buy,
  *  a slide's player, a Wish's), else null. */
 const soldBy = (q) => (q.kind === 'sell' ? q.player : q.kind === 'slide' ? q.out : null);
 const boughtBy = (q) => (q.kind === 'sell' ? q.in : q.kind === 'slide' || q.kind === 'wish' ? q.player : null);
-/** A week whose buys the planner chooses (a Wish, a sale that lets Forkcast choose, a hits rule, a Wildcard or Free Hit),
- *  so any player may come in there; a road pin (an older app's) holds a whole squad. */
-const opensWeek = (q) => q.kind === 'wish' || q.kind === 'road' || (q.kind === 'sell' && q.in == null) || q.kind === 'hits'
-  || (q.kind === 'chip' && Object.values(q.chips || {}).some((c) => c === 'wc' || c === 'fh'));
-const weekOfPin = (q) => Number(q.gw ?? Object.keys(q.chips || q.hits || {})[0]);
-/**
- * Your sales the rules `pins` leave with no one to sell: a sale (or a slide) of a player your team doesn't have at its
- * week and no earlier rule of yours brings in (the user's phone, 2026-10-10: × on "Szoboszlai → Groß" left "Groß →
- * Xhaka from GW8"; 2026-10-19: "Not Murillo · GW8" changed the GW8 buy and left "Murillo → Hill from GW9", a rule no
- * plan could keep, which then failed every suggested plan). A week before it whose buys the planner chooses (opensWeek)
- * may bring him in: then the sale stays. `owned`: your squad (info's). Pure. → [Pin]
- */
-export function orphanSales(owned, pins) {
-  const mine = new Set((owned || []).map(Number));
-  return pins.filter((p) => {
-    const x = soldBy(p), g = Number(p.gw);
-    if (x == null || !Number.isFinite(g)) return false;
-    const before = pins.filter((q) => q !== p && weekOfPin(q) < g);
-    if (before.some(opensWeek)) return false;
-    let has = mine.has(Number(x));
-    for (const w of [...new Set(before.map(weekOfPin))].sort((a, b) => a - b)) {
-      const here = before.filter((q) => weekOfPin(q) === w);
-      if (here.some((q) => Number(soldBy(q)) === Number(x))) has = false;
-      if (here.some((q) => Number(boughtBy(q)) === Number(x))) has = true;
-    }
-    return !has;
-  });
-}
-/** The sales an edit leaves with no one to sell: of the rules after it (`after`), each sale of a player a rule of yours
- *  brought in before it (`before`) and none brings in now, when nothing else gives him to you then (orphanSales). Never
- *  an older orphan (a stored plan's: its clash row offers Remove), nor a sale of a player the planner bought with no
- *  rule of yours (off the hold, every week is the planner's). → [Pin] */
-export const orphanedBy = (owned, before, after) => {
-  const ins = (list) => new Set(list.map(boughtBy).filter((x) => x != null).map(Number));
-  const now = ins(after), lost = new Set([...ins(before)].filter((x) => !now.has(x)));
-  if (!lost.size) return [];
-  const was = new Set(orphanSales(owned, before).map((q) => q.id));
-  return orphanSales(owned, after).filter((q) => lost.has(Number(soldBy(q))) && !was.has(q.id));
-};
-/** A sale of yours as a taken-back rule says it: "Murillo → Hill in GW9", "Sell Murillo from GW9". */
-const saleSaid = (nm, q) => (boughtBy(q) != null ? `${nm(soldBy(q))} → ${nm(boughtBy(q))} in GW${q.gw}` : `Sell ${nm(soldBy(q))} from GW${q.gw}`);
 /** A transfer as a removal's toast names it: "Tavernier → Gomez". */
 const moveSaid = (nm, x) => `${nm(x.out)} → ${nm(x.in)}`;
-/** Transfer `m` taken off with the buys of yours that needed its money (dependentBuys' deps), as its row's × and a Keep
- *  of its player say it (COPY.removedNeeded): "Tavernier → Gomez and Groß → Mbeumo removed: Mbeumo needed the money". */
-const neededSaid = (nm, m, deps) => COPY.removedNeeded(moveSaid(nm, m), deps.map((x) => moveSaid(nm, x.move)), deps.map((x) => nm(x.move.in)));
-
 /**
- * A transfer off the plan by its row's ×: a transfer of yours (its rule: a sale, a slide or a Wish that makes it) goes
- * (Undo); under the hold its GW rolls again. A2: `both` takes a funding move and the buy it pays for off together (the
- * row's × does so for a funding sale, never asking); `alone` takes the funded buy off and keeps its funding
- * sale as a transfer of its own. A move the planner made (a week you let it plan) has no rule: × keeps the player it
- * sells in that GW (keep, scope 'gw'). → bool
+ * A transfer off the plan by its row's × (or its place's Remove): its rule of yours (a sale, a slide or a Wish that
+ * makes it) goes, with Undo, and the week's Roll a take made with it (addPlan: the week locked to the choice, said);
+ * under the hold its GW rolls again. Nothing else goes with it: what the rules left need is the solver's to plan, or to
+ * say it can't (fail: "… removed: no plan keeps your GW9 choices …"). The owner, 2026-10-26 (a Remove of Calafiori →
+ * Hill kept Leno → Raya and João Pedro → Evanilson, four Arsenal players drawn): "fix so every squad is solver squad, no
+ * hardcoded logic whatsoever" — the phone's arithmetic of what goes with a removal (A2's funded buy alone and a funding
+ * sale with its buy, fundingOf; B95's buys that needed its money, dependentBuys; a later sale of its buy, orphanedBy)
+ * went with it. A move the planner made (a week you let it plan) has no rule: × keeps the player it sells in that GW
+ * (keep, scope 'gw'). → bool
  */
-export function removeMove(ctx, m, { both = false, alone = false } = {}) {
+export function removeMove(ctx, m) {
   const P = plan(ctx);
   const nm = P.L.name;
   // GW A under way is FPL's (memory.inkClash judges added pins; a removal adds none, so it is judged here)
   if (m.gw === P.A && isLive(ctx)) { toastOf(ctx)(COPY.live(P.A), 'warn'); return false; }
   const pin = pinOfMove(P, m);
   if (!pin) return m.gw != null ? keep(ctx, m.out, { gw: m.gw, scope: 'gw' }) : false;
-  const gone = (x) => moveSaid(nm, x);
-  // your later sale of the player it buys has no one to sell once it goes: it goes with it, said (orphanSales)
-  const onward = m.gw == null ? [] : orphanedBy(P.owned, asksOf(P), asksOf(P).filter((q) => q.id !== pin.id));
-  // and the week's Roll (a plan's + stored it: addPlan): the × hands the week back to whoever makes the rest, said as
+  // the week's Roll (a plan's + stored it: addPlan): the × hands the week back to whoever makes the rest, said as
   // every rule an edit takes back is (withTaken; the review, 2026-10-13: it went from Your rules unsaid)
   const taken = m.gw == null ? [] : P.pins.filter((q) => q.id === `roll:${m.gw}`);
-  const offToo = [...onward.map((q) => q.id), ...taken.map((q) => q.id)];
-  const plus = (what) => withTaken(P, onward.length ? `${what} · ${COPY.alsoRemoved(onward.map((q) => saleSaid(nm, q)))}` : what, taken);
-  // the verdict's ending (endingOf, B21): a hit, what the planner put in its place, a later week's hit and a new captain
-  // of the edit's week (A1: an edit never moves the armband unsaid), never the moves its own words name (`named`)
-  const end = (g, named) => (Q, prev) => endingOf(Q, prev, g, { own: m.out, named });
-  // the reviews, 2026-10-11 (B24's premise, "its number is on its row", fails here: the row is gone): its points even
-  // when it lands at once, named as what your total moves by; where the moves `named` are all of GW g's and nothing else
-  // (it rolls again), the row's number against rolling turned round alone, as its week's choices stand (weekRollOf on
-  // plansListed: no solve asked, the same whichever week is drawn, so every door says the same; the user, 2026-10-21: fix
-  // all (first-use proposal #1): Dana's "Taking it was +0.4, undoing it is −2.8"), one number as a take's toast (COPY.planGain;
-  // the owner, 2026-10-26: "what means +1.6 vs rolling but total +5.1": the total is the header's change; so, as a take's,
-  // no "Forkcast rates it …" after it: that clause weighs the total's change, changeText)
-  const said = (what, g, named) => {
-    const w = weekOf(P, g);
-    const rolls = !!w && !squadWeek(w) && !onward.length && named.every((y) => y.gw === g) && w.moves.every((x) => named.some((y) => x.out === y.out && x.in === y.in));
-    const vr = rolls ? weekRollOf(ctx, P, w, (x) => plansListed(ctx, P, x)) : null;
-    // (the week's Roll in its place is a choice of a week of yours: its number against your plan, the transfer's turned
-    // round, decision K; the owner, 2026-10-25: "compare + poitns not to rolling now but to transfer made")
-    return vr ? (Q, prev) => `${COPY.planGain(what, -vr.delta, COPY.planVs(true))}${end(g, named)(Q, prev)}` : withPoints(ctx, what, end(g, named), { total: true });
-  };
-  // B56 (saffer Part 4 §3: the removed transfer stayed on screen with a ≈ gain until the re-plan landed): its ≈ is the
-  // plan without the moves it takes off (dropDrafted), as keep's is, your later sale of his buy first (dropMove would
-  // carry it onto the player it sold); B129: the moves its toast names are remembered as removed by you, part of its
-  // Undo (edit's `also`, after the snapshot)
-  const later = onward.filter((q) => boughtBy(q) != null).map((q) => ({ gw: Number(q.gw), out: Number(soldBy(q)), in: Number(boughtBy(q)) }));
-  const d0 = later.reduce(dropDrafted, draftOf(ctx));
-  const off = (ms) => () => noteRemoved(P, [...ms, ...later]);
-  // the row's × (no option): that transfer at once, with Undo, never a question (the review, 2026-10-08: the question's
-  // green default deleted the best move, and its other button meant "remove" in one case and "cancel" in the other).
-  // A funded buy goes alone (its funding sales stay transfers of their own, said in the toast); a sale whose money
-  // other buys needed takes them with it until the plan is in budget, said in the toast ("… removed: Wirtz needed the
-  // money"), so no plan is ever left over budget showing a gain
-  if (!both && !alone && m.gw != null) {
-    const f0 = fundingOf(P, m.gw, m);
-    if (f0 && pin === f0.main.pin) return removeMove(ctx, m, { alone: true });
-    const { deps, draft } = dependentBuys(ctx, P, m, d0);
-    if (deps.length) {
-      const what = plus(neededSaid(nm, m, deps));
-      const ms = [m, ...deps.map((x) => x.move)];
-      return edit(ctx, { drop: [pin.id, ...deps.map((x) => x.pin.id), ...offToo], draft, from: m.gw, strict: false, what, taken, text: said(what, m.gw, ms), also: off(ms) });
-    }
-  }
-  const f = both || alone ? fundingOf(P, m.gw, m) : null;
-  if (f && both) {
-    const what = plus(COPY.removed(`${gone(f.main.move)} and ${gone(f.fund.move)}`));
-    const ms = [f.main.move, f.fund.move].map((x) => ({ ...x, gw: m.gw }));
-    return edit(ctx, { drop: [f.main.pin.id, f.fund.pin.id, ...offToo], draft: ms.reduce(dropDrafted, d0), from: m.gw ?? P.A, strict: false, what, taken, text: said(what, m.gw ?? P.A, ms), also: off(ms) });
-  }
-  if (f && alone && pin === f.main.pin) {
-    // every sale that freed its money stays, now a transfer of its own (no longer "frees money for…"), and the toast
-    // says so (the checker, 2026-10-09: "Scott → B.Fernandes removed" kept Haaland → Thiago unsaid, −8.5 on its own)
-    const funders = asksOf(P).filter((p) => p.kind === 'sell' && p.funds != null && Number(p.funds) === Number(f.main.move.in) && p.gw === f.fund.pin.gw);
-    const what = plus([COPY.removed(gone(f.main.move)), COPY.keptOwn(funders.map((p) => gone({ out: p.player, in: p.in })))].join(' · '));
-    const main = { ...f.main.move, gw: m.gw };
-    return edit(ctx, { pins: funders.map(({ funds, ...own }) => own), drop: [pin.id, ...offToo], draft: dropDrafted(d0, main), from: m.gw ?? P.A, strict: false, what, taken, text: said(what, m.gw ?? P.A, [main]), also: off([main]) });
-  }
-  const what = plus(COPY.removed(gone(m)));
   const from = Math.max(P.A, num(pin.gw) ?? P.A);
   const own = { ...m, gw: m.gw ?? from };
-  return edit(ctx, { drop: [pin.id, ...offToo], draft: dropDrafted(d0, own), from, strict: false, what, taken, text: said(what, from, [own]), also: off([own]) });
+  const what = withTaken(P, COPY.removed(moveSaid(nm, own)), taken);
+  // the verdict's ending (endingOf, B21): a hit, what the planner put in its place, a later week's hit and a new captain
+  // of the edit's week (A1: an edit never moves the armband unsaid), never the move its own words name
+  const end = (Q, prev) => endingOf(Q, prev, own.gw, { own: m.out, named: [own] });
+  // the reviews, 2026-10-11 (B24's premise, "its number is on its row", fails here: the row is gone): its points even
+  // when it lands at once, named as what your total moves by; where it was GW g's one move (it rolls again), the row's
+  // number against rolling turned round alone, as its week's choices stand (weekRollOf on plansListed: no solve asked,
+  // the same whichever week is drawn, so every door says the same; the user, 2026-10-21: fix all (first-use proposal
+  // #1): Dana's "Taking it was +0.4, undoing it is −2.8"), one number as a take's toast (COPY.planGain; the owner,
+  // 2026-10-26: "what means +1.6 vs rolling but total +5.1": the total is the header's change; so, as a take's, no
+  // "Forkcast rates it …" after it: that clause weighs the total's change, changeText)
+  const w = weekOf(P, own.gw);
+  const rolls = !!w && !squadWeek(w) && w.moves.every((x) => x.out === own.out && x.in === own.in);
+  const vr = rolls ? weekRollOf(ctx, P, w, (x) => plansListed(ctx, P, x)) : null;
+  // (the week's Roll in its place is a choice of a week of yours: its number against your plan, the transfer's turned
+  // round, decision K; the owner, 2026-10-25: "compare + poitns not to rolling now but to transfer made")
+  const text = vr ? (Q, prev) => `${COPY.planGain(what, -vr.delta, COPY.planVs(true))}${end(Q, prev)}` : withPoints(ctx, what, end, { total: true });
+  // B129: the move its toast names is remembered as removed by you, part of its Undo (edit's `also`, after the snapshot)
+  return edit(ctx, { drop: [pin.id, ...taken.map((q) => q.id)], from, what, taken, text, also: () => noteRemoved(P, [own]) });
 }
 
 /**
@@ -4565,7 +4442,7 @@ export function bringIn(ctx, id, g, bp) {
     const pin = wishPin(P, id, g), was = asksOf(P).find((q) => q.id === pin.id && JSON.stringify(q.must) !== JSON.stringify(pin.must));
     const taken = [...bringInTakes(P, id, g, bp), ...(was ? [was] : [])], what = withTaken(P, pin.label, taken);
     // its number named as its week pill's, what your total moves by (edit's default's)
-    return edit(ctx, { pins: [pin], drop: [pin.id, ...taken.map((q) => q.id)], road: bp.road, from: g, strict: false, what, taken, text: vsPrev(ctx, what, { total: true }) });
+    return edit(ctx, { pins: [pin], drop: [pin.id, ...taken.map((q) => q.id)], road: bp.road, from: g, what, taken, text: vsPrev(ctx, what, { total: true }) });
   }
   if (!bp || (bp.kind !== 'one' && bp.kind !== 'two')) return false;
   const nm = P.L.name;
@@ -4574,7 +4451,7 @@ export function bringIn(ctx, id, g, bp) {
   const taken = bringInTakes(P, id, g, bp);
   const what = withTaken(P, funds.length ? COPY.cameIn([id, ...funds.map((f) => f.in)].map(nm), g === P.A ? null : g) : COPY.cameInFor(nm(id), nm(bp.out), g === P.A ? null : g), taken);
   return edit(ctx, {
-    pins, drop: [...wishDrop(P, id), ...funds.flatMap((f) => wishDrop(P, f.in)), ...taken.map((q) => q.id)], draft: bp.draft, from: g, what, taken,
+    pins, drop: [...wishDrop(P, id), ...funds.flatMap((f) => wishDrop(P, f.in)), ...taken.map((q) => q.id)], from: g, what, taken,
     ending: (Q, prev) => endingOf(Q, prev, g, { own: bp.out, named: funds }),
   });
 }
@@ -4812,7 +4689,7 @@ export function setHitsMaxWithUndo(ctx, n) {
   if (n === at) return false;
   const cap = hitCap(P?.b?.meta);
   const what = COPY.hitsMax(n);
-  return edit(ctx, { from: info(ctx)?.A, strict: false, what, text: vsPrev(ctx, what), also: () => memOf(ctx).setHitsMax(cap !== null && n >= cap ? null : n) });
+  return edit(ctx, { from: info(ctx)?.A, what, text: vsPrev(ctx, what), also: () => memOf(ctx).setHitsMax(cap !== null && n >= cap ? null : n) });
 }
 
 /** F17: the chip GW g's plan plays when it is a Wildcard or Free Hit ('wc' | 'fh'), else null: such a week says over its
@@ -4867,7 +4744,7 @@ const plainRule = (P, q) => {
 const rowName = (P, q) => `${plainRule(P, q)}${(q.kind === 'sell' && q.in != null) || q.kind === 'slide' ? ` · GW${q.gw}` : ''}`;
 
 /** GW A's price watch (calls.priceWatch: FPL's price changes before the deadline, what waiting costs and puts out of
- *  reach) for the plan as drawn (draftOf: an edit's ≈ too) from the bank it starts from (inputs: baseOf), per plan view
+ *  reach) for the plan as drawn (draftOf: the solver's) from the bank it starts from (inputs: baseOf), per plan view
  *  and minute (a night passing changes it). */
 const WATCHES = new WeakMap();
 export function watchOf(ctx) {
@@ -5054,21 +4931,20 @@ export const emptyHead = (g, { ink = false, hold = false, off = false, lock = fa
 /** A4: the facts under a week with no transfer (the week line's second line, rollFacts), each with its spoken words: GW
  *  `gw`'s free transfers first (`ft`), then its bank after the week's moves (the user, 2026-10-21: "where it shows itb
  *  money", chose "On the week line": `bank`, the plan view's week bank, w.bank, the figure Replace's header and the
- *  transfer rows' money ties count in), in FPL's word, "£0.8m ITB" ("≈" while an edit's check marks the week, `ap`:
- *  approxAt), then what rolling makes next week (`next`; none in the window's last GW): "2 FT · £0.8m ITB · 3 FT in
+ *  transfer rows' money ties count in), in FPL's word, "£0.8m ITB", then what rolling makes next week (`next`; none in the window's last GW): "2 FT · £0.8m ITB · 3 FT in
  *  GW10", read "2 free transfers, £0.8 million in the bank, 3 free transfers in gameweek 10". No bank below 0: a short
- *  one is bankWarn's words (after these, as before: never both), a ≈ one the estimate's, which the check re-funds (the
- *  GW switcher's rule). Pure. → [[text, said]] */
-export function factsWords({ gw, ft, next = null, bank = null, ap = false }) {
-  return [[COPY.ftNow(ft), COPY.ftNowSaid(ft)], itbWords(bank, ap),
+ *  one is bankWarn's words (after these, as before: never both). Pure. → [[text, said]] */
+export function factsWords({ gw, ft, next = null, bank = null }) {
+  return [[COPY.ftNow(ft), COPY.ftNowSaid(ft)], itbWords(bank),
     next != null ? [COPY.rollKeeps(next, gw + 1), COPY.rollKeepsSaid(next, gw + 1)] : null].filter(Boolean);
 }
 /** A week's bank in FPL's word with its spoken words (factsWords; the week line's lead where its facts aren't drawn:
- *  bankLead), "£0.8m ITB" ("≈" while an edit's check marks the week, `ap`); null for none or a short one (bankWarn's
- *  words). Pure. → [text, said] | null */
-export function itbWords(bank, ap = false) {
+ *  bankLead), "£0.8m ITB": the solver's plan's, never an edit's ≈ ("≈£0.5m" while its check marked the week, until the
+ *  owner, 2026-10-26: "fix so every squad is solver squad"); null for none or a short one (bankWarn's words). Pure. →
+ *  [text, said] | null */
+export function itbWords(bank) {
   const money = bank != null && bank >= -1e-9 ? fmt.money(Math.max(0, bank)) : null;
-  return money ? [`${ap ? '≈' : ''}${COPY.itb(money)}`, `${ap ? 'about ' : ''}${COPY.itbSaid(money)}`] : null;
+  return money ? [COPY.itb(money), COPY.itbSaid(money)] : null;
 }
 /** A roll's Why sheet line (openPlanWhy: a choice with no move or chip in GW g; the user, 2026-10-22: rolling never said
  *  what it does to the free transfers): what it leads to next GW, "4 FT in GW9" (the week's own before its transfers,
@@ -5085,7 +4961,7 @@ export function rollFt(P, g, pl) {
 export function weekFacts(P, w) {
   const g = w.gw, ft = w.ft ?? 1;
   const next = g < P.end ? E.nextFt(ft, w.used ?? 0, E.ftGrant(P.season, g + 1)) : null;
-  return factsWords({ gw: g, ft, next, bank: w.bank, ap: approxAt(P, g) });
+  return factsWords({ gw: g, ft, next, bank: w.bank });
 }
 
 
@@ -5677,7 +5553,7 @@ export function mount(el, ctx) {
   // the header's second line, under the team's name (the user, 2026-10-22: "DEADLINE INTO THE HEADER", its row of its
   // own gone), two facts on one line: GW A's deadline, whatever GW is viewed ("Deadline Sat 13:00 · 4d 17h": N10, one
   // fact, one place; tick() runs the countdown), and the window's total where it fits (keepGwLine; renderTotal: "GW6–9
-  // 218.9"; an edit's change for a few seconds, "229.0 (+10.1)"; "≈" while the full plan checks it; the switcher's
+  // 218.9"; an edit's change for a few seconds, "229.0 (+10.1)"; shimmering while the full plan checks it; the switcher's
   // summary says it to assistive tech, totalEl)
   const dlEl = h('span.ah-dlpart');
   const totLine = h('span.ah-tot.m-num', { 'aria-hidden': 'true' });
@@ -5799,7 +5675,7 @@ export function mount(el, ctx) {
     const { gw, bank } = FACTS_PROBE, sep = '\u00a0·\u00a0';
     const facts = () => factSpans(factsWords(FACTS_PROBE), true), chk = h('span.ah-chk', null,
       h('span.ah-bn.ah-cw', null, COPY.checkingWeek(gw, 10, 10, 'plan')), h('span.ah-wclock.m-num', null, `${sep}0:00`));
-    const checks = [h('span.ah-blead', null, h('span.ah-fact', null, COPY.ftNow(FACTS_PROBE.ft)), ' · ', h('span.ah-fact', null, itbWords(bank, true)[0]), sep),
+    const checks = [h('span.ah-blead', null, h('span.ah-fact', null, COPY.ftNow(FACTS_PROBE.ft)), ' · ', h('span.ah-fact', null, itbWords(bank)[0]), sep),
       h('span.ah-brest', null, chk)];
     // (the strip's one line, two probes: the facts, the lead and checks)
     const probes = [facts(), checks].map((two) => {
@@ -5948,7 +5824,7 @@ export function mount(el, ctx) {
     dlEl.title = info.date ? `Gameweek ${A} deadline: ${info.long}` : '';
   }
   /** A re-plan under way: a bake (baking; stale: a new forecast's) or the forecast itself updating. The shell's state
-   *  banner is then a thin line under the header with no row of its own (m-ahead.css), the window's total has "≈"
+   *  banner is then a thin line under the header with no row of its own (m-ahead.css), the window's total shimmers
    *  (totalNum) and the GW line says how far it is (paintPlanStatus). */
   const replanning = () => REPLANNING.has(ctx.store.get('conn')?.state);
   /**
@@ -6093,8 +5969,20 @@ export function mount(el, ctx) {
     // doors' place (no control yet), the pitch your squad as it is, no choice on it (the pitch keeps its size when the
     // plan lands)
     S.week?.sheet.close();
-    fill(strip, h('section.ah-block', { 'aria-label': 'Your plan' },
-      barNode({ one: [h('span.ah-spin', { 'aria-hidden': 'true' }), h('span.ah-bn', null, planning(d.horizon))], status: true, doors: doorStubs(), cls: '.ah-pbake' })));
+    // your team's first plan under the hold is the solver's (memory.keepBase): one it couldn't finish says so, a tap asks
+    // again (never a plan the phone made in its place: the owner, 2026-10-26)
+    const gp = memPlan(ctx), failed = !!gp?.hold && !!gp.error && !gp.pending;
+    // …and, where your rules are what no plan keeps (an older app's phone-made plan dropped on load, its rules left), the
+    // clash row with a Remove on each rule it names: your rules taken off one by one, each said with its Undo, never
+    // silently (reviewer 2 of solversquad, 2026-10-26: only Try again, which failed the same way)
+    const V = failed ? { ...info(ctx), mem: gp, pins: gp.pins, weeks: [], healing: false, editable: editable(ctx) } : null;
+    const c = V && aboutRules(gp.error) ? clashParts(V, null) : null;
+    const off = (p) => { const said = COPY.removed(rowName(V, p)), r = memOf(ctx).removePin(p.id); toastOf(ctx)(said, 'info', { action: { label: 'Undo', onClick: () => r.undo() } }); };
+    fill(strip, h('section.ah-block', { 'aria-label': 'Your plan' }, failed
+      ? barNode({ one: gp.error.plain || COPY.unfinished, two: 'Try again', warn: true, label: `${gp.error.plain || COPY.unfinished} Try again`, onClick: () => memOf(ctx).heal({ now: true }), doors: doorStubs(), cls: '.ah-pbake' })
+      : barNode({ one: [h('span.ah-spin', { 'aria-hidden': 'true' }), h('span.ah-bn', null, planning(d.horizon))], status: true, doors: doorStubs(), cls: '.ah-pbake' }),
+    c?.pins.length ? h('div.ah-brow.ah-ask.ah-clash', { role: 'status' }, icon('warn', { size: 16 }), h('p.ah-askt', null, COPY.rulesStuck(c.what, null)),
+      h('div.ah-askb', null, c.pins.map((p) => h('button.ah-askno', { type: 'button', disabled: !V.editable, onClick: () => off(p) }, `Remove ${rowName(V, p)}`)))) : null));
     fill(decks);
     S.M = null;
     S.pitch = null;
@@ -6173,7 +6061,7 @@ export function mount(el, ctx) {
     const P = plan(ctx);
     const asks = listedRules(P, gwNow(P));
     const what = COPY.removedRules(asks.length);
-    edit(ctx, { drop: asks.map((p) => p.id), from: P.A, strict: false, what, text: vsPrev(ctx, what) });
+    edit(ctx, { drop: asks.map((p) => p.id), from: P.A, what, text: vsPrev(ctx, what) });
   }
 
   const ap0 = approxAt;
@@ -6481,7 +6369,7 @@ export function mount(el, ctx) {
   /** Your week's transfers' number (the week line's; the user, 2026-10-19, "Fold into step 3": a week with two or more
    *  says the week's gain over rolling): your plan against the week's roll plan, Forkcast's later moves on both sides
    *  (weekRoll: every choice's measure, the +'s toast's number), "checking…" (`wait`) while either still solves; off
-   *  the hold (no roll plan solved: plansOf) or under ≈ the rows' sum (rowGains: they add up to the week's gain, A2).
+   *  the hold (no roll plan solved: plansOf) or while an edit is checked the rows' sum (rowGains: they add up to the week's gain, A2).
    *  → {cmp | null, wait, vs (against rolling)} */
   function weekGain(P, w) {
     const r = weekRoll(P, w);
@@ -6963,7 +6851,7 @@ export function mount(el, ctx) {
       // (dashed while an edit is checked, as the week line's first line was: m-pending)
       h('span.ah-tl', { 'aria-hidden': 'true', class: { 'm-pending': st.ap } }, typeof st.one === 'string' ? st.one.replace(/(\d) /g, '$1\u00a0') : st.one,
         st.wait ? h('small.ah-tw', null, COPY.pairChecking) : null, st.sub ? h('small.ah-tw', null, st.sub.replace(/(\d) /g, '$1\u00a0')) : null),
-      // (its number the week line's: gainOf, blue with "xP", ≈ while an edit is checked; its −4 before it)
+      // (its number the week line's: gainOf, blue with "xP", shimmering while an edit is checked; its −4 before it)
       st.hits || (st.gain && !st.wait) ? h('span.ah-tnum', { 'aria-hidden': 'true' }, hitTag(st.hits), st.gain && !st.wait ? gainOf(st.gain, st.ap) : null) : null);
   }
   /** The week's own choices beside the goal (top-left; the corner pills' look, m-ahead.css .ah-tok): the week's status
@@ -7683,11 +7571,11 @@ export function mount(el, ctx) {
     return short ? h('span.g-loss', null, `${fmt.money(w.bank)} in bank`) : null;
   }
   /** The week's bank as the week line's second line leads with it where its facts aren't drawn (renderLine): a short
-   *  one's words (bankWarn), else "£0.5m ITB" (itbWords, ≈ as the facts say it), whole. → {node, said} | null */
+   *  one's words (bankWarn), else "£0.5m ITB" (itbWords, as the facts say it), whole. → {node, said} | null */
   function bankLead(P, w) {
     const warn = bankWarn(P, w);
     if (warn) return { node: warn, said: textOf(warn) };
-    const x = itbWords(w.bank, approxAt(P, w.gw));
+    const x = itbWords(w.bank);
     return x && { node: h('span.ah-fact', null, itbNode(x[0])), said: x[1] };
   }
   /** The week line's lead where its facts aren't drawn (renderLine): the week's free transfers (before its transfers)
@@ -7830,10 +7718,11 @@ export function mount(el, ctx) {
     // what each week counts against, said (the plans review, 2026-10-19: "+0.6 vs rolling" over "GW6 +2.7")
     return { weeks, pick, disabled: !P.editable, vs: bare ? null : COPY.whenVs(on?.vs ?? COPY.vsKeeping(P.L.name(m.out)), P.gws) };
   }
-  /** A move's gain: "+6.2 xP", "≈+6.2 xP" while the full plan checks an edit; no weak word after it (the user,
+  /** A move's gain: "+6.2 xP", shimmering while the full plan checks an edit (the plan before it: no ≈, the owner,
+   *  2026-10-26: "fix so every squad is solver squad"); no weak word after it (the user,
    *  2026-10-18: "remove 'negligible' … and similiar crap"); blue as every forecast number, its sign its direction, never a
    *  verdict's green or red (ui.js xpGain; the user, 2026-10-22, after v1.3.68: worth doing is the solid + alone). */
-  const gainOf = (cmp, ap = false) => h('span.ah-bg.m-num', { class: { 'm-pending': ap } }, xpGain(cmp.delta, 'span', null, true, ap ? '≈' : ''));
+  const gainOf = (cmp, ap = false) => h('span.ah-bg.m-num', { class: { 'm-pending': ap } }, xpGain(cmp.delta, 'span', null, true));
   /** A Why sheet's headline (openWhy, openPlanWhy): "GW8 · +5.6 xP over GW8–11 vs rolling", its gain forecast points
    *  blue with "xP" as the rows' (ui.js xpGain; the user, 2026-10-22, after v1.3.68), "points" said for the unspoken
    *  marker; `rest` its words after it. */
@@ -7869,8 +7758,8 @@ export function mount(el, ctx) {
 
   /**
    * A transfer, a row of the Week sheet: "Ndiaye → Groß +6.2" (A2: its gain in the order the week's moves were made, rowGains, so a hit is the extra
-   * move's and its row says "−4"; GW A's one move against rolling off the hold, M4; ≈ while the full plan checks an edit;
-   * a buy the phone guessed for a pending edit "Groß?"; its other buys for the same sale are in its Why sheet and among
+   * move's and its row says "−4"; GW A's one move against rolling off the hold, M4; waiting while the full plan checks an
+   * edit, the plan before it as it was, no × on a move you just removed; its other buys for the same sale are in its Why sheet and among
    * the week's suggested plans, ownAltsOf), the week's facts under the week's first, a funding sale's
    * "Frees £1.4m so Saka fits" under it; a small grey × (28 px, a 44 px target) on every row takes it off at once, never
    * asking (removeMove, Undo: a funded buy goes alone, its funding sales kept as transfers of their own; a sale whose money
@@ -7882,26 +7771,27 @@ export function mount(el, ctx) {
    * left rules out the buy, its backdrop "Not Groß · GW6", vetoBack); no long press (the user's 5b, 2026-10-19: a
    * transfer moves to another week only through its Why sheet's When line; the switcher is under the sheet).
    */
-  /** B95: a transfer row's money ties, its second line: the week's bank on its first row when short (bankWarn), a funding
-   *  tie at both ends (the sale "Frees £x so B.Fernandes fits", the buy it pays for "with Haaland → Thiago": every sale of
-   *  the week that funds it) and a sale of yours whose money a later week's buy needs ("Pays for B.Fernandes in GW8":
-   *  paysFor, never on a ≈ row). → nodes ([] when none) */
+  /** B95: a transfer row's money ties, its second line: the week's bank on its first row when short (bankWarn) and a
+   *  funding tie at both ends (the sale "Frees £x so B.Fernandes fits", the buy it pays for "with Haaland → Thiago": every
+   *  sale of the week that funds it). No "Pays for B.Fernandes in GW8" since the owner, 2026-10-26: it named the buys the
+   *  phone counted × would take along (paysFor, dependentBuys), and × takes its own rule alone. → nodes ([] when none) */
   function rowTies(P, w, m, i) {
-    const g = w.gw, nm = P.L.name, ap = ap0(P, g), rg = rowGains(ctx, P, w).get(`${m.out}>${m.in}`);
+    const g = w.gw, nm = P.L.name, rg = rowGains(ctx, P, w).get(`${m.out}>${m.in}`);
     const f = fundingOf(P, g, m);
     const funding = f && f.fund.move.out === m.out && f.fund.move.in === m.in;
     const funders = f && !funding ? w.moves.filter((x) => { const fx = fundingOf(P, g, x); return fx?.main.move.in === m.in && fx.fund.move.out === x.out && fx.fund.move.in === x.in; }) : [];
-    const pays = ap ? [] : paysFor(ctx, P, { ...m, gw: g });
     return dotted([
       i === 0 ? bankWarn(P, w) : null,
       funding ? COPY.funds(fmt.money(freedBy(rg?.withIt, g, m)), nm(f.main.move.in)) : null,
-      funders.length ? COPY.fundedBy(funders.map((x) => `${nm(x.out)} → ${nm(x.in)}`)) : null,
-      pays.length ? COPY.paysFor(pays.map((x) => ({ name: nm(x.in), gw: x.gw }))) : null]);
+      funders.length ? COPY.fundedBy(funders.map((x) => `${nm(x.out)} → ${nm(x.in)}`)) : null]);
   }
   function xferRow(P, w, m, i) {
     const g = w.gw, nm = P.L.name;
     const ap = ap0(P, g);
-    const guess = ap && P.guess?.has(m.in);
+    // a move you removed, still on the plan before it while the solver plans without it or once it found no plan without
+    // it (removedAt, B129; its rule gone): no second × (it would keep the player it sold); the status row's Removes and
+    // the toast's Undo say what to do
+    const gone = removedAt(P, g).has(`${m.out}>${m.in}`) && !pinOfMove(P, { ...m, gw: g });
     // (no number in a week of two or more: the week's is on its line and the sheet's header, shareWeek)
     const shares = shareWeek(w);
     const vr = rollOf(P, w), n = moveNum(P, w, m), wait = !shares && n.wait;
@@ -7912,17 +7802,17 @@ export function mount(el, ctx) {
     // the first row's first-use hint (LEARN_KEY 'row'), only on its empty second line (a row with ties keeps them) and
     // only where its swipe acts (wireMoveRow below); aria-hidden as every second line, the Why sheet's Not being the
     // swipe's twin
-    const learnRow = i === 0 && !sub && !guess && P.editable && !frozenAt(P, g) && !S.learnt.has('row');
+    const learnRow = i === 0 && !sub && !gone && P.editable && !frozenAt(P, g) && !S.learnt.has('row');
     const hit = !vr && rg?.hit ? rg.hit : 0;
-    const canX = !frozenAt(P, g) && P.editable && !guess;  // a frozen week's or a live GW A's transfer is FPL's: no ×
+    const canX = !frozenAt(P, g) && P.editable && !gone;  // a frozen week's or a live GW A's transfer is FPL's: no ×
     const forkcast = canX && !pinOfMove(P, { ...m, gw: g });  // Forkcast's move: its × is a Keep (removeMove)
-    const what = `${nm(m.out)} to ${guess ? `maybe ${nm(m.in)}` : nm(m.in)}`;
+    const what = `${nm(m.out)} to ${nm(m.in)}`;
     const label = `${what}${head || wait ? `, ${numSaid(wait, head, ap, !!vr)}` : ''}${hitSaid(hit)}${forkcast ? ", Forkcast's move" : ''}${sub ? `. ${textOf(sub)}` : ''}; shows why`;
     // its other buys are among the week's suggested plans (plansOf), never on its line: "· 2 more" there read as three
     // transfers made (the user, 2026-10-10)
-    const why = () => { if (!guess) openWhy(P, g, m); };
+    const why = () => openWhy(P, g, m);
     const main = [
-      h('span.ah-bn', null, h('s', null, `${nm(m.out)} → `), guess ? h('i.ah-maybe', null, `${nm(m.in)}?`) : h('b', null, nm(m.in))),
+      h('span.ah-bn', null, h('s', null, `${nm(m.out)} → `), h('b', null, nm(m.in))),
       hitTag(hit), numOf(wait, head, ap),
       forkcast ? h('small.ah-bk', { 'aria-hidden': 'true' }, 'by Forkcast') : null];
     // B47: the main part is the row's button (whyPart), the × a control of its own; the second line is in its label
@@ -8180,7 +8070,7 @@ export function mount(el, ctx) {
    *  (rowGains, A2) | null. Its Week sheet row's and, on the pitch, its buy's place's "Yours +0.4". */
   const moveGain = (P, w, m) => (m ? rollOf(P, w) ?? rowGains(ctx, P, w).get(`${m.out}>${m.in}`)?.cmp ?? null : null);
   /** …as shown: none while the week's roll plan or your choice still solves (`wait`: "checking…", never the week alone in
-   *  its place), `ap` its ≈ (the phone's estimate). */
+   *  its place), `ap` the week waiting on an edit's check (shimmering). */
   const moveNum = (P, w, m) => { const vr = rollOf(P, w); return { cmp: moveGain(P, w, m), wait: !vr && rollPending(P, w), ap: ap0(P, w.gw) }; };
   /** …still to come: the week's roll plan or your own choice's still solves (plansOf `pending`), so the week line and a
    *  week's one move's row say "checking…", never the week alone in its place, to change in place once they land (the
@@ -8193,8 +8083,8 @@ export function mount(el, ctx) {
    *  sheet's sub says so. */
   const rolling = (P, g, ev) => (!ev?.gws.some((x) => x.gw > g && x.moves.some((y) => y.ok)) ? 'rolling, no later transfer' : 'rolling');
   /** The transfer of week w that buys player `id` and has a Why sheet (openWhy), or null: none in a Wildcard or Free
-   *  Hit week (its changes are the chip's squad: changeRow) nor for a buy the phone guessed for a pending edit. */
-  const whyMove = (P, w, id) => (!w || squadWeek(w) || (ap0(P, w.gw) && P.guess?.has(Number(id))) ? null
+   *  Hit week (its changes are the chip's squad: changeRow). */
+  const whyMove = (P, w, id) => (!w || squadWeek(w) ? null
     : w.moves.find((m) => Number(m.in) === Number(id)) ?? null);
   /** A tap on player `id` of GW g, the plan as it is at the tap: his transfer's Why sheet when the week buys him (tagged
    *  IN: the pitch research's 4a, the user 2026-10-19), else his sheet. The pitch's (pitchProps) and a take's toast's
@@ -8398,8 +8288,8 @@ export function mount(el, ctx) {
   }, h('span.g', null, h('span.gn', null, `GW${x}`)), h('span.p', null, h('span.ah-tlock', { 'aria-hidden': 'true' }, icon('lock', { size: 13 })))));
 
   /**
-   * The window's total at the end of the header's GW line where it fits (keepGwLine): "GW6–9 218.9" ("≈" while the full plan checks
-   * an edit). When a plan lands with another total than the last one shown (an edit, a lineup change, Undo, new data) it
+   * The window's total at the end of the header's GW line where it fits (keepGwLine): "GW6–9 218.9" (shimmering while the full plan
+   * checks an edit). When a plan lands with another total than the last one shown (an edit, a lineup change, Undo, new data) it
    * shows the change for a few seconds, "229.0 (+10.1)", then fades back (TOTAL_MS); on a line that is there anyway,
    * so nothing moves. An Undo back to the total its edit started from shows none (totalShift). Its seconds count from
    * when no page toast lies over the header's row (m.css #toasts: an edit's toast stands until the next touch, A9; the
@@ -8443,12 +8333,14 @@ export function mount(el, ctx) {
     if (d) S.totTimer = setTimeout(() => { S.totDelta = null; fill(totSaid); const Q = plan(ctx); if (Q && el.isConnected) renderTotal(Q); }, TOTAL_MS - (Date.now() - d.at));
     keepGwLine();
   }
-  /** The window's total as drawn ("≈" while an edit is checked or a re-plan runs: replanning), a forecast in its blue
-   *  with "xP" (xpNum; the user, 2026-10-22): the switcher's summary and the total line under it. */
-  const totalNum = (P) => h('span.v.m-num', { class: { 'm-pending': P.healing } }, P.healing || replanning() ? h('span.ah-approx', null, '≈') : null, xpNum(fmt.num(P.total), 'span.ah-tnum'));
+  /** The window's total as drawn, the solver's plan's: shimmering while an edit is checked or a re-plan runs
+   *  (replanning), the plan before it, never an edit's ≈ ("≈" before it until the owner, 2026-10-26: "fix so every squad
+   *  is solver squad"), a forecast in its blue with "xP" (xpNum; the user, 2026-10-22): the switcher's summary and the
+   *  total line under it. */
+  const totalNum = (P) => h('span.v.m-num', { class: { 'm-pending': P.healing || replanning() } }, xpNum(fmt.num(P.total), 'span.ah-tnum'));
   /** The GW line on its one line under the team's name (the header is sized for it: fitHead; the user, 2026-10-22:
    *  "never cutting the countdown (shed the total's label, then the total, first)"): where the total with its passing
-   *  extras ("≈", an edit's change "(+10.1 xP)") would take it to another line or past its column, the change's "xP"
+   *  extras (an edit's change "(+10.1 xP)") would take it to another line or past its column, the change's "xP"
    *  makes room, then the window's label ("GW6–9"), then the change isn't shown, then the total isn't (the switcher's
    *  summary still says it, totalEl); the deadline alone wraps only where it can't hold one line (a larger text size).
    *  Nor past the screen's side: the total never wraps (m-ahead.css .ah-tot; the v1.3.71 follow-ups, 2026-10-22: fit at
@@ -9020,9 +8912,9 @@ export function mount(el, ctx) {
     fg.addEventListener('touchmove', (e) => { if (S.drag?.row?.row === row && S.drag.row.swiping) holdTouch(e); }, { passive: false });
   }
   /** B19: a swipe released past SWIPE_PX: the row springs back (its backdrop showing under it as it goes: .out) and
-   *  the veto starts at once (F11: not him in this GW only; review3 Part 4 §10: its ≈ and toast never wait for the
-   *  motion), the row drawn again with the new buy in its place (a suggestion's next buy; your transfer's Plan B, "Le
-   *  Fée?" until the full plan names it), never faded to nothing; a veto refused draws the row as it was. */
+   *  the veto starts at once (F11: not him in this GW only; review3 Part 4 §10: its toast never waits for the
+   *  motion), the row drawn again (the plan before it until the solver's lands with the new buy: no "Le Fée?" guess since
+   *  the owner, 2026-10-26), never faded to nothing; a veto refused draws the row as it was. */
   function vetoRow(row, fg, m) {
     row.classList.add('out');
     fg.style.transform = '';

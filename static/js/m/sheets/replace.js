@@ -68,8 +68,8 @@ export function open(ctx, rawOut, rawGw) {
     return out0;
   }
 
-  /** "Let Forkcast choose"'s guess ({id, draft, delta, hit} | null): the best legal row as it is, drawn ≈ until the full
-   *  plan's buy lands (ahead.sellAny); its number the row's. */
+  /** "Let Forkcast choose"'s number ({id, draft, delta, hit} | null): the best legal row's estimate, its ≈ (never drawn as
+   *  the plan: the full plan's buy is the solver's, ahead.sellAny). */
   function autoGuess(list) {
     return list.filter((o) => !o.blocked).sort((a, b) => b.delta - a.delta)[0] ?? null;
   }
@@ -140,13 +140,13 @@ export function open(ctx, rawOut, rawGw) {
           return st.ask?.id === o.id && st.ask.g === st.g ? [rowEl, askEl(o)] : rowEl;
         }) : h('p.ah-empty', null, COPY.noneCalled(word, st.q.trim())));
         // "Let Forkcast choose" (both modes, the user 2026-10-13): the sale alone your rule, the full plan picks who comes
-        // in (sell(null): ahead.sellAny), the best row's ≈ meanwhile (autoGuess), no name promised (B32: a named pick the
+        // in (sell(null): ahead.sellAny), the best row's ≈ its number (autoGuess), no name promised (B32: a named pick the
         // full plan then differed from)
         const best = auto;
         list.prepend(h('button.ah-lrow.rs-auto', {
           type: 'button', role: 'listitem', disabled: !plan(ctx)?.editable || !best,
           'aria-label': best ? `Sell ${L.name(out)} from GW${st.g}, Forkcast picks who comes in with the full plan: ${COPY.listTotalSaid(best.delta, true)}` : `Sell ${L.name(out)} from GW${st.g}: no buy fits`,
-          onClick: () => sell(null, best),
+          onClick: () => sell(null),
         },
         h('span.mk.rs-automk', { 'aria-hidden': 'true' }, pos),
         h('span.nm', null, h('b', null, 'Let Forkcast choose'), h('span', null, best ? COPY.autoBuy : 'No buy fits')),
@@ -210,14 +210,14 @@ export function open(ctx, rawOut, rawGw) {
       }
 
       /** F15c: a row tapped is the plan at once (ahead.sellOut: a rule of yours it takes back goes too, named; the
-       *  verdict toast has Undo): him sold from GW g for `inn` (a row's), or (null) for the buy the full plan picks,
-       *  `guess` (autoGuess's row) drawn ≈ meanwhile ("Let Forkcast choose"). */
-      async function sell(inn, guess = null) {
+       *  verdict toast has Undo): him sold from GW g for `inn` (a row's), or (null) for the buy the full plan picks ("Let
+       *  Forkcast choose"). */
+      async function sell(inn) {
         if (st.busy) return;
         st.busy = true;
         const g = st.g;
         try {
-          if (!sellOut(ctx, g, out, inn, guess)) return;
+          if (!sellOut(ctx, g, out, inn)) return;
           sheet.close();
           ctx.navigate('ahead', { gw: g }, { replace: true, top: true });  // B45: no new entry; H1: the top
         } finally { st.busy = false; }

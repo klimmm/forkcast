@@ -54,7 +54,8 @@
 // The hold (the user, 2026-10-08): your plan is your team as it is, no transfers unless you add them (holdOn). Memory puts the
 // derived pin 'hold' first (holdOf, never stored): every GW where no pin of yours moves anyone rolls, a GW of exact
 // moves of yours (a sale with its buy, a slide) holds the squad they make, a GW where a Wish or a hits rule of yours
-// lets the planner choose is the planner's. A plan that determines is the engine's evaluation (holdRoad): no solve.
+// lets the planner choose is the planner's. Every plan under it is the solver's: a bundle road that fits, else a heal
+// (the phone's evaluation of a plan your moves determine, holdRoad, went: the owner, 2026-10-26).
 // The switch to the model's own plan with your rules ("Let Forkcast make your transfers") went (the user, 2026-10-19);
 // ctx.planDefault 'model' (the node tests only; unset in the app) is that plan unless held (accepted.hold).
 // Captain, vice, XI and bench are phone-only (the solver has no force-captain flag): accepted.lineup {xi, bench,
@@ -153,7 +154,7 @@
 //
 // ================================================================ pure exports (node: memory.test.mjs)
 // parseSpans, spanString, composePins, pinConflicts, pinsDir, makePin, barredAt, changesGwA, yieldRoad, pinsAfter,
-// holdOf, holdRoad, pinRoad, splitRoad, ticketSquad, lockPin, pinFrozen, frozenHolds, thawPin, frozenClash, frozenWeeks, frozenOnOf, frozenSince, inkRepair, pinWish, pinSell, pinSlide, pinVeto, pinNever, pinKeep, pinChip, pinCash, withBank,
+// holdOf, pinRoad, splitRoad, ticketSquad, lockPin, pinFrozen, frozenHolds, thawPin, frozenClash, frozenWeeks, frozenOnOf, frozenSince, inkRepair, pinWish, pinSell, pinSlide, pinVeto, pinNever, pinKeep, pinChip, pinCash, withBank,
 // pinHits, squadInto, movesIn, pinRoll, isRoll, isExact, exactAt, scopeOf, carryPins, planValues, roadCaps, forcedHits, idleRules, bundleRoads, roadFits, optionPins, optionsRoad,
 // optionsValues, brokenCells, rulesBroken, ruleText, findRoad, legality,
 // detectDrift, sinceText, planDiff, diffWords, pencilChanges, movesChanged, lockNote, withLockNote, journalRows, madeOn, normalizeAccepted,
@@ -831,38 +832,38 @@ export function carryPins(prevDoc, A, end) {
  *   · a Wildcard or Free Hit week is the chip's (a Free Hit's squad is thrown away: the squad after it stays known); a
  *     Roll (a suggested plan's +, addPlan) keeps its own, as a frozen week (the road pin's hold) did (an older
  *     document's: thawed on load since 2026-10-12, normalizeAccepted).
- * → {pin (or null: nothing to hold), squads {gw: [id]} (each GW's squad when known), determined (every GW rolled or
- *   held and no squad chip: the plan is the engine's evaluation of your moves, holdRoad, with no solve)}
+ * Every plan under it is the solver's (replan), never the engine's evaluation of your moves (holdRoad went: the owner,
+ * 2026-10-26). → {pin (or null: nothing to hold)}
  */
 export function holdOf(list = [], { A, end, owned = [] } = {}) {
   const user = (list || []).filter((p) => p && p.id !== 'hold');
   const c = composePins(user, { from: A, to: end });
   const rp = user.find((p) => p.id === 'road' && p.locked);
   const frozen = rp ? pinFrozen(rp, A) : [];
-  let squad = ids(owned), known = true, determined = true;
-  const rolls = [], must = [], excl = [], hits = {}, squads = {}, caps = {};
+  let squad = ids(owned), known = true;
+  const rolls = [], must = [], excl = [], hits = {}, caps = {};
   for (const g of range(A, end)) {
     const chip = c.chips[g];
     if (frozen.includes(g)) {
       // a frozen week (an older document's) holds its own squad; one that makes no transfer is a rolled week too
       const held = heldAt(rp.must, g);
       if (known && idsKey(held) === idsKey(squad)) rolls.push(g);
-      squad = held; known = true; squads[g] = [...squad];
+      squad = held; known = true;
       continue;
     }
-    if (chip === 'wc' || chip === 'fh') { determined = false; if (chip === 'wc') known = false; continue; }
-    if (c.rolls.includes(g)) { if (known) squads[g] = [...squad]; continue; }  // your Roll: no transfer there
+    if (chip === 'wc') { known = false; continue; }
+    if (chip === 'fh') continue;
+    if (c.rolls.includes(g)) continue;  // your Roll: no transfer there
     const free = user.some((p) => kindOf(p) === 'hits' && Object.keys(p.hits || {}).map(Number).includes(g));
     // L3 (the plans review, 2026-10-11: a buy resold the next week made GW6 a 16-player hold): an exact move of yours
     // moves someone in its own GW only (its "still yours in g − 1" is the week before's, not a move there)
     const moving = known ? user.filter((p) => !['road', 'chip', 'cash', 'hits', 'roll'].includes(kindOf(p)) && (!isExact(p) || num(p.gw) === g) && movedAt(p, g, squad).length)
       : user.filter((p) => ['sell', 'slide', 'wish'].includes(kindOf(p)) && num(p.gw) === g);
-    if (!free && !moving.length) { rolls.push(g); if (known) squads[g] = [...squad]; continue; }
+    if (!free && !moving.length) { rolls.push(g); continue; }
     if (!free && known && moving.every(isExact)) {
       const outs = new Set(moving.map((p) => Number(kindOf(p) === 'slide' ? p.out : p.player)));
       const ins = moving.map((p) => Number(kindOf(p) === 'slide' ? p.player : p.in));
       squad = [...squad.filter((x) => !outs.has(x)), ...ins.filter((x) => !squad.includes(x))];
-      squads[g] = [...squad];
       must.push(...squad.map((x) => [x, g, g]));
       continue;
     }
@@ -877,7 +878,6 @@ export function holdOf(list = [], { A, end, owned = [] } = {}) {
       const ins = moving.filter(isExact).map((p) => Number(kindOf(p) === 'slide' ? p.player : p.in));
       must.push(...[...squad.filter((x) => !outs.has(x)), ...ins.filter((x) => !squad.includes(x))].map((x) => [x, g, g]));
       caps[g] = moving.length;
-      determined = false;
       known = false;
       continue;
     }
@@ -894,66 +894,24 @@ export function holdOf(list = [], { A, end, owned = [] } = {}) {
         }
       }
       caps[g] = moving.length;
-      determined = false;
       continue;
     }
     // the planner's week: its squad is the solve's
-    determined = false;
     if (!free && !known) hits[g] = 0;
     known = false;
   }
-  if (!rolls.length && !must.length && !excl.length && !Object.keys(hits).length && !Object.keys(caps).length) return { pin: null, squads, determined };
+  if (!rolls.length && !must.length && !excl.length && !Object.keys(hits).length && !Object.keys(caps).length) return { pin: null };
   const pin = makePin({ id: 'hold', kind: 'hold', label: 'No transfers unless you add them', gw: A, must, excl, hits, rolls, ...(Object.keys(caps).length ? { caps } : {}) });
-  return { pin, squads, determined };
+  return { pin };
 }
 
 /** GW g's lineup as a solve has it for squad `sq` under `chip`: the first bundle road (bundleRoads) whose week g holds the
- *  same 15 and the same chip → {xi, bench, captain, vice} | null (no solve has that squad there). holdRoad's, and so
- *  what a take is measured as playing under the hold (ahead.js asTaken). */
+ *  same 15 and the same chip → {xi, bench, captain, vice} | null (no solve has that squad there): what a take
+ *  is measured as playing under the hold (ahead.js asTaken). */
 export function solvedLineup(roads, g, sq, chip) {
   const k = idsKey(sq);
   const w = bundleRoads(roads).map((r) => weekAt(r, g)).find((x) => x && squadKey(x) === k && (x.chip ?? null) === chip);
   return w ? { xi: ids(w.xi), bench: ids(w.bench), captain: num(w.captain), vice: num(w.vice) } : null;
-}
-
-/**
- * The plan your pins make when the hold determines it (holdOf: every GW rolled or held, no squad chip): the engine's
- * evaluation (engine.evaluate: the bank and free transfers FPL counts; each GW's XI, bench and armband the solve's where
- * a bundle road holds that GW's squad, solvedLineup, else the best XI by xP) of the moves
- * between the held squads (paired by position), with your Bench Boost or Triple Captain, as a Road whose values are
- * the ones a solve of `list` sends (planValues), so it fits your pins as a bundle road would (roadFits) and needs no
- * solve. cctx: planInputs (its base from the bank your pins start from). → Road | null (not determined).
- */
-export function holdRoad(cctx, list) {
-  const gws = cctx?.gws || [];
-  if (!gws.length) return null;
-  const A = gws[0], end = gws.at(-1);
-  const owned = ids((cctx.base?.squad || []).map((s) => s.id));
-  const h = holdOf(list, { A, end, owned });
-  if (!h.determined) return null;
-  const c = composePins(list, { from: A, to: end });
-  let draft = E.createDraft({ name: 'Your team' });
-  let prev = owned;
-  for (const g of gws) {
-    const cur = h.squads[g] ?? prev;
-    const outs = prev.filter((x) => !cur.includes(x)), ins = cur.filter((x) => !prev.includes(x));
-    for (const m of E.pairMoves(outs, ins, cctx.players)) if (m.out != null && m.in != null) draft = E.applyMove(draft, g, m.out, m.in);
-    if (c.chips[g] === 'bb' || c.chips[g] === 'tc') draft = E.setChip(draft, g, c.chips[g]);
-    // the solve's lineup, not the xP order's: a doubtful starter the solver starts for the autosub behind him (2026 GW8
-    // Calvert-Lewin d50 started, Vuskovic first sub; the xP pick benched him) - the user, 2026-10-23
-    const lu = solvedLineup(cctx.roads, g, cur, c.chips[g] ?? null);
-    if (lu) draft = E.setLineup(draft, g, lu);
-    prev = cur;
-  }
-  const ev = E.evaluate({ base: cctx.base, players: cctx.players, draft, horizon: gws });
-  const values = planValues(cctx, list);
-  return {
-    key: `hold:${sigOf(c)}`, item: null, values, objective: null,
-    weeks: ev.gws.map((x) => ({
-      gw: x.gw, in: x.bought, out: x.sold, xi: x.xi, bench: x.bench, captain: x.captain, vice: x.vice, chip: x.chip ?? null,
-      bank: x.bank, ft_avail: x.ft, ft_used: x.used, hits: x.hits, pred: x.gross,
-    })),
-  };
 }
 
 // ================================================================ values and roads
@@ -1575,7 +1533,7 @@ const planOfRoad = (road, version, sig = null) => (road ? {
  * meta.hit_cap), is no rule (idleRules): it goes, as chipEdit takes it off with the chip.
  * Other keys are kept as they are. → a new object, or null.
  */
-export function normalizeAccepted(acc, { A, end, roadOf = () => null, hitCap = null } = {}) {
+export function normalizeAccepted(acc, { A, end, roadOf = () => null, hitCap = null, hold = false } = {}) {
   if (!acc) return null;
   const made = madeOn(acc);
   const t = (acc.roads_taken || []).find((x) => x.call === 'transfer');
@@ -1615,9 +1573,15 @@ export function normalizeAccepted(acc, { A, end, roadOf = () => null, hitCap = n
   if (items !== acc.pins?.items) out.pins = { ...(acc.pins || {}), must_have: c.must_have, exclude: c.exclude, items };
   // a plan whose GW-A squad is not the taken road's predates that call: the call's road stands in until it
   // re-plans. A plan solved for exactly these pins is newer than all of them, so it stands (an ask from Ahead
-  // remade GW A: the road pin yielded, and Plan.taken.transfer reads null).
-  if (road && out.plan?.weeks && out.plan.sig !== sigOf(c) && squadKey(weekAt(out.plan, A)) !== squadKey(weekAt(road, A))) out.plan = null;
-  if (!out.plan && road) out.plan = planOfRoad(road, made, items.length === 1 && items[0].id === 'road' ? sigOf(c) : null);
+  // remade GW A: the road pin yielded, and Plan.taken.transfer reads null). Never under the hold (`hold`), where an
+  // alternative taken whole holds nothing (withHold): your plan is the one solved for your rules (the owner,
+  // 2026-10-26: "fix so every squad is solver squad"; the phone's holdRoad drew over it until then)
+  if (!hold && road && out.plan?.weeks && out.plan.sig !== sigOf(c) && squadKey(weekAt(out.plan, A)) !== squadKey(weekAt(road, A))) out.plan = null;
+  if (!out.plan && road && !hold) out.plan = planOfRoad(road, made, items.length === 1 && items[0].id === 'road' ? sigOf(c) : null);
+  // a plan the phone evaluated under the hold (an older app's holdRoad, key 'hold:…', stored as your plan) is no
+  // solver's: it goes, and your rules are solved again (the owner, 2026-10-26, a 4th Arsenal player drawn from one: "fix
+  // so every squad is solver squad, no hardcoded logic whatsoever so shit like this not happens")
+  if (String(out.plan?.key ?? '').startsWith('hold:')) out.plan = null;
   return out;
 }
 
@@ -1647,7 +1611,7 @@ export function createMemory(ctx) {
   const S = {
     entry: null, A: null, doc: null, docs: null, dirty: false, seq: 0, inflight: null, flushTimer: null,
     drift: null, judged: null, pending: null, healTimer: null, healSeq: 0, queued: null, error: null, carried: null, notice: null,
-    offered: { v: null, roads: [] }, reopened: null,
+    offered: { v: null, roads: [] }, reopened: null, base: null, last: null, batch: null,
   };
   const subs = new Set();
   const store = ctx.store;
@@ -1663,7 +1627,7 @@ export function createMemory(ctx) {
   let accMemo = { doc: undefined, v: undefined, acc: null };
   const accNow = () => {
     const v = versionNow();
-    if (accMemo.doc !== S.doc || accMemo.v !== v) accMemo = { doc: S.doc, v, acc: normalizeAccepted(S.doc?.accepted, { A: S.A, end: endNow(), roadOf, hitCap: capFor(S.doc?.accepted) }) };
+    if (accMemo.doc !== S.doc || accMemo.v !== v) accMemo = { doc: S.doc, v, acc: normalizeAccepted(S.doc?.accepted, { A: S.A, end: endNow(), roadOf, hitCap: capFor(S.doc?.accepted), hold: holdOn(S.doc?.accepted ?? null) }) };
     return accMemo.acc;
   };
   /**
@@ -1705,17 +1669,6 @@ export function createMemory(ctx) {
     return [...list.filter((p) => p.id !== 'hits'), makePin({ id: 'hits', kind: 'hits', label: COPY.hitsMax(most), hits: Object.fromEntries(range(S.A, endNow()).map((g) => [g, most])) })];
   };
   const pinsNow = () => withHits(withHold(storedNow()));
-  /** The plan your pins make under the hold when it needs no solve (holdRoad), memoised per data and pins. */
-  let holdMemo = { key: null, road: null };
-  const holdRoadNow = (list = pinsNow()) => {
-    const key = [ctx.data, versionNow(), JSON.stringify(list)];
-    if (holdMemo.key && key.every((x, i) => x === holdMemo.key[i])) return holdMemo.road;
-    const cctx = cctxNow(list);
-    let road = null;
-    try { road = cctx ? holdRoad(cctx, list) : null; } catch (e) { console.error('Forkcast memory: the plan with no transfers', e); }
-    holdMemo = { key, road };
-    return road;
-  };
   /** The frozen GWs (frozenWeeks: accepted.frozen; an older document's lock, GW A), ascending. */
   const frozenNow = () => frozenWeeks(accNow(), S.A, endNow());  // none since Freeze went (normalizeAccepted thaws them)
   const lockedNow = () => frozenNow().length > 0;
@@ -1733,11 +1686,17 @@ export function createMemory(ctx) {
     const version = versionNow();
     const model = ctx.bundle?.roads?.base ?? null;
     const hold = holdNow();
-    // under the hold a plan your moves determine is their evaluation (holdRoad), whatever was stored before (an
-    // alternative taken whole in the older app: the user, 2026-10-09); an untouched one is your team as it is, never
-    // the model's
-    const hr = hold ? holdRoadNow() : null;
-    const road = hr ?? (acc?.plan?.weeks?.length ? { ...acc.plan, weeks: acc.plan.weeks } : model);
+    // your plan is the one the solver returned for your rules (a bundle road that fits them, or a heal's: replan), never
+    // one the phone evaluates; under the hold, before the first lands, none (Ahead waits for it as for the bake: an
+    // untouched plan is your team as it is, never the model's: keepBase's, the plan before your first rule lands too).
+    // The phone's evaluation of your exact moves (holdRoad)
+    // went (the owner, 2026-10-26: its GW9 drew four Arsenal players after a Remove, "fix so every squad is solver
+    // squad, no hardcoded logic whatsoever so shit like this not happens")
+    // (and while a change that clears the stored plan is solved, You → Hits, a drift's "Use it", Reset plan: the last plan
+    // the solver returned on this page, lastNow, never none or another's; reviewer 1 of solversquad, 2026-10-26)
+    if (acc?.plan?.weeks?.length) S.last = { entry: S.entry, A: S.A, plan: acc.plan };
+    const last = lastNow() ?? baseNow();
+    const road = acc?.plan?.weeks?.length ? { ...acc.plan, weeks: acc.plan.weeks } : hold ? (last && { ...last, weeks: last.weeks }) : model;
     const c = composeNow();
     const gws = gwsNow();
     const tArm = (acc?.roads_taken || []).find((t) => t.call === 'armband') ?? null;
@@ -1747,13 +1706,16 @@ export function createMemory(ctx) {
     const edit = S.pending && r && r.sig === sigOf(c) ? { gw: num(r.edit), what: r.what, pins: r.pins, at: r.at } : null;
     return {
       entry: S.entry, gw: S.A, gws, end: endNow(), version, doc: S.doc, accepted: acc,
-      road, model, source: acc?.plan?.weeks?.length || (hold && road !== model) ? 'yours' : 'model', stale: !!acc?.plan && acc.plan.version !== version, hold,
+      road, model, source: acc?.plan?.weeks?.length || hold ? 'yours' : 'model', stale: !!acc?.plan && acc.plan.version !== version, hold,
       hitsMax: num(acc?.hits_max) ?? null,
       pins: pinsNow(), must_have: c.must_have, exclude: c.exclude, hits: c.hits, chips: c.chips, cash: c.cash,
       taken: { transfer, armband: tArm ? num(tArm.captain) : null }, roads_taken: acc?.roads_taken || [],
       lineup: acc?.lineup ?? null, frozen: frozenNow(), frozenLineups: acc?.frozen_lineups ?? {}, locked: frozenNow().includes(S.A), lockedAt: acc?.locked_at ?? null,
       frozenOn: frozenOnOf(acc, frozenNow()),
       weeks: (road?.weeks || []).map((w) => ({ ...w, state: weekState(w.gw) })),
+      // the plan stored is the one solved for these rules (its sig): an edit whose heal ends with no plan and no error
+      // lands on it (ahead.js listen)
+      current: acc ? !!acc.plan?.weeks?.length && acc.plan.sig === sigOf(c) : baseNow()?.sig === sigOf(c),
       drift: S.drift, pending: S.pending ? { ...S.pending, cancel: undefined, ...(edit ? { edit } : {}) } : null, error: S.error, saving: S.dirty,
       carried: S.notice?.gw === S.A ? S.notice.text : null,
     };
@@ -1895,7 +1857,7 @@ export function createMemory(ctx) {
   const ensure = (doc) => {
     // the hold is written once the plan is yours to change (an untouched document's default made explicit)
     const hold = holdOn(doc.accepted ?? null);
-    doc.accepted = doc.accepted ? normalizeAccepted(doc.accepted, { A: S.A, end: endNow(), roadOf, hitCap: capFor(doc.accepted) }) : blankAccepted(versionNow(), ctx.bundle?.version, hold);
+    doc.accepted = doc.accepted ? normalizeAccepted(doc.accepted, { A: S.A, end: endNow(), roadOf, hitCap: capFor(doc.accepted), hold: holdOn(doc.accepted) }) : blankAccepted(versionNow(), ctx.bundle?.version, hold);
     if (typeof doc.accepted.hold !== 'boolean') doc.accepted.hold = hold;
     return doc.accepted;
   };
@@ -1911,10 +1873,13 @@ export function createMemory(ctx) {
   /** Your plan's road for the current pins: a bundle road (or one offered: offer) when one fits, else a heal
    *  (debounced). */
   function replan(why = 'pins') {
+    if (S.batch) { S.batch.why = why; return; }
     const acc = accNow();
     const list = pinsNow();
-    if (!acc) return;
+    // under the hold a team with no document is still planned: your team as it is, the solver's (keepBase)
+    if (!acc && !holdNow()) return;
     if (!list.length) {
+      if (!acc) return;
       cancelHeal();
       S.error = null;
       if (acc.plan && !lockedNow()) mutate((d) => { ensure(d).plan = null; }, 'plan');
@@ -1924,14 +1889,13 @@ export function createMemory(ctx) {
     const sig = sigOf(c);
     const v = versionNow();
     // the plan these pins replace, solved on these roads, may be theirs again (a chip taken back off): offered too
-    if (acc.plan?.weeks?.length && acc.plan.version === v) offer(acc.plan);
-    // under the hold, a plan your exact moves determine is the engine's (holdRoad): no solve
-    if (holdNow()) { const hr = holdRoadNow(list); if (hr) offer(hr); }
+    if (acc?.plan?.weeks?.length && acc.plan.version === v) offer(acc.plan);
     const also = S.offered.v === v ? S.offered.roads : [];
     const hit = findRoad(ctx.bundle?.roads, c, gwsNow(), also);
     if (hit) {
       cancelHeal();
       S.error = null;  // these rules have a plan: an earlier "can't keep them all" is over
+      if (!acc) { keepBase(hit, v, sig); return; }
       if (acc.plan?.key !== hit.key || acc.plan?.version !== v || acc.plan?.sig !== sig) {
         const own = yours(why, acc, sig);
         mutate((d) => { ensure(d).plan = planOfRoad(hit, v, sig); }, 'plan');
@@ -1939,7 +1903,8 @@ export function createMemory(ctx) {
       }
       return;
     }
-    if (acc.plan?.sig === sig && [v, ctx.bundle?.version].includes(acc.plan.version) && !brokenCells(acc.plan, c).length) {
+    if (!acc && baseNow()?.sig === sig && baseNow().version === v) return;
+    if (acc?.plan?.sig === sig && [v, ctx.bundle?.version].includes(acc.plan.version) && !brokenCells(acc.plan, c).length) {
       // the plan is already the one for these rules (an Undo took the failing one back): nothing to solve. Never one
       // whose squads break them (QA-5 #1: a lock never sits over a plan that buys someone else in GW A)
       cancelHeal();
@@ -1949,6 +1914,37 @@ export function createMemory(ctx) {
     // the plan heal is a user-class solve (api/mobile.py PURPOSES): one per client, a newer one supersedes it
     scheduleHeal('heal', { reason: why });
   }
+
+  /** `fn`'s changes of your rules (an edit's drops and adds, an Undo's restore) planned once, after the last of them:
+   *  never a plan found or solved for the rules half changed in between (a drop's re-plan landed an older offered road,
+   *  an unrelated solver plan, drawn while the edit's own solve ran; the owner, 2026-10-26: "fix so every squad is
+   *  solver squad"). → fn's result */
+  function batch(fn) {
+    if (S.batch) return fn();
+    S.batch = { why: null };
+    try { return fn(); } finally {
+      const { why } = S.batch;
+      S.batch = null;
+      if (why) replan(why);
+    }
+  }
+
+  /**
+   * Your team as it is under the hold, with no document of yours yet (a team you only look at): the plan the solver
+   * returned for it (replan: a bundle road that fits, else a heal), kept on this page alone, so looking at a team writes
+   * nothing (editedAt: never a use); offered too, so Reset plan lands on it at once. Until it lands there is no plan to
+   * draw (getPlan: road null, Ahead waits as for the bake): the phone's evaluation of your team (holdRoad) went (the
+   * owner, 2026-10-26: "fix so every squad is solver squad, no hardcoded logic whatsoever").
+   */
+  function keepBase(road, v, sig) {
+    S.base = { entry: S.entry, A: S.A, plan: planOfRoad(road, v, sig) };
+    S.last = S.base;
+    offer(road);
+    emit('plan');
+  }
+  const baseNow = () => (S.base?.entry === S.entry && S.base.A === S.A ? S.base.plan : null);
+  /** The plan the solver returned that this page drew last, for this team and GW A (getPlan's while none is stored). */
+  const lastNow = () => (S.last?.entry === S.entry && S.last.A === S.A ? S.last.plan : null);
 
   function cancelHeal() {
     clearTimeout(S.healTimer);
@@ -2006,6 +2002,7 @@ export function createMemory(ctx) {
       if (r.state === 'done' && r.road) {
         S.error = null;
         const v = ctx.bundle?.version ?? versionNow();
+        if (!accNow()) { keepBase(r.road, versionNow(), sig); return r; }
         const own = yours(reason, accNow(), sig);
         mutate((d) => { ensure(d).plan = planOfRoad(r.road, v, sig); }, 'plan');
         if (own) { markSeen(); receipt(sig); }
@@ -2300,7 +2297,8 @@ export function createMemory(ctx) {
   }
 
   function heal({ purpose = 'heal', now = false } = {}) {
-    if (!accNow() || !pinsNow().length) return Promise.resolve({ state: 'done', road: getPlan().road });
+    // (under the hold a team with no document of yours is planned too: keepBase)
+    if ((!accNow() && !holdNow()) || !pinsNow().length) return Promise.resolve({ state: 'done', road: getPlan().road });
     return scheduleHeal(purpose, { now });
   }
 
@@ -2344,7 +2342,10 @@ export function createMemory(ctx) {
     const toast = ctx.ui?.toast;
     if (!toast) return;
     const undo = Array.isArray(r.pins) ? { label: 'Undo', onClick: () => restorePins(r.pins) } : undefined;
-    if (error) { toast(error.code === 'solver' ? error.plain : COPY.rulesClash(r.what), 'warn', { timeout: 9000, action: undo, replaces: 'pending' }); return; }
+    // (a failure about your rules said as one; the solver's own, the connection's, in their own words: reviewer 2 of
+    // solversquad, 2026-10-26)
+    const rules = !error?.code || error.code === 'infeasible' || error.code === 'pins';
+    if (error) { toast(rules ? COPY.rulesClash(null, r.what) : error.plain || COPY.unfinished, 'warn', { timeout: 9000, action: undo, replaces: 'pending' }); return; }
     const now = evalOf(getPlan().road);
     if (!now || !r.before) return;
     const cmp = compareIn(cctxNow(), now, { gws: r.before });
@@ -2435,7 +2436,7 @@ export function createMemory(ctx) {
       const kept = loadLocal(entry, A);
       // B141: an edit noted before a reload, its check not landed yet: its receipt, while the heal running is its own (getPlan)
       const r = local.json(EDIT(entry));
-      Object.assign(S, { entry, A, doc: kept?.doc ?? null, docs: null, dirty: !!kept?.dirty, drift: null, judged: null, error: null, carried: null, notice: null,
+      Object.assign(S, { entry, A, doc: kept?.doc ?? null, docs: null, dirty: !!kept?.dirty, drift: null, judged: null, error: null, carried: null, notice: null, base: null,
         reopened: r && Number(r.gw) === A ? r : null,
         // not used for FORGET_MS (USED), or signed out of before its forgetting reached the server (forget): wiped as it
         // loads, with no way back
@@ -2479,7 +2480,11 @@ export function createMemory(ctx) {
    *  with no rule left under it (GW A unlocked, its last rule gone) is the model's again. */
   function syncPlan() {
     const acc = accNow();
-    if (!acc?.plan || S.drift || S.pending || madeOn(acc) !== versionNow() || ctx.bundle?.state === 'stale') return;
+    if (S.drift || S.pending || ctx.bundle?.state === 'stale') return;
+    // under the hold with no plan the solver returned for your rules yet (a team you only look at, Reset plan, an older
+    // app's phone-made plan: normalizeAccepted), or one on older roads: asked (replan)
+    if (holdNow() && !acc?.plan && !S.error && (acc || baseNow()?.version !== versionNow())) { replan('sync'); return; }
+    if (!acc?.plan || madeOn(acc) !== versionNow()) return;
     if (!pinsNow().length && lockedNow()) return;
     replan('sync');
   }
@@ -2521,7 +2526,7 @@ export function createMemory(ctx) {
 
   return {
     ctx, getPlan, onChange(fn) { subs.add(fn); return () => subs.delete(fn); },
-    note, inkOf, inkClash, addPin, removePin, restorePins, clearPins, setHitsMax, reset, setLineup, setPlan, values, offer, heal, settled, compare,
+    note, inkOf, inkClash, addPin, removePin, restorePins, clearPins, batch, setHitsMax, reset, setLineup, setPlan, values, offer, heal, settled, compare,
     weekState, pencilDiff, markSeen, forecastChange, keepMine, adoptDrift, journal, noteEdit, claimEdit,
     // detached: a save still in flight lands without writing this device's mirror (sign-out cleared it) → that save
     // (forget waits for it, so it never lands over the forgetting)

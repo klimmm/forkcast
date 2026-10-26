@@ -194,10 +194,6 @@ export const COPY = Object.freeze({
         : `No swap or week works for ${name}`),
   /** How many forecast runs back the pooled call: information for the Why sheet only, never a verdict (F8). */
   agreement: (lead, runs) => `${lead} of ${runs} forecast runs`,
-  /** The solve parts from the phone's ≈ in GW gw: every move the week makes (moves: "Out → In"), never a number against
-   *  the ≈ (the checker, 2026-10-09: "Forkcast found a better GW8: Szoboszlai → Gibbs-White instead (+6.2)" named one of
-   *  its three moves, and a gain no row showed, beside a verdict of −2.2). */
-  solverDisagrees: (gw, moves) => `GW${gw} checked: ${andList(moves)}.`,
   /** An edit against the plan before it (Ahead's verdict toast, changeText): forecast points minus hits, the
    *  direction in words, not only colour. `total`: the take and remove toasts name it as what your total moves by, the
    *  header's change at that moment (changeNum; the user, 2026-10-21: fix all (first-use proposal #1): Sam's "+2.6"
@@ -220,7 +216,6 @@ export const COPY = Object.freeze({
    *  never lit: its Week sheet row, its spoken line, its card's note in his place (ahead.earlyWords). */
   asGoodIn: (gw) => `as good in GW${gw}`,
   /** …with your later sale of the player it bought, which has no one to sell then (ahead.removeMove). */
-  alsoRemoved: (list) => `also removed: ${andList(list)}`,
   /** The review (2026-10-08: "there is no 'move to next week'"): your transfer made in another GW, its toast's subject
    *  ("Chilwell → Bassey moved to GW7", ahead.moveTo). */
   movedTo: (move, gw) => `${move} moved to GW${gw}`,
@@ -265,17 +260,11 @@ export const COPY = Object.freeze({
   /** B95: the tie's other end, on the buy's row: the sales that fund it ("with Haaland → Thiago"); a sale of yours whose
    *  money a later week's buy needs ("Pays for B.Fernandes in GW8 and Palmer in GW9"). */
   fundedBy: (moves) => `with ${andList(moves)}`,
-  paysFor: (buys) => `Pays for ${andList(buys.map((b) => `${b.name} in GW${b.gw}`))}`,
   /** B54: a transfer's money on its Why line, in words ('→' is a transfer's alone: "£6.1m → £5.9m" read as a price drop):
    *  what its sale frees beyond its buy, or what the buy takes from the bank, with the bank it takes it from where known
    *  (`bank`: bankNow's words, first-use findings #7: "£2.3m from the bank?" with the bank shown nowhere); null when
    *  they're equal. */
   frees: (x, bank = null) => (Math.abs(x) < 0.05 ? null : x > 0 ? `frees ${fmt.money(x)}` : `${fmt.money(-x)} from the bank${bank ? ` (${bank})` : ''}`),
-  /** A sale removed with the buys that needed its money (ahead.removeMove, and a Keep that takes it back: ahead.keep):
-   *  one toast, one Undo. */
-  removedNeeded: (a, bs, names) => `${andList([a, ...bs])} removed: ${andList(names)} needed the money`,
-  /** A funded buy removed: the sales that freed its money stay, each a transfer of its own (ahead.removeMove). */
-  keptOwn: (moves) => `${andList(moves)} kept as ${moves.length > 1 ? 'transfers of their own' : 'a transfer of its own'}`,
   /** A4: a week with no transfer, its verdict in its row; B52: who left it empty (ahead.emptyHead): under the hold the
    *  Roll's own words, "Rolling" (COPY.rollingNow; "No transfers yet" went: the owner, 2026-10-26, "no transfer yeat
    *  remove since rolling already show it"); no edit reaches it (GW A under way) "No transfers"; off the hold a week Forkcast's plan leaves empty "Forkcast rolls GW8" ("No transfers" while
@@ -336,12 +325,11 @@ export const COPY = Object.freeze({
    *  state it leaves, never a double reversal (the user, 2026-10-22: "Undone: Saka → Palmer removed · GW8 lock removed"
    *  read as two negatives; podmajersky r7 §9): each clause the edit said "… removed" or "… taken off" now "… back", one
    *  it said "… back" now "… removed"; "Undone: " only before a first clause that stays as it was said ("Undone: GW8
-   *  Saka → Palmer · GW8 frozen"), else none ("Saka → Palmer back · GW8 frozen back"). The sales a removal took with
-   *  it come back too: "also removed: Palmer → Rice in GW9" (alsoRemoved) "also back: …", "… removed: Mbeumo needed the
-   *  money" (removedNeeded) "… back" (the review of round 7, 2026-10-22: the Undo said a sale it restored was removed). */
+   *  Saka → Palmer · GW8 frozen"), else none ("Saka → Palmer back · GW8 frozen back"). (A removal takes its own rules
+   *  alone since the owner, 2026-10-26, "no hardcoded logic whatsoever": no "also removed" nor "… needed the money"
+   *  clause to turn.) */
   undone: (what, gw = null) => {
-    const turn = (c) => c.replace(/^also removed: /, 'also\u0000: ').replace(/ removed: .+ needed the money$/, '\u0000')
-      .replace(/ (removed|taken off)$/, '\u0000').replace(/ back$/, ' removed').replace(/\u0000/g, ' back');
+    const turn = (c) => c.replace(/ (removed|taken off)$/, '\u0000').replace(/ back$/, ' removed').replace(/\u0000/g, ' back');
     const parts = what.split(' · '), said = parts.map(turn).join(' · ');
     return `${turn(parts[0]) === parts[0] ? 'Undone: ' : ''}${said}${gw != null && !new RegExp(`\\bGW${gw}(?!\\d)`).test(what) ? ` · GW${gw}` : ''}`;
   },
@@ -449,7 +437,9 @@ export const COPY = Object.freeze({
       // suggestion are listed, grey: ahead.plPays `early`)
       'Grey too: a move that adds next to nothing or loses when taken, or is as good a GW later.',
       'A transfer, Wildcard or Free Hit in your plan: amber when its gain is small, red when it loses by enough to matter.',
-      '≈ before a number: Forkcast\'s quick estimate, until its check is in. A check can take from seconds to several minutes.',
+      // (the owner, 2026-10-26: "fix so every squad is solver squad": the plan is never drawn from an estimate)
+      'While a change is checked, the plan before it shimmers until the new one is in. A check can take from seconds to several minutes.',
+      '≈ before a number in a list: Forkcast\'s quick estimate. Every squad and number of your plan is its solver\'s.',
       '≈ in a Sell list is vs keeping him. Once made, the transfer\'s number is vs rolling instead, so it can differ.',
     ]],
     ['What the marks mean', [
@@ -774,12 +764,19 @@ export const COPY = Object.freeze({
   /** RULES_V2 §5: a heal that can't keep every rule. The rules stay; the plan is the last one that worked. The choice
    *  named as its row says it (ahead.rowName: "Scott → Groß · GW6"), and "rule" kept for what Your rules lists (johnson
    *  Part 4 §5: a transfer was called a rule, under a name no row showed). */
-  rulesClash: (what) => `No plan keeps all your choices${what ? ` with “${what}”` : ''}. Your plan is unchanged. Remove one, or Undo.`,
+  rulesClash: (stuck, what) => `No plan keeps ${stuck ?? 'all your choices'}${what ? ` with “${what}”` : ''}. Your plan is unchanged. Remove one, or Undo.`,
+  /** …for an edit that adds no rule (a removal, Reset plan, "Without …"): its own words, then what the rules left can't
+   *  keep, as the solver said it (ahead.clashParts; the owner, 2026-10-26: a Remove left four Arsenal players' worth of
+   *  rules, and the phone drew them): "Calafiori → Hill removed: no plan keeps your GW9 choices (Leno → Raya and João
+   *  Pedro → Evanilson). Your plan is unchanged. Remove one, or Undo." */
+  dropClash: (said, stuck) => `${said ? `${said}: no` : 'No'} plan keeps ${stuck ?? 'your other choices'}. Your plan is unchanged. Remove one, or Undo.`,
+  /** The week the solver found no plan for and your choices there (ahead.clashParts): "your GW9 choices (Leno → Raya and
+   *  João Pedro → Evanilson)". */
+  choicesAt: (gw, names) => `your GW${gw} choices (${andList(names)})`,
   /** B12: the Week sheet's status row (its first words the week line's second line) while that failure stands (ahead.clashLine): what the solve couldn't keep ("Groß in
    *  GW6", else all of these) with the choice that broke it, as its row says it ("Keep Scott · GW6"). Its Removes are on
    *  the row; the toast's Undo is gone by then, so the row never offers it. */
   rulesStuck: (what, by) => `No plan keeps ${what ?? 'all of these'}${by ? ` with ${by}` : ''}. Remove one.`,
-  ruleShort: (what, short, gw, others) => `“${what}” needs ${fmt.money(short)} more in GW${gw}${others ? ' with your other rules' : ''}. Your plan is unchanged. Remove a rule, or Undo.`,
   unfinished: "Forkcast couldn't finish checking that. Your plan is unchanged.",
   pinClash: (name, keepTo, sellGw) => `Keeping ${name} through GW${keepTo} clashes with selling him in GW${sellGw}. Which one?`,
   /** A week of your plan that takes hits: a fact, never "needs" (the plan takes a hit only where its count says it pays,
