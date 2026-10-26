@@ -2272,12 +2272,36 @@ function modelMoves(P, g) {
  * proposals, 2026-10-21). `prep`: the next week prepared while the viewed one is settled (prepNext): its solves asked as
  * a draw of it would ask them, at the lowest priority (purpose 'pairnext'), none let go, nothing kept.
  * → [{state: 'ready', choice, moves: [{gw, out, in}], chips: {gw: chip}, draft, ev, cmp, hits: {gw: n}, road, model,
- *    taken?, alone?, full?, fullEv?, vsRoll?, refEv?, refRow?, vsBest?, best?, bestFrom?, vsMine?, rolls?, removed?, early?} | {state: 'solving', choice, wait, removed?, early?} | {state:
- *    'failed', choice, why, needs?, problems?, removed?, early?}] (under the hold `taken`: the week-alone draft its `ev` and `alone` are measured on, `draft`
- *    the solve's whole plan, `full` / `fullEv` that plan measured)
+ *    taken?, alone?, full?, fullEv?, vsRoll?, refEv?, refRow?, vsBest?, best?, bestFrom?, vsMine?, rolls?, removed?, early?, placed?} | {state: 'solving', choice, wait, removed?, early?, placed?} | {state:
+ *    'failed', choice, why, needs?, problems?, removed?, early?, placed?}] (under the hold `taken`: the week-alone draft its `ev` and `alone` are measured on, `draft`
+ *    the solve's whole plan, `full` / `fullEv` that plan measured; `placed`: a place's other buys you opened, beside
+ *    FORK_MAX and the ten listed: placesAsked)
  */
 const PLANS = new WeakMap();
 const FORK_MAX = 8;
+/** The places you opened (openPlace; the owner, 2026-10-26, of Calvert-Lewin's place dealing Evanilson alone after a
+ *  take: "why it not suggest more players if space allows ... could also offer other affordable variants which go after
+ *  evanilson like N.Jackson", then "build it"): GW g's cards whose other buys the week's choices take beside FORK_MAX
+ *  (plansOf), PLACE_ALTS each, until your rules change (another plan: its places opened anew). */
+const PLACE_ALTS = 3;
+/** The choices listed (on the pitch and in the Week sheet): ten at most, a place's other buys you opened beside them
+ *  (plansOf's `placed`). The single-move rows they replaced (decision 6) went with their renderers on 2026-10-13 ("Same
+ *  list, both modes"): their moves are choices. Pure. plans (in their order) → those listed */
+const MORE_SUGGESTIONS = 10;
+export const listedOf = (plans) => { let n = 0; return plans.filter((x) => x.placed || n++ < MORE_SUGGESTIONS); };
+const PLACES = { sig: null, at: new Set() };
+const rulesSig = (P) => P.pins.map((p) => p.id).join(',');
+const placesAsked = (P, g) => (PLACES.sig === rulesSig(P) ? [...PLACES.at].filter((k) => k.startsWith(`${g}:`)).map((k) => Number(k.slice(k.indexOf(':') + 1))) : []);
+/** Card `a`'s place opened in GW g: his other buys asked (plansOf), the week's choices drawn again where it is new →
+ *  whether it is. */
+export function askPlace(ctx, P, g, a) {
+  const sig = rulesSig(P), k = `${g}:${a}`;
+  if (PLACES.sig !== sig) Object.assign(PLACES, { sig, at: new Set() });
+  if (PLACES.at.has(k)) return false;
+  PLACES.at.add(k);
+  pairChanged(ctx);
+  return true;
+}
 const SQUAD_CHIPS = new Set(['wc', 'fh']);
 /** Your transfers (a rule of yours makes each: pinOfMove) in the weeks after GW g that aren't a Wildcard's or Free Hit's
  *  squad: every plan from GW g keeps them (decision 6). → [{gw, out, in}] */
@@ -2480,17 +2504,21 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // your transfers' other buys (the best two each), then the best single moves on top of yours (the transfer choices
   // asked at most FORK_MAX: a pair's move the week can't make alone, `needs`, is asked nothing), then a roll
   const needs = new Map(), pairOf = new Map();  // pairSingles': forkKey → {ids, problem}; forkKey → its pair's
-  const plain = () => [...choices].filter(([k, c]) => c.moves.length && !Object.keys(c.chips).length && !needs.has(k) && !split.has(k)).length;
+  const placed = new Set();  // forkKey: a place's other buys asked beside FORK_MAX (placesAsked)
+  const plain = () => [...choices].filter(([k, c]) => c.moves.length && !Object.keys(c.chips).length && !needs.has(k) && !split.has(k) && !placed.has(k)).length;
   const room = () => plain() < FORK_MAX - 1;
-  // sale m's other buys (ownAltsOf: the best two), each the choice `choiceOf(buy)`
-  const otherBuys = (m, choiceOf) => {
-    for (const a of room() ? ownAltsOf(ctx, P, w, m).slice(0, 2) : []) {
-      if (!room()) break;
-      const c = choiceOf(a.in);
-      if (!choices.has(forkKey(c, g))) add(c, earlyAt(c));
+  // sale m's other buys (ownAltsOf: the best two while the week's choices have room), each the choice `choiceOf(buy)`;
+  // `alts` and no `cap` for a place you opened (placesAsked: its buys beside FORK_MAX)
+  const otherBuys = (m, choiceOf, alts = room() ? ownAltsOf(ctx, P, w, m).slice(0, 2) : [], cap = true) => {
+    for (const a of alts) {
+      if (cap && !room()) break;
+      const c = choiceOf(a.in), k = forkKey(c, g);
+      if (!choices.has(k)) { add(c, earlyAt(c)); if (!cap && choices.has(k)) placed.add(k); }
       guess(c, a.cmp?.delta);
     }
   };
+  // your GW-g transfer m with another buy
+  const swapIn = (m, inn) => ({ moves: now.map((x) => (x === m ? { ...x, in: inn } : x)), chips: {} });
   // (none in your chip week: suggestionsOf's moves are on its squad, which goes with the chip); a move you took off this
   // session after them, whatever their count, its solve asked after theirs (no estimate: rankOf) (B129: yours, never
   // crowded out; the user, 2026-10-21: fix the known issues: it was skipped, so never offered again that session)
@@ -2512,7 +2540,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // transfers' other buys and the best two take the room (the split review, 2026-10-25 second pass: the model's choice of
   // four split, and its groups lost the room it had held whole)
   for (const c of [...choices.values()]) if (split.has(forkKey(c, g))) offerGroups(c);
-  for (const m of now) otherBuys(m, (inn) => ({ moves: now.map((x) => (x === m ? { ...x, in: inn } : x)), chips: {} }));
+  for (const m of now) otherBuys(m, (inn) => swapIn(m, inn));
   // while the week has a free transfer, the best two suggestions (asked first: litOf lights the best single), then each one's sale with
   // its other buys, as your transfer's are once taken (the user, 2026-10-21: "never suggest saka to rice as alternative
   // here": Saka's place before the take lists what Palmer's lists after it), then the rest that pass the bars
@@ -2606,6 +2634,14 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     pairSingles(c);
   }
   for (const x of singles.filter((y) => y.removed)) single(x);
+  // each place you opened (askPlace), its card's other buys beside the week's FORK_MAX, PLACE_ALTS of them, worse ones
+  // too (ownAltsOf's `all`): your transfer's with that buy in its place, else his best single move's (suggestionsOf: the
+  // move the place deals first) with another buy; none for a player no single move sells
+  for (const a of placesAsked(P, g)) {
+    const m = now.find((y) => Number(y.in) === a), x = m ? null : singles.find((y) => Number(y.out) === a && !y.removed);
+    if (m) otherBuys(m, (inn) => swapIn(m, inn), ownAltsOf(ctx, P, w, m, true).slice(0, PLACE_ALTS), false);
+    else if (x) otherBuys(x, (inn) => singleOf(x, inn), ownAltsOf(ctx, P, w, x, true).slice(0, PLACE_ALTS), false);
+  }
   // a roll: your GW-g transfers (or your chip) taken back; never where it would be your plan itself (add)
   const roll = { moves: [], chips: {} };
   add(roll);
@@ -2794,7 +2830,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     return adds.length > 0 && adds.every((m) => goneOut.has(String(m.out)) && goneIn.has(String(m.in)));
   };
   const all = out.map(alone).map(vsRef).map((x) => (rolls(x) ? { ...x, rolls: true } : x)).map((x) => (yoursAgain(x) ? { ...x, removed: true } : x))
-    .map((x) => (early.has(forkKey(x.choice, g)) ? { ...x, early: early.get(forkKey(x.choice, g)) } : x));
+    .map((x) => (early.has(forkKey(x.choice, g)) ? { ...x, early: early.get(forkKey(x.choice, g)) } : x))
+    .map((x) => (placed.has(forkKey(x.choice, g)) ? { ...x, placed: true } : x));
   const done = all.filter((x) => x.state === 'ready');
   // the Roll row against the hardest of: the best transfer row's plan (Forkcast's later moves on both sides) and the best
   // Wildcard row's (your later weeks kept on both: its held roll) → {vsBest, best, bestFrom (the Roll side's plan)}; never
@@ -2994,12 +3031,18 @@ export function plansWait(plans) {
  *  first-use proposals, 2026-10-21: a settled week back from an Undo whose choices were asked again drew plain edges
  *  under "Set in FPL" for a minute, with neither a tab nor a checking line). Pure. → {i, n} | null */
 export const weekWait = (plans, lit) => (lit ? null : plansWait(plans));
-/** The notice the week line's second line shows (renderLine): the first of `notices` (weekModel's, in its order) when it
- *  is a problem (a clash, the price watch, a new forecast); GW A's lineup notice (`quiet`: an instruction that stands)
- *  only where nothing `held` the line: a short bank, the week's checks, a chip's squad still worked out (the review of
- *  the first-use proposals, 2026-10-21: in GW A it hid #8's checking line almost every week, and a short bank); its
- *  Week-sheet row stands all the while. Pure. → notice | null */
-export const lineNotice = (notices, held) => { const n = notices[0] ?? null; return n && (!n.quiet || !held) ? n : null; };
+/** The week's notices where they are drawn (renderLine): on the strip the first problem of `notices` (a clash, the price
+ *  watch, a new forecast; weekModel's order), " · +N" for the others standing (`more`); GW A's lineup notice (`quiet`: an
+ *  instruction that stands, FPL's to do) never on the strip but on the week's status beside the goal, in every week
+ *  (statusTok; the owner, 2026-10-26, "find why 'set in fpl' move to tab above pitch once transfer is made and fix
+ *  inconsistency": on the strip once a transfer was made, cut "Set in FPL: 3 c…", and a problem notice there hid it as
+ *  "+1"), so a short bank, the week's checks or a squad still worked out keep the strip from it no longer (the review of
+ *  the first-use proposals, 2026-10-21: in GW A it hid #8's checking line almost every week); none while GW A is under
+ *  way (`live`). Its Week-sheet row stands all the while. Pure. → {problem, more, lineup: its words | null} */
+export const lineNotices = (notices, live = false) => {
+  const loud = notices.filter((n) => !n.quiet);
+  return { problem: loud[0] ?? null, more: Math.max(0, loud.length - 1), lineup: live ? null : notices.find((n) => n.quiet)?.text ?? null };
+};
 /** A plan's weeks in words, from GW `from` on (each with its moves joined by " + ", the hit it takes there "(−4)"; a
  *  Wildcard or Free Hit week its chip's name, its changes being the chip's squad; a Bench Boost or Triple Captain after
  *  the week's moves), each led by its week ("GW7 …"; `tag` false: not, a row under its week's own tab). Pure.
@@ -3242,6 +3285,9 @@ export function decksOf(P, w, M) {
     by.get(a).entries.push(e);
   };
   M.plans.forEach((pl, i) => {
+    // (no Wildcard or Free Hit on the pitch: the owner, 2026-10-27, "Remove free hit / wc pils from pitch"; Chips… and
+    // the Week sheet offer them)
+    if (SQUAD_CHIPS.has(pl.choice.chips?.[g])) return;
     const { chipNow, adds, taken, lost, gone } = planBack(P, g, pl);
     if (chipNow || (!adds.length && !taken.length)) toks.push(pl);
     else if (adds.length) {
@@ -3745,7 +3791,7 @@ export function addYours(ctx, P, g, out, inn, d0 = draftOf(ctx), measure = null)
  * before it and this sale with that buy, against those moves alone; a hit counted), only those the swap can make
  * (addMove: the plan as it stands, its bank and club limit) and none your plan moves from GW g on (movedFrom: a later
  * buy of yours voided unsaid), best first (those inside the noise of the best cheaper first: cheaperFirst), at most
- * OWN_ALTS. None in a Wildcard / Free Hit week, for a funding sale or the buy it pays for (their money ties them), or for a move no sale
+ * OWN_ALTS; `all` (a place you opened: plansOf's placesAsked) every one Replace's tries find, worse ones too. None in a Wildcard / Free Hit week, for a funding sale or the buy it pays for (their money ties them), or for a move no sale
  * of yours makes. A suggested move the week doesn't make yet (suggestionsOf's: the user, 2026-10-21, "never suggest saka
  * to rice as alternative here", Saka's place listing Palmer alone until Saka → Palmer was taken) has the list it will
  * have once taken: measured as its row will be (your plan with it added, the week's last, against your plan), its money
@@ -3755,13 +3801,13 @@ export const OWN_ALTS = 6;
 const OWN_ALT_TRIES = 12;   // Replace's best few of his position that fit (buyCandidates' order: mean xP)
 const OWN_ALTS_ALONE = 3;   // …shown when the model has no other buy for him (a buy you chose yourself)
 const OWNALTS = new WeakMap();
-export function ownAltsOf(ctx, P, w, m) {
+export function ownAltsOf(ctx, P, w, m, all = false) {
   const g = w?.gw;
   const made = !!w?.moves.some((x) => x.out === m.out && x.in === m.in);
   if (!w || isFrozen(P, g) || squadWeek(w) || (made ? pinOfMove(P, m)?.kind !== 'sell' || fundingOf(P, g, m) : !w.squad.includes(m.out) || w.squad.includes(m.in))) return [];
   let by = OWNALTS.get(P);
   if (!by) OWNALTS.set(P, (by = new Map()));
-  const key = `${g}:${m.out}>${m.in}`;
+  const key = `${g}:${m.out}>${m.in}${all ? ':all' : ''}`;
   if (by.has(key)) return by.get(key);
   const d0 = draftOf(ctx);
   // the plan as the row measures it (`d`: the week's moves up to this one, its later ones dropped, last first; `cut`
@@ -3792,7 +3838,7 @@ export function ownAltsOf(ctx, P, w, m) {
     const fits = buyCandidates(P, { pos: P.L.pos(m.out), from: g, not: [m.in], limit: 80 }).filter((x) => (P.L.price(x) ?? Infinity) <= room);
     const more = measure(fits.slice(0, OWN_ALT_TRIES).filter((id) => !model.some((x) => x.in === id)));
     const better = more.filter((x) => x.cmp.delta > rg.cmp.delta + 0.05);
-    list = model.length || better.length ? [...model, ...better] : more.slice(0, OWN_ALTS_ALONE);
+    list = all ? [...model, ...more] : model.length || better.length ? [...model, ...better] : more.slice(0, OWN_ALTS_ALONE);
     list = cheaperFirst(list, P.noise, P.L.price);
   }
   list = list.slice(0, OWN_ALTS);
@@ -6175,7 +6221,7 @@ export function mount(el, ctx) {
     const g = w.gw, sq = squadWeek(w);
     const ink = inkAt(ctx, P, g);
     const all = plansOf(ctx, P, g);
-    const plans = ink ? [] : heldOrder(P, g, all).slice(0, MORE_SUGGESTIONS);
+    const plans = ink ? [] : listedOf(heldOrder(P, g, all));
     // none lit on the pitch until none checks (weekSettled, litOf; the user, 2026-10-21: fix all (first-use proposal #8)),
     // each behind the card of the player it would replace (decksOf), for the pitch (renderDecks) and the checking line
     const settled = weekSettled(P, g, all), key = weekKey(P, g, all);
@@ -6257,10 +6303,11 @@ export function mount(el, ctx) {
    *     renderDecks);
    * a problem notice that stands takes the line after the lead (the first, "· +1" for more; amber for a clash or a
    * price that won't wait), else a short bank keeps it, else, until the week's choices are lit, how far their checks
-   * are ("Checking GW9 · 3 of 6 plans · 0:12"); GW A's lineup notice (quiet: weekModel) only after all of them, its
-   * words cut at the line's end (the Week sheet's row names them all). In a week with no transfer the lineup notice is
-   * the week's status instead, "Rolling"'s place, the facts whole on the strip (the owner, 2026-10-22, after the space
-   * screenshots: "Set in FPL: 3 changes" in "No transfers yet"'s place over the facts). Wherever the facts aren't drawn
+   * are ("Checking GW9 · 3 of 6 plans · 0:12"). GW A's lineup notice (quiet: weekModel), only where none of them
+   * stands, is never on the strip: on the week's status beside the goal in every week, in "Rolling"'s place in a week
+   * with no transfer, the facts whole on the strip (the owner, 2026-10-22, after the space screenshots: "Set in FPL: 3
+   * changes" in "No transfers yet"'s place over the facts), else under its words (the owner, 2026-10-26: "fix
+   * inconsistency", of it moving to the strip once a transfer was made). Wherever the facts aren't drawn
    * (all but GW A under way) the week's FT and bank lead the line, "1 FT · £0.3m ITB · Out: Saka", a short bank's words
    * in its place (weekLead; the user, 2026-10-21: "why itb missing", of GW8's line under "Set in FPL: start Murillo");
    * the checks' words then give way beside it, never their clock (fitFacts).
@@ -6301,25 +6348,23 @@ export function mount(el, ctx) {
       factsSaid = f.said;
       facts = true;
     }
-    // a problem notice first (weekModel's order: the lineup's last, quiet), with " · +1" for each other one standing
-    const problem = lineNotice(M.notices, true);
+    // a problem notice on the line, with " · +1" for each other one standing; GW A's lineup notice on the status (lineNotices)
+    const { problem, more, lineup } = lineNotices(M.notices, M.live);
     // until the week's choices are lit on the pitch (litOf), how far their checks are (weekWait), in the Week sheet's
     // words (the user, 2026-10-21: fix all (first-use proposal #8): "Checking GW9 · 3 of 6 plans · 0:12"), where no problem
     // notice or short bank stands; where they don't fit, "plans" goes, then the GW ("Checking · 3 of 6": the line is the
     // viewed week's; the review of the first-use proposals, 2026-10-21: cut at 375–390 px), then the words ellipsise,
     // then they go; the clock is never cut (fitFacts)
     const checking = !problem && !short && M.wait ? [[g, 'plan'], [g, null], [null, null]].map(([x, of]) => COPY.checkingWeek(x, M.wait.i, M.wait.n, of)) : null;
-    // GW A's lineup notice only where none of them, nor a chip's squad still worked out, holds the line (lineNotice)
-    const shown = lineNotice(M.notices, !!short || !!checking || !!(M.sq && ap));
-    const notice = shown ? `${shown.text}${M.notices.length > 1 ? COPY.moreNotices(M.notices.length - 1) : ''}` : null;
-    // a week with no transfer: its lineup notice the week's status, in "Rolling"'s place, its facts whole on the strip
-    // (the owner, 2026-10-22, of "1 FT · £0.8m ITB · Set in F…": "Set in FPL: 3 changes" over "1 FT · £0.8m ITB · 2 FT
-    // in GW9"; the strip, 2026-10-26); a problem notice keeps the line after the week's FT and bank
-    // ("Rolling is best" and "Rolling ✓" say more than the notice: they stay the status, the notice under their words,
-    // `sub`; the review of pick1026c)
-    const top = facts && !!shown?.quiet, sub = top && one !== COPY.rollingNow ? notice : null;
-    if (top && !sub) one = notice;
-    else if (shown && !top) two = notice;
+    const notice = problem ? `${problem.text}${more ? COPY.moreNotices(more) : ''}` : null;
+    // the lineup notice in "Rolling"'s place in a week with no transfer, its facts whole on the strip (the owner,
+    // 2026-10-22, of "1 FT · £0.8m ITB · Set in F…": "Set in FPL: 3 changes" over "1 FT · £0.8m ITB · 2 FT in GW9"; the
+    // strip, 2026-10-26), else under the status's words, `sub` ("1 transfer +1.2" over "Set in FPL: 3 changes"; "Rolling
+    // is best" and "Rolling ✓" say more than the notice too: the review of pick1026c); a problem notice keeps the line
+    // after the week's FT and bank
+    const sub = lineup && one !== COPY.rollingNow ? lineup : null;
+    if (lineup && !sub) one = lineup;
+    if (problem) two = notice;
     // (the checks' words and their clock after the lead, fitFacts shedding their words; the clock carries its own " · ")
     const chk = checking && h('span.ah-chk', null, h('span.ah-bn.ah-cw', null, checking[0]), waitClock('', { late: true, sep: '\u00a0·\u00a0' }));
     if (checking) two = chk;
@@ -6328,23 +6373,23 @@ export function mount(el, ctx) {
     // its free transfers before it, in every state (the user, 2026-10-22, Boss of the gym's GW8 under "Set in FPL: 3
     // changes": "3 FT · £0.6m ITB · Out: Gvardiol, …"; weekLead): a notice or the checks after the week's own words, cut
     // from the end where they don't fit (m-ahead.css .ah-bs; fitFacts)
-    const own = facts && !checking && (!shown || top);
+    const own = facts && !checking && !problem;
     const lead = M.live || own ? null : weekLead(P, w);
-    const rest = (top ? null : notice) ?? (checking ? checking[0] : null);
+    const rest = notice ?? (checking ? checking[0] : null);
     // (the rest after it giving way, never the lead: .ah-brest)
     if (lead) two = [h('span.ah-blead', null, lead.node, bsep('\u00a0·\u00a0')), h('span.ah-brest', null, two)];
     // the notice on the line said once to VoiceOver, and nothing once none is on it (the first-use phones, 2026-10-21:
     // "Set in FPL: start Murillo" outlived its notice, onto weeks with none)
-    const told = shown?.text ?? '';
+    const told = [problem?.text, lineup].filter(Boolean).join('. ');
     if (noticeSaid.textContent !== told) fill(noticeSaid, told || null);
     // the status token's (statusTok): the week's −4 only where its words are its transfers (a squad chip's are free);
     // green where the week is yours (your transfers, your chip, your Roll), as "Wildcard · yours" and "Rolling ✓" were;
     // the lineup notice in its place (never green: FPL's to do, not yours) said after the week's own words ("Rolling.
     // Set in FPL: 3 changes", its words in its name)
-    S.status = M.live ? null : { g, one, hits: n && !M.sq ? w.hits : 0, wait, gain, ap, said: top ? `${said}. ${notice}` : said, sub, mine: n > 0 || !!M.sq || (facts && !(top && !sub) && rollingAt(P, g)) };
+    S.status = M.live ? null : { g, one, hits: n && !M.sq ? w.hits : 0, wait, gain, ap, said: lineup ? `${said}. ${lineup}` : said, sub, mine: n > 0 || !!M.sq || (facts && !(lineup && !sub) && rollingAt(P, g)) };
     fill(strip, h('section.ah-block', { 'aria-label': COPY.weekTitle(g), tabindex: '-1', dataset: { focusHome: '' } },
       barNode({
-        two, warn: !!shown?.warn && !top,
+        two, warn: !!problem?.warn,
         // (the facts said where they are drawn, "1 free transfer, £0.5 million in the bank, …"; the week's status the
         // token's alone, so VoiceOver hears the week once: the owner's strip, must-fix 4; GW A under way its sentence)
         label: [M.live ? said : own ? factsSaid : null, lead?.said, mine, rest].filter(Boolean).join('. '),
@@ -6597,6 +6642,9 @@ export function mount(el, ctx) {
       const gone = tkIn.slice(cut).filter((t) => t !== st);
       if (gone.length) for (const t of gone) t.remove();
       else if (tkIn[0] !== st) tkIn[0].remove();
+      // (then the status's lineup notice under it, the Week sheet's row: a large text size, "1 transfer +1.6" over "Set
+      // in FPL: 2 changes" over the defenders' cards at 320 × 568 and 21 px)
+      else if (st.querySelector(':scope > .ah-tw:not([hidden])')) st.querySelector(':scope > .ah-tw').hidden = true;
       else break;
       stack();
     }
@@ -6934,17 +6982,21 @@ export function mount(el, ctx) {
    *  strip, design 1026c): what the week line's first line said, said once, on the pitch, in the place of "Rolling",
    *  "Rolling is best", "Rolling ✓" and "Wildcard · yours" / "Free Hit · yours": "Rolling" (emptyHead: "Rolling is best"
    *  once settled with nothing better, "Rolling ✓" under your Roll, never "No transfers yet"), "Set in FPL: 4 changes"
-   *  (GW A's lineup notice in a week you roll), "2 transfers −4 +3.8", "Free Hit +4.3"; yours green as "· yours" was;
+   *  (GW A's lineup notice in a week you roll; under the words of any other: "1 transfer +1.2" over "Set in FPL: 3
+   *  changes", renderLine), "2 transfers −4 +3.8", "Free Hit +4.3"; yours green as "· yours" was;
    *  its number the week line's (renderLine: vs rolling everywhere, decision K's "The week line keeps your plan's own
    *  number against rolling"), "checking…" under its words while it solves (never a clock in its slot: waitClock), a
    *  number kept on its word where the words wrap ("Set in FPL: / 4 changes"). A tap opens the Week sheet, the week it
    *  names, as the strip does (under your Roll at Your rules, where its Remove is: the unlock "Rolling ✓"'s tap was).
    *  Its words said here alone, the strip's label its facts (VoiceOver hears the week once). Never given way for room
-   *  (renderDecks). renderLine's words (S.status). → node | null */
+   *  (renderDecks; but the lineup notice under its words, the first to give way). renderLine's words (S.status). →
+   *  node | null */
   function statusTok(w) {
     const g = w.gw, st = S.status?.g === g ? S.status : null;
     if (!st) return null;
-    return h('button.ah-tok.st', { class: { done: st.mine }, type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` },
+    // ("Rolling is best" ink as the week's best move's token: the owner, 2026-10-27, "Why rolling is best not black similar
+    // how other best moves are black", then "Make it black"; its tap the Week sheet's still)
+    return h('button.ah-tok.st', { class: { done: st.mine, best: st.one === COPY.rollingBest }, type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` },
       'aria-label': COPY.statusSaid(st.said, g), onClick: (ev) => {
         const rules = !!S.drawn && rollingAt(S.drawn, g);
         weekSheet(g, rules ? 'rules' : null);
@@ -6953,14 +7005,18 @@ export function mount(el, ctx) {
       } },
       // (dashed while an edit is checked, as the week line's first line was: m-pending)
       h('span.ah-tl', { 'aria-hidden': 'true', class: { 'm-pending': st.ap } }, typeof st.one === 'string' ? st.one.replace(/(\d) /g, '$1\u00a0') : st.one,
-        st.wait ? h('small.ah-tw', null, COPY.pairChecking) : null, st.sub ? h('small.ah-tw', null, st.sub.replace(/(\d) /g, '$1\u00a0')) : null),
+        st.wait ? h('small.ah-tw', null, COPY.pairChecking) : null),
       // (its number the week line's: gainOf, blue with "xP", shimmering while an edit is checked; its −4 before it)
-      st.hits || (st.gain && !st.wait) ? h('span.ah-tnum', { 'aria-hidden': 'true' }, hitTag(st.hits), st.gain && !st.wait ? gainOf(st.gain, st.ap) : null) : null);
+      st.hits || (st.gain && !st.wait) ? h('span.ah-tnum', { 'aria-hidden': 'true' }, hitTag(st.hits), st.gain && !st.wait ? gainOf(st.gain, st.ap) : null) : null,
+      // (GW A's lineup notice under its words and number, the token's whole width, as a chip token's "instead of …": "1
+      // transfer +1.6" over "Set in FPL: 2 changes", two lines, not three; the first of it to give way for room: renderDecks)
+      st.sub ? h('small.ah-tw', { 'aria-hidden': 'true' }, st.sub.replace(/(\d) /g, '$1\u00a0')) : null);
   }
   /** The week's own choices beside the goal (top-left; the corner pills' look, m-ahead.css .ah-tok): the week's status
-   *  (statusTok, in the place of your chip's "· yours", "Rolling ✓" and the Roll of a week you roll), a Wildcard or Free Hit in its best week with its number
-   *  (the user, 2026-10-23: no "+" but a gain's sign), a chip alone, a Roll that takes yours back ("instead of Free
-   *  Hit"): each its body alone, its Why sheet, whose Play or Take takes it, never ink, the week's best chip too (the
+   *  (statusTok, in the place of your chip's "· yours", "Rolling ✓" and the Roll of a week you roll), a Bench Boost or
+   *  Triple Captain alone with its number (the user, 2026-10-23: no "+" but a gain's sign; no Wildcard or Free Hit since
+   *  the owner, 2026-10-27, "Remove free hit / wc pils from pitch": decksOf), a Roll that takes yours back ("instead of
+   *  Free Hit"): each its body alone, its Why sheet, whose Play or Take takes it, never ink, the week's best chip too (the
    *  owner, 2026-10-26: "make that free hit tab on top left not coloroud black and remove button 'play' from it", "remove
    *  button 'take'"); while one solves, "checking…" under its words and no number (never a clock in its slot:
    *  waitClock), its body off.
@@ -6997,12 +7053,9 @@ export function mount(el, ctx) {
     const st = statusTok(w);
     if (st) out.push(st);
     for (const pl of toks) {
-      // what its take takes back of yours, under its words: a take never takes a transfer of yours back unsaid; but a
-      // Wildcard or Free Hit says nothing of it (the user, 2026-10-22: "why need to show 'instead of murillo' twice, why
-      // not just leave wildcard and free hit as they were": a chip rebuilding the week's squad is what the chip is; its
-      // take's toast names what it removes, addPlan's COPY.removed)
+      // what its take takes back of yours, under its words: a take never takes a transfer of yours back unsaid
       const s = planSaid(P, g, pl), key = planKey(g, pl), { lost } = planBack(P, g, pl);
-      const said = lost && !pl.refRow && !SQUAD_CHIPS.has(pl.choice.chips?.[g]);
+      const said = lost && !pl.refRow;
       // the Roll of a week you roll (no take: rollOnly; the user, 2026-10-22): the week's status says it, "Rolling",
       // "Rolling is best" once settled with no best (statusTok; the owner's strip, 2026-10-26: its Why sheet the Week
       // sheet's row's)
@@ -7142,6 +7195,8 @@ export function mount(el, ctx) {
     S.place = { a, order: null };
     globalThis.addEventListener('keydown', placeKey);
     drawPlace(true);
+    // his other buys asked beside the week's choices (askPlace), dealt after those it shows as they land
+    if (S.drawn) askPlace(ctx, S.drawn, gwNow(S.drawn), a);
     const layer = pitchHost.querySelector(':scope > .pm > .ah-place');
     ([...layer?.querySelectorAll('.ah-pgo') ?? []].find((x) => !x.disabled) ?? layer?.querySelector('.ah-walk button:not(:disabled)'))?.focus({ preventScroll: true });
   }
@@ -8024,17 +8079,15 @@ export function mount(el, ctx) {
   /** "£4.5m" with its club: "CRY £4.5m". */
   const priceOf = (P, id) => { const x = P.L.price(id); return `${P.L.club(id) ?? ''} ${x == null ? '' : fmt.money(x)}`.trim(); };
 
-  /** The choices listed (on the pitch and in the Week sheet): ten at most. The single-move rows they
-   *  replaced (decision 6) went with their renderers on 2026-10-13 ("Same list, both modes"): their moves are choices. */
-  const MORE_SUGGESTIONS = 10;
   /** B31: after a +, the choices re-flow (the list re-sorts, the pitch's tabs move): a tap within ADD_HOLD_MS of that
    *  redraw lands on whatever moved under the finger (ui.js, Birman s50: nothing changes under a finger already
-   *  moving), so it is ignored. Every + of a choice goes through it; one whose edit was made (`act()` true) leaves its
-   *  `moves` for xferRow's one tint (S.tint). */
+   *  moving), so it is ignored; never one in an open place, whose order is held while it is open (drawPlace: the
+   *  place's other buys landing re-sorted the week, askPlace, and its Swap went unanswered). Every + of a choice goes
+   *  through it; one whose edit was made (`act()` true) leaves its `moves` for xferRow's one tint (S.tint). */
   const ADD_HOLD_MS = 500;
   const addOnce = (e, act, moves = []) => {
     e.stopPropagation();
-    if (S.addAt && S.flowAt >= S.addAt && Date.now() - S.flowAt < ADD_HOLD_MS) return;
+    if (S.addAt && S.flowAt >= S.addAt && Date.now() - S.flowAt < ADD_HOLD_MS && !e.target?.closest?.('.ah-place')) return;
     S.addAt = Date.now();
     if (act()) S.tint = moves;
   };

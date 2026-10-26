@@ -478,6 +478,7 @@ button.ah-tok { cursor: pointer; }
    under them where they leave it no room (a larger text size: "1 transfer / +1.6 xP"), never wider than that room */
 .ah-tok.st { flex-wrap: wrap; row-gap: 0; height: auto; min-height: 26px; padding-top: 3px; padding-bottom: 3px; white-space: normal; }
 .ah-tok.st > .ah-tl { text-align: left; }
+.ah-tok.st > .ah-tw { flex-basis: 100%; text-align: left; }  /* the lineup notice under its words and number (statusTok) */
 .ah-tok .ah-tnum > .ah-bg:first-child { margin-left: 0; }
 .ah-tok.two { padding: 0; }
 .ah-tok.two::before { content: none; }
@@ -493,7 +494,10 @@ button.ah-tok { cursor: pointer; }
 /* the week's best move, first in the stack (ahead.js tokensOf; the owner, 2026-10-26, "Ink token, top of stack"): ink as
    its plate, its plate's first buy and number, "Evanilson +1.6" (a plan's too: "yes do both"); fitted as the other
    tokens (its "xP", a smaller number), then its name shortened as the plates' (.cut), never its number */
-.ah-tok.mv { background: var(--sp-ink); color: #FFFFFF; box-shadow: 0 1px 2px rgb(0 0 0 / .3), var(--sp-edge); --xp-c: var(--xp-d); }
+.ah-tok.mv, .ah-tok.st.best { background: var(--sp-ink); color: #FFFFFF; box-shadow: 0 1px 2px rgb(0 0 0 / .3), var(--sp-edge); --xp-c: var(--xp-d); }
+/* "Rolling is best" ink as the week's best move (ahead.js statusTok; the owner, 2026-10-27, "Make it black"), the lineup
+   notice under it light on the ink */
+.ah-tok.st.best .ah-tw { color: rgb(255 255 255 / .75); }
 .ah-tok.mv > .ah-tl { display: flex; align-items: center; gap: .25em; }
 .ah-tok.mv .ah-tn { flex: none; }
 .ah-tok.mv .ah-tnum { flex: none; color: var(--xp-d); }
