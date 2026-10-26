@@ -752,18 +752,63 @@ const pollMs = (b) => (b.state === 'ready' && b.bake?.chips?.pending ? POLL_MS.c
 const BACKOFF_MS = [5000, 10000, 20000, 30000];
 
 /** GET the bundle. With the same entry's previous bundle, ask with ?have=<its version>: an unchanged
- *  data version comes back without players and seeds (api/mobile.py bundle), so keep the old ones; and with ?hc=<its
- *  cards' stamp>: the same cards come back as none, kept as well (their own stamp: their inputs aren't the plan's
- *  version's). Its prices block
+ *  data version comes back without players and seeds (api/mobile.py bundle), so keep the old ones. Its prices block
  *  (FPL's projections read since the snapshot) comes with every reply; derive lays it over the players kept. It plans
- *  the weeks this browser picked for the team (weeksOf, as prev's locks allow). */
+ *  the weeks this browser picked for the team (weeksOf, as prev's locks allow). The cards come apart (cl=1: askCards)
+ *  and ride on every bundle as held (held: none until the first land). */
 async function fetchBundle(entry, { refresh = false, prev = null } = {}) {
   const same = String(prev?.entry?.id) === String(entry);
   const have = prev?.version && same ? prev.version : null;
-  const hc = prev?.cards && same ? prev.cards_v : null;
-  const b = await api.getBundle(entry, { refresh, have, hc, w: weeksOf(entry, prev) });
-  const cards = b.cards ?? (hc && b.cards_v === hc ? prev.cards : null);
-  return { ...(have && b.version === have && b.players == null && b.seeds == null ? { ...b, players: prev.players, seeds: prev.seeds } : b), cards };
+  // a bundle held from before (a snapshot's, a loader's) brings its cards: their stamp is asked again, not the cards
+  if (same && prev.cards && String(held.entry) !== String(entry)) Object.assign(held, { entry: String(entry), cards: prev.cards, v: prev.cards_v ?? null, version: prev.version ?? null, key: null, at: 0 });
+  const w = weeksOf(entry, prev ?? undefined);
+  const b = await api.getBundle(entry, { refresh, have, w, cl: true });
+  askCards(entry, b, w);
+  // only cards asked after a bundle of this data version (the review, 2026-10-26: a finished GW's bundle came with the
+  // GW before's cards until the new ones landed): none meanwhile, and a card opened asks GET /api/m/player
+  const mine = String(held.entry) === String(entry) && held.version === b.version ? held : { cards: null, v: null };
+  return { ...(have && b.version === have && b.players == null && b.seeds == null ? { ...b, players: prev.players, seeds: prev.seeds } : b),
+    // a server that sent them anyway (one from before cl) is read as before
+    ...(b.cards ? {} : { cards: mine.cards, cards_v: mine.v }) };
+}
+
+// ================================================================ the cards (api/card.py), apart from the bundle
+
+/** The players' cards (sheets/player.js fromBundle) of one entry, asked right after its bundle (GET /api/m/cards; the
+ *  user, 2026-10-26: "find why cards initially 1.1 MB and fix": they held a new team's first bundle up through the
+ *  tunnel, and the pitch draws without them): cards and their stamp `v` (asked again with ?hc=v: the same cards come
+ *  back as none), `key` the bundle they were asked after, `at` when. A card opened before they land asks GET
+ *  /api/m/player, as it does for a player the bundle doesn't carry. */
+const held = { entry: null, cards: null, v: null, version: null, key: null, at: 0, asking: false };
+/** The cards are asked once the plan is in (its base road, or none coming: firstLoad's wait; a first load's baking
+ *  polls don't share the tunnel with them, the review, 2026-10-26), again after a bundle whose players may have changed (a new data version or roads, a
+ *  state) or after CARDS_AGAIN_MS (plan memory's own players), never two at once; `version`: the data version of the
+ *  bundle they were asked after, `w` its weeks. */
+const CARDS_AGAIN_MS = 120000;
+function askCards(entry, b, w) {
+  if (!b?.entry || (!b.roads?.base && (b.state === 'baking' || b.state === 'updating')) || held.asking && String(held.entry) === String(entry)) return;
+  if (String(held.entry) !== String(entry)) Object.assign(held, { entry: String(entry), cards: null, v: null, version: null, key: null, at: 0 });
+  const key = [b.version, b.meta?.roads_version, b.state].join('|');
+  if (held.key === key && Date.now() - held.at < CARDS_AGAIN_MS) return;
+  const hc = held.cards ? held.v : null;
+  held.asking = true;
+  api.getCards({ entry, hc, w }).then((c) => {
+    if (String(held.entry) !== String(entry)) return;
+    const got = c.cards ?? (hc && c.cards_v === hc ? held.cards : null);
+    Object.assign(held, { cards: got, v: got ? c.cards_v : null, version: b.version, key, at: Date.now() });
+    landCards(entry);
+  }, () => {}).finally(() => { if (String(held.entry) === String(entry)) held.asking = false; });  // failed: asked with the next bundle
+}
+/** Cards landed: into the bundle on screen, quietly and in place (no reader draws from them until a card opens; its
+ *  identity kept, which ahead.js inputsOf and the plan's memos key on: a new object made the plan's inputs anew, and
+ *  QA about-clips' card waited on it), loader.last moving with it, and into the offline snapshot. */
+function landCards(entry) {
+  const b = store.get('bundle');
+  if (!b || String(store.get('entry')) !== String(entry) || String(b.entry?.id) !== String(entry) || b.version !== held.version || b.cards === held.cards) return;
+  const was = loader.last === JSON.stringify(b);
+  Object.assign(b, { cards: held.cards, cards_v: held.v });
+  if (was) loader.last = JSON.stringify(b);
+  if (store.get('conn')?.state !== 'offline' && !store.get('conn')?.snapshot && b.roads?.base) api.saveSnapshot(entry, b);
 }
 
 const loader = {
@@ -1026,6 +1071,7 @@ function signOut({ away = false } = {}) {
   loading++;
   drop();
   store.set({ entry: null, bundle: null, data: null, memory: null });
+  Object.assign(held, { entry: null, cards: null, v: null, version: null, key: null, at: 0, asking: false });
   loader.last = '';
   history.replaceState(history.state, '', `#/${SCREEN}`);  // a sheet's entry keeps its marker (B45: carried down)
   showConnect();
@@ -1094,6 +1140,8 @@ async function reloadIfReleased() {
 
 let pendingReveal = false;
 let loading = 0;
+const SLOW_MS = 12000;
+const SLOW_COPY = 'Still loading: a slow connection can take a minute or two.';
 
 /** The first load of a team (Connect, Switch team, a recent row): the form stays, dimmed, under it one line
  *  "Planning GW6–9" and a thin bar (DESIGN_V2 §3; etaBar: a sweep until a road is done), until the base road is in;
@@ -1129,10 +1177,12 @@ async function firstLoad(entry) {
     showConnect({ error: api.plain(e, { entry }), retry, value: entry });
   };
   show(null);
+  // a slow tunnel's first bundle (api.FIRST_BUNDLE_TIMEOUT_MS) is on its way, not busy: said under the line after SLOW_MS
+  const slow = setTimeout(() => { if (my === loading && $('.m-prog-t', prog)) prog.append(h('p.m-prog-t.m-prog-slow', null, SLOW_COPY)); }, SLOW_MS);
   let b;
   try {
-    b = await api.getBundle(entry, { w: weeksOf(entry) });
-  } catch (e) { return back(e); }
+    b = await fetchBundle(entry);
+  } catch (e) { return back(e); } finally { clearTimeout(slow); }
   if (my !== loading) return;
   if (b.state === 'offline-data' || !b.entry) return enter(entry, b);  // no next GW: nothing to plan
   show(b);

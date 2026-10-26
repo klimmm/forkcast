@@ -546,6 +546,10 @@ p { margin: 0; }
    Helvetica and Arial 0.278em) */
 #toasts .toast .toast-msg { --toast-sp: .28em; column-gap: var(--toast-sp); }
 #toasts .toast .toast-tail { margin-inline-start: calc(-1 * var(--toast-sp)); padding-inline-start: var(--toast-sp); text-indent: calc(-1 * var(--toast-sp)); }
+/* a number on a line of its own: its " · " not drawn, still in its words (ui.js fit: .tailrow; the owner, 2026-10-26, of a
+   take's toast, "why this takes 3 lines": no line opened with "·") */
+#toasts .toast .toast-msg.tailrow .toast-tail { margin-inline-start: 0; padding-inline-start: 0; text-indent: 0; }
+#toasts .toast .toast-msg.tailrow .toast-sep { font-size: 0; }
 /* each number whole; a take's two (" · +2.6 vs rolling · total +4.0") may break between them (ui.js toastWords) */
 #toasts .toast .toast-num > span { white-space: pre; }
 /* ui.toast, past three lines: the lines each part keeps (the tail up to two, the number on its first); in the head its
@@ -555,6 +559,35 @@ p { margin: 0; }
 #toasts .toast .toast-msg.long .toast-lead { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; -webkit-line-clamp: var(--lead-lines, 2); line-clamp: var(--lead-lines, 2); }
 #toasts .toast .toast-msg.long .toast-also { display: block; }
 #toasts .toast .toast-msg.long .toast-tail { -webkit-line-clamp: var(--tail-lines, 1); line-clamp: var(--tail-lines, 1); }
+/* ui.toast, a take's receipt in two rows where its words with its buttons beside them take more than one line (.split:
+   ui.js fit; the owner, 2026-10-26: "GW9 Calvert-Lewin → Evanilson · frozen · +1.6 vs rolling" with Why and Undo two
+   lines at 393 and 320 px, no line opened with "·", "why this takes 3 lines"): the head on the first row, the toast's
+   whole width, on one line, the sales clipping first ("GW9 Calvert-L… → Evanilson"), then the clauses that may
+   (.toast-may: "· frozen", "· 2 transfers in GW9"), the buy last, each with "…", every other clause whole ("… removed",
+   ui.js fit: else not split); its one number on the second row at the left, its " · " not drawn (still in its words),
+   its buttons at the right, in their order; a warning's icon in a column of its own over both. The words' box
+   (.toast-msg) spans both rows, its parts on the toast's own columns (subgrid; without it, iOS < 16, no .split: ui.js
+   SPLITS) */
+@supports (grid-template-columns: subgrid) {
+  #toasts .toast.split { display: grid; grid-template-columns: [msg] minmax(0, 1fr) [b1] auto [b2] auto [end]; grid-template-rows: auto auto; column-gap: 0; row-gap: 2px; align-items: center; }
+  #toasts .toast.split:is(.warn, .error) { grid-template-columns: [icon] auto [msg] minmax(0, 1fr) [b1] auto [b2] auto [end]; }
+  #toasts .toast.split > .icon { grid-column: icon; grid-row: 1 / 3; }
+  #toasts .toast.split .toast-msg { grid-column: msg / end; grid-row: 1 / 3; display: grid; grid-template-columns: subgrid; grid-template-rows: subgrid; align-items: center; column-gap: inherit; }
+  #toasts .toast.split .toast-head { grid-column: 1 / -1; grid-row: 1; display: flex; min-width: 0; overflow: hidden; white-space: nowrap; }
+  #toasts .toast.split :is(.toast-lead.moves, .toast-also) { display: contents; }
+  #toasts .toast.split .toast-head :where(.toast-lead, .toast-from, .toast-to, .toast-also > span) { flex: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+  #toasts .toast.split .toast-head :is(.toast-lead:not(.moves), .toast-from) { flex: 0 1000 auto; min-width: 3.5em; }
+  #toasts .toast.split .toast-head .toast-may { flex: 0 10 auto; }
+  #toasts .toast.split .toast-head .toast-to { flex: 0 .01 auto; }  /* (a shrink weighed by its width: last, by far) */
+  #toasts .toast.split .toast-tail { grid-column: 1; grid-row: 2; margin: 0; padding: 0; text-indent: 0; }
+  #toasts .toast.split .toast-sep { font-size: 0; }
+  /* (its buttons take 22 px of the row, their 44 pt target reaching past it as in one row: .btn below; the toast's 12 px
+     gap before each, as a column of none, Undo alone, takes no room) */
+  #toasts .toast.split > .btn { grid-row: 2; margin-block: -11px; margin-inline-start: 8px; }
+  #toasts .toast.split > .icon { margin-inline-end: 12px; }
+  #toasts .toast.split > .btn:nth-of-type(1) { grid-column: b1; }
+  #toasts .toast.split > .btn:nth-last-of-type(2) { grid-column: b2; }  /* (the × the last button: Undo, alone too) */
+}
 /* Undo: a 44pt target (Birman #8) that takes 28 px in its row (negative margins): the toast stays one compact line,
    the button's box reaching 4 px past it above and below, and that box is the whole target, so placeToasts' "covers
    no control" check sees all of it */
@@ -674,6 +707,7 @@ p { margin: 0; }
 .m-prog:empty { display: none; }
 .m-prog-t { font: 400 var(--t-body)/1.3 var(--f-text); color: var(--ink-2); }
 .m-prog-t.warn { margin-top: 8px; color: var(--warn-ink); }
+.m-prog-t.m-prog-slow { margin-top: 8px; }
 .m-bar { height: 4px; width: 100%; margin-top: 8px; border-radius: 2px; background: var(--track); overflow: hidden; }
 .m-bar i { display: block; height: 100%; width: 0; background: var(--acc-bg); transition: width .3s var(--ease); }
 
@@ -703,6 +737,9 @@ button.pm-pl:focus-visible { outline: 2px solid #fff; outline-offset: 2px; borde
 /* a landing's tint on a name plate (ahead.js render: the cards it changed) is a wash over the plate's own colour, which
    stays (m-tint fades a see-through background: on a plate the turf showed through) */
 .pm .pm-pn.m-shimmer.once { animation: pm-tint var(--dur) var(--ease); }
+/* (a ringed plate, an earlier week's buy: its ring held through the tint, never a dark inset growing in: the 1026b
+   review) */
+.pm .pm-card.bought:not(.is-in) .pm-pn.m-shimmer.once { animation-name: pm-tint-ring; }
 .pm-pl.blank .pm-kit { filter: grayscale(1) opacity(.6); }
 .pm-kit { position: relative; width: var(--pm-kit); height: var(--pm-kit); }
 /* a changed shirt is drawn at once (the old one, the back face, is not shown) and fades in */
@@ -735,6 +772,7 @@ button.pm-pl:focus-visible { outline: 2px solid #fff; outline-offset: 2px; borde
 @keyframes m-toast-nudge { 50% { transform: translateX(4px); } }
 @keyframes m-fade-in { from { opacity: 0; } }
 @keyframes pm-tint { from { box-shadow: inset 0 0 0 40px color-mix(in oklab, var(--acc-bg) 40%, transparent); } }
+@keyframes pm-tint-ring { from { box-shadow: inset 0 0 0 2px var(--plate-ink), inset 0 0 0 40px color-mix(in oklab, var(--acc-bg) 40%, transparent); } }
 @keyframes m-tint { from { background-color: color-mix(in oklab, var(--acc-bg) 18%, transparent); } }
 
 /* ------------------------------------------------------------------ Reduce Motion: app.css already shortens every

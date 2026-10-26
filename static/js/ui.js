@@ -102,6 +102,10 @@ export const xpNum = (text, tag = 'span', attrs = null, mark = true) => [h(`${ta
  *  forecast number, its sign its direction, never green or red (the user, 2026-10-22: worth doing is the solid + alone);
  *  `pre` before the sign inside the number ("≈" while it checks). */
 export const xpGain = (d, tag = 'span', attrs = null, mark = true, pre = '') => xpNum(`${pre}${fmt.signed(d)}`, tag, attrs, mark);
+/** Whether difference `d` reads as a gain where it is shown: its sign as fmt.signed (xpGain) draws it, so "+0.1" (a
+ *  0.05) is a gain and "0.0" or "−0.1" is not (a quiet plate that gains nothing, its number alone: ahead.js swapPlate
+ *  .loss; the owner, 2026-10-26, "mabe negatice plates not need names in them"). */
+export const shownGain = (d) => fmt.signed(d).startsWith('+');
 /** The text-only "xP" marker (xpNum's; m.css .xp-u): a span, never a <small> (a row's unit under its number is one:
  *  m-ahead.css .ah-lrow .rt small, .ah-bg small). */
 export const xpMark = () => h('span.xp-u', { 'aria-hidden': 'true' }, 'xP');
@@ -525,7 +529,7 @@ if (typeof addEventListener === 'function') {
   }
 }
 
-/** toast('Saved', 'ok'|'info'|'warn'|'error', {timeout, action:{label, onClick, keep}, actions, tag, replaces, onDismiss}) →
+/** toast('Saved', 'ok'|'info'|'warn'|'error', {timeout, action:{label, onClick, keep}, actions, tag, replaces, onDismiss, take}) →
  *  dismiss(), whose .update(msg) changes its words alone. actions: [{label, onClick}, …], buttons in that order (B89:
  *  "Try again" beside Undo); action is the one-button form. keep: the toast stays up after that action; an onClick that
  *  answers a promise (a sheet it opened, settled once that has closed: Forkcast's take's Why) holds it, no touch ending
@@ -535,16 +539,18 @@ if (typeof addEventListener === 'function') {
  *  kind, actions, tag and time, its place and its armed Undo kept; a button whose label stays is kept, as a finger may
  *  be on it), and its dismiss is returned; with none up, a new toast comes in. onDismiss: called once when the toast
  *  leaves any way but by one of its own buttons (a touch elsewhere, a newer toast with an action, ×, its time, another
- *  toast in its place: B22, the drift's toast keeps your plan then). */
+ *  toast in its place: B22, the drift's toast keeps your plan then). take: a take's receipt (Forkcast's addPlan), the
+ *  clauses of its words that may clip ([] none): two rows where it would take more than one line (fit, m.css .split). */
 /** A toast's words in parts → [head, num, rest]: its last " · +4.7 pts" with its weak word (" (narrow)") the number,
  *  kept whole; the words before it a head that may clip (m.css: never more than three lines in all; the reviews,
  *  2026-10-11: long toasts covered the week switcher, and a clip at the end would take the number every toast ends
  *  with, B145); the words after it (an edit's ending, "· Forkcast rates them level: …") the rest, which wraps under it
- *  (review 5, 2026-10-12: held whole with the number they ran off the toast). A take's or a removal's two numbers are
- *  one, " · +2.6 vs rolling · total +4.0" (COPY.planGain, changeNum: the user, 2026-10-21, fix all (first-use proposal
- *  #1); "vs your plan" in a week of yours: decision K, 2026-10-25), so neither clips. No number: [m, '', '']. */
+ *  (review 5, 2026-10-12: held whole with the number they ran off the toast). A choice's number, " · +2.6 vs rolling"
+ *  (a take's and a removal's: COPY.planGain; the owner, 2026-10-26: no "· total" beside it; "vs your plan" in a week of
+ *  yours: decision K, 2026-10-25), with a "· total +4.0" after it where one is said, is one, so neither clips (a Wildcard's
+ *  or Free Hit's "· +6.2 vs rolling" from Chips… too, its "· 3.0 less than in GW8" the rest). No number: [m, '', '']. */
 export const toastParts = (m) => {
-  const cut = [...m.matchAll(/ · (?:[+−-]?\d[\d.,]* pts\b(?: \([a-z ]+\))?|(?:[+−-]?\d[\d,]*(?:\.\d+)? vs (?:rolling|your plan) · )?total [+−-]?\d[\d,]*(?:\.\d+)?)/g)].at(-1);
+  const cut = [...m.matchAll(/ · (?:[+−-]?\d[\d.,]* pts\b(?: \([a-z ]+\))?|[+−-]?\d[\d,]*(?:\.\d+)? vs (?:rolling|your plan)(?: · total [+−-]?\d[\d,]*(?:\.\d+)?)?|total [+−-]?\d[\d,]*(?:\.\d+)?)/g)].at(-1);
   return cut ? [m.slice(0, cut.index), cut[0], m.slice(cut.index + cut[0].length)] : [m, '', ''];
 };
 /** A toast's head (toastParts') in parts → [lead, also]: its first part, to its first " · " (a take's moves: what clips),
@@ -556,21 +562,33 @@ export const toastLead = (head) => { const i = head.indexOf(' · '); return i < 
  *  and Undo is too narrow for both; never narrower than one of them: its buttons go under its words then), and the tail
  *  on a line of its own flush with the line above (m.css --toast-sp: its " · " keeps its space); the head's
  *  lead (.toast-lead) clips before what follows it (.toast-also: toastLead). */
-const toastWords = (m) => {
+const toastWords = (m, clips = null) => {
   if (typeof m !== 'string') return m;
   const [head, num, rest] = toastParts(m);
   const [lead, also] = toastLead(head);
-  const words = h('span.toast-head', null, h('span.toast-lead', null, lead), also ? h('span.toast-also', null, also) : null);
+  // the lead's last buy apart from what comes before it (a take's "GW9 Calvert-Lewin" | " → Evanilson"): on a take's
+  // one-line head (.split) the sale clips before the buy (m.css), so the player a take brings in stays named; what follows
+  // the lead a clause a span, those of `clips` (a take's rule word and its week's count: ahead.addPlan) clipping next,
+  // the rest whole ("… removed", "Free Hit in GW8 taken off": the 1026b judges, a clipped "removed" flips the meaning)
+  const to = lead.lastIndexOf(' → ');
+  const words = h('span.toast-head', null,
+    h('span.toast-lead', { class: { moves: to > 0 } }, to > 0 ? [h('span.toast-from', null, lead.slice(0, to)), h('span.toast-to', null, lead.slice(to))] : lead),
+    also ? h('span.toast-also', null, also.split(/(?= · )/).map((c) => h('span', { class: { 'toast-may': !!clips?.includes(c.slice(3)) } }, c))) : null);
   if (!num) return words;
-  const nums = num.split(/(?= · total )/).flatMap((x, j) => (j ? [' ', h('span', null, x.slice(1))] : [h('span', null, x)]));
+  // its " · " a span of its own (.toast-sep), not drawn where the number opens a row of its own (.split: the owner,
+  // 2026-10-26, of a take's toast, "why this takes 3 lines": a line opened with "·"), still in its words
+  const nums = num.split(/(?= · total )/).flatMap((x, j) => (j ? [' ', h('span', null, x.slice(1))] : [h('span', null, h('span.toast-sep', null, x.slice(0, 3)), x.slice(3))]));
   return [words, h('span.toast-tail', null, h('span.toast-num', null, nums), rest)];
 };
+/** Whether this browser lays a take's toast out in two rows (m.css .toast.split: its parts on the toast's own columns,
+ *  subgrid, iOS 16+); without it the take's toast keeps the wrapping way every toast has (the 1026b judges). */
+const SPLITS = !!globalThis.CSS?.supports?.('grid-template-columns', 'subgrid');
 
 export function toast(msg, kind = 'info', opts = {}) {
   const region = toastRegion();
   const up = opts.replaces ? [...region.children].find((t) => t.dataset.tag === opts.replaces && !t.classList.contains('leaving')) : null;
   if (up?.retoast) return up.retoast(msg, kind, opts);
-  let ic = null, kd = null, btns = [], ms = 0, timer = 0, ondis = null;
+  let ic = null, kd = null, btns = [], ms = 0, timer = 0, ondis = null, take = null;
   const dismiss = () => {
     if (!el.isConnected || el.classList.contains('leaving')) return;
     STAYING.delete(stay);
@@ -599,12 +617,27 @@ export function toast(msg, kind = 'info', opts = {}) {
   // that line one of them, its words clip (m.css .toast-msg.long), never its number (toastWords): the tail keeps up to
   // two lines (the number and the rest's first), the head what is left, three with no tail. The head's lead clips first:
   // what follows it keeps its lines (.toast-also, measured as it lies once long)
+  // A take's toast (opts.take: ahead.addPlan, the clauses that may clip), past one line with its buttons beside it, is
+  // two rows (m.css .toast.split): its head on the first, the toast's whole width, on one line (the sales clip first,
+  // then the clauses of `take`, the buy last, each with "…"; the other clauses whole), and its one number on the second
+  // beside its buttons, its " · " not drawn (the owner, 2026-10-26: "GW9 Calvert-Lewin → Evanilson · frozen · +1.6 vs
+  // rolling", two lines at 393 and 320 px, no line opened with "·", "why this takes 3 lines"; Saffer p. 92, "convey the
+  // most with the least"). Where the head or the number can't (a larger text size, an armband's ending past the number),
+  // the way every toast has, below
   const fit = () => globalThis.requestAnimationFrame?.(() => {
     if (!text.isConnected) return;
-    text.classList.remove('long');
-    el.classList.remove('under');
+    text.classList.remove('long', 'tailrow');
+    el.classList.remove('under', 'split');
     const lh = parseFloat(getComputedStyle(text).lineHeight) || 17;
     const lines = (e) => (e ? Math.round(e.getBoundingClientRect().height / lh) : 0);
+    const tail = text.querySelector('.toast-tail');
+    if (take && SPLITS && tail && btns.length && text.getBoundingClientRect().height > lh + 1) {
+      el.classList.add('split');
+      const whole = (e) => !e || e.scrollWidth <= e.clientWidth + 1;
+      const head = text.querySelector('.toast-head');
+      if (whole(tail) && lines(tail) <= 1 && whole(head) && whole(text.querySelector('.toast-to')) && [...text.querySelectorAll('.toast-also > span:not(.toast-may)')].every(whole)) return;
+      el.classList.remove('split');
+    }
     const under = btns.some((b) => { const r = b.el.getBoundingClientRect(); return r.height && r.top + r.height / 2 > text.getBoundingClientRect().bottom; });
     el.classList.toggle('under', under);
     const box = text.getBoundingClientRect();
@@ -617,9 +650,14 @@ export function toast(msg, kind = 'info', opts = {}) {
       text.style.setProperty('--lead-lines', Math.max(1, most - t - lines(text.querySelector('.toast-also'))));
     }
     text.classList.toggle('long', long);
+    // its number on a line of its own: its " · " not drawn there (m.css .tailrow; the owner, 2026-10-26: no line opened
+    // with "·")
+    const tl = text.querySelector('.toast-tail'), hd = text.querySelector('.toast-head');
+    text.classList.toggle('tailrow', !!tl && !!hd && tl.getBoundingClientRect().top >= hd.getBoundingClientRect().bottom - 0.5);
   });
-  dismiss.update = (m) => { if (el.isConnected && !el.classList.contains('leaving')) { fill(text, toastWords(m)); fit(); } };
-  el.retoast = (m, k, { timeout = 4500, action, actions, tag = null, onDismiss = null } = {}) => {
+  dismiss.update = (m) => { if (el.isConnected && !el.classList.contains('leaving')) { fill(text, toastWords(m, take)); fit(); } };
+  el.retoast = (m, k, { timeout = 4500, action, actions, tag = null, onDismiss = null, take: tk = null } = {}) => {
+    take = tk;
     const left = ondis;  // the toast this one takes the place of has left
     ondis = null;
     left?.();
@@ -631,7 +669,7 @@ export function toast(msg, kind = 'info', opts = {}) {
       if (ic) ic.replaceWith(i); else el.prepend(i);
       ic = i;
     }
-    fill(text, toastWords(m));
+    fill(text, toastWords(m, take));
     fit();
     const list = actions ?? (action ? [action] : []);
     const had = new Map(btns.map((b) => [b.label, b]));

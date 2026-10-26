@@ -361,7 +361,8 @@ export function fitFixtures(root) {
  * One player card, on the pitch (.pm-pl) or the bench (.pm-bs, `order` = 'goalkeeper' | 'substitute n'): a shirt
  * tile (C / V top-left, a flag top-right, "OUT GW8" bottom-right when a caller passes `sold`; where the plan differs
  * from your FPL team, `fpl`: nothing drawn, said on the card), the
- * name plate (flag-coloured when flagged, else ink when bought this GW, dark when sold later: F16) and the second plate: what
+ * name plate (flag-coloured when flagged, else ink when bought this GW, ink-ringed when bought in an earlier GW of the
+ * plan, dark when sold later: F16) and the second plate: what
  * `second` says (fixture and points by default).
  */
 function card(id, P, o, { flipFrom = null, order = null } = {}) {
@@ -382,7 +383,8 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
   // 2026-10-14: "why haaland design fucked with points moved to next row": M9's "6.1 × 2" was 36 px beside a 28 px
   // fixture on a 62 px plate at 375, so the captain's alone took two lines); his card's spoken label says "6.1 times 2"
   const pts = platePts(xp, mult);
-  // M9 / M5: a buy of this GW only, never an earlier week's; with `inFor` every buy of the week, one of your FPL team
+  // M9 / M5: the ink plate a buy of this GW only (an earlier week's buy keeps `bought`: an ink ring inside his plain plate,
+  // plan-pitch.css, the owner 2026-10-26); with `inFor` every buy of the week, one of your FPL team
   // bought back too (his Why sheet's: o.why): his name plate ink (`is-in`, plan-pitch.css: no badge, no green; the owner,
   // 2026-10-25, "not with green tab and sign 'in' in it"), the player he replaces in his spoken label and his Why sheet
   const by = o.inFor?.[id];  // the player he replaces, or true in a squad week (a Wildcard or Free Hit)
@@ -521,7 +523,8 @@ export function pitchCard(id, { players = {}, gw, horizon, second = 'both', boug
  *   xi, bench, captain, vice, chip, players, gw, horizon   as renderPitch (horizon: GWs row.xp starts at)
  *   first      gw is the next deadline's GW: WhoScored's preview feeds the flags
  *   bought     {id: gw}: players not in the real squad, each with the GW he was bought in (F16): an ink name plate
- *              only in the GW he was bought in (M9; a flag's colour wins)
+ *              in the GW he was bought in (M9), an ink ring inside his plain plate in the plan's later weeks (the
+ *              owner, 2026-10-26; a flag's colour wins, the ring kept over it)
  *   inFor      {id: name | true}: this GW's buys, each with the player he replaces: the ink name plate, the player he
  *              replaces in his spoken label (M5; the user, 2026-10-22); true in a Wildcard / Free Hit week
  *   second     the second plate (F16 Player data): 'both' (default, "LEE (H) 4.6"), 'fx' ("LEE (H)"), 'pts' ("4.6"),

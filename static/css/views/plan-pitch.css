@@ -396,8 +396,17 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
 .pm .pm-px.approx::before { content: "≈"; margin-right: 1px; color: var(--plate-2-ink); }
 .pm .pm-card.sold .pm-pn { background: var(--pm-sold); color: #FFFFFF; }
 /* bought this GW (M9, `is-in`): the name plate ink, as the plates of the moves suggested over the pitch, no badge and no
-   green, a buy of an earlier week plain (the owner, 2026-10-25: "the player transferred in must be highlited in same style as transfer suggested like with black or something not with green tab and sign 'in' in it it looks sily overall"; then "Transfer week only") */
+   green, a buy of an earlier week ink-ringed (below; the owner, 2026-10-25: "the player transferred in must be highlited in same style as transfer suggested like with black or something not with green tab and sign 'in' in it it looks sily overall"; then "Transfer week only") */
 .pm .pm-card.is-in .pm-pn { background: var(--plate-ink); color: var(--plate); }
+/* bought in an earlier GW of the plan (`bought`, not `is-in`: ahead.js boughtIn, every later week he is in the plan's
+   squad and not yet in your FPL team): the same ink one step quieter, a 2 px ring of the ink plate's own ink inside his
+   plain name plate (an inset shadow: it follows the plate's corners), so he reads as "a buy of yours, older" beside this
+   week's solid ink buy and the best's solid ink plate and token (decision I, the owner, 2026-10-26: "evanilson bought
+   in first gameweek can be still highlithed somehow similiar to black in futher weeks", picked "Black ring"; Johnson
+   ch. 2, Similarity: alike looks are seen as one group, the weight sets their order). 17.6:1 on the white plate, 9.4:1
+   on the amber flag, 3.5:1 on the red one, whose fill it keeps (the flag's colour wins, the ring only an edge). Its side
+   padding 2 px, the ring's width, so a long name's "…" stops at the ring, never under it */
+.pm .pm-card.bought:not(.is-in) .pm-pn { padding: 0 2px; box-shadow: inset 0 0 0 2px var(--plate-ink); }
 .pm .pm-card.f-amber .pm-pn { background: var(--warn); color: #1B1300; }
 .pm .pm-card.f-red .pm-pn { background: var(--out); color: #FFFFFF; }
 

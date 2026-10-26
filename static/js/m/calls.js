@@ -276,12 +276,11 @@ export const COPY = Object.freeze({
   removedNeeded: (a, bs, names) => `${andList([a, ...bs])} removed: ${andList(names)} needed the money`,
   /** A funded buy removed: the sales that freed its money stay, each a transfer of its own (ahead.removeMove). */
   keptOwn: (moves) => `${andList(moves)} kept as ${moves.length > 1 ? 'transfers of their own' : 'a transfer of its own'}`,
-  /** A4: a week with no transfer, its verdict in its row; B52: who left it empty (ahead.emptyHead): under the hold "No
-   *  transfers yet" ("No transfer pays this week" when none listed beat your plan went, the user 2026-10-18: "remove
-   *  'no transfer pays the week'"); no edit reaches it (GW A under way) "No transfers"; off the hold a week Forkcast's plan leaves empty "Forkcast rolls GW8" ("No transfers" while
+  /** A4: a week with no transfer, its verdict in its row; B52: who left it empty (ahead.emptyHead): under the hold the
+   *  Roll's own words, "Rolling" (COPY.rollingNow; "No transfers yet" went: the owner, 2026-10-26, "no transfer yeat
+   *  remove since rolling already show it"); no edit reaches it (GW A under way) "No transfers"; off the hold a week Forkcast's plan leaves empty "Forkcast rolls GW8" ("No transfers" while
    *  an edit's check may still re-plan it: review 5, 2026-10-12; and in a week a Roll rule holds, rollRule: a suggested
    *  plan's + since 2026-10-13, or an older plan's Roll, kept on load by memory.normalizeAccepted). */
-  noTransfersYet: 'No transfers yet',
   noTransfers: 'No transfers',
   forkcastRolls: (gw) => `Forkcast rolls GW${gw}`,
   rollKeeps: (ft, gw) => `${ft} FT in GW${gw}`,
@@ -442,7 +441,8 @@ export const COPY = Object.freeze({
       'In a GW with a transfer, Wildcard or Free Hit of yours, every choice, Roll too, is vs your plan: worse than yours is negative.',
       'Vs rolling, both sides get Forkcast\'s best later moves (none after a Wildcard), so the free transfer rolling saves can be used.',
       'Taking a choice adds its GW\'s moves alone, not the later ones its number counts, so the total can move by another amount.',
-      'Its message names both: its number vs rolling, then total, what your total moved by.',
+      // (the owner, 2026-10-26: "what means +1.6 vs rolling but total +5.1": the take's message says one number)
+      'Its message says that number again; the total at the top shows its own change once the message goes.',
       'Green: it beats the alternative by enough to act on.',
       'Grey: not worth acting on: a plan or chip that doesn\'t beat what it counts against by enough, or a gap too small to matter.',
       // (the user, 2026-10-21, "Same both times, worse ones too": the moves the 2026-10-18 bars keep from being the week's
@@ -453,8 +453,11 @@ export const COPY = Object.freeze({
       '≈ in a Sell list is vs keeping him. Once made, the transfer\'s number is vs rolling instead, so it can differ.',
     ]],
     ['What the marks mean', [
-      'Green name plate: not in your FPL team yet. IN: bought this GW; tap him for who he replaces and why.',
-      'Short bar under a GW: changed since you last looked.',
+      // (decision I: the ink plate the transfer week's, an ink ring after it; the owner, 2026-10-26, picked "Black ring")
+      'Black name plate: bought this GW; tap him for who he replaces and why.',
+      'Black ring round a name: bought in an earlier GW of your plan, not in your FPL team yet.',
+      // (B61: the owner, 2026-10-26, picked "Struck old points" for the bar he asked about: "what this green line")
+      'Struck number on a GW: its points before a change you haven\'t looked at yet; "new": its moves changed.',
       'Dot in a GW\'s corner: your own lineup there. Reset lineup (pitch, top right, under Player data) brings the best one back.',
       `Lock on a GW: past your plan (${COPY.aheadHead}). Tap it to see how to plan it.`,
     ]],
@@ -649,6 +652,13 @@ export const COPY = Object.freeze({
   /** N7: a Free Hit or Wildcard week's moves as the squad they make, the week line's second line ("Wildcard +14.7" over
    *  "8 changes": ahead.renderLine). */
   nChanges: (n) => plural(n, 'change'),
+  /** B61 (the owner, 2026-10-26, of the bar it replaces: "what this green line"; picked "Struck old points"): a GW tile a
+   *  change landed in, until that week is shown, says the change in its own words, its points as they were struck
+   *  before them ("~~60.0~~ 61.8 xP", a shop's was-price; ahead.renderRail, tickWas), spoken "was 60.0 points"; a week
+   *  whose plan changed with its points the same says "new" (spoken "plan changed"). */
+  tileWas: (pts) => `was ${pts} points`,
+  tileNew: 'new',
+  tileNewSaid: 'plan changed',
   /** A bring-in's changes to a Wildcard or Free Hit week's squad, ending its moves line (ahead.inWords): "1 change to your
    *  Free Hit" (review 5, 2026-10-12: it read "12 transfers, no hit", the chip's own count, after one arrow). */
   chipChanges: (chip, n) => `${plural(n, 'change')} to your ${chipName(chip)}`,
@@ -949,7 +959,6 @@ export const COPY = Object.freeze({
    *  alone" where it has none (a pair's buy alone). */
   placeOr: (what) => `or ${what ? what.replace(/^a (?=\d)/, '') : 'alone'}`,
   rollingBest: 'Rolling is best',
-  rollingBestSaid: (g) => `Rolling is best in GW${g}: no transfer beats it; shows why`,
   /** A pair card's note, its other moves (ahead.noteOf; the user, 2026-10-22: "+ Gvardiol → …" began with the take's
    *  glyph): "also Semenyo → Palmer, Cunha → Rice". */
   placeAlso: (moves) => `also ${moves.join(', ')}`,
@@ -985,12 +994,14 @@ export const COPY = Object.freeze({
    *  was "numbers: gain over rolling, GW8–11"); while what they count against
    *  is still checked (ahead.plansVs null), its weeks alone. */
   placeNumbers: (vs, gws) => `${vs ? `Gain vs ${vs} · ` : ''}${span(gws)}`,
-  /** Your Roll beside the goal (ahead.tokensOf), alone: no "until you take a move" under it (the first-use run,
-   *  2026-10-21, "Why is it still dangling Silva in front of me?", had it say a move's Swap takes the Roll back; the
-   *  owner, 2026-10-26: "remove 'until you take a move'"). */
+  /** Your Roll, the week's status beside the goal (ahead.emptyHead, statusTok), alone: no "until you take a move" under
+   *  it (the first-use run, 2026-10-21, "Why is it still dangling Silva in front of me?", had it say a move's Swap takes
+   *  the Roll back; the owner, 2026-10-26: "remove 'until you take a move'"). */
   rollingOn: 'Rolling ✓',
-  chipYours: (chip) => `${chip} · yours`,
-  rollingSaid: (g) => `Rolling in GW${g}; takes the roll off`,
+  /** The week's status beside the goal (ahead.statusTok; the owner, 2026-10-26, of "Rolling": "why need button
+   *  'rolling' here if nothing happens if click it"): its words, then where its tap goes, "Rolling; opens GW9
+   *  transfers" (the strip under the GW tiles says the facts alone: the week said once). */
+  statusSaid: (said, g) => `${said}; opens ${COPY.weekTitle(g)}`,
   /** The Roll row's Why sheet in a week you roll (ahead.openPlanWhy; the first-use run, 2026-10-21: "Take GW8 roll" beside
    *  "No transfers yet"): nothing to take, so no Take there (the user, 2026-10-22: "+" offered only where it would change
    *  something). */
@@ -1004,10 +1015,8 @@ export const COPY = Object.freeze({
    *  its line: the user, 2026-10-22, "No row numbers"). */
   whyOneOf: (gw, n) => `GW${gw} · one of ${n} transfers: the week's number is on its line`,
   ftWithout: (gw, ft, without, n = 1) => `GW${gw}: ${ft} FT (${without} without ${n > 1 ? `these ${n} transfers` : 'this transfer'})`,
-  /** …on the pitch a status beside the goal with no + (ahead.tokensOf), its Week sheet row with none either; said with
-   *  what it is. */
+  /** …on the pitch the week's status beside the goal (ahead.emptyHead, statusTok), its Week sheet row with no + either. */
   rollingNow: 'Rolling',
-  rollingNowSaid: (g) => `Rolling in GW${g}: your plan makes no transfer there; shows why`,
   /** A lineup of yours that leaves a suggested buy on your bench (the buy takes the slot of the player he replaces:
    *  ahead.asTaken, ahead.benchedBuys), said in the lineup edit's toast and in his place's bar (the user, 2026-10-22:
    *  saved-lineup moves are explained, not changed): "Palmer would start on your bench". */
@@ -1020,19 +1029,23 @@ export const COPY = Object.freeze({
   planVs: (mine = false) => (mine ? 'your plan' : 'no transfers'),
   /** Under the hold a plan counts against rolling, Forkcast's best moves after it on both sides (ahead.plansOf; the user,
    *  2026-10-19: "Gain over rolling"): its row, heading and Why sheet say so; the Roll row is what they count against
-   *  (spoken, no number); a +'s toast says the row's number, then what your total moves by, each named ("GW9 Saka →
-   *  Palmer · +2.6 vs rolling · total +4.0"; a × that rolls the week again, the row's number turned round: ahead.removeMove;
-   *  the user, 2026-10-21: fix all (first-use proposal #1)); its Why sheet says what your total moves by when you take
-   *  it (the week alone) where that differs. */
+   *  (spoken, no number); a +'s toast says the row's number alone, the one it was chosen by ("GW9 Saka → Palmer · +2.6
+   *  vs rolling"; the owner, 2026-10-26: "what means +1.6 vs rolling but total +5.1": the 2026-10-21 "· total +4.0" beside
+   *  it read as a second verdict; a × that rolls the week again, the row's number turned round: ahead.removeMove); what
+   *  your total moves by is the header's change, and the Why sheet says it where that differs (planAdds, totalMoved). */
   planVsRoll: 'rolling',
   planRefSaid: 'what the plans count against',
-  planGain: (what, delta, total, vs = COPY.planVsRoll) => `${what} · ${COPY.pointsVs(delta, vs)} · ${COPY.changeNum(total, true)}`,
+  planGain: (what, delta, vs = COPY.planVsRoll) => `${what} · ${COPY.pointsVs(delta, vs)}`,
   vsRolling: (delta) => COPY.pointsVs(delta, COPY.planVsRoll),
   /** A number and what it counts against, "+1.6 vs rolling"; in a week with a transfer, Wildcard or Free Hit of yours
    *  "−0.2 vs your plan" (decision K, the owner, 2026-10-25: "compare + poitns not to rolling now but to transfer made";
    *  ahead.choiceVs). */
   pointsVs: (delta, vs) => `${pts(delta)} vs ${vs}`,
   planAdds: (delta) => `Your total: ${pts(delta)} when you take it`,
+  /** A taken move's Why sheet (ahead.openWhy), under its number vs rolling where your total moved by another amount: what
+   *  that total counts it against, in the plans' own words (planVs: "no transfers", "your plan"; the owner, 2026-10-26:
+   *  "what means +1.6 vs rolling but total +5.1"). One line: the take's toast says the number alone. */
+  totalMoved: (delta, mine = false) => `Your total moved ${pts(delta)}: vs ${mine ? 'your plan without it' : COPY.planVs(false)}, not vs rolling`,
   /** A choice's Why sheet, what its number counts after its week (ahead.countedAfter; the user, 2026-10-21: fix all
    *  (first-use proposal #3)): its head, the roll's plan named, and a plan's line, "Rolling: GW9 Saka → Palmer · GW11
    *  Rice → Wirtz" (its weeks in words: ahead.planWeeks), one that makes no later move "no transfers". */

@@ -122,6 +122,16 @@ export const recent = {
 
 export const TIMEOUT_MS = 10000;
 export const BUNDLE_TIMEOUT_MS = 30000;  // a cold bundle can wait on the entry fetch and the seed matrix
+// The first bundle (no `have`: a new team, a new browser) through the public tunnel (the user, 2026-10-26, "Busy right
+// now" on a new team and then on his own; measured that day: localhost.run at 1-15 KB/s with 10 s stalls). Its forwarder
+// reads an answer whole before any of it reaches the phone, so the phone sees nothing until the last byte: its wait is
+// the server's answer plus the whole transfer. Without the cards (cl=1) a bundle is ~205 KB gzipped, ~176 KB of it the
+// players and seeds a later bundle leaves out (have); after a server's own first answer (~15 s cold) 120 s carries it at
+// 2 KB/s, the low end of that day's rates, where 30 s carried it only above ~14 KB/s. Polls keep BUNDLE_TIMEOUT_MS (B41).
+export const FIRST_BUNDLE_TIMEOUT_MS = 120000;
+// The cards, asked right after a bundle (getCards): ~125 KB gzipped at most, nothing waits on them (a card opened before
+// they land asks GET /api/m/player), so they get the time 1 KB/s needs.
+export const CARDS_TIMEOUT_MS = 180000;
 
 function fail(code, message, { status = 0, detail = '', path = '' } = {}) {
   const e = new ApiError(message, { status, detail, path });
@@ -181,8 +191,57 @@ export const getMeta = () => get('/api/meta');
  * prices block (FPL's price projections read since the snapshot, calls.withPrices) comes every time. w = the plan's
  * weeks (You → Plan ahead, calls.planWeeks; none: the server's longest).
  */
-export const getBundle = (entry, { refresh, have, hc, w, signal } = {}) =>
-  get('/api/m/bundle', { entry, refresh, have, hc, w }, { timeout: BUNDLE_TIMEOUT_MS, signal });
+export const getBundle = (entry, { refresh, have, hc, w, cl, signal } = {}) =>
+  get('/api/m/bundle', { entry, refresh, have, hc, w, cl: cl ? 1 : null }, { timeout: have ? BUNDLE_TIMEOUT_MS : FIRST_BUNDLE_TIMEOUT_MS, signal })
+    .then((b) => (b?.cards ? { ...b, cards: unpackCards(b.cards) } : b));
+/** The cards of the players the bundle carries (api/mobile.py cards: a bundle asked with cl=1 comes without them) →
+ *  {cards: unpacked (unpackCards), or null while `hc` is still their stamp, cards_v}. */
+export const getCards = ({ entry, hc, w, signal } = {}) =>
+  get('/api/m/cards', { entry, hc, w }, { timeout: CARDS_TIMEOUT_MS, signal })
+    .then((c) => ({ cards: unpackCards(c?.cards ?? null), cards_v: c?.cards_v ?? null }));
+
+// a past match: the fixture's fields and his own; a cup match: the tie's and his own (api/card.py STRIP_FIELDS, CUP_FIELDS)
+const MATCH = { fields: ['season', 'gw', 'opp', 'home', 'minutes', 'points', 'kickoff', 'fdr'], own: ['minutes', 'points'] };
+const CUP = { fields: ['league', 'season', 'kickoff', 'minutes', 'in_squad', 'after_gw', 'opp', 'opp_name', 'home'], own: ['minutes', 'in_squad'] };
+const VIEW = ['n', 'min', 'peer_min', 'matches', 'n_all'];
+/**
+ * The cards as api/card.py cards() made them, from its pack (the user, 2026-10-26: "find why cards initially 1.1 MB and
+ * fix"): each match from its fixture's row (`fx`, `cupfx`) and his own fields, rows and kinds from `lists`, each view's
+ * stats from its array in his position's order (`keys`); every value as sent, so sheets/player.js reads what it always
+ * read. Cards that aren't packed come back as they are; a pack this front end doesn't know, as none (each card then asks
+ * GET /api/m/player).
+ */
+export function unpackCards(c) {
+  if (!c || c.pack == null) return c ?? null;
+  if (c.pack !== 1) return null;
+  const matches = (flat, { fields, own }, table) => {
+    const shared = fields.filter((k) => !own.includes(k));
+    const out = [];
+    for (let i = 0; i < flat.length; i += 1 + own.length) {
+      const m = {};
+      shared.forEach((k, j) => { m[k] = table[flat[i]][j]; });
+      own.forEach((k, j) => { m[k] = flat[i + 1 + j]; });
+      out.push(Object.fromEntries(fields.map((k) => [k, m[k]])));
+    }
+    return out;
+  };
+  const players = {};
+  for (const [id, [pos, pos_avg, club, lm, cups, ...more]] of Object.entries(c.players)) {
+    const me = { pos, pos_avg, club, last_matches: matches(lm, MATCH, c.fx), cups: matches(cups, CUP, c.cupfx) };
+    if (more.length) {
+      const [rows, kinds, views] = more;
+      me.rows = [...c.lists[rows]];
+      me.kinds = [...c.lists[kinds]];
+      const n = VIEW.length;
+      me.stats = Object.fromEntries(Object.entries(views).map(([v, a]) => [v, {
+        ...Object.fromEntries(VIEW.map((k, j) => [k, a[j]])),
+        rows: Object.fromEntries(c.keys[pos].map((k, i) => [k, a.slice(n + 3 * i, n + 3 * i + 3)])),
+      }]));
+    }
+    players[id] = me;
+  }
+  return { season: c.season, season_rounds: c.season_rounds, dist: c.dist, cup_next: c.cup_next, players, v: c.v };
+}
 /** The per-run matrix for players outside the bundle → {ids, gws, runs, f32} (engine.decodeSeeds reads it), on the
  *  real-points scale of `entry`'s bundle (F15b: the plan service pins one scale per data version). */
 export const getSeeds = ({ gw, ids, entry }) => get('/api/m/seeds', { gw, ids: [...ids].join(','), entry });

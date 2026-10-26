@@ -7,7 +7,7 @@
    SCREEN   .ah-head (44 pt: the team's name centred over .ah-gwline, "Deadline Sat 10:00 · 1d 18h" and the total
             (.ah-dl the countdown), .ah-avatar grey initials, .ah-dot only when not up to date; the page name is a
             visually hidden h1.sr-only, app.css) · .ah-ctl (F16, the control row: .ah-railwrap the GW switcher, .ah-rail >
-            .ah-thumb + .ah-ticks > .ah-tick[.sel .heal .lu .chg .glow .bad .hover .edge], .ah-total its hidden summary; .ah-hint
+            .ah-thumb + .ah-ticks > .ah-tick[.sel .heal .lu .chg (.ah-was / .ah-new, .close .nowas) .glow .bad .hover .edge], .ah-total its hidden summary; .ah-hint
             under it) · .ah-blockhost > .ah-block the week line (its own section below; the same card in the Week
             sheet, .ah-wsheet .ah-block.ah-wk) · .ah-pitch (pitch and bench:
             one height every week, from the screen alone, ahead.js fitPitch; plan-pitch.css; .ah-pp corner pills:
@@ -172,13 +172,24 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
 .ah-tick.sel .g { color: var(--ink); font-weight: 600; }
 /* the selected week is the thumb alone (B6: no green for a selection); every week's points one style (the design review,
    2026-10-08: three styles for four totals, the viewed one the weakest) */
-.ah-tick.heal .p::before { content: "≈"; margin-right: 1px; color: var(--muted); font-weight: 400; }
+/* (on the points themselves, after a changed week's struck number: B61 below) */
+.ah-tick.heal .p.g-loss::before, .ah-tick.heal .p .xp::before { content: "≈"; margin-right: 1px; color: var(--muted); font-weight: 400; }
 /* a GW whose lineup is yours (a sub, the armband: the pitch's "Reset lineup" there): a small dot in its corner */
 .ah-tick.lu::after { content: ""; position: absolute; top: 5px; right: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--acc); }
-/* B61: a GW a change landed in, not shown since: a short bar along its bottom edge (static, so it stays under Reduce
-   Motion), on the edge itself: 3 px up it crossed the number's digits once the tiles were 40 px (the owner, 2026-10-26:
-   "what this green line and why it overlap a number") */
-.ah-tick.chg::before { content: ""; position: absolute; left: 50%; bottom: 0; width: 12px; height: 2px; margin-left: -6px; border-radius: 1px; background: var(--acc); }
+/* B61: a GW a change landed in, not shown since, says so before its points (ahead.js renderRail; the owner, 2026-10-26,
+   of the 12x2 green bar it replaces, which sat 4.5 px into "61.8" on a 36 px tile whose two lines need 39: "what this
+   green line and why it overlap a number"; picked "Struck old points"): its points as they were, struck, "~~60.0~~ 61.8
+   xP" (the week's own forecast, no sign, no green: never read as a gain), or "new" where only its moves changed. In the
+   tile's caption size (11 px at the default text size) and the control label's grey, a step darker than
+   --muted (7.8:1 on --track, 9.2:1 on the viewed week's white; the 1026b judges: --muted's 4.8:1 read as dirt at arm's
+   length); static, so Reduce Motion keeps it. Where the tile has no room (a 320 pt screen) it sits closer (.close),
+   then goes, the points and their "xP" staying (.nowas), on every marked tile alike (ahead.js renderRail: fitNum,
+   oneLook) */
+.ah-tick :is(.ah-was, .ah-new) { margin-right: 3px; font: 400 var(--t-cap)/1 var(--f-text); color: var(--ink-2); }
+.ah-tick .ah-was { text-decoration: line-through 1px; }
+.ah-tick.close :is(.ah-was, .ah-new) { margin-right: 2px; letter-spacing: -.2px; }
+.ah-tick.close:not(.nowas) .p .xp-u { margin-left: .1em; }
+.ah-tick.nowas :is(.ah-was, .ah-new) { display: none; }
 .ah-approx { color: var(--muted); font-weight: 400; margin-right: 1px; }
 /* a drag onto a GW (a shirt, a move, a chip): the GWs it may go to, the one under the finger */
 .ah-tick.glow { box-shadow: inset 0 0 0 1.5px var(--acc-bg); }
@@ -198,9 +209,9 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
 .ah-hint { z-index: 2; }
 
 /* ------------------------------------------------------------------ the week line (ahead.js renderLine): the viewed
-   GW's plan in one white 48 px row, two lines (the user, 2026-10-22: "WEEK LINE AT MOST 2 LINES") between the
-   GW switcher and the pitch, .ah-block > .ah-pbar (its button .ah-pbt: .ah-bt
-   your week in words, .ah-bs its quiet second; its doors .ah-door: Bring in… .ah-bring, Chips… .ah-chips). The same
+   GW's plan in one white 32 px strip, one line (the user, 2026-10-22: "WEEK LINE AT MOST 2 LINES"; the week's status
+   on the pitch since the owner's strip, 2026-10-26) between the GW switcher and the pitch, .ah-block > .ah-pbar (its
+   button .ah-pbt: .ah-bs its facts, .ah-bt the first week's baking words alone; its doors .ah-door: Bring in… .ah-bring, Chips… .ah-chips). The same
    card in the Week sheet (.ah-wsheet .ah-block.ah-wk, its rows .ah-brow between hairlines): your transfers (.ah-mrow >
    .ah-fg.ah-btgt, the move row's surface: its left swipe; .ah-x the small grey ×, .ah-bk the quiet "by Forkcast" on
    its move), a suggested plan (.ah-bpair.ah-bplan, its second line wrapping) with .ah-add (+; .quiet, grey, on one that
@@ -225,23 +236,39 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-bt > .ah-bk { flex: none; }  /* B33: "by Forkcast" after a move Forkcast made, quiet as the gain's own word */
 .ah-bs { grid-column: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
 .ah-bq2 { font-size: var(--t-sub); color: var(--muted); }
-/* the week line (the user, 2026-10-13, "only 3 rows"; the pitch research's step 3, 2026-10-19: one row): its button
-   (in a heading: two lines, the Week sheet behind it) and its doors at the right end, "Bring in…" and "Chips…" (the
-   user, 2026-10-13: "add 'chip..' button next to 'bring in..' every where"), each behind a hairline, its full height its
-   target, never shortened; its number never cut (.ah-bg: the words give way); a notice on its second line in amber when
-   it is a clash or a price that won't wait */
-/* the doors beside its words at the default text size from 320 px (the user, 2026-10-22: "WEEK LINE AT MOST 2 LINES":
-   what doesn't fit beside them shortens, "No transfe…", "2 tra… −4 +5.0", its number never cut: 6rem for "+5.0" and a
-   few letters, the button's padding and gap, 128 px of the 134 px a 320 px screen leaves beside them); where even that
-   room isn't there (a larger text size) they wrap under it together (.ah-doors), sharing their own row: the line's
-   height then the same in every week at that width and size (it never depends on the words: fitBlock's probe is the
-   same node), its number never cut. Its hairlines are the 1 px gaps over the hairline colour, so they follow the wrap */
-.ah-pbar { display: flex; flex-wrap: wrap; gap: 1px; background: var(--hair); }
-.ah-pbh { display: flex; flex: 1000 1 calc(6rem + 26px); min-width: 0; background: var(--surface); }
+/* the week line (the user, 2026-10-13, "only 3 rows"; the pitch research's step 3, 2026-10-19: one row; one strip since
+   the owner's of 2026-10-26): its button (in a heading: one line, the Week sheet behind it) and its doors at the right
+   end, "Bring in…" and "Chips…" (the user, 2026-10-13: "add 'chip..' button next to 'bring in..' every where"), each
+   behind a hairline, never shortened; a notice in amber when it is a clash or a price that won't wait */
+/* the doors beside its line at the default text size from 320 px (the user, 2026-10-22: "WEEK LINE AT MOST 2 LINES":
+   what doesn't fit beside them gives way, the FT and bank whole: 6rem and the button's padding, 128 px of the 134 px a
+   320 px screen leaves beside them); where even that room isn't there (a larger text size) they wrap under it together
+   (.ah-doors), sharing their own row: the line's height then the same in every week at that width and size (it never
+   depends on the words: fitBlock's probe is the same node). Its hairlines the doors' shadows, so they follow the wrap */
+.ah-pbar { display: flex; flex-wrap: wrap; }
+.ah-pbh { display: flex; flex: 1000 1 calc(6rem + 26px); min-width: 0; }
 .ah-pbt { flex: 1; align-content: center; border: 0; cursor: pointer; }
-.ah-doors { display: flex; flex: 1 0 auto; gap: 1px; }
-.ah-doors > .ah-door { flex: 1 0 auto; display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 10px; background: var(--surface); white-space: nowrap; }
-.ah-doors > .ah-door::before { inset: 0; }
+.ah-doors { display: flex; flex: 1 0 auto; }
+.ah-doors > .ah-door { flex: 1 0 auto; display: flex; align-items: center; justify-content: center; padding: 0 10px; white-space: nowrap; }
+/* the strip (the owner, 2026-10-26: "find fit transfer line from tab above on pich can be moved to pitch"; design 1026c,
+   strip): the week's status on the pitch beside the goal (ahead.js statusTok), the line ONE line of what the pitch
+   can't show, "4 FT · £2.4m ITB · Out: Cunha, Neto", 35 px tall; its button and doors each a 44 px target over the gaps
+   it has to itself: 6 px of the 8 over it (the GW tiles' targets reach 2 px down out of the switcher), 3 px of the 6
+   under it (the pitch's tokens and corner pills reach 3 px up out of it); up to 667 px of height, where the pitch sits
+   3 px under it, 38 px tall and its targets over the gap above alone (the review of pick1026c: the pitch, later in the
+   page, took the bottom of every target; measured by a tap's reach, QA chips-sheet). The block's overflow shown
+   so nothing clips them: its parts see-through on its own rounded white, the hairlines before the doors their shadows,
+   the block's own border where the doors wrap under the line */
+.ah-blockhost > .ah-block:has(> .ah-pbar) { overflow: visible; }
+.ah-pbar .ah-pbt { min-height: 35px; padding-top: 3px; padding-bottom: 3px; border-radius: 11px 0 0 11px; background: none; }
+.ah-doors > .ah-door { min-height: 35px; }
+.ah-doors { box-shadow: -1px 0 0 var(--hair), 0 -1px 0 var(--hair); }
+.ah-doors > .ah-door + .ah-door { box-shadow: -1px 0 0 var(--hair); }
+.ah-pbar .ah-pbt::before, .ah-doors > .ah-door::before { content: ""; position: absolute; inset: -6px 0 -3px; }
+@media (max-height: 667px) {
+  .ah-pbar .ah-pbt, .ah-doors > .ah-door { min-height: 38px; }
+  .ah-pbar .ah-pbt::before, .ah-doors > .ah-door::before { bottom: 0; }
+}
 .ah-doors > .ah-door:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: -2px; }
 /* a screen under 360 px (320 × 568): the line's and its doors' sides 4 px narrower, so its second line's FT and bank,
    "1 FT · £0.8m ITB", stay whole beside the doors (the user, 2026-10-22: "WEEK LINE AT MOST 2 LINES") */
@@ -254,11 +281,11 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-pbake .ah-bt { color: var(--muted); }
 .ah-pbake .ah-spin { flex: none; margin-right: 6px; align-self: center; }
 .ah-pbt .ah-bs.warn { color: var(--warn-ink); font-weight: 600; }
-/* its second line one line at every text size (the user, 2026-10-22: "WEEK LINE AT MOST 2 LINES"; it took two for GW
+/* its line one line at every text size (the user, 2026-10-22: "WEEK LINE AT MOST 2 LINES"; it took two for GW
    A's lineup notice and your week's facts since the reviews of 2026-10-21): GW A's lineup notice in a week with no
-   transfer its first line, "Set in FPL: 3 changes" over the facts (the owner, 2026-10-22, after the space screenshots:
-   "Set in F…" cut after them), after the lead in a week with transfers, cut at its end (the Week sheet's row names them
-   all); your week's facts with its bank (ahead.js rollFacts;
+   transfer the week's status beside the goal, "Set in FPL: 3 changes" (the owner, 2026-10-22, after the space
+   screenshots: "Set in F…" cut after the facts; the strip, 2026-10-26: ahead.js statusTok), after the lead in a week
+   with transfers, cut at its end (the Week sheet's row names them all); your week's facts with its bank (ahead.js rollFacts;
    the user, 2026-10-21: "where it shows itb money", "On the week line"), "2 FT · £0.8m ITB · 3 FT in GW10", about 192 px
    of 13 px SF where the line has about 155 px beside its doors at 375 px (170 at 390, 182 at 402; CoreText's widths,
    2026-10-21): next GW's free transfers (.ah-fnext) left to the Week sheet where they don't fit (ahead.js fitFacts),
@@ -276,13 +303,6 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-pbt .ah-bs > .ah-brest { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ah-pbt .ah-bs .ah-chk { display: inline-flex; max-width: 100%; vertical-align: top; white-space: nowrap; }
 .ah-pbt .ah-chk > .ah-wclock { flex: none; }
-/* the checks on the first line (ahead.js fitFacts: a week with no transfer, or where their clock has no room beside the
-   lead): their words and clock its flex items, the words giving way before the line's own (.ah-bn), the clock never;
-   after a week's own words and number quiet, as its number's own clock (.ah-bq2) */
-.ah-pbt .ah-bt > .ah-chk { display: contents; }
-.ah-pbt .ah-bt > .ah-chk > .ah-cw { flex: 0 1000 auto; }
-.ah-pbt .ah-bt > .ah-chk > .ah-wclock, .ah-pbt .ah-bt > .ah-chk1 > .ah-cw { color: var(--muted); }
-.ah-pbt .ah-bt > .ah-chk1 > .ah-cw::before { content: "\00a0·\00a0"; }
 /* the week's bank leading the second line where its facts aren't drawn (ahead.js bankLead; the user, 2026-10-21: "why
    itb missing"), whole, quiet beside an amber notice */
 .ah-pbt .ah-bs .ah-blead { white-space: nowrap; }
@@ -347,8 +367,9 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
    handle since the owner, 2026-10-25, "instead use either names with points ... or just points if space tough"; the
    pitch's dark green); .ah-ring the best's sellers' cards; each plate's own fit steps (.noxp .tight .cut .only, its
    number alone: ahead.js renderDecks, PLATE_TRIMS). .ah-tok the week's own
-   choices beside the goal (Roll, "Rolling is best", Rolling ✓, a Wildcard or Free Hit: .two its body, no take on any:
-   the owner, 2026-10-26). A target reaches up over free turf only (--up: ahead.js reachOf).
+   choices beside the goal (.st the week's status: "Rolling", "2 transfers +3.8", "Free Hit +4.3", the owner's strip of
+   2026-10-26; a Wildcard or Free Hit, a Roll that takes yours back: .two its body, no take on any: the owner,
+   2026-10-26). A target reaches up over free turf only (--up: ahead.js reachOf).
    A sub's plate or handle rises from his own card inside the bench's panel, under his label (--pm-bl-gap holds them; the
    user, 2026-10-22: his tab over the panel hung under the forward's plate over him).
    .ah-place a player's place: .ah-pshade over the pitch, his own card again (.ah-pown) under .ah-phead.now ("Keep",
@@ -413,6 +434,13 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-sp.only :is(.ah-spn, .ah-spj, .ah-spm), .ah-sp.part:not(.only) .ah-spv { display: none; }
 /* "checking…" alone shortened as a name is ("chec…": the fit review of plates3, 2026-10-25), never past its plate */
 .ah-sp.only .ah-spv.wait { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* a quiet plate that gains nothing as shown, a loss or 0.0 (.loss: ahead.js swapPlate; the owner, 2026-10-26, "mabe
+   negatice plates not need names in them"): its number alone as a small chip in the quiet plate's green, the smaller
+   type, centred over his card; the plate itself clear, its card-wide box and the turf over it (::before) still his
+   place's target. A gain's plate keeps its name and number, so the shape (words + number, or a bare number) tells them
+   apart */
+.ah-sp.loss { background: none; font-size: calc(var(--pm-tab) * .56); }  /* (on the plate: swapPlate's inline type under PLATE_MIN wins) */
+.ah-sp.loss .ah-spb { flex: 0 0 auto; margin: 0 auto; padding: 0 5px; border-radius: inherit; background: var(--sp-alt); }
 /* a Remove of yours's plate, the sold player's name and no number (.bare: ahead.js swapPlate; the owner, 2026-10-26),
    never its number alone: shortened in its room */
 .ah-sp.bare .ah-spn { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -449,6 +477,12 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-tok > .ah-tl { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 button.ah-tok { cursor: pointer; }
 .ah-tok.done { color: var(--acc); }
+/* the week's status (ahead.js statusTok; the owner's strip, 2026-10-26), yours green as "· yours" was: its words wrap
+   between words in its room beside the goal, never cut ("Set in FPL: / 4 changes" at 320 px), its number on its word,
+   under them where they leave it no room (a larger text size: "1 transfer / +1.6 xP"), never wider than that room */
+.ah-tok.st { flex-wrap: wrap; row-gap: 0; height: auto; min-height: 26px; padding-top: 3px; padding-bottom: 3px; white-space: normal; }
+.ah-tok.st > .ah-tl { text-align: left; }
+.ah-tok .ah-tnum > .ah-bg:first-child { margin-left: 0; }
 .ah-tok.two { padding: 0; }
 .ah-tok.two::before { content: none; }
 .ah-tbody { position: relative; display: flex; align-items: center; gap: 5px; height: 100%; min-width: 0; padding: 0 10px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
@@ -485,9 +519,10 @@ button.ah-tok { cursor: pointer; }
 /* a choice's link between its places: yellow dots, never white dashes (the user, 2026-10-21: "pitch design with central
    circle now confuse with dash lines on the pitch"): nothing the pitch draws is yellow or dotted */
 .ah-plinks path { fill: none; stroke: #FFD84A; stroke-width: 3.5; stroke-dasharray: 0.1 7; stroke-linecap: round; filter: drop-shadow(0 0 1px rgb(0 0 0 / .45)); }
-/* (over every note of its place, z-index 3: a bench note ends 2 px over the headers, and the Swap's and Keep's targets
-   reach up over it; the v1.3.75 review #12: a tap there hit the note, nothing). A dealt card's header (design.md §3: its
-   slot and size unchanged, his card's width, flush on its top) holds its number and its take in words where the + was
+/* (over every note of its place, z-index 3: its note hangs flush under it, and the Swap's and Keep's targets
+   reach up over the turf; the v1.3.75 review #12: a tap there hit the note, nothing). A dealt card's header (design.md
+   §3: his card's width, flush on its top; on a noted card on its note's top, the block risen or the row dropped where
+   its words need room: DECISION.md L, 2026-10-26) holds its number and its take in words where the + was
    (.ah-pgo, "Swap"; a take-back its own word, "Remove", "Roll"): .best ink, the week's best as on the pitch; .pays white,
    the choice beats rolling; .lo the dark, its Swap outlined: the zero line seen without moving his card */
 .ah-phead {
@@ -527,22 +562,38 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .ah-pgo { position: relative; flex: none; height: calc(100% - 4px); box-sizing: border-box; padding: 0 3px; border: 0; border-radius: calc(var(--pm-tile-r) - 2.5px);
   background: var(--acc-bg); color: #FFFFFF; font: 700 calc(var(--pm-tab) * .56 * var(--ph-k, 1))/1 var(--f-text); cursor: pointer; }
 .ah-pgo::after { content: ""; position: absolute; inset: -14px -2px -4px -10px; }
+/* …never down over its block's band (ahead.js drawPlace): its line's take, or its words, his card's Why (one take would
+   steal the other's taps; design study 1026 found it on main, the bench's note over its header) */
+.ah-phead:has(+ .ah-pnote) .ah-pgo::after { bottom: 0; }
 .ah-phead.best .ah-pgo { background: var(--sp-go); color: var(--sp-go-ink); }
 .ah-phead.lo .ah-pgo { background: none; color: #FFFFFF; box-shadow: inset 0 0 0 1.25px rgb(255 255 255 / .8); }
 .ah-pgo:disabled { opacity: .35; cursor: default; }
 .ah-pgo:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
-.ah-pnote { position: absolute; z-index: 2; box-sizing: border-box; width: max-content; padding: 1px 4px; border-radius: 6px; background: rgb(0 0 0 / .6); color: #FFFFFF; font: 400 var(--t-cap)/1.25 var(--f-text); text-align: center; overflow-wrap: break-word; transform: translateX(-50%); }  /* names break between words, never "Muharemovi/ć" (the user, 2026-10-22): centred on its card, its width up to the pitch's edge (ahead.js drawPlace) */
-.ah-pnote.up { transform: translate(-50%, -100%); }
-.ah-pnote.warn { background: rgb(120 0 0 / .75); }
+/* a dealt card's note and line (ahead.js drawPlace, fitBlocks): one block with its header, read down, flush under it
+   over his shirt (his card's tile) to his name plate, in his card's column and its header's look (common region; the
+   owner, 2026-10-26, "here not clear what refer to what": a note in the gap between rows by a neighbour's header); a
+   tap on its words his card's (its Why), the line's its own take. --pn-k: its type a step smaller where its words want
+   more than his tile or a word more than his card (one look per place); names break between words, never "Muharemovi/ć" */
+.ah-pnote { position: absolute; z-index: 2; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; padding: 1px 2px 2px; background: var(--pm-back); color: #FFFFFF;
+  font: 400 calc(var(--t-cap) * var(--pn-k, 1))/1.15 var(--f-text); text-align: center; overflow-wrap: normal; pointer-events: none; --xp-c: var(--xp-d); }
+.ah-phead.best + .ah-pnote { background: var(--sp-ink); }
+.ah-phead.pays + .ah-pnote { background: var(--plate); color: var(--plate-ink); --xp-c: var(--xp-l); }
+.ah-pnote.warn { background: #780000; }
+/* his flag over the band at its top-right, as on his tile (plan-pitch.css .pm-flag: 3 px in), its words under it */
+.ah-pnote:has(> .pm-flag) { padding-top: calc(var(--pm-tag) + 3px); }
+.ah-nw { white-space: nowrap; }  /* a hyphened name whole, "Calvert-Lewin" (ahead.js whole) */
 /* its buy's next way, one tappable line under the note (ahead.js drawPlace, placeLine; the owner, 2026-10-26, "Better one
    + line"): "or 2nd transfer −4.3 ›", taking that choice as a header's Swap does; its number blue, as every forecast's;
-   its target 8 px past it each way over the turf (about 33 px tall) */
-.ah-por { position: relative; display: block; margin: 1px auto 0; padding: 1px 2px; border: 0; background: none; color: #FFFFFF; font: 600 var(--t-cap)/1.25 var(--f-text); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; cursor: pointer; --xp-c: var(--xp-d); }
-.ah-por::before { content: ""; position: absolute; inset: -8px -4px; }
-.ah-porv { font-variant-numeric: tabular-nums; }
+   its target the block's width and, up and down, the free band beside its words (ahead.js fitBlocks: --por-t, --por-b,
+   44 px tall where the band allows) */
+.ah-por { position: relative; display: block; width: 100%; margin: 1px 0 0; padding: 0; border: 0; background: none; color: inherit; font: 600 calc(var(--t-cap) * var(--pn-k, 1))/1.15 var(--f-text); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; cursor: pointer; pointer-events: auto; }
+/* (its width the band's words' own: past its sides it would widen what fitBlocks measures, the note then drawn wider than
+   his card) */
+.ah-por::before { content: ""; position: absolute; inset: calc(-1 * var(--por-t, 0px)) 0 calc(-1 * var(--por-b, 0px)); }
+.ah-porv { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ah-porv.wait { font-weight: 500; font-style: italic; }
 .ah-por:disabled { opacity: .5; cursor: default; }
-.ah-por:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 1px; border-radius: 4px; }
+.ah-por:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; border-radius: 4px; }
 .ah-pmore { position: absolute; z-index: 1; border: 1.5px dashed #FFFFFF; border-radius: 7px; background: rgb(255 255 255 / .12); color: #FFFFFF; font: 600 var(--t-cap)/1.3 var(--f-text); cursor: pointer; }
 .ah-walk {
   position: absolute; z-index: 4; left: 8px; right: 8px; bottom: 6px; min-height: 44px; display: flex; align-items: center;
@@ -906,6 +957,9 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .wy-cmp .ps-status { margin: 0; }
 .wy-cmp .ps-st { justify-content: flex-end; text-align: right; }
 /* what else it changes: one fact a line, the When line under them */
+/* a taken move's sheet, under its number vs rolling: what your total moved by and against what (ahead.js openWhy,
+   COPY.totalMoved), a line of its own in the subtitle's ink (the owner, 2026-10-26: "+1.6 vs rolling but total +5.1") */
+.m-sh .m-sub .wy-tot { display: block; margin-top: 2px; }
 .wy-facts { margin: 0; padding: 0; list-style: none; }
 .wy-facts li { padding: 6px 0; border-bottom: 1px solid var(--hair); font: 400 var(--t-body)/1.3 var(--f-text); color: var(--ink); }
 .wy-also .wy-when { margin: 6px 0 0; }
