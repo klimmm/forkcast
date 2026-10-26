@@ -295,22 +295,19 @@ const closedOf = (p) => Promise.resolve(p).then((sh) => sh && new Promise((done)
 function flashLanding(ctx, prevP, more = {}) {
   bump(ctx);
   const P = plan(ctx);
-  const ch = P && prevP ? changedOf(P, prevP) : { gws: [], rows: {}, cards: {}, was: {} };
-  // every week the landing names (`more.gws`: Reset plan's, Without your rules' whole window) as prevP had it, so a week
-  // it left as it was loses its mark once seen as before (markWeeks; the review of the first-use fixes, 2026-10-21)
-  const was = { ...Object.fromEntries((more.gws ?? []).map((x) => [x, weekOf(prevP, x)])), ...ch.was };
-  setFlash(P, { ...ch, ...more, was });
+  const ch = P && prevP ? changedOf(P, prevP) : { gws: [], rows: {}, cards: {} };
+  setFlash(P, { ...ch, ...more });
 }
 /** A landing's changes (changedOf) for mount's render to flash and mark once, stamped with plan view P's team and GW
- *  A (`team`, as the marks' chgKey): a team switch mounts the screen anew (S.flashAt 0), and the last landing of the
+ *  A (`team`): a team switch mounts the screen anew (S.flashAt 0), and the last landing of the
  *  team before drew its changes on the next one's tiles (the owner, 2026-10-26, Moriarty's CoffeeBoy after Raketa's
  *  Evanilson: "why there are crossed points on later weeks if i have not made any changes", ~~60.0~~ 57.1 the struck
  *  60.0 Raketa's GW10). */
 const setFlash = (P, x) => { FLASH = { ...x, team: P ? `${P.entry}|${P.A}` : null, at: Date.now() }; };
 /** B129 (saffer Part 4 §8: a transfer you just removed came straight back at the top of the suggestions, as if new):
  *  the moves you took off this session (removeMove: the ones its toast names), per entry and GW A: {key, by: {gw:
- *  [`${out}>${in}`]}}. A choice selling and buying only players they sold and bought is yours ("removed by you", after
- *  the others: plansOf `removed`; never lit on the pitch: litOf; its + quiet: plPays); its edit's Undo puts the record
+ *  [`${out}>${in}`]}}. A choice selling and buying only players they sold and bought is yours ("removed by you": plansOf
+ *  `removed`, its words; in its rank, lit and green as any since the owner, 2026-10-26, after Raya +2.4 lost its ink to Tavernier +0.8 once its moves were removed: "find why and fix"); its edit's Undo puts the record
  *  back as it was (snapshot / restore),
  *  and adding the move again forgets it, from any door (edit: a transfer its rules make exact; the user, 2026-10-21: fix
  *  the known issues: a + took it back still "removed"). */
@@ -536,6 +533,9 @@ export function plan(ctx) {
   // your rules (optionsRef); until it is there: no number (never one that mixes them in)
   const ref = gp?.source !== 'yours' ? I.base : comparable ? optionsRef(ctx, I, pins, road) : null;
   const rules = !comparable || !ref ? null : gp?.source === 'yours' ? rulesCost(inputs(ctx), road, ref) : { cost: 0, label: 'coin', points: 0, transfers: 0 };
+  // each week as your team as it is would play it (bareRef: its tile's struck points), scored as yours are
+  const bareRoad = bareRef(ctx, I, pins);
+  const bare = bareRoad ? new Map(bareRoad.weeks.map((w) => [Number(w.gw), viewOfRoadWeek(w, I.L)])) : null;
   const baseWeeks = new Map(I.base.weeks.map((w) => [Number(w.gw), w]));
   const onLine = !ov && !gp?.pending && weeks.every((w) => {
     const b = baseWeeks.get(w.gw);
@@ -543,7 +543,7 @@ export function plan(ctx) {
   });
   const ok = editable(ctx);
   const P = {
-    ...I, mem: gp, road, pins, weeks, total, approx, mark, forced, book, healing: !!(ov || gp?.pending), cmp, onLine,
+    ...I, mem: gp, road, pins, weeks, total, approx, mark, forced, book, healing: !!(ov || gp?.pending), cmp, onLine, bare,
     editable: ok, why: ok ? '' : OFFLINE_EDIT, lineupGap, rules, comparable,
   };
   memo = { key, P };
@@ -565,8 +565,24 @@ const valuesKey = (I, values) => `${I.b.version}|${JSON.stringify(Object.keys(va
  */
 function optionsRef(ctx, I, pins, road) {
   const found = optionsRoad(I.b.roads, pins, I.gws, [road]);
-  if (found || !ctx.api?.solve || I.b.version !== I.b.meta?.roads_version || leftBehind(ctx, I)) return found;
-  const values = optionsValues(inputs(ctx), pins);
+  if (found || !specOk(ctx, I)) return found;
+  return specRoad(ctx, I, optionsValues(inputs(ctx), pins));
+}
+/** Your team as it is, the plan to compare yours with (the owner, 2026-10-26: "crossed points must appear once any
+ *  transfer made and they must cross points without transfers so it can be compared how transfers benefit", "if i
+ *  make transfer in first gameweek it also impact all others obvisouly so therre sjould also updated and croessed"):
+ *  the solver's plan with none of your rules (Reset plan's: under the hold every week rolled), one speculative solve
+ *  per roads version (specRoad); none where the plan has no rule of yours (it is that plan) or while it solves.
+ *  → Road | null */
+function bareRef(ctx, I, pins) {
+  const own = pins.filter((p) => !derivedPin(p));
+  return own.length && specOk(ctx, I) ? specRoad(ctx, I, valuesFor(ctx, [], own.map((p) => p.id))) : null;
+}
+/** A speculative solve can be asked for these roads (the newest, a solver there, this browser not left behind). */
+const specOk = (ctx, I) => !!ctx.api?.solve && I.b.version === I.b.meta?.roads_version && !leftBehind(ctx, I);
+/** One speculative solve of `values` per roads version (OPTIONS), asked while this browser's speculative slot is free
+ *  (a Wish solve keeps it); its landing re-draws. → Road | null (meanwhile). */
+function specRoad(ctx, I, values) {
   const key = valuesKey(I, values);
   const got = OPTIONS.get(key);
   if (got?.weeks) return got;
@@ -1083,19 +1099,19 @@ function land(ctx, { instant = false } = {}) {
   say(ctx, line, undoOf(ctx, chainSaid(ov.chain.slice(-1)), () => undoNewest(ctx, ov.chain)), 'info', null, ov.more ?? [], ov.take ?? null);
 }
 /** B61 (johnson A6: nothing marked where a change landed): the weeks plan view Q changes against `prev` (weekChanged),
- *  each one's transfers `prev` didn't make there, its cards that changed (changedCards), and each changed week as
- *  `prev` had it (markWeeks). → {gws, rows: {gw: [`${out}>${in}`]}, cards: {gw: [id]}, was: {gw: ViewWeek | null}} */
+ *  each one's transfers `prev` didn't make there and its cards that changed (changedCards). → {gws, rows: {gw:
+ *  [`${out}>${in}`]}, cards: {gw: [id]}} */
 export function changedOf(Q, prev) {
-  const gws = [], rows = {}, cards = {}, was = {};
+  const gws = [], rows = {}, cards = {};
   for (const w of Q.weeks) {
     const b = weekOf(prev, w.gw);
     const fresh = freshMoves(w, b);
     if (fresh.length) rows[w.gw] = fresh;
     const moved = b ? changedCards(w, b) : [];
     if (moved.length) cards[w.gw] = moved;
-    if (weekChanged(w, b)) { gws.push(w.gw); was[w.gw] = b ?? null; }
+    if (weekChanged(w, b)) gws.push(w.gw);
   }
-  return { gws, rows, cards, was };
+  return { gws, rows, cards };
 }
 /** The transfers of week `w` the same week `b` before didn't make. → [`${out}>${in}`] */
 const freshMoves = (w, b) => {
@@ -1107,23 +1123,10 @@ const freshMoves = (w, b) => {
  *  points by 0.05 or more. Pure. */
 export const weekChanged = (w, b) => !b || freshMoves(w, b).length > 0 || w.moves.length !== b.moves.length || !sameSet(w.squad, b.squad)
   || (w.chip ?? null) !== (b.chip ?? null) || w.captain !== b.captain || Math.abs(w.points - b.points) >= 0.05;
-/** B61: the weeks that keep a landing's mark (mount's render, every draw): `marks` (Map gw → the week as it was before
- *  its first change not shown since, null when unknown) with landing `fresh`'s weeks added (changedOf; its own `chg`
- *  when given), the viewed week `g` shown, and each week of plan view P back as it was dropped (Sam, first use
- *  2026-10-21: after an Undo GW10 and GW11 kept their bars, their points back: "Did it really go back?"). → marks */
-export function markWeeks(marks, fresh, P, g) {
-  if (fresh) for (const x of fresh.chg ?? fresh.gws) if (!marks.has(x)) marks.set(x, fresh.was?.[x] ?? null);
-  marks.delete(g);
-  for (const [x, b] of marks) {
-    const w = weekOf(P, x);
-    if (b && w && !weekChanged(w, b)) marks.delete(x);
-  }
-  return marks;
-}
-/** B61: what a changed week's tile says it was (renderRail; the owner, 2026-10-26, picked "Struck old points"): its
- *  points before its first change not shown since (`was`: markWeeks' week), as the tile shows points, where that shows
- *  another number than week `w`'s now; null where it shows the same, or `was` is unknown (the tile says "new"). The week's
- *  own forecast, no sign: never a choice's number, so "vs rolling everywhere" is not its rule (DECISION.md). Pure. →
+/** The struck points of week `w`'s tile (renderRail; the owner, 2026-10-26, picked "Struck old points", then "they must
+ *  cross points without transfers"): week `was`'s points (your team as it is: P.bare, bareRef) as the tile shows points,
+ *  where that shows another number than `w`'s; null where it shows the same, or there is no `was`. The week's own
+ *  forecast, no sign: never a choice's number, so "vs rolling everywhere" is not its rule (DECISION.md). Pure. →
  *  string | null */
 export const tickWas = (w, was) => {
   const then = was ? fmt.num(was.points) : null;
@@ -2124,7 +2127,7 @@ export function suggestionsOf(ctx, P, g) {
   const d0 = draftOf(ctx);
   const before = baseline(ctx, g);
   const hitsAt = (ev) => ev.gws.find((x) => x.gw === g)?.hits ?? 0;
-  // B129: a move you took off this session is still offered, as yours (`removed`: after the others, "removed by you")
+  // B129: a move you took off this session is still offered, as yours (`removed`: "removed by you")
   const gone = removedAt(P, g);
   const out = [];
   for (const m of modelMoves(P, g).values()) {
@@ -2806,8 +2809,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   };
   const ranked = [...done.map((x) => (x.refRow ? { ...x, ...against(x) } : x)).sort(byGain),
     ...all.filter((x) => x.state === 'failed'), ...all.filter((x) => x.state === 'solving')];
-  // (a move you removed after them all, B129: never back at the top as if new)
-  const list = [...ranked.filter((x) => !x.removed), ...ranked.filter((x) => x.removed)];
+  // (a move you removed in its rank, "removed by you" its words alone: B129 kept it after them all, quiet and never lit,
+  // until the owner, 2026-10-26, after Raya +2.4 lost its ink to Tavernier +0.8 once its moves were removed: "find why and fix")
+  const list = ranked;
   // the two plans your week's transfer row sets side by side (rollOf): the roll's and your own choice's, each with
   // Forkcast's later moves; `pending` while either still solves (the row says so, never the week alone in its place)
   if (ref?.state === 'ready') Object.assign(list, { ref, mine: ours });
@@ -3136,7 +3140,7 @@ export function litOf(P, w, M, D, toks = []) {
     // weekBest never picking a take-back of yours, litEdges)
     if (at.has(d.a) || d.mine) continue;
     // (a place's entries in the week's order, best first: heldOrder)
-    const e = d.entries.find((x) => singleMove(x) && !x.pl.removed && !x.pl.early && !x.pl.refRow && can(x.pl));
+    const e = d.entries.find((x) => singleMove(x) && !x.pl.early && !x.pl.refRow && can(x.pl));
     if (e) at.set(d.a, { e, best: false });
   }
   return at;
@@ -3158,7 +3162,7 @@ export function weekBest(P, w, M, D, toks = []) {
   const g = w.gw;
   if (!M.settled) return null;
   const can = litCan(P, w, M);
-  const ok = (pl) => !pl.refRow && !pl.removed && !pl.early && can(pl);
+  const ok = (pl) => !pl.refRow && !pl.early && can(pl);
   const placed = (pl) => D.filter((d) => d.entries.some((e) => e.pl === pl && !e.back));
   const moves = M.plans.filter((pl) => ok(pl) && placed(pl).length && !placed(pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl && !e.back))));
   const chips = toks.filter((pl) => ok(pl) && !rollOnly(pl) && !!pl.choice.chips?.[g]);
@@ -4673,9 +4677,11 @@ export function resetPlan(ctx) {
   return true;
 }
 /** Plan view P holds a transfer, chip or rule of yours (any pin but the derived ones, the hold's and You → Hits': your
- *  asks, asksOf, and a call's road pin), which Reset plan takes off: the pitch's Reset plan pill shows (the user,
- *  2026-10-21: "there is no easy reset all transfers button"); a lineup of yours alone is Reset lineup's. → bool */
-export const planHasYours = (P) => (P?.pins || []).some((p) => !derivedPin(p));
+ *  asks, asksOf, and a call's road pin), or a move you took off this session (B129: "removed by you"), which Reset plan
+ *  takes off: the pitch's Reset plan pill shows (the user, 2026-10-21: "there is no easy reset all transfers button";
+ *  the owner, 2026-10-26: "find why reset button also hid if something was preventing raya from suggestions": it
+ *  counted your pins alone); a lineup of yours alone is Reset lineup's. → bool */
+export const planHasYours = (P) => (P?.pins || []).some((p) => !derivedPin(p)) || Object.values(removedBy(P)).some((x) => x.length > 0);
 
 /** You → Hits (the user, 2026-10-12: "auto plan allowed hits must be somewhere in settings, in here only chips"): the
  *  hits Forkcast may take a week, one setting for every week, its choices [[n, label]]: None, then each cap up to the
@@ -4915,11 +4921,11 @@ export const shirtOf = (L, id, size = 28) => shirt({ club: L.club(id), gk: L.pos
 export const clearGain = (cmp) => !!cmp && cmp.delta > 0 && cmp.label !== 'coin';
 /** A suggested plan row's green, solid + and filled Why button (plansOf's rows): its number past the noise; the roll's
  *  own row (no number: `refRow`) when its plan beats the best other row's past the noise (`vsBest`); in a week with your
- *  transfer, Wildcard or Free Hit, past your own choice's too (`vsMine`). Never a move you took off this session (plansOf
- *  `removed`, B129: quiet, its number grey; the user, 2026-10-21: fix the known issues), nor one the 2026-10-18 bars
+ *  transfer, Wildcard or Free Hit, past your own choice's too (`vsMine`), a move you took off this session too (plansOf
+ *  `removed`: its words say so; B129's quiet, its number grey, went: the owner, 2026-10-26, after Raya +2.4 lost its ink to Tavernier +0.8 once its moves were removed: "find why and fix"). Never one the 2026-10-18 bars
  *  keep from being the week's suggestion (plansOf `early`: listed since the user's "Same both times, worse ones too",
  *  2026-10-21, never recommended). */
-export const plPays = (pl) => !pl.removed && !pl.early && clearGain(pl.refRow ? pl.vsBest : pl.cmp) && (!pl.vsMine || clearGain(pl.vsMine));
+export const plPays = (pl) => !pl.early && clearGain(pl.refRow ? pl.vsBest : pl.cmp) && (!pl.vsMine || clearGain(pl.vsMine));
 /** What a checked choice's row, its spoken line and its card's note in his place say of the 2026-10-18 bar it doesn't
  *  pass where its number may not show it (plansOf `early`, a GW: "as good in GW9"; one that adds next to nothing when
  *  taken says so by its number, or by its Why sheet's "Your total" where that differs), else null. Pure. */
@@ -5539,12 +5545,9 @@ export function mount(el, ctx) {
   el.classList.add('ah');
   // the suggestions' hide, before it was a team's own (v1.3.27 or earlier: one for every team), let go
   ctx.api?.local?.set?.('fc:ahead:sugg', null);
-  // chg: the weeks a landing changed that have not been shown
-  // since (B61: their tiles' mark; markWeeks), per team and GW A (chgKey)
   // learnt: the first-use hints done (LEARN_KEY: learn)
   const learntNow = ctx.api?.local?.json?.(LEARN_KEY);
   const S = { drag: null, flashAt: 0, queued: false, live: isLive(ctx), down: new Set(), held: false, week: null,
-    chg: new Map(), chgKey: null,
     learnt: new Set(Array.isArray(learntNow) ? learntNow : []) };
   // DESIGN_V2 §3: the header is the team's name, centred, and the avatar; the page is named for assistive tech (a
   // visually hidden h1, the header's label) and the browser tab by the team and the app ("Raketa · Forkcast"): the one
@@ -5930,13 +5933,9 @@ export function mount(el, ctx) {
     const w = weekOf(P, g);
     if (!w) return renderBaking();
     S.drawn = P;  // the plan view on screen (schedule: a memory change that leaves it draws nothing)
-    // B61 (johnson A6): a landing not drawn yet (FLASH), this team's (setFlash); the weeks it changed keep their mark
-    // until each is shown, or is back as it was (markWeeks)
-    const chgKey = `${P.entry}|${P.A}`;
-    if (S.chgKey !== chgKey) { S.chgKey = chgKey; S.chg = new Map(); }
-    const fresh = FLASH && FLASH.at !== S.flashAt && FLASH.team === chgKey ? FLASH : null;
+    // B61 (johnson A6): a landing not drawn yet (FLASH), this team's (setFlash)
+    const fresh = FLASH && FLASH.at !== S.flashAt && FLASH.team === `${P.entry}|${P.A}` ? FLASH : null;
     if (fresh) S.flashAt = fresh.at;
-    markWeeks(S.chg, fresh, P, g);
     // the focused control of the week line, the choices on the pitch or the Week sheet, focused again once it is drawn
     // anew (a keyboard or VoiceOver user stays on it)
     const keys = focusedKeys();
@@ -6829,7 +6828,7 @@ export function mount(el, ctx) {
    *  move you took off this session (B129, as litOf). */
   const placeLabel = (P, d) => {
     // (in the order his place deals them, as the plate names its first: placeOrder)
-    const nm = P.L.name, best = placeOrder(d.entries).find((x) => !x.back && x.pl?.state === 'ready' && !x.pl.removed);
+    const nm = P.L.name, best = placeOrder(d.entries).find((x) => !x.back && x.pl?.state === 'ready');
     return COPY.placeSaid(nm(d.a), d.entries.length, best && `${nm(best.inId)}, ${plNumSaid(P, best.pl)}`);
   };
   /** The week's status beside the goal (the owner, 2026-10-26, of the Roll's "Rolling": "why need button 'rolling' here
@@ -6914,10 +6913,13 @@ export function mount(el, ctx) {
       const what = planWeeks(P, { ...pl.choice, moves: [], hits: {} }, g, false).find(([x]) => x === g)?.[1] ?? COPY.planRoll(null);
       out.push(h('span.ah-tok.two', { class: { pays: s.pays, wait: !!s.wait }, dataset: { plan: key } },
         h('button.ah-tbody', { type: 'button', disabled: !!s.wait, dataset: { row: `tok:${key}` }, 'aria-label': `${s.label}; shows why`, onClick: () => openPlanWhy(P, g, pl) },
-          // (still checking: "checking…" under its words, never a clock in its number's slot: waitClock)
-          h('span', null, what, said ? h('small.ah-tw', null, COPY.planInsteadOf(lost)) : null, pl.state === 'solving' ? h('small.ah-tw', null, COPY.pairChecking) : null),
-          // (its number blue with "xP", as every forecast's: ui.js xpGain)
-          s.wait || pl.refRow ? null : xpGain(pl.cmp.delta, 'span.ah-tnum.m-num'))));
+          // its words and its number on one line (its number blue with "xP", as every forecast's: ui.js xpGain), what it
+          // takes back or "checking…" under both, the token's whole width (the owner, 2026-10-26, of "Roll / instead of
+          // Free / Hit −3.2": "fix so this not take three lines with so much empty space"; never a clock in its number's
+          // slot: waitClock)
+          h('span', null, what),
+          s.wait || pl.refRow ? null : xpGain(pl.cmp.delta, 'span.ah-tnum.m-num'),
+          said ? h('small.ah-tw', null, COPY.planInsteadOf(lost)) : null, pl.state === 'solving' ? h('small.ah-tw', null, COPY.pairChecking) : null)));
     }
     return out;
   }
@@ -7022,22 +7024,14 @@ export function mount(el, ctx) {
     return a;
   }
   const FLY_EASE = 'cubic-bezier(.2, .8, .2, 1)';
-  /** The other cards a place's choice changes, ringed while it is shown: your buy it takes back ("↩ Saka" on Palmer), a
-   *  pair's other place ("→ Leno" on Dovin). → [{id, text}] */
-  function knockOns(P, d, e) {
-    const nm = P.L.name;
-    return [...e.taken.filter((t) => Number(t.in) !== d.a).map((t) => ({ id: Number(t.in), text: `↩ ${nm(t.out)}` })),
-      ...e.pair.filter((p) => p.a && p.a !== d.a).map((p) => ({ id: p.a, text: `→ ${nm(p.in)}` }))];
-  }
-  /** A chalk line from (x1, y1) to (x2, y2), bowed a little (m-ahead.css: yellow dots, never a pitch marking's white): what else a choice changes. */
-  const chalk = ([x1, y1, x2, y2]) => svg('path', { d: `M${x1} ${y1} Q${(x1 + x2) / 2 + (y2 - y1) * 0.12} ${(y1 + y2) / 2 - (x2 - x1) * 0.12} ${x2} ${y2}` });
   /**
    * A player's place (the design's §3.4; the user's 2nd answer, 2026-10-20): his row steps aside and every choice for his
    * card deals out beside him on the turf in rank order, one way (placeOrder, slotsBeside: best nearest, the Roll last; a
    * row-mate stepping out where one takes his slot), each a pitch card (pitch.pitchCard: this week's fixture and
    * points; a tap its Why sheet) under its number and its + (takeFrom), over what else it does (noteOf); his own card
-   * stays, under "Keep" (keeps him that GW: no suggestion sells him) or "Yours +0.4" on your buy; a tap is his card's own. The rest of the pitch under a shade; a card a
-   * choice also changes ringed with what it does there (knockOns), a chalk line to it. A bar at the pitch's foot (its
+   * stays, under "Keep" (keeps him that GW: no suggestion sells him) or "Yours +0.4" on your buy; a tap is his card's own. The rest of the pitch under a shade,
+   * nothing drawn on it (the rings, tags and chalk lines to the other cards a choice changes went: the owner, 2026-10-26,
+   * of Ødegaard's place after a take, "what this dirty messy crap, fix"; design study 1026e on how to say them). A bar at the pitch's foot (its
    * head for a bench place): ‹ › the places in their order, All N (the Week sheet), ✕, and what its numbers are. Its
    * order is held while it is open (a solve landing fills its number in place: renderDecks). Closed by ✕, Escape, a tap
    * outside it (on another place's edges: that place, in one tap), a take, a new week or a pitch mounted anew.
@@ -7126,7 +7120,7 @@ export function mount(el, ctx) {
         // (your number blue with "xP": xpGain)
         // (in a span fitNum fits, as a dealt card's number: "Yours +12.5 xP" spilled out of its plate)
         yours ? h('span.ah-pv.m-num', null, COPY.placeYours) : COPY.placeNow);
-    const dealt = [], kos = new Map(), lines = [];
+    const dealt = [];
     shown.forEach((e, i) => {
       const x = room[i], pl = e.pl, s = pl ? planSaid(P, g, pl) : null;
       const ready = !pl || pl.state === 'ready';
@@ -7192,13 +7186,6 @@ export function mount(el, ctx) {
       const flagged = note && card.querySelector('.pm-flag');
       if (flagged) note.append(flagged);
       dealt.push([card, head, note, x]);
-      // (one in his own row stepped out for a dealt card: its note says it)
-      for (const k of knockOns(P, d, e)) {
-        const q = boxes.find((y) => y.id === k.id);
-        if (!q || out.includes(q)) continue;
-        lines.push([x + c.w / 2, c.y + c.h / 2, q.x + q.w / 2, q.y + q.h / 2]);
-        if (!kos.has(k.id)) kos.set(k.id, [q, k.text]);
-      }
     });
     // All N, ⋯ N more: the Week sheet at its plans, his card focused first (the sheet gives focus back to it); ⋯ N more at
     // the first of his choices it had no room for (the user, 2026-10-22)
@@ -7207,18 +7194,6 @@ export function mount(el, ctx) {
     const unseen = entries.filter((e) => !shown.includes(e) && !ors.includes(e)), hidden = unseen.find((e) => e.pl);
     const more = over ? h('button.ah-pmore', { type: 'button', 'aria-haspopup': 'dialog', dataset: { key: 'more' }, style: { ...px(room.at(-1), c.y), height: `${c.h}px` },
       onClick: () => toWeek(hidden ? planKey(g, hidden.pl) : null) }, COPY.placeMore(unseen.length)) : null;
-    // what else a choice changes, drawn where it is
-    const links = lines.length ? svg('svg', { class: 'ah-plinks', 'aria-hidden': 'true' }, lines.map(chalk)) : null;
-    const ringed = [...kos.values()].flatMap(([q, text]) => {
-      const n = q.n.cloneNode(true);
-      n.removeAttribute('data-id');
-      n.classList.remove('ah-stepout', 'ah-landed');
-      n.classList.add('ah-pko');
-      n.setAttribute('aria-hidden', 'true');
-      n.inert = true;
-      Object.assign(n.style, px(q.x, q.y));
-      return [n, h('span.ah-pkot', { 'aria-hidden': 'true', style: { left: `${q.x + 2}px`, top: `${q.y - 2}px` } }, text)];
-    });
     const i = S.decks.indexOf(d), n = S.decks.length, place = COPY.placeOf(nm(d.a));
     // its buys your saved lineup leaves on your bench, said under its numbers (benchedBuys; the user, 2026-10-22: a sub's
     // "Palmer 0.0" explained, the number as computed)
@@ -7233,7 +7208,7 @@ export function mount(el, ctx) {
       h('button', { type: 'button', 'aria-label': 'Close', dataset: { key: 'close' }, onClick: () => closePlace() }, glyph('x')));
     const layer = h('div.ah-place', { role: 'group', 'aria-label': `${place}, ${COPY.placeAt(i + 1, n)}` },
       // (read in the block's order, a header's Swap, its note's line, then his card: VoiceOver too)
-      shade, links, ringed, own, nowHead, dealt.map(([card, head, note]) => [head, note, card]), more, walk);
+      shade, own, nowHead, dealt.map(([card, head, note]) => [head, note, card]), more, walk);
     root.append(layer);
     // the dealt cards' fixtures fitted as the pitch's are (a two-line one: his tile shorter, fitBlocks measures it); each header's
     // number never cut, as a tab's (fitNum)
@@ -7244,10 +7219,9 @@ export function mount(el, ctx) {
     // then, still over, the whole header's type smaller (headScale), the dealt ones by one scale (one look per place)
     scaleHeads([nowHead]);
     scaleHeads(dealt.map(([, x]) => x));
-    // (dropped into the turf under his row: its "⋯ N more" and its chalk lines with them)
+    // (dropped into the turf under his row: its "⋯ N more" with them)
     const drop = fitBlocks(root, boxes, c, dealt);
     if (drop && more) more.style.top = `${c.y + drop}px`;
-    if (drop && links) links.replaceChildren(...lines.map(([x1, y1, x2, y2]) => chalk([x1, y1 + drop, x2, y2])));
     // a sideways swipe only closes it (never a week: the pitch's swipe starts nowhere in it), its click then swallowed
     let from = null;
     layer.addEventListener('pointerdown', (e) => { from = [e.clientX, e.clientY]; });
@@ -7322,10 +7296,9 @@ export function mount(el, ctx) {
     // shaded row's names and points never covered: the keeper's over him to the pitch's top, the bench's to its foot)
     const top = root.getBoundingClientRect().top, plateY = (q) => (q.n.querySelector('.pm-plate')?.getBoundingClientRect().top ?? top + q.y) - top;
     const above = boxes.filter((q) => q.y + q.h <= c.y - 1).reduce((m, q) => Math.max(m, q.y + q.h), 0);
-    // (a ringed card's tag, "↩ Palmer", under it too: the v1.3.75 review #11's wall; a field place's bar at the pitch's
-    // foot, over the bench: the review of pick1026a)
+    // (a field place's bar at the pitch's foot, over the bench: the review of pick1026a)
     const rb = (e) => e.getBoundingClientRect().top - top;
-    const below = [...boxes.filter((q) => q.y >= c.y + c.h + 1).map(plateY), ...[...root.querySelectorAll('.ah-place .ah-pkot'), ...(c.bench ? [] : root.querySelectorAll('.ah-place .ah-walk'))].map(rb).filter((y) => y >= c.y + c.h + 1)]
+    const below = [...boxes.filter((q) => q.y >= c.y + c.h + 1).map(plateY), ...(c.bench ? [] : [...root.querySelectorAll('.ah-place .ah-walk')]).map(rb).filter((y) => y >= c.y + c.h + 1)]
       .reduce((m, y) => Math.min(m, y), root.clientHeight);
     const up = Math.max(0, c.y - tab - above - 2), down = Math.max(0, below - c.y - c.h - 2);
     const least = Math.min(1, HEAD_LEAST / parseFloat(getComputedStyle(blocks[0][2]).fontSize));
@@ -8244,21 +8217,20 @@ export function mount(el, ctx) {
         // week's is price drift (the solver keeps it in budget at its prices: the card says so), and never a ≈
         // week's (the estimate keeps the moves an edit leaves unfunded, the solve re-funds them: QA)
         const over = w.gw === P.A && w.bank != null && w.bank < -1e-9 && !P.approx.has(w.gw);
-        // B61: a week a landing changed, not shown since (S.chg) says what changed in the tile's own words, before its
-        // points (the owner, 2026-10-26, of the green bar it replaces, under "61.8": "what this green line and why it
-        // overlap a number"; picked "Struck old points"): its points as they were, struck ("~~60.0~~ 61.8 xP": a shop's
-        // was-price, the week's own forecast, no sign, so never read as a choice's number: tickWas), else "new" (only its
-        // moves changed, or its week before is unknown); spoken "was 60.0 points" / "plan changed". It goes when the
-        // week is shown or is back as it was (markWeeks); where the tile has no room it goes before the "xP" (fitNum
-        // below)
-        const chg = S.chg.has(w.gw);
-        const was = chg ? tickWas(w, S.chg.get(w.gw)) : null;
-        const chgMark = !chg ? null : was ? h('s.ah-was', { 'aria-hidden': 'true' }, was) : h('span.ah-new', { 'aria-hidden': 'true' }, COPY.tileNew);
+        // the week's points with no transfers of yours, struck before its own ("~~60.0~~ 61.8 xP": a shop's was-price,
+        // the week's own forecast, no sign, so never read as a choice's number: tickWas), on every week your plan
+        // changes, the one on screen too, for as long as your plan has them (P.bare, bareRef; the owner, 2026-10-26:
+        // "crossed points must appear once any transfer made and they must cross points without transfers so it can be
+        // compared how transfers benefit": no more a landing's mark that went once its week was shown, B61); spoken
+        // "60.0 points without your transfers"; where the tile has no room it goes before the "xP" (fitNum below)
+        const was = P.bare?.has(w.gw) ? tickWas(w, P.bare.get(w.gw)) : null;
+        const chg = !!was;
+        const chgMark = was ? h('s.ah-was', { 'aria-hidden': 'true' }, was) : null;
         return h('button.ah-tick', {
           type: 'button', role: 'radio', 'aria-checked': String(w.gw === g), dataset: { gw: w.gw }, class: { sel: w.gw === g, heal: (P.mark ?? P.approx).has(w.gw), lu: !!w.lineup, pencil: w.gw > P.A, chg },
           // VoiceOver and Switch Control activate with a click and no pointer (detail 0); a touch is the bar's own
           onClick: (e) => { if (e.detail === 0) { setGw(w.gw); } },
-          'aria-label': `Gameweek ${w.gw}, ${fmt.num(w.points)} points, ${w.gw > P.A ? 'provisional, ' : ''}${sq ? plural(n, 'change') : !n ? 'roll' : `${w.moves.map((m) => P.L.name(m.in)).join(', ')} in`}${w.hits ? `, ${MINUS}${E.HIT_COST * w.hits}` : ''}${w.chip ? `, ${chipName(w.chip)}` : ''}${flags.length ? `, ${flags.map((f) => (f === 'DGW' ? 'a double gameweek' : 'a blank gameweek')).join(' and ')}` : ''}${w.lineup ? ', your lineup' : ''}${chg ? `, ${was ? COPY.tileWas(was) : COPY.tileNewSaid}` : ''}`,
+          'aria-label': `Gameweek ${w.gw}, ${fmt.num(w.points)} points, ${w.gw > P.A ? 'provisional, ' : ''}${sq ? plural(n, 'change') : !n ? 'roll' : `${w.moves.map((m) => P.L.name(m.in)).join(', ')} in`}${w.hits ? `, ${MINUS}${E.HIT_COST * w.hits}` : ''}${w.chip ? `, ${chipName(w.chip)}` : ''}${flags.length ? `, ${flags.map((f) => (f === 'DGW' ? 'a double gameweek' : 'a blank gameweek')).join(' and ')}` : ''}${w.lineup ? ', your lineup' : ''}${was ? `, ${COPY.tileWas(was)}` : ''}`,
         },
         // two lines, every week the same height (the user, 2026-10-09: a blank middle line on a week with no transfer):
         // "GW6" with its marks and what the week does (the buy's name, "2 in"; it ellipsises first, GW6 never), then
@@ -8281,7 +8253,7 @@ export function mount(el, ctx) {
    *  staying (the 1026b judges: "keep xP, drop the struck number before it"); one look across the rail's marked tiles,
    *  as the pitch's plates (oneLook). Again on a resize or a new text size (refitPitch). */
   function fitRail() {
-    const marked = [...ticks.querySelectorAll('.ah-tick.chg:has(:is(.ah-was, .ah-new))')];
+    const marked = [...ticks.querySelectorAll('.ah-tick:has(.ah-was)')];
     for (const t of marked) {
       const p = t.querySelector('.p'), cs = getComputedStyle(t);
       fitNum(t, () => p.getBoundingClientRect().width > t.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) + 0.5, ['close', 'nowas']);

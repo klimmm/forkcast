@@ -447,7 +447,7 @@ export const COPY = Object.freeze({
       'Black name plate: bought this GW; tap him for who he replaces and why.',
       'Black ring round a name: bought in an earlier GW of your plan, not in your FPL team yet.',
       // (B61: the owner, 2026-10-26, picked "Struck old points" for the bar he asked about: "what this green line")
-      'Struck number on a GW: its points before a change you haven\'t looked at yet; "new": its moves changed.',
+      'Struck number on a GW: its points with no transfers of yours, beside its points with them.',
       'Dot in a GW\'s corner: your own lineup there. Reset lineup (pitch, top right, under Player data) brings the best one back.',
       `Lock on a GW: past your plan (${COPY.aheadHead}). Tap it to see how to plan it.`,
     ]],
@@ -642,13 +642,10 @@ export const COPY = Object.freeze({
   /** N7: a Free Hit or Wildcard week's moves as the squad they make, the week line's second line ("Wildcard +14.7" over
    *  "8 changes": ahead.renderLine). */
   nChanges: (n) => plural(n, 'change'),
-  /** B61 (the owner, 2026-10-26, of the bar it replaces: "what this green line"; picked "Struck old points"): a GW tile a
-   *  change landed in, until that week is shown, says the change in its own words, its points as they were struck
-   *  before them ("~~60.0~~ 61.8 xP", a shop's was-price; ahead.renderRail, tickWas), spoken "was 60.0 points"; a week
-   *  whose plan changed with its points the same says "new" (spoken "plan changed"). */
-  tileWas: (pts) => `was ${pts} points`,
-  tileNew: 'new',
-  tileNewSaid: 'plan changed',
+  /** A GW tile's struck points, your team's as it is, without your transfers (the owner, 2026-10-26: "they must cross
+   *  points without transfers so it can be compared how transfers benefit"): "~~60.0~~ 61.8 xP", a shop's was-price
+   *  (ahead.renderRail, tickWas), spoken "60.0 points without your transfers". */
+  tileWas: (pts) => `${pts} points without your transfers`,
   /** A bring-in's changes to a Wildcard or Free Hit week's squad, ending its moves line (ahead.inWords): "1 change to your
    *  Free Hit" (review 5, 2026-10-12: it read "12 transfers, no hit", the chip's own count, after one arrow). */
   chipChanges: (chip, n) => `${plural(n, 'change')} to your ${chipName(chip)}`,

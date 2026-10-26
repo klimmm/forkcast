@@ -7,7 +7,7 @@
    SCREEN   .ah-head (44 pt: the team's name centred over .ah-gwline, "Deadline Sat 10:00 · 1d 18h" and the total
             (.ah-dl the countdown), .ah-avatar grey initials, .ah-dot only when not up to date; the page name is a
             visually hidden h1.sr-only, app.css) · .ah-ctl (F16, the control row: .ah-railwrap the GW switcher, .ah-rail >
-            .ah-thumb + .ah-ticks > .ah-tick[.sel .heal .lu .chg (.ah-was / .ah-new, .close .nowas) .glow .bad .hover .edge], .ah-total its hidden summary; .ah-hint
+            .ah-thumb + .ah-ticks > .ah-tick[.sel .heal .lu .chg (.ah-was, .close .nowas) .glow .bad .hover .edge], .ah-total its hidden summary; .ah-hint
             under it) · .ah-blockhost > .ah-block the week line (its own section below; the same card in the Week
             sheet, .ah-wsheet .ah-block.ah-wk) · .ah-pitch (pitch and bench:
             one height every week, from the screen alone, ahead.js fitPitch; plan-pitch.css; .ah-pp corner pills:
@@ -185,11 +185,11 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
    length); static, so Reduce Motion keeps it. Where the tile has no room (a 320 pt screen) it sits closer (.close),
    then goes, the points and their "xP" staying (.nowas), on every marked tile alike (ahead.js renderRail: fitNum,
    oneLook) */
-.ah-tick :is(.ah-was, .ah-new) { margin-right: 3px; font: 400 var(--t-cap)/1 var(--f-text); color: var(--ink-2); }
+.ah-tick .ah-was { margin-right: 3px; font: 400 var(--t-cap)/1 var(--f-text); color: var(--ink-2); }
 .ah-tick .ah-was { text-decoration: line-through 1px; }
-.ah-tick.close :is(.ah-was, .ah-new) { margin-right: 2px; letter-spacing: -.2px; }
+.ah-tick.close .ah-was { margin-right: 2px; letter-spacing: -.2px; }
 .ah-tick.close:not(.nowas) .p .xp-u { margin-left: .1em; }
-.ah-tick.nowas :is(.ah-was, .ah-new) { display: none; }
+.ah-tick.nowas .ah-was { display: none; }
 /* a drag onto a GW (a shirt, a move, a chip): the GWs it may go to, the one under the finger */
 .ah-tick.glow { box-shadow: inset 0 0 0 1.5px var(--acc-bg); }
 .ah-tick.hover { background: color-mix(in oklab, var(--acc-bg) 18%, transparent); }
@@ -374,7 +374,7 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
    .ah-place a player's place: .ah-pshade over the pitch, his own card again (.ah-pown) under .ah-phead.now ("Keep",
    outlined: .ah-pkeep.outl), each choice a pitch card (.ah-pcard) under its header (.ah-phead: the number and its worded
    take .ah-pgo, "Swap"; .best ink, .pays white, .lo dark with an outlined take) over its note (.ah-pnote), "⋯ N more"
-   (.ah-pmore), a card a choice also changes ringed (.ah-pko, .ah-pkot its tag, .ah-plinks a chalk line to it), the bar
+   (.ah-pmore), the bar
    (.ah-walk, .top for a bench place); its row-mates step out (.ah-stepout). .ah-ghost the card a take sends behind its
    buy (ahead.js landFly) */
 .ah-pitch .pm { --pm-back: light-dark(#0A6A3F, #0B3D24); }
@@ -484,9 +484,10 @@ button.ah-tok { cursor: pointer; }
 .ah-tok .ah-tnum > .ah-bg:first-child { margin-left: 0; }
 .ah-tok.two { padding: 0; }
 .ah-tok.two::before { content: none; }
-.ah-tbody { position: relative; display: flex; align-items: center; gap: 5px; height: 100%; min-width: 0; padding: 0 10px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.ah-tbody { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 5px; height: 100%; min-width: 0; padding: 0 10px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
 .ah-tbody::before { content: ""; position: absolute; inset: -9px 0; }
 .ah-tbody > span:first-child { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.ah-tbody > .ah-tw { grid-column: 1 / -1; text-align: left; }  /* under its words and number, the token's whole width */
 .ah-tnum { font-variant-numeric: tabular-nums; color: var(--muted); }
 /* a token's words and number never cut (ahead.js fitNum): its "xP" first, then a smaller number */
 .ah-tok { --xp-c: var(--xp-l); }
@@ -512,12 +513,6 @@ button.ah-tok { cursor: pointer; }
 .ah-place { position: absolute; inset: 0; z-index: 3; touch-action: pan-y; }
 .ah-pshade { position: absolute; inset: 0; background: rgb(2 30 13 / .58); }
 .ah-place .pm-card { position: absolute; z-index: 1; }
-.ah-place .pm-card.ah-pko { z-index: 0; pointer-events: none; outline: 2px dashed #FFFFFF; outline-offset: 2px; border-radius: 5px; }
-.ah-pkot { position: absolute; z-index: 2; padding: 0 5px; border-radius: 7px; background: var(--plate); color: var(--ink); font: 700 var(--t-cap)/1.5 var(--f-text); white-space: nowrap; transform: translateY(-100%); }
-.ah-plinks { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-/* a choice's link between its places: yellow dots, never white dashes (the user, 2026-10-21: "pitch design with central
-   circle now confuse with dash lines on the pitch"): nothing the pitch draws is yellow or dotted */
-.ah-plinks path { fill: none; stroke: #FFD84A; stroke-width: 3.5; stroke-dasharray: 0.1 7; stroke-linecap: round; filter: drop-shadow(0 0 1px rgb(0 0 0 / .45)); }
 /* (over every note of its place, z-index 3: its note hangs flush under it, and the Swap's and Keep's targets
    reach up over the turf; the v1.3.75 review #12: a tap there hit the note, nothing). A dealt card's header (design.md
    §3: his card's width, flush on its top; on a noted card on its note's top, the block risen or the row dropped where
