@@ -468,8 +468,8 @@ button.ah-tok { cursor: pointer; }
 .ah-tok.best .ah-tnum { color: var(--xp-d); }
 .ah-tok.best .ah-tw { color: rgb(255 255 255 / .7); }
 /* the week's best move, first in the stack (ahead.js tokensOf; the owner, 2026-10-26, "Ink token, top of stack"): ink as
-   its plate, its plate's words and number, "Best: Evanilson +1.6"; fitted as the other tokens (its "xP", a smaller
-   number), then its names shortened as the plates' (.cut), never "Best:", "& 1 more" nor its number */
+   its plate, its plate's first buy and number, "Evanilson +1.6" (a plan's too: "yes do both"); fitted as the other
+   tokens (its "xP", a smaller number), then its name shortened as the plates' (.cut), never its number */
 .ah-tok.mv { background: var(--sp-ink); color: #FFFFFF; box-shadow: 0 1px 2px rgb(0 0 0 / .3), var(--sp-edge); --xp-c: var(--xp-d); }
 .ah-tok.mv > .ah-tl { display: flex; align-items: center; gap: .25em; }
 .ah-tok.mv .ah-tn { flex: none; }
@@ -503,8 +503,10 @@ button.ah-tok { cursor: pointer; }
 .ah-phead {
   position: absolute; z-index: 3; box-sizing: border-box; height: var(--pm-tab); display: flex; align-items: center; gap: 2px; padding: 0 2px 0 4px;
   border-radius: var(--pm-tile-r) var(--pm-tile-r) 0 0; background: var(--pm-back); color: #FFFFFF; box-shadow: inset 0 1px 0 rgb(255 255 255 / .3);
-  font: 700 calc(var(--pm-tab) * .62)/1 var(--f-text); font-variant-numeric: tabular-nums; white-space: nowrap;  /* 11 px at 18 px tall, as at 24 */
+  font: 700 calc(var(--pm-tab) * .62 * var(--ph-k, 1))/1 var(--f-text); font-variant-numeric: tabular-nums; white-space: nowrap;  /* 11 px at 18 px tall, as at 24 */
 }
+/* --ph-k: a header still over its card after its trims, its whole type smaller, its number and its take's word alike
+   (ahead.js headScale, scaleHeads; the fixreset probe, 2026-10-26: "−0.6 Swap" read "−0." at 320 wide) */
 .ah-phead.now { justify-content: center; padding: 0 4px; background: rgb(255 255 255 / .9); color: var(--ink); }
 .ah-phead { --xp-c: var(--xp-d); justify-content: space-between; }
 .ah-phead.now { --xp-c: var(--xp-l); justify-content: center; }  /* a light pill on the pitch */
@@ -533,7 +535,7 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 /* the take, worded (design.md §3: "Swap" where the ⊕ was; the same handler, ahead.js takeFrom), its target up into the
    shade over the header and over the number beside it (its card's tap is its Why) */
 .ah-pgo { position: relative; flex: none; height: calc(100% - 4px); box-sizing: border-box; padding: 0 3px; border: 0; border-radius: calc(var(--pm-tile-r) - 2.5px);
-  background: var(--acc-bg); color: #FFFFFF; font: 700 calc(var(--pm-tab) * .56)/1 var(--f-text); cursor: pointer; }
+  background: var(--acc-bg); color: #FFFFFF; font: 700 calc(var(--pm-tab) * .56 * var(--ph-k, 1))/1 var(--f-text); cursor: pointer; }
 .ah-pgo::after { content: ""; position: absolute; inset: -14px -2px -4px -10px; }
 .ah-phead.best .ah-pgo { background: var(--sp-go); color: var(--sp-go-ink); }
 .ah-phead.lo .ah-pgo { background: none; color: #FFFFFF; box-shadow: inset 0 0 0 1.25px rgb(255 255 255 / .8); }

@@ -174,7 +174,7 @@
 import * as E from '../plan/engine.js';
 import { h, svg, fmt, fill, append, toast, toastRegion, chipName, plural, icon, toMs, statusInfo, roving, reduceMotion, holdTouch, flick, focusKey, refocus, xpNum, xpGain } from '../ui.js';
 import { shirt, clubColor } from '../plan/kits.js';
-import { fplMarks, subOrder } from '../plan/pitch.js';
+import { fplMarks, subOrder, fitFixtures } from '../plan/pitch.js';
 import {
   COPY, planInputs, compare as compareIn, captainGap, subGap, changeText, transfersOf, hitsOf, plannerOf,
   rulesCost, sentence, withForced, forcedNew,
@@ -185,7 +185,7 @@ export { clockText, waitedText };  // the sheets' clocks (wish.js, chips.js) rea
 import {
   attach, makePin, pinSell, pinVeto, pinNever, pinKeep, pinChip, pinHits, pinRoll, squadInto, isRoll, isExact, exactAt, composePins, pinConflicts, pinsDir,
   findRoad, optionsRoad, optionsValues, barredAt, ruleText, scopeOf, rulesBroken, brokenCells, parseSpans, withBank, forcedHits, solveKept, bundleRoads,
-  deadlinePassed, switchWithUndo, frozenSince, sinceText, rollKeeps,
+  deadlinePassed, switchWithUndo, frozenSince, sinceText, rollKeeps, solvedLineup,
 } from './memory.js';
 
 const LONG_MS = 430;           // long-press to lift a shirt
@@ -228,6 +228,14 @@ export const editable = (ctx) => ctx.store.get('conn')?.state !== 'offline' && !
 /** Every plan of n weeks or more is locked for this browser (the bundle's meta.locked; You → Plan ahead): the reach's
  *  n-th GW can't be planned here. I: info(ctx) or a plan view. */
 const lockedFrom = (I, n) => I.reach.slice(n - 1).every((_, i) => (I.b.meta?.locked || []).includes(horizonFeature(n + i)));
+/** You → Plan ahead now asks another length than the plan on screen plans (ctx.weeks, kept at the tap; its bundle still
+ *  on its way: app.js setWeeks): no background solve is asked for it (a suggested plan's fork or the next week's
+ *  preparation: forkPump; a chip preparation: pumpPreps; the options road: optionsRef), the new plan's draw asks its
+ *  own. A landing meanwhile asked the old length again (the horizon QA, "every solve sent since is one week": a 4-week
+ *  fork asked after the tap on "1 week"; the owner, 2026-10-26: "fix the failures"). The server plans meta.horizon
+ *  from the same ask (api/mobile.py plan_weeks, calls.planWeeks), so a bundle in force always matches. I: info(ctx) or a
+ *  plan view. */
+const leftBehind = (ctx, I) => { const n = ctx.weeks?.(); return n != null && n !== I.gws.length; };
 const OFFLINE_EDIT = 'Edits need a connection. Your plan is unchanged.';
 const memOf = (ctx) => attach(ctx);
 const memPlan = (ctx) => memOf(ctx)?.getPlan() ?? null;
@@ -548,7 +556,7 @@ const valuesKey = (I, values) => `${I.b.version}|${JSON.stringify(Object.keys(va
  */
 function optionsRef(ctx, I, pins, road) {
   const found = optionsRoad(I.b.roads, pins, I.gws, [road]);
-  if (found || !ctx.api?.solve || I.b.version !== I.b.meta?.roads_version) return found;
+  if (found || !ctx.api?.solve || I.b.version !== I.b.meta?.roads_version || leftBehind(ctx, I)) return found;
   const values = optionsValues(inputs(ctx), pins);
   const key = valuesKey(I, values);
   const got = OPTIONS.get(key);
@@ -2263,6 +2271,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   if (!by || by.rev !== PAIR.rev) PLANS.set(P, (by = { rev: PAIR.rev, gw: new Map() }));
   if (by.gw.has(g)) return by.gw.get(g);
   const d0 = draftOf(ctx), before = planBaseline(ctx, P, g), mine = flatMoves(d0);
+  // (the plans set against rolling measured alike on both sides, in the xP order: asTaken's `held` false; what a + gives,
+  // `alone`, on the lineups the plan it lands plays, `before`'s)
+  const asIs = planBaseline(ctx, P, g, false);
   const ownMoves = mine.filter((m) => pinOfMove(P, m));  // your transfers: their sales start a buy back's window (rebought)
   const squadAt = (x) => !!squadWeek(weekOf(P, x));
   // your own GW-g choice (no row: it is your plan), and your plan's moves from g (a plan that repeats them is yours)
@@ -2303,7 +2314,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // in your chip week a choice without the chip is never your plan (the user, 2026-10-13: "also it again remove all
     // suggestions if i chose to play wc": the window's last GW listed none)
     if (!p || !allowed(p) || (!chipMine && movesSig(p.moves) === mineFrom && !Object.keys(p.chips).length)) return null;
-    const m = measurePlan(ctx, P, g, p, before);
+    const m = measurePlan(ctx, P, g, p, asIs, false);
     return m && withinHits(m) && keepsAll(m) && !rebought(P, m.moves, m.ev, ownMoves) ? m : null;
   };
   const exactRoads = g === P.A ? new Set([P.base, P.b.roads?.roll, ...Object.values(P.b.roads?.chip || {})].filter(Boolean)) : new Set();
@@ -2580,7 +2591,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // your week's transfer row, rollOf), each solved first, a row or not
   const rollK = forkKey(roll, g);
   // in your Wildcard or Free Hit week your chip's plan too, solved as its row was (the user, 2026-10-22: "vs rolling
-  // everywhere": the week line's number is the pitch token's, your chip against the week's roll plan, chipWeekGain)
+  // everywhere": the week line's number is the pitch token's, your chip against the week's roll plan, chipWeekGain), its
+  // week your plan's own squad (list.mine below)
   const chipOwn = chipMine ? { moves: [], chips: { [g]: chipMine } } : null;
   const refs = new Map(followed ? [] : [[rollK, roll], ...(now.length && !chipMine ? [[yours, { moves: now, chips: {} }]] : []), ...(chipOwn ? [[yours, chipOwn]] : [])]);
   // a row that sells a player a transfer of yours bought before g counts against rolling with him free from g too, as
@@ -2602,9 +2614,13 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const heldK = `${rollK}|held`, wcRow = { moves: [], chips: { [g]: 'wc' } };
   const apart = !followed && !refs.has(heldK) && chipMine !== 'wc' && chipsAvail(P, g).includes('wc') && plannedAt(P, 'wc', g) == null
     && fitsAt(ctx, P, g, wcRow, d0) ? [[heldK, { ...roll, held: true }]] : [];
+  // …and a Free Hit the week lists no row of, its own solve (Forkcast's later moves after it: the later weeks Chips… and
+  // its toast count it on, as the week line does once it is played: chipApart, `ours`)
+  const fhK = forkKey({ moves: [], chips: { [g]: 'fh' } }, g), fhRow = { moves: [], chips: { [g]: 'fh' } };
+  if (!followed && !chipMine && !choices.has(fhK) && chipsAvail(P, g).includes('fh') && plannedAt(P, 'fh', g) == null && fitsAt(ctx, P, g, fhRow, d0)) apart.push([fhK, fhRow]);
   const ready = (list, c) => ({ ...list.sort(byGain)[0], state: 'ready', choice: c });
   // a reference whose solve makes no move your plan doesn't is your plan itself (never a row: L1)
-  const self = (c) => ({ state: 'ready', choice: c, self: true, moves: [], chips: c.chips, draft: d0, ev: before, cmp: compare(ctx, before, before), hits: {}, road: null, model: false });
+  const self = (c) => ({ state: 'ready', choice: c, self: true, moves: [], chips: c.chips, draft: d0, ev: asIs, cmp: compare(ctx, asIs, asIs), hits: {}, road: null, model: false });
   // each choice's solve, unless a road solved it exactly; L5 (the plans review, 2026-10-11: new rows waited behind a fork
   // from before an edit or another week): a fork in flight that this view no longer asks is let go
   // (a choice that splits none: splitOf)
@@ -2736,10 +2752,22 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // the two plans your week's transfer row sets side by side (rollOf): the roll's and your own choice's, each with
   // Forkcast's later moves; `pending` while either still solves (the row says so, never the week alone in its place)
   if (ref?.state === 'ready') Object.assign(list, { ref, mine: ours });
+  // (chip's plan p, {draft}, on plan r's later weeks: a Free Hit's week alone, its squad reverting after it, a Wildcard's
+  // plan as it is, its squad lasting; chipApart's on the roll plan, your own chip week's on its solve below)
+  const chipOn = (chip, r, p) => (chip === 'fh' ? { ...r, chips: { [g]: chip }, draft: weekOnto(r.draft, p.draft, g) } : p);
   // …in your Wildcard or Free Hit week your chip's plan against its own roll (refOf: a Wildcard's keeps your later weeks
-  // as its row's did, `held`), as the pitch's token set that chip's (weekRollOf's `mineRef`)
+  // as its row's did, `held`), as the pitch's token set that chip's (weekRollOf's `mineRef`). Its week is your plan's
+  // own, the squad its tap landed and the pitch draws, as Chips… and its toast counted it before the tap: QA chipweek N7
+  // (2026-10-26, "the week line's one number is the toast's", +2.9 then +3.1 in 383130's GW10): the chip's solve here
+  // picks its squad afresh (two players apart there, 63.05 points to your plan's 62.86), so the week line counted a squad
+  // you don't have. A Free Hit's week on that solve's later weeks (Forkcast's after a Free Hit, as its row's), a
+  // Wildcard's your plan as it is (its later weeks yours, as its held roll's)
   const mineRef = chipOwn ? refOf(chipOwn) : ref;
   if (chipOwn && mineRef?.state === 'ready') list.mineRef = mineRef;
+  // (a Free Hit's later weeks the roll's where its own solve failed, as chipApart's)
+  const onto = chipMine === 'fh' ? ours ?? (solved.get(yours)?.state === 'failed' ? mineRef : null) : mineRef;
+  // (your plan as it is: never dropped for a problem of its own, measurePlan's problemOf)
+  if (chipOwn && onto?.state === 'ready') { const p = chipOn(chipMine, onto, { draft: d0 }); list.mine = { ...p, ev: asTaken(ctx, P, p.draft, g, {}, false) }; }
   list.pending = !followed && [ref, mineRef, solved.get(yours)].some((x) => x?.state === 'solving');
   // a Wildcard or Free Hit the week lists no row of (not its best week, or planned elsewhere: Chips…'s other weeks) from
   // a plan of it solved apart (chipSource's road: your rules' preparation, the plan its tap lands), measured as a row's
@@ -2747,9 +2775,11 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // later weeks on both sides, as the week line counts your chip once played (vsRollOf: weekRollOf's `mine` and
   // `mineRef`). The owner's Free Hit in GW9 (2026-10-22): its preparation under the hold has none of Forkcast's later
   // moves, the roll plan has them, so Chips… and its toast said "+1.1" and the week line "+5.3" once it was played (QA
-  // chipweek N7). A Free Hit's squad reverts after its week and keeps the free transfers as rolling does, so its later
-  // weeks are the roll plan's: its week alone (squad, lineup, chip: weekOnto) on the roll plan, Forkcast's later moves
-  // on both sides. A Wildcard's squad lasts: its plan as solved against the held roll, your later weeks as they are on
+  // chipweek N7). A Free Hit's squad reverts after its week, so its week alone (squad, lineup, chip: weekOnto) goes on
+  // the later weeks of its own solve (`fhK`: Forkcast's later moves after a Free Hit, as the week line's once it is
+  // played), the roll plan's where that failed: QA chipweek N7 (6076699 GW10, 2026-10-26: "+6.1" in the toast, "+8.1" on
+  // the week line) put it on the roll plan's, whose GW11 makes five transfers on the five free transfers rolling gives,
+  // four after a Free Hit, so −4 the plan of it never takes. A Wildcard's squad lasts: its plan as solved against the held roll, your later weeks as they are on
   // both sides as its row's (heldOf; `apart` asks it), never the roll with Forkcast's later moves → {cmp, vs} | {wait:
   // true} (that roll still solves) | null (none, or it isn't a plan of yours: planOfRoad). Once per road (Chips… draws
   // each second)
@@ -2760,7 +2790,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     const r = chip === 'wc' ? solved.get(heldK) : ref;
     if (r?.state === 'solving') return { wait: true };
     if (r?.state !== 'ready') return null;
-    const m = measured(chip === 'fh' ? { ...r, chips: { [g]: chip }, draft: weekOnto(r.draft, p.draft, g) } : p);
+    const f = chip === 'fh' ? solved.get(fhK) : null;
+    if (f?.state === 'solving') return { wait: true };
+    const m = measured(chipOn(chip, f?.state === 'ready' ? f : r, p));
     if (!m) return null;
     // in a week of yours against your plan, as its row would count (vsRef's `vsMine`; decision K, the owner, 2026-10-25:
     // "compare + poitns not to rolling now but to transfer made"): a Free Hit's plan against your transfers' (Forkcast's
@@ -2870,9 +2902,9 @@ const approxAt = (P, g) => (P.mark ?? P.approx).has(g);
  *  counts, so the move a + just took reads what its choice read (the user, 2026-10-19: "Gain over rolling"; with the
  *  roll's week alone it read "−2.9" after "+6.4", carrying them on one side only "−5.8"), and the week names one roll
  *  (review 5, 2026-10-12); null with none, under ≈, or off the hold (no roll plan). `ev` the roll's plan, `mine` yours.
- *  Mount's weekRoll; a × that rolls the week (removeMove). A Wildcard or Free Hit week (squadWeek): your chip's plan
- *  against its own roll (plansOf's `mine` and `mineRef`), the number its token said (the user, 2026-10-22: "vs rolling
- *  everywhere"; chipWeekGain). */
+ *  Mount's weekRoll; a × that rolls the week (removeMove). A Wildcard or Free Hit week (squadWeek): your
+ *  plan's chip week against its own roll (plansOf's `mine`, your plan on it, and `mineRef`), the number its token said
+ *  (the user, 2026-10-22: "vs rolling everywhere"; chipWeekGain). */
 function weekRollOf(ctx, P, w, listed = (g) => plansOf(ctx, P, g)) {
   const sq = !!squadWeek(w);
   if ((!sq && !w.moves.length) || approxAt(P, w.gw)) return null;
@@ -3367,33 +3399,48 @@ function planOfRoad(ctx, P, r, g, d0) {
 /** Draft d played as taking a plan makes it, from GW `from` on (decision 3: a plan's number is what taking it gives;
  *  the reviews, 2026-10-11, High: after a sub the row said +4.65 and the take gave +3.55, its buy in the benched
  *  player's slot): the engine's best XI in each week, your saved lineup (repaired onto the week's squad as the plan view
- *  plays it: engine.applyLineup, a sold player's slot his buy's, as FPL places him) where you made one. `score`:
- *  evaluate's {xp, fixedLineups} (ifMisses). → evaluate's state */
-function asTaken(ctx, P, d, from, score = {}) {
+ *  plays it: engine.applyLineup, a sold player's slot his buy's, as FPL places him) where you made one. Under the hold
+ *  (`held`) a week's XI, bench and armband the solve's where a bundle road holds that week's squad, as the plan a take
+ *  lands plays them (memory.holdRoad's solvedLineup; the user, 2026-10-23: a doubtful starter the solve starts for the
+ *  autosub behind him): QA plan-week (6076699 GW9, 2026-10-26, "the total moved by what its + gives (the week alone)",
+ *  13.49 then 14.38): your plan benched Cunha there as its solve does, the xP order started him, so every + there said
+ *  0.89 less than it gave. `held` false: the xP order (plansOf's plans set against rolling, both sides measured alike).
+ *  `score`: evaluate's {xp, fixedLineups} (ifMisses: the held lineups are saved ones to evaluate, so its miss is scored
+ *  on the lineups its sheet's own number plays). → evaluate's state */
+function asTaken(ctx, P, d, from, score = {}, held = true) {
   const I = info(ctx);
   let x = d;
   for (const g of P.gws) if (g >= from && !weekOf(P, g)?.lineup && x.lineups?.[g]) x = E.setLineup(x, g, null);
-  return E.evaluate({ base: baseOf(ctx), players: I.d.players, draft: x, horizon: I.gws, ...score });
+  const run = (y) => E.evaluate({ base: baseOf(ctx), players: I.d.players, draft: y, horizon: I.gws, ...score });
+  const ev = run(x);
+  if (!held || !P.mem?.hold) return ev;
+  let y = x;
+  for (const s of ev.gws) {
+    const lu = s.gw >= from && P.gws.includes(s.gw) && !weekOf(P, s.gw)?.lineup ? solvedLineup(inputs(ctx).roads, s.gw, s.squad, s.chip ?? null) : null;
+    if (lu) y = E.setLineup(y, s.gw, lu);
+  }
+  return y === x ? ev : run(y);
 }
-/** Your plan from GW g as asTaken plays it: what a plan's number counts against (plansOf, its Why sheet). Once per plan
- *  view and GW. */
+/** Your plan from GW g as asTaken plays it: what a plan's number counts against (plansOf, its Why sheet); `held`
+ *  false: in the xP order (asTaken's). Once per plan view, GW and order. */
 const PLAN_BASE = new WeakMap();
-export function planBaseline(ctx, P, g) {
+export function planBaseline(ctx, P, g, held = true) {
   let m = PLAN_BASE.get(P);
   if (!m) PLAN_BASE.set(P, (m = new Map()));
-  if (!m.has(g)) m.set(g, asTaken(ctx, P, draftOf(ctx), g));
-  return m.get(g);
+  const k = `${g}:${held}`;
+  if (!m.has(k)) m.set(k, asTaken(ctx, P, draftOf(ctx), g, {}, held));
+  return m.get(k);
 }
 /** asTaken as addMove's `measure` (review 5, 2026-10-12: your transfer rows, Add a player's pills and Replace
  *  priced a buy with estimate, which drops your saved lineups, so after a sub their number beat what the tap gave): a
  *  single move measured as the plan rows are, against planBaseline. */
 export const takenBy = (ctx, P) => (d, from) => asTaken(ctx, P, d, from);
 
-/** A plan from GW g measured as taking it makes it (asTaken: best XI each week but where you saved a lineup, its hits
- *  counted) against your plan `before` (planBaseline(g)): {…p, ev, cmp, hits: {gw: FPL hits it brings there}} | null (it
+/** A plan from GW g measured as taking it makes it (asTaken: best XI each week but where you saved a lineup, or under
+ *  the hold its solve's, `held`; its hits counted) against your plan `before` (planBaseline(g) of the same `held`): {…p, ev, cmp, hits: {gw: FPL hits it brings there}} | null (it
  *  doesn't fit: problemOf). */
-function measurePlan(ctx, P, g, p, before) {
-  const ev = asTaken(ctx, P, p.draft, g);
+function measurePlan(ctx, P, g, p, before, held = true) {
+  const ev = asTaken(ctx, P, p.draft, g, {}, held);
   if (problemOf(ctx, ev, g)) return null;
   const hitsAt = (e, x) => e.gws.find((s) => s.gw === x)?.hits ?? 0;
   const hits = Object.fromEntries(P.gws.map((x) => [x, Math.max(0, hitsAt(ev, x) - hitsAt(before, x))]).filter(([, n]) => n > 0));
@@ -3483,6 +3530,7 @@ function forkPump(ctx, P, ask) {
   const same = forkFlights().find(([, f]) => f.key === ask.key);
   if (same && (prep || !same[1].prep)) return;
   if (P.healing) return;  // L4: no timer: the heal's landing re-draws the choices, which asks at once
+  if (leftBehind(ctx, P)) return;  // no timer: the new plan's bundle re-draws the choices, which asks its own
   const holder = ctx.api.slotHolder?.('spec') ?? (ctx.api.slotBusy?.('spec') ? 'busy' : null);
   const free = Array.from({ length: (P.b?.meta?.pair_lanes ?? 1) - 1 }, (_, i) => i + 1).find((i) => !FORK_FLIGHTS.has(i));
   // (a viewed ask with every lane busy: another week's flight, the next week's preparation, gives its lane up)
@@ -5343,7 +5391,7 @@ export const chipSource = (ctx, P = plan(ctx)) => (P?.pins.length ? chipPreps(ct
 function pumpPreps(ctx, P, items) {
   // another page memory's flight or wait (the team was signed out of) never holds this one's back
   if (PREP.mem !== memOf(ctx)) Object.assign(PREP, { mem: memOf(ctx), flight: null, until: 0 });
-  if (PREP.flight) return;
+  if (PREP.flight || leftBehind(ctx, P)) return;
   const viewed = Number(ctx.store.get('gw'));
   const order = (x) => (x.taken ? 2 : 0) + (x.gw === viewed ? 0 : 1);
   const next = items.filter((x) => !PREPS.has(x.key)).sort((a, b) => order(a) - order(b) || a.gw - b.gw)[0];
@@ -5428,6 +5476,15 @@ const fitNum = (el, v, steps = ['noxp', 'nomark', 'tight']) => {
   for (const k of steps) if (over()) el.classList.add(k);
   return !over();
 };
+/** The least type of a place's header, px: its last trim (headScale) goes no smaller. */
+const HEAD_LEAST = 8;
+/** A place's header still over its card after its own trims (fitNum's: "xP", the marks, the smaller number): the scale
+ *  of its whole type, its number and its take's word alike (m-ahead.css --ph-k), that fits `need` px of that type in
+ *  `room` px, never under HEAD_LEAST in its smallest type (`px`, at scale 1); 1 where it fits. The take's word kept its size while its number
+ *  shrank, so at 320 wide "−0.6 Swap" read "−0." (the fixreset probe, 2026-10-26: 21 px of number in 14 at the default
+ *  text size, 35 in 0 at 28 px; the owner, 2026-10-25: "never its number nor its Swap"; 2026-10-26: "fix the
+ *  failures"). Pure. */
+export const headScale = (need, room, px) => (need <= room + 0.5 ? 1 : Math.max(HEAD_LEAST / px, room / need));
 /** A GW's deadline (epoch seconds): the bundle's per-GW meta.deadlines, else GW A's meta.deadline_epoch. */
 /** A plate's own trims, each never hiding who comes in (the owner, 2026-10-25, "Best keeps its name": "Each plate fits on
  *  its own. Cramped quiet plates turn into ⇄ handles first, so the black best always shows its full name. A name still
@@ -5773,9 +5830,13 @@ export function mount(el, ctx) {
     el.style.setProperty('--ah-pitch-least', `${Math.ceil(pitchLeast({ chrome, hlo, plate, foot }))}px`);
   }
   // a new width (a rotation, a text size) fits the GW line on its one line again (keepGwLine), as the header is sized
-  // for it, and the week line's facts on theirs (fitFacts); the choices on the pitch are placed
-  // over its cards again (renderDecks) once this frame's observers are done, the pitch's own fitting its fixtures (a
-  // two-line fixture moves the rows: m-ahead.css --pm-x-*)
+  // for it, and the week line's facts on theirs (fitFacts); the choices on the pitch are placed over its cards again
+  // (renderDecks) in this same frame, before it is painted, the pitch's own fixtures fitted first (a two-line fixture
+  // moves the rows: m-ahead.css --pm-x-*; pitch.js's own observer fits them again after this one, to the same lines).
+  // Placed a task later, the frame a text size first draws showed every plate where the old size had put it, over the
+  // cards and cut (the fixreset probe, 2026-10-26: 2–4 plates over a card, up to 8 cut, in that frame at 320–393 wide
+  // and 17–28 px, for 40–110 ms, iOS's text-size control changing it live: -apple-system-body; the owner, 2026-10-26,
+  // of decks' "375×667 GW9 text 28px" flake: "fix the failures")
   const refitPitch = globalThis.ResizeObserver ? new ResizeObserver(() => {
     fitPitch();
     keepGwLine();
@@ -5783,7 +5844,9 @@ export function mount(el, ctx) {
     // the switcher rests under the header as drawn (m-ahead.css .ah-ctl): its GW line on two lines where the deadline
     // alone wraps (a larger text size; the v1.3.75 review #3: stuck at the one-line height it covered the countdown)
     ctl.style.setProperty('--ah-head-h', `${head.getBoundingClientRect().height}px`);
-    setTimeout(redeck, 0);
+    const pm = pitchHost.querySelector(':scope > .pm');
+    if (pm) fitFixtures(pm);
+    redeck();
   }) : null;
   /** The choices on the pitch placed again where its rows moved (a resize, the web fonts, a fixture fitted on two lines),
    *  a focused tab, edge or token focused again. */
@@ -6587,6 +6650,11 @@ export function mount(el, ctx) {
     if (cut >= 0) for (const t of tkIn.slice(cut)) t.remove();
     // (the best move's token given way for room, its plate still on the pitch: for the QA, a size the stack can't hold it)
     decks.toggleAttribute('data-mv-out', tk.some((t) => t.matches('.mv') && !t.isConnected));
+    // (and the choices whose tokens gave way, their plan keys, for the QA: the Roll that takes your Free Hit off at
+    // 320 × 568, its words and Take wider than the room before the keeper's card, is the Week sheet's row then)
+    const gone = tk.filter((t) => !t.isConnected && t.dataset.plan).map((t) => t.dataset.plan).join(' ');
+    if (gone) decks.dataset.tokOut = gone;
+    else delete decks.dataset.tokOut;
     // Reset lineup and Reset plan under Player data, before the choices reach up to them (placePills)
     placePills(b, boxes);
     const walls = [...boxes, ...labelWalls(root, b), ...[...root.querySelectorAll(':scope > .ah-pp:not([hidden]), .ah-tok')].map((x) => boxOf(x, b))];
@@ -6823,10 +6891,12 @@ export function mount(el, ctx) {
    *  First, above them all, the week's best move while one beats your plan or rolling (litOf `move`; `lead` its places
    *  in its plate's top-most row: renderDecks' topRow), ink, its plate's first buy and its number, "Evanilson +1.6", a
    *  plan's too, "Tavernier +3.8" (no "Best:", no "+ Vuskovic" or "& 1 more": its ink says it is the best, and its plate
-   *  names the plan whole; the owner, 2026-10-26, of a token that gave way at 320 wide and for every plan: "yes do both" (drop "Best:", and a plan's "& 1 more" in the token)), VoiceOver the move whole, a tap opening that player's place as his plate does, no take (G) (the owner,
-   *  2026-10-26: "also find if best transfer suggestion which marked black somehow can be also mentioned as tab or
-   *  similiar where chips and rolling are (top left corner) so it no lost somewhere on bench for example and user
-   *  instanrtly see what it was suggested"; chosen: "Ink token, top of stack"; the plate stays). */
+   *  names the plan whole; the owner, 2026-10-26, of a token that gave way at 320 wide and for every plan: "yes do
+   *  both" (drop "Best:", and a plan's "& 1 more" in the token)), VoiceOver the move whole, a tap opening that player's
+   *  place as his plate does, no take (G) (the owner, 2026-10-26: "also find if best transfer suggestion which marked
+   *  black somehow can be also mentioned as tab or similiar where chips and rolling are (top left corner) so it no lost
+   *  somewhere on bench for example and user instanrtly see what it was suggested"; chosen: "Ink token, top of stack";
+   *  the plate stays). */
   function tokensOf(P, w, toks, lit = new Map(), lead = null) {
     const g = w.gw, out = [], sq = squadWeek(w), named = lit.size > 0;
     const mv = lit.move, top = mv && lead?.[0]?.L.e.pl === mv ? lead : null;
@@ -7191,6 +7261,9 @@ export function mount(el, ctx) {
     // (one look per place: "xP" from every header together, then a smaller number for all; design_marks/design.md §3)
     for (const head of [nowHead, ...dealt.map(([, x]) => x)]) fitNum(head, head.querySelector('.ah-pv'));
     for (const k of ['noxp', 'tight']) if (dealt.some(([, x]) => x.classList.contains(k))) for (const [, x] of dealt) x.classList.add(k);
+    // then, still over, the whole header's type smaller (headScale), the dealt ones by one scale (one look per place)
+    scaleHeads([nowHead]);
+    scaleHeads(dealt.map(([, x]) => x));
     if (!c.bench) for (const [card, , note] of dealt) if (note) note.style.top = `${c.y + card.getBoundingClientRect().height + 3}px`;
     fitNotes(root, dealt.map(([, , note]) => note).filter(Boolean), W);
     // a sideways swipe only closes it (never a week: the pitch's swipe starts nowhere in it), its click then swallowed
@@ -7212,6 +7285,31 @@ export function mount(el, ctx) {
       const o = { duration: reduceMotion() ? 150 : 180, delay: reduceMotion() ? 0 : k * 18, easing: FLY_EASE, fill: 'backwards' };
       for (const n2 of [card, head, note]) n2?.animate(kf, o);
     });
+  }
+  /** Headers `heads` of a place, each still over its card after fitNum (its number or its take's word cut), at one
+   *  scale of their type (headScale: --ph-k), the least they need, never one under HEAD_LEAST in its smallest type (its
+   *  number at .tight's .85em, the take's word at its .56 of the tab: the review, 2026-10-26, a floor on the header's own
+   *  type drew a 6.8 px number); one still over there is left at its least. */
+  function scaleHeads(heads) {
+    const px = (e, k) => parseFloat(getComputedStyle(e)[k]) || 0;
+    // (the smallest type drawn in it, at --ph-k 1: every part scales with it)
+    const type = (x) => Math.min(px(x, 'fontSize'), ...[...x.querySelectorAll('.ah-pv, .ah-pgo')].map((e) => px(e, 'fontSize')));
+    const over = () => heads.some((x) => [x, x.querySelector('.ah-pv')].some((e) => !!e && e.scrollWidth > e.clientWidth + 0.5));
+    for (const x of heads) x.style.removeProperty('--ph-k');
+    if (!heads.length || !over()) return;
+    // each one's type (its children's widths less their padding) against its room (its width less its padding and gaps)
+    const k = Math.min(...heads.map((x) => {
+      const kids = [...x.children], pad = (e) => px(e, 'paddingLeft') + px(e, 'paddingRight');
+      const need = kids.length ? kids.reduce((a, e) => a + e.scrollWidth - pad(e), 0) : x.scrollWidth - pad(x);
+      const room = x.clientWidth - pad(x) - px(x, 'columnGap') * Math.max(0, kids.length - 1) - kids.reduce((a, e) => a + pad(e), 0);
+      return headScale(need, room, type(x));
+    }));
+    // (its marks' margins and the rounding: a step smaller while one is still over, as far as its least)
+    const least = Math.min(1, Math.max(...heads.map((x) => HEAD_LEAST / type(x))));
+    for (let j = Math.max(k, least); ; j = Math.max(least, j - 0.04)) {
+      for (const x of heads) x.style.setProperty('--ph-k', j.toFixed(3));
+      if (!over() || j <= least) return;
+    }
   }
   /** A place's notes (drawPlace) over no card's plate (its name and xP) nor each other, measured as drawn (as fitNum
    *  measures a header; the v1.3.71 release QA, 2026-10-22: at the right touchline Gvardiol's place's "also Semenyo →

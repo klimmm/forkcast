@@ -908,8 +908,9 @@ export function holdOf(list = [], { A, end, owned = [] } = {}) {
 }
 
 /** GW g's lineup as a solve has it for squad `sq` under `chip`: the first bundle road (bundleRoads) whose week g holds the
- *  same 15 and the same chip → {xi, bench, captain, vice} | null (no solve has that squad there). */
-function solvedLineup(roads, g, sq, chip) {
+ *  same 15 and the same chip → {xi, bench, captain, vice} | null (no solve has that squad there). holdRoad's, and so
+ *  what a take is measured as playing under the hold (ahead.js asTaken). */
+export function solvedLineup(roads, g, sq, chip) {
   const k = idsKey(sq);
   const w = bundleRoads(roads).map((r) => weekAt(r, g)).find((x) => x && squadKey(x) === k && (x.chip ?? null) === chip);
   return w ? { xi: ids(w.xi), bench: ids(w.bench), captain: num(w.captain), vice: num(w.vice) } : null;
