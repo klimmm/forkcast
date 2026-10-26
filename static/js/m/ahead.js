@@ -299,8 +299,14 @@ function flashLanding(ctx, prevP, more = {}) {
   // every week the landing names (`more.gws`: Reset plan's, Without your rules' whole window) as prevP had it, so a week
   // it left as it was loses its mark once seen as before (markWeeks; the review of the first-use fixes, 2026-10-21)
   const was = { ...Object.fromEntries((more.gws ?? []).map((x) => [x, weekOf(prevP, x)])), ...ch.was };
-  FLASH = { ...ch, ...more, was, at: Date.now() };
+  setFlash(P, { ...ch, ...more, was });
 }
+/** A landing's changes (changedOf) for mount's render to flash and mark once, stamped with plan view P's team and GW
+ *  A (`team`, as the marks' chgKey): a team switch mounts the screen anew (S.flashAt 0), and the last landing of the
+ *  team before drew its changes on the next one's tiles (the owner, 2026-10-26, Moriarty's CoffeeBoy after Raketa's
+ *  Evanilson: "why there are crossed points on later weeks if i have not made any changes", ~~60.0~~ 57.1 the struck
+ *  60.0 Raketa's GW10). */
+const setFlash = (P, x) => { FLASH = { ...x, team: P ? `${P.entry}|${P.A}` : null, at: Date.now() }; };
 /** B129 (saffer Part 4 §8: a transfer you just removed came straight back at the top of the suggestions, as if new):
  *  the moves you took off this session (removeMove: the ones its toast names), per entry and GW A: {key, by: {gw:
  *  [`${out}>${in}`]}}. A choice selling and buying only players they sold and bought is yours ("removed by you", after
@@ -908,7 +914,7 @@ const undoOf = (ctx, words, fn) => () => {
   bump(ctx);
   const after = plan(ctx);
   const ch = before && after ? changedOf(after, before) : { gws: [], rows: {}, cards: {} };
-  FLASH = { ...(FLASH?.at >= t ? FLASH : ch), at: Date.now(), undo: true };
+  setFlash(after ?? before, { ...(FLASH?.at >= t ? FLASH : ch), undo: true });
   // the edit before it made again ('again') speaks for itself: no switch under its toast
   const g = r === 'again' || !after ? null : viewedGw(ctx, after);
   const to = g != null && !ch.gws.includes(g) ? after.gws.find((x) => ch.gws.includes(x)) ?? null : null;
@@ -1064,7 +1070,7 @@ function land(ctx, { instant = false } = {}) {
   bump(ctx);
   const P = plan(ctx);
   // B61: what it changed against the plan before the edit, flashed once and marked until shown (mount's render)
-  FLASH = { ...changedOf(P, ov.prevP), at: Date.now() };
+  setFlash(P, changedOf(P, ov.prevP));
   // B24 (review3 Part 4 §9: "+7.5" three times): landed at once, the default verdict says what happened (the edit's
   // words and its ending, ov.plain), its number on the total and its row; after a check, its points
   const verdict = instant && ov.plain ? ov.plain : ov.text;
@@ -5924,11 +5930,11 @@ export function mount(el, ctx) {
     const w = weekOf(P, g);
     if (!w) return renderBaking();
     S.drawn = P;  // the plan view on screen (schedule: a memory change that leaves it draws nothing)
-    // B61 (johnson A6): a landing not drawn yet (FLASH); the weeks it changed keep their mark until each is shown, or
-    // is back as it was (markWeeks)
+    // B61 (johnson A6): a landing not drawn yet (FLASH), this team's (setFlash); the weeks it changed keep their mark
+    // until each is shown, or is back as it was (markWeeks)
     const chgKey = `${P.entry}|${P.A}`;
     if (S.chgKey !== chgKey) { S.chgKey = chgKey; S.chg = new Map(); }
-    const fresh = FLASH && FLASH.at !== S.flashAt ? FLASH : null;
+    const fresh = FLASH && FLASH.at !== S.flashAt && FLASH.team === chgKey ? FLASH : null;
     if (fresh) S.flashAt = fresh.at;
     markWeeks(S.chg, fresh, P, g);
     // the focused control of the week line, the choices on the pitch or the Week sheet, focused again once it is drawn
@@ -6865,19 +6871,24 @@ export function mount(el, ctx) {
    *  in its plate's top-most row: renderDecks' topRow), ink, its plate's first buy and its number, "Evanilson +1.6", a
    *  plan's too, "Tavernier +3.8" (no "Best:", no "+ Vuskovic" or "& 1 more": its ink says it is the best, and its plate
    *  names the plan whole; the owner, 2026-10-26, of a token that gave way at 320 wide and for every plan: "yes do
-   *  both" (drop "Best:", and a plan's "& 1 more" in the token)), VoiceOver the move whole, a tap opening that player's
-   *  place as his plate does, no take (G) (the owner, 2026-10-26: "also find if best transfer suggestion which marked
-   *  black somehow can be also mentioned as tab or similiar where chips and rolling are (top left corner) so it no lost
-   *  somewhere on bench for example and user instanrtly see what it was suggested"; chosen: "Ink token, top of stack";
-   *  the plate stays). */
+   *  both" (drop "Best:", and a plan's "& 1 more" in the token)), VoiceOver the move whole (the owner, 2026-10-26: "also
+   *  find if best transfer suggestion which marked black somehow can be also mentioned as tab or similiar where chips and
+   *  rolling are (top left corner) so it no lost somewhere on bench for example and user instanrtly see what it was
+   *  suggested"; chosen: "Ink token, top of stack"; the plate stays). A tap takes it, as its place's Swap does
+   *  (takeFrom: its toast with Undo, the buy flying in from the token), his place skipped (the owner, 2026-10-26, of
+   *  "Evanilson +1.6": "fix so if clicking on evanilson on left top corner it swap to evanilson straight away skipping
+   *  options"; G's "a tap opens, the take is inside" stays the plates' and the chip tokens'); a week you can't change
+   *  or a move still checked opens his place, as before. */
   function tokensOf(P, w, toks, lit = new Map(), lead = null) {
     const g = w.gw, out = [];
     const mv = lit.move, top = mv && lead?.[0]?.L.e.pl === mv ? lead : null;
     if (top) {
       const nm = P.L.name, e = top[0].L.e;
       const moves = e.adds.map((m) => COPY.moveSaid(nm(m.out), nm(m.in)));
-      out.push(h('button.ah-tok.mv', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:best:${g}`, deck: top[0].d.a, best: planKey(g, mv) },
-        'aria-label': `${COPY.bestSaid(moves, plNumSaid(P, mv), true)}, ${COPY.showsChoices}`, onClick: () => openPlace(top[0].d.a) },
+      const swap = mv.state === 'ready' && !frozenAt(P, g);
+      out.push(h('button.ah-tok.mv', { type: 'button', 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:best:${g}`, deck: top[0].d.a, best: planKey(g, mv), ...(swap ? { add: `plan:${planKey(g, mv)}` } : {}) },
+        'aria-label': `${COPY.bestSaid(moves, plNumSaid(P, mv), true)}, ${swap ? COPY.bestSwaps : COPY.showsChoices}`,
+        onClick: (ev) => (swap ? takeFrom(ev, P, g, mv, ev.currentTarget, top[0].d.a, e.inId) : openPlace(top[0].d.a)) },
         h('span.ah-tl', { 'aria-hidden': 'true' }, h('span.ah-tn', null, nm(e.inId))),
         // (its number as its plate's, blue with "xP", as every forecast's: numParts)
         h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, numParts(g, mv))));

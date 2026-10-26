@@ -947,6 +947,7 @@ export const COPY = Object.freeze({
    *  token, top of stack"): "Evanilson +1.6" (no "Best:" since "yes do both"), said "Best move this week: …, shows his
    *  choices". */
   showsChoices: 'shows his choices',
+  bestSwaps: 'swaps him in',
   /** A buy of yours's plate (ahead.swapPlate; the owner, 2026-10-26: "i bough justin but where is no tab on his head so i
    *  can keep prebious player"): the player you sold, said "Keep Gabriel, not Justin, +0.8 points vs your plan". */
   keepSoldSaid: (sold, buy) => `Keep ${sold}, not ${buy}`,
