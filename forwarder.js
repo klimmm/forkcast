@@ -79,6 +79,13 @@ const STALL_MS = Number(process.env.STALL_MS || 10_000);
 const HEAD_MS = Number(process.env.HEAD_MS || 90_000);
 const BUFFER_MAX = 8 * 1024 * 1024;
 const TRIES = 3;
+// A stalled GET resumes where it stopped (the user, 2026-10-26, "Busy right now" on a new team and then on his own: the
+// tunnel at 1-15 KB/s with 10 s stalls, and every stall asked a 345 KB bundle again from byte 0): the rest is asked with
+// `Range: bytes=<got>-` and `If-Range: <its ETag>` (the laptop's server.py answers 206 from the very bytes it sent, or 200
+// with the whole answer when they are no longer its), spliced on only when the 206's Content-Range starts at the bytes held
+// and ends at the answer's length; a 200 is a new answer, read from its start as before. A try that brings bytes isn't
+// counted among TRIES (one that brings none is), at most RESUMES of them. All of it before anything reaches the visitor.
+const RESUMES = 30;
 
 // The laptop's front end served from here (2026-10-23: through the tunnel's ~50 KB/s a first load took a minute, the
 // page blank until its ~800 KB of scripts had crawled through): static/ is a copy of the release the laptop serves
@@ -187,7 +194,8 @@ function watchLaptop() {
 // visitor: an error after the answer began (a reset mid-body) retried it and wrote the headers twice, which threw
 // ERR_HTTP_HEADERS_SENT and took the forwarder down (2026-10-11 15:30:07 UTC, Render's server_failed). `attempt`: the
 // tries made before this one.
-function forward(req, res, body, to, attempt = 0) {
+// `part`: the stalled answer's bytes so far, its rest asked here ({r: its 200 answer, etag, len, chunks, got, resumes}).
+function forward(req, res, body, to, attempt = 0, part = null) {
   const headers = {};
   for (const [k, v] of Object.entries(req.headers)) if (!HOP.has(k)) headers[k] = v;
   const own = `https://${req.headers.host}`;
@@ -195,30 +203,52 @@ function forward(req, res, body, to, attempt = 0) {
   if (req.headers.origin && req.headers.origin.toLowerCase() === own.toLowerCase()) headers.origin = to.origin;
   headers['x-forwarded-host'] = req.headers.host;
   headers['x-forwarded-proto'] = 'https';
+  if (part) {
+    headers.range = `bytes=${part.got}-`;
+    headers['if-range'] = part.etag;
+  }
   const opts = { host: to.hostname, port: Number(to.port) || 443, method: req.method, path: req.url, headers, servername: to.hostname };
-  if (attempt) opts.agent = false;
+  if (attempt || part) opts.agent = false;
   const read = req.method === 'GET' || req.method === 'HEAD';
   const tries = read ? TRIES : 2;
   // this try's end, once: a later error, timeout or stall of a try already given up on changes nothing
   let over = false;
-  const fail = async (what, up, r, again = true) => {
+  // next: the part to resume from (none: from byte 0); a try that brought bytes doesn't count among `tries`
+  const fail = async (what, up, r, again = true, next = null) => {
     if (over) return;
     over = true;
-    noteError(req, to, what, attempt > 0);
+    noteError(req, to, what + (part ? ` (resumed from ${part.got} B)` : ''), attempt > 0 || !!part);
     r?.destroy();
     up.destroy();
     if (res.headersSent || res.destroyed) return res.destroy();  // the answer had begun: cut it, the browser sees a broken response
-    if (again && attempt + 1 < tries) return forward(req, res, body, (await readTarget(true)) || to, attempt + 1);
+    const gained = next && next.got > (part?.got ?? 0) && next.resumes <= RESUMES;
+    const tries2 = gained ? attempt : attempt + 1;
+    if (again && tries2 < tries) return forward(req, res, body, (await readTarget(true)) || to, tries2, next && next.resumes <= RESUMES ? next : null);
     res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
     res.end(`Forkcast is not reachable right now (${what}). Try again in a minute.`);
   };
   const up = https.request(opts, (r) => {
     if (over) return r.destroy();
     // Cloudflare's 530 (error 1033, the tunnel is gone), 502/504 (localhost.run's "no tunnel"): asked again
-    if ([502, 504, 530].includes(r.statusCode) && attempt + 1 < tries) return fail(`HTTP ${r.statusCode}`, up, r);
+    if ([502, 504, 530].includes(r.statusCode) && attempt + 1 < tries) return fail(`HTTP ${r.statusCode}`, up, r, true, part);
+    if (part && r.statusCode === 206) {
+      // the rest of `part`: exactly the bytes from part.got to its end, of the same answer (its ETag), else from byte 0
+      const m = /^bytes (\d+)-(\d+)\/(\d+)$/.exec(r.headers['content-range'] || '');
+      const rest = part.len - part.got;
+      if (!m || Number(m[1]) !== part.got || Number(m[2]) !== part.len - 1 || Number(m[3]) !== part.len
+        || Number(r.headers['content-length']) !== rest || (r.headers.etag && r.headers.etag !== part.etag)) {
+        return fail(`a range not asked: ${r.headers['content-range']}`, up, r);
+      }
+      return whole(r, rest, (what, got, chunks) => fail(what, up, r, true, resumable(req, r, got, chunks, part)), (buf) => {
+        over = true;
+        relay(part.r, res, own, to, Buffer.concat([...part.chunks, buf], part.len));
+      });
+    }
+    // asked for the rest, answered neither the rest nor the whole: from byte 0
+    if (part && r.statusCode !== 200) return fail(`HTTP ${r.statusCode} to a range`, up, r);
     const len = Number(r.headers['content-length']);
     if (read && Number.isInteger(len) && len <= BUFFER_MAX) {
-      return whole(r, req.method === 'HEAD' ? 0 : len, (what) => fail(what, up, r), (buf) => {
+      return whole(r, req.method === 'HEAD' ? 0 : len, (what, got, chunks) => fail(what, up, r, true, resumable(req, r, got, chunks)), (buf) => {
         over = true;
         relay(r, res, own, to, buf);
       });
@@ -232,22 +262,38 @@ function forward(req, res, body, to, attempt = 0) {
     over = true;
     up.destroy();
   });
-  up.setTimeout(HEAD_MS, () => fail(`no answer in ${HEAD_MS / 1000} s`, up, null, read));
-  up.on('error', (e) => fail(e.code || e.message, up));
+  up.setTimeout(HEAD_MS, () => fail(`no answer in ${HEAD_MS / 1000} s`, up, null, read, part));
+  up.on('error', (e) => fail(e.code || e.message, up, null, true, part));
   up.end(body);
 }
 
-// The answer `r` read whole (`len` bytes): done(its body), or fail(why) where it stops for STALL_MS, ends short or breaks.
+// What a stalled try leaves to resume from (RESUMES): `got` bytes (`chunks`) of answer `r` read whole, after `prev`'s (a
+// try that resumed it); none for a HEAD, a visitor's own Range, anything but a 200 (or its 206 rest), or an answer
+// without a strong ETag, which are asked again from byte 0 as before.
+function resumable(req, r, got, chunks, prev = null) {
+  if (req.method !== 'GET' || req.headers.range) return null;
+  if (!got) return prev;
+  if (prev) return { ...prev, chunks: [...prev.chunks, ...chunks], got: prev.got + got, resumes: prev.resumes + 1 };
+  const etag = r.headers.etag;
+  const len = Number(r.headers['content-length']);
+  if (r.statusCode !== 200 || !etag || etag.startsWith('W/') || !Number.isInteger(len)) return null;
+  return { r, etag, len, chunks, got, resumes: 1 };
+}
+
+// The answer `r` read whole (`len` bytes): done(its body), or fail(why, the bytes got, their chunks) where it stops for
+// STALL_MS, ends short or breaks (the chunks: what a resume starts from, resumable). Never more than `len` bytes held.
 function whole(r, len, fail, done) {
   const chunks = [];
   let got = 0;
   let ended = false;
-  let timer = setTimeout(() => fail(`stalled at ${got}/${len} B`), STALL_MS);
+  const stop = (what) => fail(what, got, chunks.slice());
+  let timer = setTimeout(() => stop(`stalled at ${got}/${len} B`), STALL_MS);
   const moved = () => {
     clearTimeout(timer);
-    timer = setTimeout(() => fail(`stalled at ${got}/${len} B`), STALL_MS);
+    timer = setTimeout(() => stop(`stalled at ${got}/${len} B`), STALL_MS);
   };
   r.on('data', (c) => {
+    if (got + c.length > len) return stop(`over ${len} B`);
     chunks.push(c);
     got += c.length;
     moved();
@@ -255,14 +301,14 @@ function whole(r, len, fail, done) {
   r.on('end', () => {
     ended = true;
     clearTimeout(timer);
-    if (got !== len) return fail(`ended at ${got}/${len} B`);
+    if (got !== len) return stop(`ended at ${got}/${len} B`);
     done(Buffer.concat(chunks));
   });
-  r.on('error', (e) => fail(e.code || e.message));
+  r.on('error', (e) => stop(e.code || e.message));
   // closed before its end (the tunnel cut it): never left waiting
   r.on('close', () => {
     clearTimeout(timer);
-    if (!ended) fail(`closed at ${got}/${len} B`);
+    if (!ended) stop(`closed at ${got}/${len} B`);
   });
 }
 
@@ -313,7 +359,7 @@ http.createServer((req, res) => {
   // which forwarder runs (a deploy checked from outside, no laptop involved)
   if (req.url === '/__version') {
     res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
-    return res.end(`stall-retry 2026-10-23; static ${STATIC.release || '-'} (${STATIC.files.size} files); laptop ${laptop || '-'}\n`);
+    return res.end(`stall-resume 2026-10-26; static ${STATIC.release || '-'} (${STATIC.files.size} files); laptop ${laptop || '-'}\n`);
   }
   if (req.url === '/__ping') {
     res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
