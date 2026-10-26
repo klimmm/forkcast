@@ -3181,7 +3181,8 @@ export function weekBest(P, w, M, D, toks = []) {
 export function litShown(P, w, M, D, toks = [], lit = litOf(P, w, M, D)) {
   const on = (a) => !D.drawn || D.drawn.has(a);
   const first = M.settled ? D.filter((d) => !lit.has(d.a) && on(d.a)).map(placeFirst).filter((e) => e?.pl?.state === 'ready').map((e) => e.pl) : [];
-  return new Set([...[...lit].filter(([a, x]) => x.best || on(a)).map(([, x]) => x.e.pl), ...first, ...toks.filter((pl) => pl.state === 'ready' && !pl.refRow)].filter(plPays));
+  // (the plates as last drawn, a sentence's sellers' own singles among them: D.drawnPl, renderDecks; design 1026e)
+  return new Set([...[...lit].filter(([a, x]) => x.best || on(a)).map(([, x]) => x.e.pl), ...first, ...(M.settled ? D.drawnPl ?? [] : []), ...toks.filter((pl) => pl.state === 'ready' && !pl.refRow)].filter(plPays));
 }
 /** The Roll of a week you roll (plansOf `rolls`: no transfer, chip or Roll of yours there): its + would only make the
  *  roll one of your rules, changing nothing on screen, so it has none (the user, 2026-10-22: "+" offered only where it
@@ -3315,6 +3316,38 @@ export const placeLine = (entries, e) => {
   const lone = (x) => !x.pair?.length;
   return singleMove(e) || lone(ways[0]) ? ways[0] : ways.find((x) => singleMove(x) && x.pl.state === 'ready') ?? ways.find(lone) ?? ways[0];
 };
+/** A place's choice of more than one move (design 1026e "line"; the owner, 2026-10-26, of rings, tags, "also …" notes and
+ *  "or needs …" lines: "messy dirty crap"): a plan with other moves (`pair`), or one whose take also takes back a buy of
+ *  his elsewhere (`gone`; in his own buy's place, `a`, the one it replaces is the place's title: a single there). Such a
+ *  choice is one sentence, never a card. Pure. */
+export const multiMove = (e, a = null) => {
+  if (!e?.pl || e.pl.refRow) return false;
+  const own = a != null && e.taken?.length === 1 && Number(e.taken[0].in) === Number(a);
+  // (a Roll taking back more than the place's own buy too: "Instead of Palmer + Tavernier + Evanilson")
+  if (takesBack(e)) return !own && !!e.taken?.length;
+  return !!e.pair?.length || (!!e.gone && !own);
+};
+/** A place's entries split (design 1026e "line"; Johnson, The Elements of Choice: grouping decides comparison): his own
+ *  single moves, the cards (and his take-backs: Roll, Remove), and at most one line, the best plan he is part of, first in
+ *  placeOrder's order (a checked one before one checking). A pair's move the week can't make alone (plansOf `needs`) is
+ *  neither: it is that plan's move, and its reason was the phone's sum (fitOf), never the solver's (the owner's "no
+ *  hardcoded logic whatsoever", 2026-10-26). `entries` in placeOrder's order. Pure. → {singles, line} */
+export const placeSplit = (entries, a = null) => {
+  // (nor a Roll taking back more than the place's own buy, "Instead of Palmer + Tavernier + Evanilson": the owner
+  // rejected exactly that line; it is the Week sheet's row, the place's own take-back its Remove card)
+  const live = entries.filter((e) => !e.pl?.needs && !(takesBack(e) && multiMove(e, a)));
+  const multi = live.filter((e) => multiMove(e, a));
+  return { singles: live.filter((e) => !multi.includes(e)), line: multi.find((e) => e.pl.state === 'ready') ?? multi.find((e) => e.pl.state !== 'failed') ?? null };
+};
+/** A multi-move choice as one sentence (design 1026e "line"; Podmajersky, Strategic Writing for UX: a label says what
+ *  happens): its GW-g moves in the order its solved road makes them (`adds`: planBack's, the choice's own order), "Neto →
+ *  Tavernier, Cunha → Palmer", a take-back's words after them, "instead of Palmer". Never re-derived on the phone. Pure.
+ *  → [move words] with `.back` (its "instead of …" | '') */
+export const lineMoves = (P, e) => {
+  const nm = P.L.name;
+  const back = e.gone ? COPY.planInsteadOf(e.gone) : '';
+  return Object.assign(e.adds.map((m) => `${nm(m.out)} → ${nm(m.in)}`), { back: e.adds.length ? back : capFirst(back) });
+};
 /** A place's entries (decksOf's) in the order its cards are dealt, nearest his own card first (the reviews, 2026-10-22: the
  *  ranks zig-zagged, "Mbeumo +0.6 · Rice +1.8 · Roll · Yours +2.8"): the checked choices best first, then those still
  *  checking or failed, then what takes a transfer back (the Roll of a week with yours, Remove) last; ties as listed. Pure. */
@@ -3334,9 +3367,11 @@ const PLACE_SLOTS = 4;
 export const placeFirst = (d) => {
   if (d.mine) return d.entries[0] && takesBack(d.entries[0]) ? d.entries[0] : null;
   const live = (e) => !takesBack(e) && (e.pl?.state === 'ready' || e.pl?.state === 'solving');
-  if (!d.entries.some(live)) return null;
+  // (his own moves alone: a plan he is part of has its one mark elsewhere, its sentence; design 1026e "line")
+  const own = placeSplit(placeOrder(d.entries), d.a).singles;
+  if (!own.some(live)) return null;
   // (a failed one listed before one still checking: the checking one, "checking…", never "can't check" while it may land)
-  const dealt = placeDealt(placeOrder(d.entries), PLACE_SLOTS);
+  const dealt = placeDealt(own, PLACE_SLOTS);
   return dealt.find(live) ?? dealt[0];
 };
 /** Up to n x's for a place's dealt cards beside his card at x0, `step` apart, each a whole card (cw) inside [3, W − 3], in
@@ -3364,14 +3399,13 @@ export function failedWords(P, pl) {
  *  or Triple Captain it plays, "as good in GW9" (earlyWords: the same move made then is worth no less; the user,
  *  2026-10-21: listed, never lit); last, a move you took off this session, "removed by you" (plansOf `removed`, as its
  *  Week sheet row says it: B129; the user, 2026-10-21: fix the known issues). `e`: its entry in the place (decksOf). Pure. */
-export function noteOf(P, w, e, a = null, { way = false } = {}) {
+export function noteOf(P, w, e, a = null) {
   const nm = P.L.name, pl = e.pl, chip = pl?.choice.chips?.[w.gw];
   // (no "about as good as Truffert" under a card: the owner, 2026-10-25, "why needed these silly comments 'about as good
   // as tavernier' which only takes space not adding any value")
   const said = (...xs) => [...xs, earlyWords(pl), pl?.removed ? COPY.removedByYou : null].filter(Boolean).join(' · ') || null;
-  // (`way`: what it differs by alone, a card's line's words, its state in its number's place: the review of cards4)
-  if (pl?.state === 'solving' && !way) return said(COPY.pairChecking);
-  if (pl?.state === 'failed' && !way) return said(failedWords(P, pl).note);
+  if (pl?.state === 'solving') return said(COPY.pairChecking);
+  if (pl?.state === 'failed') return said(failedWords(P, pl).note);
   // in the place of a buy of yours (`a`: the place's player) every card takes that buy back: its title says so ("Rice's
   // place"), so a note naming that buy alone says nothing more (the user, 2026-10-22, Rice's place on TORPEDO: "why note
   // dublicated three times"); one taking back more than it still says so
@@ -6151,6 +6185,8 @@ export function mount(el, ctx) {
     // pitch last drew this week's places (renderDecks' `drawn`, drawn again after this: sheetFollows; the owner,
     // 2026-10-25, "Follow the pitch")
     decks.drawn = S.decks?.gw === g ? S.decks.drawn : null;
+    // (and the choices whose plates it drew, a sentence's sellers' own singles among them: design 1026e)
+    decks.drawnPl = S.decks?.gw === g ? S.decks.drawnPl : null;
     const shown = litShown(P, w, { sq, plans, settled }, decks, toks, lit);
     // how far the week's checks are (weekWait); the checks' clock from its first draw with a choice or its transfers'
     // number waiting, until none waits (waitClock), from 0:00 again for checks of their own (weekKey: the phone recheck
@@ -6581,24 +6617,41 @@ export function mount(el, ctx) {
     // where the turf holds less than a plate at its least (PLATE_MIN: a short pitch, a large text size; `only`), none
     // under EDGE_MIN (the Week sheet lists them)
     const marks = [];
+    // a multi-move best is ONE mark, its sentence (design 1026e "line"; a chess engine's best line): one ink plate as
+    // wide as its words, centred over its top-most sellers' row, "Cunha → Palmer, Neto → Tavernier +3.8", its other
+    // sellers' places each a plate of his own single moves, as every place has; never a tag, a ring or "& 1 more"
+    const lineBest = !!lead?.length && multiMove(lead[0].L.e);
+    const litAt = (a) => (lineBest && lit.get(a)?.best && !lead.some((x) => x.d.a === a) ? null : lit.get(a));
+    // (a buy the sentence names is no other plate's: one name, one number; the owner's judge of design 1026e, of
+    // "Tavernier +1.2" beside "Tavernier … +3.8")
+    const lineBuys = new Set(lineBest ? lead[0].L.e.adds.map((m) => Number(m.in)) : []);
+    const firstOf = (d) => placeFirst(lineBuys.size ? { ...d, entries: d.entries.filter((e) => !lineBuys.has(e.inId) || takesBack(e)) } : d);
     for (const d of D) {
-      const c = boxes.find((x) => x.id === d.a), first = lit.has(d.a) ? null : placeFirst(d), L = lit.get(d.a) ?? (first && { e: first, best: false, first: true });
+      const c = boxes.find((x) => x.id === d.a), first = litAt(d.a) ? null : firstOf(d), L = litAt(d.a) ?? (first && { e: first, best: false, first: true });
       if (!c || !L) continue;
       const up = c.y - reachOf(c, walls);
       if (up < EDGE_MIN) continue;
       // (a Remove of yours, no number: its name alone, never its number alone; renderDecks' steps leave it named, .bare)
       marks.push({ d, c, L, up, kind: L.best ? 'best' : 'alt', best: !!L.best, only: up < PLATE_MIN && !!L.e.pl });
     }
-    // the best's places: ringed (still: no motion of its own), over his card, hidden with the decks under a place
-    for (const m of marks.filter((x) => x.best)) append(decks, h('div.ah-ring', { 'aria-hidden': 'true', dataset: { deck: m.d.a }, style: { left: `${m.c.x}px`, top: `${m.c.y}px`, width: `${m.c.w}px`, height: `${m.c.h}px` } }));
+    // (no ring: the ink plate says it is the best; design 1026e, the clutter budget's "no rings")
     // a plan's plate over its sellers in the top-most of their rows (one there: over him; more: spanning them, its middle
     // over the span), its other sellers each a tag of his buy (DECISION.md), no line to the plate (the owner's
     // decision, 2026-10-25: the yellow dots from it to its tags removed); its buys in their sellers' order
     const [row0, bests] = topRow(marks.filter((x) => x.kind === 'best')), tags = bests.filter((x) => !row0.includes(x));
-    const span = row0.length ? (() => { const l = row0[0].c, r = row0.at(-1).c; return { x: l.x, y: l.y, w: r.x + r.w - l.x, h: l.h, bench: l.bench }; })() : null;
+    const span = !row0.length ? null : lineBest ? { x: 3, y: row0[0].c.y, w: W - 6, h: row0[0].c.h, bench: row0[0].c.bench }
+      : (() => { const l = row0[0].c, r = row0.at(-1).c; return { x: l.x, y: l.y, w: r.x + r.w - l.x, h: l.h, bench: l.bench }; })();
     // (a row-mate under the span keeps no mark of his own there: his place is his card's, the Week sheet's and ‹ ›'s)
-    const under = (x) => span && !x.best && Math.abs(x.c.y - span.y) < 2 && x.c.x >= span.x && x.c.x + x.c.w <= span.x + span.w;
-    marks.splice(0, marks.length, ...marks.filter((x) => !under(x)));
+    // (a sentence's plate takes only the turf its words need: a row-mate's plate goes only where they meet, below)
+    const under = (x) => !lineBest && span && !x.best && Math.abs(x.c.y - span.y) < 2 && x.c.x >= span.x && x.c.x + x.c.w <= span.x + span.w;
+    // (one buy, one plate: two places offering the same buy, "Truffert +1.3" and "Truffert +1.0", keep the better, the
+    // other's his place's; the owner's judge of design 1026e)
+    const plateGain = (x) => (x.L.e.pl?.state === 'ready' ? x.L.e.pl.cmp.delta : -Infinity);
+    const byBuy = new Map();
+    for (const x of marks) if (!x.best && x.L.e.pl && !takesBack(x.L.e) && (!byBuy.has(x.L.e.inId) || plateGain(x) > plateGain(byBuy.get(x.L.e.inId)))) byBuy.set(x.L.e.inId, x);
+    const bestIns = new Set(marks.filter((x) => x.best).map((x) => x.L.e.inId));
+    const twice = (x) => !x.best && !!x.L.e.pl && !takesBack(x.L.e) && (bestIns.has(x.L.e.inId) || lineBuys.has(x.L.e.inId) || byBuy.get(x.L.e.inId) !== x);
+    marks.splice(0, marks.length, ...marks.filter((x) => !under(x) && !twice(x)));
     // (the places drawn, for the Week sheet's green: sheetFollows)
     D.drawn = new Set(marks.map((x) => x.d.a));
     const plates = marks.filter((x) => x.kind === 'alt' || (x.kind === 'best' && tags.includes(x)));
@@ -6609,7 +6662,10 @@ export function mount(el, ctx) {
     // (every move of the plan counted and said, its row's first, a seller drawn as no plate too: one with no room is
     // still one of its moves)
     const rest = span ? row0[0].L.e.adds.filter((m) => !row0.some((x) => x.L.e.inId === Number(m.in))) : [];
-    if (span) drawn.push({ el: swapPlate(P, g, row0[0].d, row0[0].L, span, Math.min(...row0.map((x) => x.up)), tabH, { buys: [...row0.map((x) => x.L.e.inId), ...rest.map((m) => Number(m.in))], shown: row0.map((x) => x.L.e.inId), sellers: [...row0.map((x) => x.d.a), ...rest.map((m) => Number(m.out))], only: row0.some((x) => x.only) }), c: span, m: row0[0] });
+    // (a sentence's plate, `line`, is no part of the plates' fit steps: its words never shortened nor dropped; it is
+    // sized after them, below)
+    let spEl = null;
+    if (span) (lineBest ? (x) => { spEl = x.el; append(decks, x.el); } : (x) => drawn.push(x))({ el: swapPlate(P, g, row0[0].d, row0[0].L, span, Math.min(...row0.map((x) => x.up)), tabH, { buys: [...row0.map((x) => x.L.e.inId), ...rest.map((m) => Number(m.in))], shown: row0.map((x) => x.L.e.inId), sellers: [...row0.map((x) => x.d.a), ...rest.map((m) => Number(m.out))], only: row0.some((x) => x.only), ...(lineBest ? { line: lineMoves(P, row0[0].L.e) } : {}) }), c: span, m: row0[0] });
     for (const m of plates) drawn.push({ el: swapPlate(P, g, m.d, m.L, m.c, m.up, tabH, { ...(m.best ? { tag: bests.find((x) => !tags.includes(x)).d.a } : {}), only: m.only }), c: m.c, m });
     for (const p of drawn) append(decks, p.el);
     // each card's plate (a plan's span: every seller's), and how far past his card a plate takes the gap beside it, centred
@@ -6735,11 +6791,51 @@ export function mount(el, ctx) {
       // wider than his card never reaches onto a card over the next column)
       p.el.style.setProperty('--up', `${Math.max(0, top - Math.max(reachOf({ n: p.el, x: left, y: top, w: wd }, walls), p.c.y - 44))}px`);
     }
+    // a sentence's plate (lineBest) as wide as its words, centred over its sellers in its row, inside the touchlines; a
+    // row-mate's plate it meets gives way, his place his card's, the Week sheet's and ‹ ›'s (E's spirit: no plate under
+    // another; the owner's judge of design 1026e, of the pitch-wide band: "a banner")
+    if (spEl) {
+      const sp = { el: spEl };
+      sp.el.style.width = 'max-content';
+      const wantOf = () => Math.ceil(sp.el.getBoundingClientRect().width) + 2, mid = (row0[0].c.x + row0.at(-1).c.x + row0.at(-1).c.w) / 2;
+      // (wider than the pitch: a plate's own trims first, its "xP" (the pitch's one look: oneLook) then its smaller type
+      // (PLATE_TRIMS), the release QA of design 1026e at a 28 px text size: two lines' height reached onto the keeper's
+      // card over words that fitted one; still wider, three moves at 320: two lines, between its moves, up into the turf
+      // over them; never a name cut)
+      let want = wantOf();
+      for (const k of PLATE_TRIMS) {
+        if (want <= W - 6) break;
+        sp.el.classList.add(k);
+        if (k === 'noxp') oneLook([...decks.querySelectorAll('.ah-sp, .ah-tok')], ['noxp']);
+        want = wantOf();
+      }
+      if (want > W - 6) {
+        const th = parseFloat(sp.el.style.height);
+        sp.el.classList.add('two');
+        Object.assign(sp.el.style, { height: `${2 * th}px`, top: `${span.y - 2 * th}px` });
+      }
+      const wd = Math.min(W - 6, want), left = Math.min(W - 3 - wd, Math.max(3, mid - wd / 2));
+      Object.assign(sp.el.style, { width: `${wd}px`, left: `${left}px` });
+      // (no taller than the turf over it across its own width, never onto a card above, its type smaller as a plate's
+      // in less than its least height (swapPlate): its height its sellers' turf, a pitch-wide sentence under the keeper
+      // at a 28 px text size reached 6 px onto his card; the release QA of design 1026e) (.two: its line-height 1.15)
+      const lines = sp.el.classList.contains('two') ? 2 : 1, room = span.y - reachOf({ n: sp.el, x: left, y: span.y, w: wd }, walls);
+      if (parseFloat(sp.el.style.height) > room) Object.assign(sp.el.style, { height: `${room}px`, top: `${span.y - room}px`, fontSize: `${Math.floor(room / (lines === 2 ? 2.3 : 1)) - 1}px` });
+      const top = parseFloat(sp.el.style.top);
+      sp.el.style.setProperty('--up', `${Math.max(0, top - Math.max(reachOf({ n: sp.el, x: left, y: top, w: wd }, walls), span.y - 44))}px`);
+      for (const q of drawn) {
+        const l = parseFloat(q.el.style.left), r = l + parseFloat(q.el.style.width);
+        if (Math.abs(q.c.y - span.y) < 2 && r > left - 4 && l < left + wd + 4) { q.el.remove(); D.drawn.delete(q.m.d.a); }
+      }
+    }
+    // (the choices whose plates are drawn, for the Week sheet's green: litShown; a sentence's sellers' own singles too)
+    D.drawnPl = new Set(drawn.filter((p) => p.el.isConnected).map((p) => p.m.L.e.pl).filter(Boolean));
+    if (spEl) D.drawnPl.add(row0[0].L.e.pl);
     // each sub's label a target to the choices drawn (reachLabels)
     reachLabels(root);
     // (as a landing's ink name plate: in 150 ms after 170 ms, m-ahead.css ah-in; Reduce Motion: the 150 ms fade, as land's;
     // a place's first choice drawn while the week checked too: no fade)
-    if (lights) for (const x of decks.querySelectorAll('.ah-sp:not(.first), .ah-ring, .ah-tok.mv')) x.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: reduceMotion() ? 0 : 170, fill: 'backwards' });
+    if (lights) for (const x of decks.querySelectorAll('.ah-sp:not(.first), .ah-tok.mv')) x.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: reduceMotion() ? 0 : 170, fill: 'backwards' });
     if (S.place) drawPlace(false);
     sheetFollows(P, w, M);
   }
@@ -6777,7 +6873,8 @@ export function mount(el, ctx) {
     const nm = P.L.name, pl = e.pl, s = pl ? planSaid(P, g, pl) : null;
     // (a Remove of yours, its name and no number, never its number alone: as short as the turf too; the review of cards4)
     const th = Math.max(o.only || !pl ? Math.min(up, PLATE_MIN) : PLATE_MIN, Math.min(c.bench ? tabH - 2 : tabH, up));
-    const open = () => openPlace(d.a);
+    // (a sentence's plate its plan's own sheet, its why and its one take: the first move it names is not this place's)
+    const open = () => (o.line && pl ? openPlanWhy(P, g, pl) : openPlace(d.a));
     const buys = o.buys ?? (o.tag != null ? [e.inId] : [e.inId, ...e.pair.map((q) => q.in)]), sellers = o.sellers ?? [d.a, ...e.pair.map((q) => q.out)], shown = o.shown ?? [e.inId];
     // (a first choice: its number once the week settles, else "checking…", or why it can't be checked: as his place's header;
     // a Remove of yours, no number: its name alone once the week settles)
@@ -6805,16 +6902,17 @@ export function mount(el, ctx) {
     const why = first && ready ? [earlyWords(pl), pl.removed ? COPY.removedByYou : null].filter(Boolean).map((x) => `, ${x}`).join('') : '';
     const said = o.tag != null ? `${COPY.partSaid(moves[0], e.adds.filter((m) => Number(m.in) !== e.inId).map((m) => COPY.moveSaid(nm(m.out), nm(m.in))), move)}. ${places}`
       : back ? `${COPY.keepSoldSaid(nm(e.inId), nm(d.a))}${v == null ? '' : `, ${num}`}${why}. ${places}`
-      : best ? `${COPY.bestSaid(moves, num, move)}. ${places}`
+      : best ? `${COPY.bestSaid(moves, num, move)}. ${o.line ? COPY.showsWhy : places}`
         : `${moves.join('; ')}, ${num}${why}. ${!first ? places : !ready ? placeLabel(P, d) : none ? COPY.placeNoneSaid(nm(d.a), d.entries.length, plansVs(P, g)) : places}`;
-    const body = h('button.ah-spb', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': said, onClick: open },
-      shown.map((id, i) => [i ? h('span.ah-spj', { 'aria-hidden': 'true' }, ' + ') : null, h('span.ah-spn', { 'aria-hidden': 'true' }, nm(id))]),
-      shown.length < buys.length ? h('span.ah-spm', { 'aria-hidden': 'true' }, COPY.planMore(buys.length - shown.length)) : null,
+    const body = h('button.ah-spb', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': `${said}${o.line?.back ? `, ${o.line.back}` : ''}`, onClick: open },
+      // (a multi-move best's sentence, every move named in its road's order: design 1026e "line")
+      o.line ? [...o.line.map((x, i) => h('span.ah-spn', { 'aria-hidden': 'true' }, x, i < o.line.length - 1 ? ',' : null)), o.line.back ? h('span.ah-spn', { 'aria-hidden': 'true' }, o.line.back) : null] : shown.map((id, i) => [i ? h('span.ah-spj', { 'aria-hidden': 'true' }, ' + ') : null, h('span.ah-spn', { 'aria-hidden': 'true' }, nm(id))]),
+      !o.line && shown.length < buys.length ? h('span.ah-spm', { 'aria-hidden': 'true' }, COPY.planMore(buys.length - shown.length)) : null,
       // (a tag's his plan's number, shown only where his name has no room: .only)
       v == null ? null : h('span.ah-spv.m-num', { 'aria-hidden': 'true', class: { wait: !ready } }, v));
     const plate = h('div.ah-sp', {
       // (a sub's by data-bench, never a class: app.css .bench is the desktop bench's panel)
-      class: { best, alt: !best, first: !!first, part: o.tag != null, pays: ready && s.pays, only: !!o.only || loss, loss, back, bare: v == null },
+      class: { best, alt: !best, first: !!first, part: o.tag != null, line: !!o.line, pays: ready && s.pays, only: !!o.only || loss, loss, back, bare: v == null },
       dataset: { row: `deck:${d.a}`, deck: d.a, ...(pl ? { plan: planKey(g, pl) } : {}), in: e.inId, ...(c.bench ? { bench: '' } : {}) },
       // (its number alone in less than a plate's least height: its type no taller than the turf, never onto his card;
       // the fit review of plates3, 2026-10-25)
@@ -6880,7 +6978,9 @@ export function mount(el, ctx) {
    *  or a move still checked opens his place, as before. */
   function tokensOf(P, w, toks, lit = new Map(), lead = null) {
     const g = w.gw, out = [];
-    const mv = lit.move, top = mv && lead?.[0]?.L.e.pl === mv ? lead : null;
+    // (a multi-move best none: its one mark is its sentence's plate over its sellers' row, renderDecks; design 1026e
+    // "line": "Cunha → Palmer, Neto → Tavernier +3.8" never stands whole in the room beside the goal, 149 px at 393 wide)
+    const mv = lit.move, top = mv && lead?.[0]?.L.e.pl === mv && !multiMove(lead[0].L.e) ? lead : null;
     if (top) {
       const nm = P.L.name, e = top[0].L.e;
       const moves = e.adds.map((m) => COPY.moveSaid(nm(m.out), nm(m.in)));
@@ -7085,9 +7185,11 @@ export function mount(el, ctx) {
     const xs = [c, ...mates].map((q) => q.x).sort((p, q) => p - q);
     const step = c.bench && xs.length > 1 ? Math.min(...xs.slice(1).map((x, i) => x - xs[i])) : c.w + Math.max(4, (W - 5 * c.w) / 6);
     const room = slotsBeside(c.x, step, PLACE_SLOTS, W, c.w);
-    // (one card per buy, its next way the line under it: placeBuys, placeLine; the owner, 2026-10-26, "Better one + line")
-    const over = placeBuys(entries).length > room.length;
-    const shown = placeDealt(entries, room.length), ors = shown.map((e) => placeLine(entries, e));
+    // his own single moves the cards, at most one line for a plan he is part of (placeSplit; design 1026e "line": no "or
+    // …" line under a card, no "also …" note, the owner, 2026-10-26, "what means 'or' here if it repeat same thing")
+    const { singles, line: pline } = placeSplit(entries, d.a);
+    const over = placeBuys(singles).length > room.length;
+    const shown = placeDealt(singles, room.length);
     // his row steps aside only where a dealt card (or "⋯ N more") takes a row-mate's slot: the rest stay, under the shade
     // (the user, 2026-10-21: "why players dissapering from pitch": one choice dealt hid the whole row)
     const used = room.slice(0, shown.length + (over ? 1 : 0));
@@ -7159,27 +7261,18 @@ export function mount(el, ctx) {
       const head = h('div.ah-phead', { class: { best: top1, pays, lo: !top1 && !pays }, dataset: { deal: i }, style: { ...px(x, 0), top: tab() } },
         word && !(rollBack && ready) ? null : h('span.ah-pv.m-num', { 'aria-hidden': 'true', class: { wait: !ready } }, num ?? numParts(g, pl)),
         go);
-      const text = noteOf(P, w, e, d.a);
-      // its buy's next way, one tappable line under its note (placeLine): "or 2nd transfer −4.3 ›", "or instead of
-      // Evanilson −1.9 ›", taking that choice as a header's Swap does (takeFrom: its toast with Undo), said with what it
-      // takes; any further way the Week sheet's (the owner, 2026-10-26: "find if there is a way to combine 'a second
-      // transfer' and 'instead of..' for a player in one card not two")
-      const l = ors[i], lpl = l?.pl, lready = lpl?.state === 'ready';
-      // (one the week can't make alone says the sale it needs, as its card would: failedWords)
-      const lnote = l && ([noteOf(P, w, l, d.a, { way: true }), lpl?.state === 'failed' && lpl.needs ? failedWords(P, lpl).note : null].filter(Boolean).join(' · ') || null);
-      const line = l && h('button.ah-por', {
-        type: 'button', disabled: !lready || frozenAt(P, g), dataset: { add: `plan:${planKey(g, lpl)}`, key: `or:${entryKey(g, l)}` },
-        'aria-label': `${COPY.swapSaid([[nm(d.a), nm(l.inId)], ...l.pair.map((q) => [nm(q.out), nm(q.in)])], lready ? plNumSaid(P, lpl) : null)}, ${lnote ?? COPY.placeOr(null)}`,
-        onClick: (ev) => takeFrom(ev, P, g, lpl, card, d.a, l.inId),
-      }, whole(COPY.placeOr(lnote)), ' ', h('span.ah-porv.m-num', { class: { wait: !lready } }, lready ? numParts(g, lpl) : lpl.state === 'failed' ? failedWords(P, lpl).head : COPY.pairChecking), ' ›');
+      // (a card's one line is its header: a take-back alone says what it undoes under it, a single only its own state,
+      // "removed by you", "as good in GW10", why it can't be checked; never another move; design 1026e)
+      const text = takesBack(e) ? noteOf(P, w, e, d.a)
+        : [earlyWords(pl), pl?.removed ? COPY.removedByYou : null, pl?.state === 'failed' ? failedWords(P, pl).note : null].filter(Boolean).join(' · ') || null;
       // one block on top of its card, read down: its header, its note, its line, then his name and fixture (the owner,
       // 2026-10-26, of "instead of Evanilson" / "or 2nd transfer −4 −6.1 xP ›" in the gap between rows, a neighbour's
       // header next to them: "here not clear what refer to what"): the note and the line in his card's own column, flush
       // under its header over his shirt (his card's tile), never in a gap a neighbour's header or card shares (fitBlocks);
       // a failed check's in the warning colour, never a pair's move that needs its other sale (checked: it can't alone)
-      const note = text || line ? h('div.ah-pnote', { class: { warn: pl?.state === 'failed' && !pl.needs },
+      const note = text ? h('div.ah-pnote', { class: { warn: pl?.state === 'failed' && !pl.needs },
         style: { left: `${x}px`, top: `${c.y}px`, width: `${c.w}px` } },
-        text ? h('span.ah-pnt', { 'aria-hidden': 'true' }, whole(text)) : null, line) : null;
+        h('span.ah-pnt', { 'aria-hidden': 'true' }, whole(text))) : null;
       // (his flag, "⚠ 75%", drawn over the band at its top-right as on his tile, never hidden by it: the owner's judge of
       // design study 1026, "a card's flag stays drawn on top of the band, top-right as today"; last, so its line can be
       // the band's first: m-ahead.css)
@@ -7190,8 +7283,8 @@ export function mount(el, ctx) {
     // All N, ⋯ N more: the Week sheet at its plans, his card focused first (the sheet gives focus back to it); ⋯ N more at
     // the first of his choices it had no room for (the user, 2026-10-22)
     const toWeek = (plan = null) => { c.n.focus({ preventScroll: true }); closePlace(false); weekSheet(g, 'plans', plan); };
-    // (the choices neither a card nor a card's line: placeLine)
-    const unseen = entries.filter((e) => !shown.includes(e) && !ors.includes(e)), hidden = unseen.find((e) => e.pl);
+    // (the choices neither a card nor the place's line: placeSplit)
+    const unseen = entries.filter((e) => !shown.includes(e) && e !== pline && !e.pl?.needs), hidden = unseen.find((e) => e.pl);
     const more = over ? h('button.ah-pmore', { type: 'button', 'aria-haspopup': 'dialog', dataset: { key: 'more' }, style: { ...px(room.at(-1), c.y), height: `${c.h}px` },
       onClick: () => toWeek(hidden ? planKey(g, hidden.pl) : null) }, COPY.placeMore(unseen.length)) : null;
     const i = S.decks.indexOf(d), n = S.decks.length, place = COPY.placeOf(nm(d.a));
@@ -7204,8 +7297,9 @@ export function mount(el, ctx) {
       h('span.ah-wl', { 'aria-hidden': 'true' }, h('span.ah-wl1', null, `${place} · ${COPY.placeAt(i + 1, n)}`),
         h('span.ah-wl2', null, COPY.placeNumbers(plansVs(P, g), P.gws.filter((x) => x >= g))), onBench ? h('span.ah-wl2.ah-wl3', null, onBench) : null),
       h('button', { type: 'button', 'aria-label': 'Next place', dataset: { key: 'next' }, disabled: n < 2, onClick: () => stepPlace(1) }, '›'),
-      h('button', { type: 'button', 'aria-haspopup': 'dialog', dataset: { key: 'all' }, onClick: () => toWeek() }, COPY.placeAll(S.M.plans.length)),
-      h('button', { type: 'button', 'aria-label': 'Close', dataset: { key: 'close' }, onClick: () => closePlace() }, glyph('x')));
+      h('button', { type: 'button', 'aria-haspopup': 'dialog', dataset: { key: 'all' }, onClick: () => toWeek() }, COPY.placeAll(S.M.plans.filter((x) => !x.needs).length)),
+      h('button', { type: 'button', 'aria-label': 'Close', dataset: { key: 'close' }, onClick: () => closePlace() }, glyph('x')),
+      pline ? planLine(P, g, d, pline) : null);
     const layer = h('div.ah-place', { role: 'group', 'aria-label': `${place}, ${COPY.placeAt(i + 1, n)}` },
       // (read in the block's order, a header's Swap, its note's line, then his card: VoiceOver too)
       shade, own, nowHead, dealt.map(([card, head, note]) => [head, note, card]), more, walk);
@@ -7219,6 +7313,8 @@ export function mount(el, ctx) {
     // then, still over, the whole header's type smaller (headScale), the dealt ones by one scale (one look per place)
     scaleHeads([nowHead]);
     scaleHeads(dealt.map(([, x]) => x));
+    // its one line on one line (design 1026e: one line of words per choice), its "xP" first, then a smaller type
+    fitLine(layer.querySelector('.ah-pline'));
     // (dropped into the turf under his row: its "⋯ N more" with them)
     const drop = fitBlocks(root, boxes, c, dealt);
     if (drop && more) more.style.top = `${c.y + drop}px`;
@@ -7241,6 +7337,45 @@ export function mount(el, ctx) {
       const o = { duration: reduceMotion() ? 150 : 180, delay: reduceMotion() ? 0 : k * 18, easing: FLY_EASE, fill: 'backwards' };
       for (const n2 of [card, head, note]) n2?.animate(kf, o);
     });
+  }
+  /** A place's one line (placeSplit; design 1026e "line", a chess engine's best line): the plan he is part of as one
+   *  sentence, its moves in its road's order with its one number, "Cunha → Palmer, Neto → Tavernier +3.8", a take-back's
+   *  words after them (lineMoves), on the place's bar under its title, never on a card. Its words open its Why sheet,
+   *  where the solver's reason is (openPlanWhy: the second tap); its take says what it does, "Swap both" (Podmajersky:
+   *  the label says what happens), taking it whole (takeFrom: its toast with Undo). Ink where it is the week's best. */
+  function planLine(P, g, d, e) {
+    const pl = e.pl, nm = P.L.name, ready = pl.state === 'ready', s = planSaid(P, g, pl), ms = lineMoves(P, e);
+    const swaps = e.adds.map((m) => [nm(m.out), nm(m.in)]);
+    const why = () => openPlanWhy(P, g, pl);
+    return h('div.ah-pline', { class: { best: S.M?.lit?.move === pl }, dataset: { plan: planKey(g, pl) } },
+      h('button.ah-plw', { type: 'button', 'aria-haspopup': 'dialog', disabled: !ready, dataset: { key: `line:${planKey(g, pl)}` }, 'aria-label': `${s.label}; shows why`, onClick: why },
+        // (each move unbroken, the line wrapping only between them)
+        ms.map((x, i) => [h('span.ah-tmv', null, x, i < ms.length - 1 ? ',' : null), ' ']), ms.back ? [h('span.ah-tmv', null, ms.back), ' '] : null,
+        h('span.ah-tmv.m-num', { class: { wait: !ready } }, ready ? numParts(g, pl) : pl.state === 'failed' ? COPY.placeCantCheck : COPY.pairChecking),
+        // (its take given way for room, fitLine: the words open the sheet that takes it)
+        h('span.ah-plm', { 'aria-hidden': 'true' }, ' ›')),
+      h('button.ah-plgo', { type: 'button', disabled: !ready || frozenAt(P, g), dataset: { add: `plan:${planKey(g, pl)}` },
+        'aria-label': swaps.length ? COPY.swapSaid(swaps, ready ? plNumSaid(P, pl) : null) : `${COPY.planTake(s.head)}${ready ? `, ${plNumSaid(P, pl)}` : ''}`,
+        onClick: (ev) => takeFrom(ev, P, g, pl, ev.currentTarget, d.a, e.inId) }, swaps.length ? COPY.swapGo(swaps.length) : COPY.planRoll(null)));
+  }
+  /** A place's line (planLine) on one line (the clutter budget: one line of words per choice): its "xP" off, then its
+   *  words' type a step smaller (--pl-k) to LINE_LEAST of it; still over (two long names at 320 wide), its take gives way
+   *  (.nogo: the words, "›", open its Why sheet, whose one button takes it, as the pitch's sentence does) and the type is
+   *  tried again; a sentence still wider (three moves at 320) wraps between its moves, never a name cut. */
+  const LINE_LEAST = 0.8;
+  function fitLine(line) {
+    const w = line?.querySelector('.ah-plw');
+    if (!w) return;
+    const over = () => w.scrollWidth > w.clientWidth + 0.5;
+    const smaller = () => { for (let k = 1; over() && k > LINE_LEAST; ) { k = Math.max(LINE_LEAST, k - 0.03); line.style.setProperty('--pl-k', k.toFixed(3)); } };
+    if (!over()) return;
+    line.classList.add('noxp');
+    smaller();
+    if (!over()) return;
+    line.classList.add('nogo');
+    line.style.removeProperty('--pl-k');
+    smaller();
+    if (over()) line.classList.add('wrap');
   }
   /** Headers `heads` of a place, each still over its card after fitNum (its number or its take's word cut), at one
    *  scale of their type (headScale: --ph-k), the least they need, never one under HEAD_LEAST in its smallest type (its
@@ -7422,7 +7557,9 @@ export function mount(el, ctx) {
         // rows within each best first: both by M.plans' own order, best first once none checks (plansOf's byGain), the
         // slots held while they check (heldOrder, M1) (the user, 2026-10-22: the "Instead of Palmer" group last put a +5.9
         // Free Hit under a −0.1 row)
-        ...[false, true].map((sh) => ({ sh, grp: M.plans.filter((pl) => (planBack(P, g, pl).back === M.sharedBack) === sh) }))
+        // (never a pair's move the week can't make alone, plansOf `needs`: a dead row whose reason was the phone's sum,
+        // fitOf; its plan's row says it whole; design 1026e "line")
+        ...[false, true].map((sh) => ({ sh, grp: M.plans.filter((pl) => !pl.needs && (planBack(P, g, pl).back === M.sharedBack) === sh) }))
           .filter((x) => x.grp.length).sort((x, y) => M.plans.indexOf(x.grp[0]) - M.plans.indexOf(y.grp[0])).map(({ sh, grp }) => {
             const rows = grp.map((pl) => planRow(P, g, pl, { shared: M.sharedBack, closes: true, lit: litPays(pl, M) }));
             // (those under it marked, data-under="instead": the QA's chip-week-plans reads which rows it heads)
@@ -7958,7 +8095,8 @@ export function mount(el, ctx) {
     // week later, "· as good in GW9" (earlyWords; the user, 2026-10-21: listed, never lit), and a move you took off this
     // session, "· removed by you" (B129; the user, 2026-10-21: fix the known issues)
     const ew = earlyWords(pl);
-    const line = [adds.length ? adds.flatMap((m, i) => [i ? ' + ' : null, h('span.ah-pmv', null, h('s', null, `${nm(m.out)} → `), nm(m.in))]) : shown,
+    // (its moves one sentence, "Cunha → Palmer, Neto → Tavernier", as the pitch's line says it: design 1026e)
+    const line = [adds.length ? adds.flatMap((m, i) => [i ? ', ' : null, h('span.ah-pmv', null, h('s', null, `${nm(m.out)} → `), nm(m.in))]) : shown,
       tail ? h('span.ah-bq2', null, tail) : null, ew ? h('span.ah-bq2', null, ' · ', ew) : null, pl.removed ? h('span.ah-bq2', null, ' · ', COPY.removedByYou) : null];
     if (s.wait) {
       const off = h('button.ah-add', { type: 'button', disabled: true, tabindex: '-1', 'aria-hidden': 'true' }, glyph('+'));
@@ -8016,12 +8154,25 @@ export function mount(el, ctx) {
     // (onBase), never against your plan under it; a Wildcard or Free Hit says the chip it spends and when the next comes
     const onHead = best || mine || (pl.vsRoll && !pl.refRow && !pl.vsMine) ? cmp.delta : null;
     const sqChip = SQUAD_CHIPS.has(pl.chips?.[g]) ? pl.chips[g] : null;
+    // why its moves go together, the solver's own (design 1026e "line"; the owner's "no hardcoded logic whatsoever"):
+    // its solved road's own GW-g squad (pl.road, never the phone's composed pl.ev) holds a club's most with a buy, a sale of the same club its other move ("Neto's sale
+    // makes room: Palmer is your 3rd CHE player"); never the phone's sums (fitOf), no solve asked
+    const rw = (pl.road?.weeks || []).find((x) => Number(x.gw) === g), clubs = clubCounts(P.L, rw ? ids([...(rw.xi || []), ...(rw.bench || [])]) : []);
+    // (over the moves it adds to yours, planBack's `adds`: a take-back's reason is never one of your own transfers')
+    const { adds: added, back: undone } = SQUAD_CHIPS.has(pl.chips?.[g]) ? { adds: [], back: '' } : planBack(P, g, pl);
+    const several = added.length > 1 || (!!undone && added.length > 0);
+    const room = added.length < 2 ? [] : added.flatMap((m) => {
+      const club = P.L.club(m.in), by = added.find((o) => o !== m && P.L.club(o.out) === club);
+      return club && by && clubs.get(club) === E.MAX_PER_CLUB ? [COPY.planRoom(nm(by.out), nm(m.in), E.MAX_PER_CLUB, club)] : [];
+    });
     const facts = [...new Set([...now.flatMap((m) => whyFacts(ctx, P, g, m, pl.ev, without, { drafts: [pl.taken ?? pl.draft, d0], head: onHead })),
       ...(sqChip ? [COPY.chipUses(chipName(sqChip), chipBack(P, g))] : []),
       ...(pl.alone && !pl.rolls && Math.abs(pl.alone.delta - cmp.delta) >= 0.05 ? [COPY.planAdds(pl.alone.delta)] : []),
       ...(pl.rolls ? [COPY.rollAlready(g)] : []), ...rollFt(P, g, pl)])];
     const head = planWeeks(P, { ...pl, moves: now }, g).find(([x]) => x === g)?.[1] ?? COPY.planRoll(g);
-    const title = titleOf(pl);
+    // (its moves one sentence, as its line on the pitch and in a place says them: design 1026e "line")
+    // (each move unbroken, "Cunha → Palmer," never split inside a move or a name)
+    const title = several ? `${added.map((m) => `${nm(m.out)} → ${nm(m.in)}`.replace(/ /g, '\u00a0')).join(', ')}${undone ? ` ${undone}` : ''}` : titleOf(pl);
     // the two plans' later weeks, rolling's (else what it counts against) first
     const later = countedAfter(P, g, best ? [[COPY.countedRoll, ev], [short, other]]
       : pl.vsRoll && !pl.refRow && !pl.vsMine ? [[COPY.countedRoll, other], [title, ev]] : [[short[0].toUpperCase() + short.slice(1), other], [title, ev]]);
@@ -8031,10 +8182,13 @@ export function mount(el, ctx) {
     ctx.openSheet('why', {
       a: { road: roadOfEv(ev, g), label: title },
       b: { road: roadOfEv(other, g), label: short, short },
-      title, sub: whySub(g, cmp.delta, `over ${span(gws)} vs ${vs}`), gw: g,
+      title, sub: whySub(g, cmp.delta, `over ${span(gws)} vs ${vs}`), gw: g, reason: room.join('. ') || null,
       pairs: now.map((m) => pairOf(pl.ev, g, m)), facts, later,
       changes: sq.length ? { head: COPY.nChanges(sq.filter((m) => !m.kept).length), rows: sq.map((m) => changeRow(P, { gw: g }, m, true)) } : null,
-      acts: frozenAt(P, g) ? null : [...(rollOnly(pl) ? [] : [{ label: COPY.takeIt, said: COPY.planTake(head), fill: lit, act: () => addPlan(ctx, g, pl) }]), ...now.map((m) => notAct(P, g, m))],
+      // (a choice of several moves: its one take named for what it does, "Swap both", and nothing else: the sheet says
+      // why, its "Not …" vetoes are each player's own sheet's; the owner's judge of design 1026e)
+      acts: frozenAt(P, g) ? null : several ? [{ label: COPY.swapGo(added.length), said: COPY.planTake(head), fill: lit, act: () => addPlan(ctx, g, pl) }]
+        : [...(rollOnly(pl) ? [] : [{ label: COPY.takeIt, said: COPY.planTake(head), fill: lit, act: () => addPlan(ctx, g, pl) }]), ...now.map((m) => notAct(P, g, m))],
     });
   }
   /** N7: the free transfers a Free Hit week keeps for the week after it: the plan's own count there, else FPL's

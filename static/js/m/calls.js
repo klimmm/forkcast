@@ -911,6 +911,9 @@ export const COPY = Object.freeze({
    *  only drops some, "GW7 without Saka → Palmer". */
   planInsteadOf: (moves) => `instead of ${moves}`,
   planWithout: (moves) => `without ${moves}`,
+  /** Why a plan's moves go together, read off its solved road (ahead.openPlanWhy; design 1026e "line"): "Neto's sale
+   *  makes room: Palmer is your 3rd CHE player". */
+  planRoom: (sold, buy, n, club) => `${sold}'s sale makes room: ${buy} is your ${fmt.ordinal(n)} ${club} player`,
   planFailed: (why) => ({ offline: "can't check it offline", nofit: 'Forkcast found no plan that keeps your other weeks', infeasible: 'no plan keeps your rules with it' }[why]
     ?? "Forkcast couldn't check it, trying again soon"),
   /** A choice whose solve failed, under its card in a player's place (the Week sheet's row says planFailed in full). */
@@ -944,15 +947,12 @@ export const COPY = Object.freeze({
    *  token, top of stack"): "Evanilson +1.6" (no "Best:" since "yes do both"), said "Best move this week: …, shows his
    *  choices". */
   showsChoices: 'shows his choices',
+  /** …a multi-move best's plate (design 1026e "line"): it opens that plan's Why sheet, whose one button takes it. */
+  showsWhy: 'Shows why',
   bestSwaps: 'swaps him in',
   /** A buy of yours's plate (ahead.swapPlate; the owner, 2026-10-26: "i bough justin but where is no tab on his head so i
    *  can keep prebious player"): the player you sold, said "Keep Gabriel, not Justin, +0.8 points vs your plan". */
   keepSoldSaid: (sold, buy) => `Keep ${sold}, not ${buy}`,
-  /** The line under a place's card, its buy's next way (ahead.drawPlace, placeLine; the owner, 2026-10-26: "find if there
-   *  is a way to combine 'a second transfer' and 'instead of..' for a player in one card not two"; chosen: "Better one +
-   *  line"): "or 2nd transfer", "or instead of Evanilson", the way it differs (its note, placeNth's "a" dropped), "or
-   *  alone" where it has none (a pair's buy alone). */
-  placeOr: (what) => `or ${what ? what.replace(/^a (?=\d)/, '') : 'alone'}`,
   rollingBest: 'Rolling is best',
   /** A pair card's note, its other moves (ahead.noteOf; the user, 2026-10-22: "+ Gvardiol → …" began with the take's
    *  glyph): "also Semenyo → Palmer, Cunha → Rice". */

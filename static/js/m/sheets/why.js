@@ -18,7 +18,7 @@
 //   · the run strip ("Every forecast run"): model internals, on a local page only (Dev mode, api.access), as the You
 //     sheet's. Never "objective", "τ" or "seed" in the copy (§9).
 //
-// open(ctx, {title, sub, gw (the move's GW: the table's first), pairs: [{in, out, buy, sell}], facts: [text], when?,
+// open(ctx, {title, sub, reason? (a plan's why, read off its solved road), gw (the move's GW: the table's first), pairs: [{in, out, buy, sell}], facts: [text], when?,
 // acts?: [{label, act, fill, disabled}], changes?: {head, rows: [node]}, later?: {head, lines: [text]}, a: {road, label},
 // b: {road, label, short} (the two plans: the run strip's)}) → sheet.
 
@@ -45,6 +45,9 @@ export function open(ctx, spec = {}) {
       // the move's answers by tap (the six-book review, 2026-10-09: the swipes had no visible twin): "Keep Scott · GW6",
       // "Not Groß · GW6" (the row's left swipe by tap, B19), each with its toast and Undo; the sheet closes when one acts.
       // B99: the row's own one ("Remove") filled only when it beats the noise (a.fill)
+      // why a plan's moves go together, read off its solved road, first under the title (design 1026e "line": the
+      // second tap's answer; ahead.openPlanWhy)
+      if (spec.reason) body.append(h('p.wy-reason', null, spec.reason));
       if (spec.acts?.length) {
         body.append(h('div.ah-btnrow.wy-acts', null, spec.acts.map((a) => h('button', {
           // `said`: its spoken label where the shown one is short ("Take it": the title names the move)

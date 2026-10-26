@@ -446,9 +446,6 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 /* …yielding as a quiet plate does, beside a plate over its room: its name shortened to the plates' least (.cut: ahead.js
    NAME_LEAST, 3 em; the review of cards4, 2026-10-26) */
 .ah-sp.bare.cut .ah-spn { max-width: 3em; }
-/* the best's sellers: a white ring with a faint halo outside the card (still: no motion of its own), under the next
-   row's plate (the plate draws over it) */
-.ah-ring { position: absolute; z-index: 0; border-radius: var(--pm-tile-r); box-shadow: 0 0 0 2px var(--sp-ring), 0 0 0 3.5px var(--sp-halo); pointer-events: none; }
 /* a hold's progress at the finger (ahead.js holdFill: a tab's hold to its place, the C's to the Triple Captain, the
    bench's to the Bench Boost; the user, 2026-10-22, Saffer's review: "nothing on screen changes until the hold fires"):
    a ring round the finger filling over the hold (--ms), unseen for a tap's first 120 ms, the chip it plays over it; gone
@@ -589,11 +586,34 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .ah-por:disabled { opacity: .5; cursor: default; }
 .ah-por:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; border-radius: 4px; }
 .ah-pmore { position: absolute; z-index: 1; border: 1.5px dashed #FFFFFF; border-radius: 7px; background: rgb(255 255 255 / .12); color: #FFFFFF; font: 600 var(--t-cap)/1.3 var(--f-text); cursor: pointer; }
+/* (its ink #17191A in both themes: on the pitch --plate-ink is --ink, which goes light in dark; design 1026e) */
 .ah-walk {
   position: absolute; z-index: 4; left: 8px; right: 8px; bottom: 6px; min-height: 44px; display: flex; align-items: center;
-  border-radius: 12px; background: var(--plate); color: var(--ink); box-shadow: 0 2px 8px rgb(0 0 0 / .25); font: 600 var(--t-sub)/1.2 var(--f-text);
+  border-radius: 12px; background: var(--plate); color: #17191A; box-shadow: 0 2px 8px rgb(0 0 0 / .25); font: 600 var(--t-sub)/1.2 var(--f-text);
 }
 .ah-walk.top { top: 6px; bottom: auto; }
+/* a place's one line (ahead.js planLine; design 1026e "line"): the plan he is part of as one sentence under the bar's
+   title, a hairline over it, its words (its Why) left, its take right ("Swap both"); never a note on a card */
+.ah-walk:has(> .ah-pline) { flex-wrap: wrap; }
+.ah-pline { flex: 1 0 100%; min-width: 0; max-width: 100%; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 8px 0 12px; box-sizing: border-box;
+  border-top: 1px solid color-mix(in srgb, currentColor 16%, transparent); --xp-c: var(--xp-l); }
+.ah-walk .ah-plw { flex: 1 1 auto; min-width: 0; height: auto; min-height: 44px; padding: 4px 0; overflow: hidden; color: inherit; text-align: left; white-space: nowrap;
+  font: 600 calc(var(--t-sub) * var(--pl-k, 1))/1.25 var(--f-text); }
+/* …one line (ahead.js fitLine): its "xP" off, then a smaller type; a sentence still wider wraps between its moves */
+.ah-pline.noxp .xp-u { display: none; }
+.ah-pline.wrap .ah-plw { white-space: normal; }
+.ah-plm { display: none; }
+.ah-pline.nogo .ah-plgo { display: none; }
+.ah-pline.nogo .ah-plm { display: inline; color: var(--acc); }
+.ah-tmv { white-space: nowrap; }
+/* a multi-move best's plate (ahead.js renderDecks, swapPlate o.line): as wide as its words; wider than the pitch, two
+   lines between its moves, never a name cut */
+.ah-sp.two .ah-spb { flex-wrap: wrap; justify-content: center; align-content: center; row-gap: 0; line-height: 1.15; }
+.ah-sp.two .ah-spn { white-space: nowrap; }
+.ah-walk .ah-plgo { position: relative; flex: none; min-width: 0; height: 30px; padding: 0 10px; border-radius: 8px; background: var(--acc-bg); color: #FFFFFF; font: 700 var(--t-cap)/1 var(--f-text); }
+.ah-walk .ah-plgo::after { content: ""; position: absolute; inset: -7px -8px; }
+.ah-pline.best .ah-plgo { background: var(--sp-ink); }
+.ah-walk .ah-plgo:disabled { opacity: .35; color: #FFFFFF; }
 .ah-walk button { flex: none; min-width: 44px; height: 44px; padding: 0 8px; border: 0; background: none; color: var(--acc); font: inherit; cursor: pointer; }
 .ah-walk button:disabled { color: var(--muted); cursor: default; }
 .ah-wl { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; white-space: nowrap; }
@@ -954,6 +974,7 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
    COPY.totalMoved), a line of its own in the subtitle's ink (the owner, 2026-10-26: "+1.6 vs rolling but total +5.1") */
 .m-sh .m-sub .wy-tot { display: block; margin-top: 2px; }
 .wy-facts { margin: 0; padding: 0; list-style: none; }
+.wy-reason { margin: 0 0 8px; font: 600 var(--t-body)/1.3 var(--f-text); color: var(--ink); }  /* a plan's why (ahead.openPlanWhy; design 1026e) */
 .wy-facts li { padding: 6px 0; border-bottom: 1px solid var(--hair); font: 400 var(--t-body)/1.3 var(--f-text); color: var(--ink); }
 .wy-also .wy-when { margin: 6px 0 0; }
 /* a Wildcard's or Free Hit's changes (ahead.changeRow, read-only: no ×, no swipe; the user, 2026-10-21: fix all
