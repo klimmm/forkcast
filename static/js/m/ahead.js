@@ -5783,6 +5783,13 @@ export const oneLook = (els, ks) => {
 };
 /** The least type of a place's header, px: its last trim (headScale) goes no smaller. */
 const HEAD_LEAST = 8;
+/** A place's header's trims (fitNum's), before its type gets smaller (scaleHeads): a plate's, then its spacing (.snug: its
+ *  padding and gap, its take's word's padding), which at 320 wide was the 2 px "−0.4" lacked beside "Swap" at its least
+ *  type (the 320 px QA, 2026-10-27). */
+const HEAD_TRIMS = ['noxp', 'nomark', 'tight', 'snug'];
+/** A place's header's number, never cut; "checking…" in its place gives way at its end, as a plate's (m-ahead.css
+ *  .ah-pv.wait), never trimming the place's headers: at 320 wide it drew them all at their least type. */
+const HEAD_NUM = '.ah-pv:not(.wait)';
 /** A place's header still over its card after its own trims (fitNum's: "xP", the marks, the smaller number): the scale
  *  of its whole type, its number and its take's word alike (m-ahead.css --ph-k), that fits `need` px of that type in
  *  `room` px, never under HEAD_LEAST in its smallest type (`px`, at scale 1); 1 where it fits. The take's word kept its size while its number
@@ -7614,9 +7621,10 @@ export function mount(el, ctx) {
     // the dealt cards' fixtures fitted as the pitch's are (a two-line one: his tile shorter, fitBlocks measures it); each header's
     // number never cut, as a tab's (fitNum)
     ctx.pitch.fitFixtures(layer);
-    // (one look per place: "xP" from every header together, then a smaller number for all; design_marks/design.md §3)
-    for (const head of [nowHead, ...dealt.map(([, x]) => x)]) fitNum(head, head.querySelector('.ah-pv'));
-    oneLook(dealt.map(([, x]) => x), ['noxp', 'tight']);
+    // (one look per place: "xP" from every header together, then a smaller number for all, then their spacing;
+    // design_marks/design.md §3)
+    for (const head of [nowHead, ...dealt.map(([, x]) => x)]) fitNum(head, head.querySelector(HEAD_NUM), HEAD_TRIMS);
+    oneLook(dealt.map(([, x]) => x), ['noxp', 'tight', 'snug']);
     // then, still over, the whole header's type smaller (headScale), the dealt ones by one scale (one look per place)
     scaleHeads([nowHead]);
     scaleHeads(dealt.map(([, x]) => x));
@@ -7692,13 +7700,14 @@ export function mount(el, ctx) {
     const px = (e, k) => parseFloat(getComputedStyle(e)[k]) || 0;
     // (the smallest type drawn in it, at --ph-k 1: every part scales with it)
     const type = (x) => Math.min(px(x, 'fontSize'), ...[...x.querySelectorAll('.ah-pv, .ah-pgo')].map((e) => px(e, 'fontSize')));
-    const over = () => heads.some((x) => [x, x.querySelector('.ah-pv')].some((e) => !!e && e.scrollWidth > e.clientWidth + 0.5));
+    const over = () => heads.some((x) => [x, x.querySelector(HEAD_NUM)].some((e) => !!e && e.scrollWidth > e.clientWidth + 0.5));
     for (const x of heads) x.style.removeProperty('--ph-k');
     if (!heads.length || !over()) return;
     // each one's type (its children's widths less their padding) against its room (its width less its padding and gaps)
     const k = Math.min(...heads.map((x) => {
       const kids = [...x.children], pad = (e) => px(e, 'paddingLeft') + px(e, 'paddingRight');
-      const need = kids.length ? kids.reduce((a, e) => a + e.scrollWidth - pad(e), 0) : x.scrollWidth - pad(x);
+      // (a "checking…" needs none: it gives way, HEAD_NUM)
+      const need = kids.length ? kids.reduce((a, e) => a + (e.matches('.ah-pv.wait') ? 0 : e.scrollWidth - pad(e)), 0) : x.scrollWidth - pad(x);
       const room = x.clientWidth - pad(x) - px(x, 'columnGap') * Math.max(0, kids.length - 1) - kids.reduce((a, e) => a + pad(e), 0);
       return headScale(need, room, type(x));
     }));
