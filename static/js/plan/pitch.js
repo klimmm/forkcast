@@ -334,8 +334,8 @@ function secondPlate(id, p, o, fx, pts, approx) {
  *  text's own width (a Range: a sub-pixel overflow still ellipsises where scrollWidth rounds it away). */
 /** Each card's fixture beside its points where it fits, else on a line of its own (B27).
  *  The points' "xP" marker (secondPlate) goes first where the line is short (.nomark), and comes back on a points line
- *  of its own (the user, 2026-10-22: the number never cut). Exported for a host drawing pitchCard's cards (Ahead's
- *  place), measured once they are in the document. */
+ *  of its own (the user, 2026-10-22: the number never cut); gone on one card, gone on every card of `root`. Exported
+ *  for a host drawing pitchCard's cards (Ahead's place), measured once they are in the document. */
 export function fitFixtures(root) {
   const range = document.createRange();
   const over = (fx) => {
@@ -355,6 +355,11 @@ export function fitFixtures(root) {
   const lone = [...root.querySelectorAll('.pm-pf:not(:has(.pm-fx)):has(.xp-u)')];
   for (const pf of lone) pf.classList.remove('nomark');
   for (const pf of lone.filter((x) => x.scrollWidth > x.clientWidth + 0.5)) pf.classList.add('nomark');
+  // one look across the cards (the owner, 2026-10-27, "fix all": the cards' "xP" as the plates' and the tokens' beside
+  // the goal, ahead.js renderDecks oneXp): dropped on one card, dropped on all; a fixture on a line of its own (.two)
+  // drops none by itself
+  const marked = [...root.querySelectorAll('.pm-pf:has(.xp-u)')];
+  if (marked.some((pf) => pf.classList.contains('nomark'))) for (const pf of marked) pf.classList.add('nomark');
 }
 
 /**

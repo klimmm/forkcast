@@ -187,12 +187,13 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
    tile's caption size (11 px at the default text size) and the control label's grey, a step darker than
    --muted (7.8:1 on --track, 9.2:1 on the viewed week's white; the 1026b judges: --muted's 4.8:1 read as dirt at arm's
    length); static, so Reduce Motion keeps it. Where the tile has no room (a 320 pt screen) it sits closer (.close),
-   then goes, the points and their "xP" staying (.nowas), on every marked tile alike (ahead.js renderRail: fitNum,
-   oneLook) */
+   then the points' "xP" goes (.noxp), it last (.nowas), on every marked tile alike (ahead.js fitRail: fitNum,
+   oneLook; the owner, 2026-10-27: the struck number kept at 320 px) */
 .ah-tick .ah-was { margin-right: 3px; font: 400 var(--t-cap)/1 var(--f-text); color: var(--ink-2); }
 .ah-tick .ah-was { text-decoration: line-through 1px; }
 .ah-tick.close .ah-was { margin-right: 2px; letter-spacing: -.2px; }
 .ah-tick.close:not(.nowas) .p .xp-u { margin-left: .1em; }
+.ah-tick.noxp .p .xp-u { display: none; }
 .ah-tick.nowas .ah-was { display: none; }
 /* a drag onto a GW (a shirt, a move, a chip): the GWs it may go to, the one under the finger */
 .ah-tick.glow { box-shadow: inset 0 0 0 1.5px var(--acc-bg); }
@@ -444,6 +445,9 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
    apart */
 .ah-sp.loss { background: none; font-size: calc(var(--pm-tab) * .56); }  /* (on the plate: swapPlate's inline type under PLATE_MIN wins) */
 .ah-sp.loss .ah-spb { flex: 0 0 auto; margin: 0 auto; padding: 0 5px; border-radius: inherit; background: var(--sp-alt); }
+/* …faded: no name says whose it is, so it never reads as his own number (the bare "−2.0 xP" over Dovin beside his
+   "0.0 xP": the pick1026a report, the study's runner-up; the owner, 2026-10-27, "fix all") */
+.ah-sp.loss .ah-spb { opacity: .55; }
 /* a Remove of yours's plate, the sold player's name and no number (.bare: ahead.js swapPlate; the owner, 2026-10-26),
    never its number alone: shortened in its room */
 .ah-sp.bare .ah-spn { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }

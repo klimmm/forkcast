@@ -1929,6 +1929,9 @@ export function chipEdit(P, g, chip) {
   if (chip === 'wc' || chip === 'fh') {
     const auto = P.pins.filter((p) => p.id === `roll:${g}` || p.id === `hits:${g}`);
     drop.push(...auto.map((p) => p.id));
+    // your transfers of GW g go with it, as the chip row's + takes them back, so its Chips… tap is what the number it shows
+    // counts (the owner, 2026-10-27, "fix all": option (b) of "two actions, one number"; Chips… kept them)
+    drop.push(...transferPinsAt(P, g));
     restores.push(...auto, ...(P.pins.find((p) => p.id === `chip:${g}`)?.restores ?? []));
   }
   // your picks of a Wildcard or Free Hit week whose chip goes or changes (moved from GW8, or another chip in GW g) go
@@ -1954,10 +1957,16 @@ function chipWords(P, g, chip, drop, { inPlace = false } = {}) {
   const gone = P.pins.filter((p) => p.kind === 'hits' && drop.includes(p.id));
   const rolls = P.pins.filter((p) => isRoll(p) && drop.includes(p.id));
   const picks = P.pins.filter((p) => isPick(p) && drop.includes(p.id));
+  // (your transfers a Wildcard or Free Hit takes back: chipEdit)
+  const mine = new Set(SQUAD_CHIPS.has(chip) ? transferPinsAt(P, g) : []);
+  const moved = P.pins.filter((p) => mine.has(p.id) && drop.includes(p.id) && !picks.includes(p));
   const head = `${chipName(chip)} planned for GW${g}`;
-  const what = [withTaken(P, inPlace && swap ? COPY.inPlaceOf(head, swap) : head, [...rolls, ...picks]), ...gone.map((q) => COPY.chipRemoves(autoRuleName(q, g)))].join(' · ');
-  return { what, swap, taken: [...rolls, ...picks, ...gone] };
+  const what = [withTaken(P, inPlace && swap ? COPY.inPlaceOf(head, swap) : head, [...rolls, ...picks, ...moved]), ...gone.map((q) => COPY.chipRemoves(autoRuleName(q, g)))].join(' · ');
+  return { what, swap, taken: [...rolls, ...picks, ...moved, ...gone] };
 }
+/** The rules of yours (ids) that make GW g's transfers, none in a Wildcard or Free Hit week (its picks are its own:
+ *  chipEdit): what a Wildcard or Free Hit played there takes back, as the chip row's + does (planTake's `gone`). */
+const transferPinsAt = (P, g) => (squadWeek(weekOf(P, g)) ? [] : goneIds(P, yoursTakenBack(P, g, [])));
 
 /** M11 / F12 / F14: a chip made the plan (chipEdit). road: the solve of exactly these pins (a chip prepared with your
  *  rules, or with none the bake's pre-solve): the plan at once (memory.offer / findRoad); else the plan heals, the plan
@@ -3376,6 +3385,19 @@ export const placeDealt = (entries, n) => {
   const one = all.find((e) => singleMove(e) && e.pl.state === 'ready') ?? all.find(singleMove);
   if (one && k && !best.some(shows)) best.splice(k - 1, 1, entries.find((e) => e === one || (!takesBack(e) && e.inId != null && e.inId === one.inId)));
   return [...best, ...(back ? [back] : [])];
+};
+/** A place's cards page by page (drawPlace): placeDealt's first, then every buy it had no room for (placeBuys, in
+ *  placeOrder's order), n − 1 to a page, its last slot the tile that deals the next page, the first again after the last
+ *  (the owner, 2026-10-27: "⋯ 2 more" on Evanilson's place opened the Week sheet's list, "all various combinations not
+ *  just evanilson and in some random format"); one page where all fit. Pure. → [[entry]] */
+export const placePages = (entries, n) => {
+  const buys = placeBuys(entries);
+  if (buys.length <= n) return [buys];
+  const first = placeDealt(entries, n), per = Math.max(1, n - 1);
+  const rest = buys.filter((e) => !first.includes(e));
+  const pages = [first];
+  for (let i = 0; i < rest.length; i += per) pages.push(rest.slice(i, i + per));
+  return pages;
 };
 /** A place's entries (placeOrder's order) one card per buy (the owner, 2026-10-26, of Murillo's place dealing Silva
  *  −4.3 "a 2nd transfer" and Silva −1.9 "instead of Evanilson" as two cards: "find if there is a way to combine 'a
@@ -7518,8 +7540,10 @@ export function mount(el, ctx) {
     // his own single moves the cards, at most one line for a plan he is part of (placeSplit; design 1026e "line": no "or
     // …" line under a card, no "also …" note, the owner, 2026-10-26, "what means 'or' here if it repeat same thing")
     const { singles, line: pline } = placeSplit(entries, d.a);
-    const over = placeBuys(singles).length > room.length;
-    const shown = placeDealt(singles, room.length);
+    // (its pages: placePages; "⋯ N more" deals the next)
+    const pages = placePages(singles, room.length), pg = (S.place.page ?? 0) % pages.length;
+    const over = pages.length > 1;
+    const shown = pages[pg];
     // his row steps aside only where a dealt card (or "⋯ N more") takes a row-mate's slot: the rest stay, under the shade
     // (the user, 2026-10-21: "why players dissapering from pitch": one choice dealt hid the whole row)
     const used = room.slice(0, shown.length + (over ? 1 : 0));
@@ -7610,13 +7634,13 @@ export function mount(el, ctx) {
       if (flagged) note.append(flagged);
       dealt.push([card, head, note, x]);
     });
-    // All N, ⋯ N more: the Week sheet at its plans, his card focused first (the sheet gives focus back to it); ⋯ N more at
-    // the first of his choices it had no room for (the user, 2026-10-22)
+    // All N: the Week sheet at its plans, his card focused first (the sheet gives focus back to it)
     const toWeek = (plan = null) => { c.n.focus({ preventScroll: true }); closePlace(false); weekSheet(g, 'plans', plan); };
-    // (the choices neither a card nor the place's line: placeSplit)
-    const unseen = entries.filter((e) => !shown.includes(e) && e !== pline && !e.pl?.needs), hidden = unseen.find((e) => e.pl);
-    const more = over ? h('button.ah-pmore', { type: 'button', 'aria-haspopup': 'dialog', dataset: { key: 'more' }, style: { ...px(room.at(-1), c.y), height: `${c.h}px` },
-      onClick: () => toWeek(hidden ? planKey(g, hidden.pl) : null) }, COPY.placeMore(unseen.length)) : null;
+    // ⋯ N more: his choices on the place's other pages, the next page dealt in his cards (placePages; it opened the Week
+    // sheet's list of every choice of the week until the owner's "not just evanilson", 2026-10-27)
+    const unseen = placeBuys(singles).length - shown.length;
+    const more = over ? h('button.ah-pmore', { type: 'button', dataset: { key: 'more' }, style: { ...px(room.at(-1), c.y), height: `${c.h}px` },
+      onClick: () => { S.place.page = pg + 1; drawPlace(true); } }, COPY.placeMore(unseen)) : null;
     const i = S.decks.indexOf(d), n = S.decks.length, place = COPY.placeOf(nm(d.a));
     // its buys your saved lineup leaves on your bench, said under its numbers (benchedBuys; the user, 2026-10-22: a sub's
     // "Palmer 0.0" explained, the number as computed)
@@ -8762,16 +8786,17 @@ export function mount(el, ctx) {
     fill(totalEl, `${span(P.gws)} total, `, totalNum(P), ' points');
   }
   /** A changed week's mark (renderRail) where its tile has no room for it whole beside the points and their "xP", inside
-   *  the tile's padding (a 320 pt screen, a larger text size): closer first, then it goes, the points and their "xP"
-   *  staying (the 1026b judges: "keep xP, drop the struck number before it"); one look across the rail's marked tiles,
-   *  as the pitch's plates (oneLook). Again on a resize or a new text size (refitPitch). */
+   *  the tile's padding (a 320 pt screen, a larger text size): closer first, then the points' "xP" goes, the struck
+   *  number last (the owner, 2026-10-27, "fix all", of it dropped at 320 px: crossed points appear once any transfer is
+   *  made, his 2026-10-26 order; the 1026b judges had dropped it before the "xP"); one look across the rail's marked
+   *  tiles, as the pitch's plates (oneLook). Again on a resize or a new text size (refitPitch). */
   function fitRail() {
     const marked = [...ticks.querySelectorAll('.ah-tick:has(.ah-was)')];
     for (const t of marked) {
       const p = t.querySelector('.p'), cs = getComputedStyle(t);
-      fitNum(t, () => p.getBoundingClientRect().width > t.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) + 0.5, ['close', 'nowas']);
+      fitNum(t, () => p.getBoundingClientRect().width > t.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) + 0.5, ['close', 'noxp', 'nowas']);
     }
-    oneLook(marked, ['close', 'nowas']);
+    oneLook(marked, ['close', 'noxp', 'nowas']);
   }
   /** The GW switcher's GWs past the plan (the user, 2026-10-14: "in main tab gw 8-10 also locked depending on horizons
    *  chosen"): the longest plan's GWs (reach) the plan doesn't cover (You → Plan ahead), each a tile with a lock and no
