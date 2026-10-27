@@ -3309,7 +3309,8 @@ export function planBack(P, g, pl) {
   const roll = !ch && adds.length && rollingAt(P, g) ? COPY.planVsRoll : '';
   const gone = ch ? chipName(ch) : roll || taken.map((m) => (adds.some((a) => a.in === m.in) ? `${nm(m.out)} → ${nm(m.in)}` : nm(m.in))).join(' + ');
   const lost = ch ? chipName(ch) : roll || taken.map((m) => nm(m.in)).join(' + ');
-  return { chipNow, now, adds, taken, lost, gone, back: !gone ? '' : ch || adds.length || chipNow || !now.length ? COPY.planInsteadOf(gone) : COPY.planWithout(gone) };
+  // rolls: all it takes back is your Roll (no transfer, no chip): a single move stays a single there (multiMove)
+  return { chipNow, now, adds, taken, lost, gone, rolls: !!roll, back: !gone ? '' : ch || adds.length || chipNow || !now.length ? COPY.planInsteadOf(gone) : COPY.planWithout(gone) };
 }
 /**
  * The card behind (the user, 2026-10-20: "make palmer wait behind saka with others"; the design: forkcast/work/
@@ -3338,14 +3339,14 @@ export function decksOf(P, w, M) {
     // (no Wildcard or Free Hit on the pitch: the owner, 2026-10-27, "Remove free hit / wc pils from pitch"; Chips… and
     // the Week sheet offer them)
     if (SQUAD_CHIPS.has(pl.choice.chips?.[g])) return;
-    const { chipNow, adds, taken, lost, gone } = planBack(P, g, pl);
+    const { chipNow, adds, taken, lost, gone, rolls } = planBack(P, g, pl);
     if (chipNow || (!adds.length && !taken.length)) toks.push(pl);
     else if (adds.length) {
       for (const m of adds) {
         const pair = adds.filter((x) => x !== m).map((x) => ({ a: anchorOf(x.out), out: Number(x.out), in: Number(x.in) }));
-        put(anchorOf(m.out), { pl, inId: Number(m.in), adds, pair, taken, lost, gone }, i);
+        put(anchorOf(m.out), { pl, inId: Number(m.in), adds, pair, taken, lost, gone, rolls }, i);
       }
-    } else for (const m of taken) put(Number(m.in), { pl, inId: Number(m.out), back: true, adds, pair: [], taken, lost, gone }, i);
+    } else for (const m of taken) put(Number(m.in), { pl, inId: Number(m.out), back: true, adds, pair: [], taken, lost, gone, rolls }, i);
   });
   for (const m of mine) {
     const a = Number(m.in);
@@ -3436,7 +3437,10 @@ export const multiMove = (e, a = null) => {
   const own = a != null && e.taken?.length === 1 && Number(e.taken[0].in) === Number(a);
   // (a Roll taking back more than the place's own buy too: "Instead of Palmer + Tavernier + Evanilson")
   if (takesBack(e)) return !own && !!e.taken?.length;
-  return !!e.pair?.length || (!!e.gone && !own);
+  // (a single move under your Roll takes back only the Roll, "instead of rolling": a single, "Tavernier +1.6" on Slater
+  // opening his place, never "Slater → Tavernier instead of rolling" over the bench opening its Why sheet; the owner,
+  // 2026-10-28: "why it shows text 'slater to tavernier instead of rolling' instead of just tavernier")
+  return !!e.pair?.length || (!!e.gone && !own && !e.rolls);
 };
 /** A place's entries split (design 1026e "line"; Johnson, The Elements of Choice: grouping decides comparison): his own
  *  single moves, the cards (and his take-backs: Roll, Remove), and at most one line, the best plan he is part of, first in
