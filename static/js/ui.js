@@ -593,6 +593,7 @@ export function toast(msg, kind = 'info', opts = {}) {
     if (!el.isConnected || el.classList.contains('leaving')) return;
     STAYING.delete(stay);
     el.classList.add('leaving');
+    ro?.disconnect();
     setTimeout(() => el.remove(), 160);
     const f = ondis;
     ondis = null;
@@ -656,6 +657,12 @@ export function toast(msg, kind = 'info', opts = {}) {
     const tl = text.querySelector('.toast-tail'), hd = text.querySelector('.toast-head');
     text.classList.toggle('tailrow', !!tl && !!hd && tl.getBoundingClientRect().top >= hd.getBoundingClientRect().bottom - 0.5);
   });
+  // …and laid out again when its width changes (the region's: docked under a sheet it is wider than at the top, so a
+  // take made in the Week sheet fitted one line there, then wrapped "· frozen" onto a line of its own as the sheet
+  // closed; QA plan-week, 2026-10-27). A toast is its region's width whatever its classes, so fit never moves it
+  let fitW = 0;
+  const ro = globalThis.ResizeObserver ? new ResizeObserver(([e]) => { const w = e.contentRect.width; if (Math.abs(w - fitW) > 0.5) { fitW = w; fit(); } }) : null;
+  ro?.observe(el);
   dismiss.update = (m) => { if (el.isConnected && !el.classList.contains('leaving')) { fill(text, toastWords(m, take)); fit(); } };
   el.retoast = (m, k, { timeout = 4500, action, actions, tag = null, onDismiss = null, take: tk = null } = {}) => {
     take = tk;

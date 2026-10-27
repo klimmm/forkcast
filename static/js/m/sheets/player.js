@@ -351,16 +351,20 @@ function headerSub(row, pos, card) {
  *  whose, "Groß · 75% · knock": the Why sheet's buy, B29). The player sheet asks for FPL's flag alone (the user,
  *  2026-10-13: "unnessary text like 'whoscored predicted to start'"). The dot carries the colour, the words stay ink
  *  (the second line muted). */
-export function statusLines(row, P, { available = true, name = null, lineup = true } = {}) {
+/** A player's FPL flag in short, as his card says it: {tone: 'red' (out, or 25% or less) | 'amber', short: "75%" (FPL's
+ *  word where it gives no chance: "Injured"), reason: "thigh injury" | ''} | null (all clear). statusLines' and the Why
+ *  sheet's table's (sheets/why.js statusCell). */
+export function statusOf(row) {
   const st = statusInfo(row.status, row.chance);
+  if (st.tone === 'ok' && st.chance !== 0) return null;
+  const c = st.chance ?? (st.tone === 'bad' ? 0 : null);
+  return { tone: st.tone === 'bad' || (c != null && c <= 25) ? 'red' : 'amber', short: c != null ? `${c}%` : st.label.split(' · ')[0], reason: newsReason(row) };
+}
+
+export function statusLines(row, P, { available = true, name = null, lineup = true } = {}) {
   const lines = [];
-  if (st.tone !== 'ok' || st.chance === 0) {
-    const reason = newsReason(row);
-    const c = st.chance ?? (st.tone === 'bad' ? 0 : null);
-    const red = st.tone === 'bad' || (c != null && c <= 25);
-    lines.push(h('p.ps-st', { class: red ? 'red' : 'amber' }, h('i.dot', { 'aria-hidden': 'true' }),
-      [name, c != null ? `${c}%` : st.label.split(' · ')[0], reason || null].filter(Boolean).join(' · ')));
-  }
+  const fl = statusOf(row);
+  if (fl) lines.push(h('p.ps-st', { class: fl.tone }, h('i.dot', { 'aria-hidden': 'true' }), [name, fl.short, fl.reason || null].filter(Boolean).join(' · ')));
   const pre = lineup ? PREVIEW[row.ws_preview] : null;
   if (pre) lines.push(h('p.ps-st.ws', { class: row.ws_preview === 'S' ? 'ok' : 'grey' }, h('i.dot', { 'aria-hidden': 'true' }), [name, `${pre} GW${P.A}`, 'WhoScored'].filter(Boolean).join(' · ')));
   // the Why sheet's buy (B29): only a status that isn't all clear (FPL's flag, a WhoScored lineup he doesn't start in)

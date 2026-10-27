@@ -91,6 +91,14 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
 .ah-gwline.ah-planning .ah-dlpart { display: flex; flex: 0 1 auto; overflow: hidden; white-space: nowrap; color: var(--muted); }
 .ah-gwline.ah-planning .ah-plw { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ah-gwline.ah-planning .ah-dl { flex: none; white-space: pre; }
+/* the first plan's wait told as one story (ahead.js tellStory, design 1027a A-stages): the line its words alone, the
+   window's total (dashed while it plans) back with the deadline */
+.ah-gwline.ah-story .ah-tot { display: none; }
+/* …and its one bar, the banner's place and look, over it while the story runs (ahead.js paintStoryBar) */
+.m-screen.ah .ah-storybar { position: absolute; z-index: 2; top: 1px; left: 8px; right: 8px; width: auto; height: 3px; margin: 0; }
+.m-screen.ah .ah-storybar[hidden] { display: none; }
+.m-screen.ah .ah-storybar i.m-eta { transition: width 1s linear; }
+.m-screen.ah .ah-storybar i.m-eta.sweep { width: 30%; border-radius: 2px; animation: m-sweep 1.4s linear infinite; }
 
 /* the shell's state banner (app.js, in the slot under the header): a re-plan under way (baking; stale, a new
    forecast's; updating) is a thin line under the header with no row of its own (the user, 2026-10-08): its bar the
@@ -134,9 +142,10 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
 /* (--ah-head-h set on it as the header is drawn, ahead.js refitPitch: two GW lines where the deadline wraps) */
 .ah-ctl { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--ah-head-h)); z-index: 2; margin: 8px 0 0; padding: 0 8px; background: var(--bg); }  /* the screen's width on --bg, so nothing scrolls past beside it */
 .ah-ctl[hidden] { display: none; }
-/* the line every GW (ahead.sayCheer) under the status bar, over the GW tiles' top in the toasts' look, for as long as it
-   plans (the owner, 2026-10-27: "not overlap status bar"; his pick of three places): a tap on a tile goes through it */
-.ah-cheer { position: absolute; z-index: 3; top: 0; left: 8px; right: 8px; padding: 6px 12px; border-radius: var(--r-ctl); background: var(--toast); color: var(--toast-ink); font: 400 var(--t-sub)/1.3 var(--f-text); text-align: center; pointer-events: none; animation: m-toast-in var(--dur) var(--ease); }
+/* the line every GW (ahead.sayCheer) under the status bar, over the GW tiles' top, for as long as it plans the wait's
+   two lines (the owner, 2026-10-27: "not overlap status bar"; his pick of three places), in the wait's panel
+   (m.css .m-facts), no more the toasts' look: a tap on a tile goes through it */
+.ah-cheer { position: absolute; z-index: 3; top: 0; left: 8px; right: 8px; }
 .ah-cheer[hidden] { display: none; }
 .ah-tdelta { font-weight: 600; animation: ah-tfade var(--left, 6s) linear forwards; }
 @keyframes ah-tfade { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
@@ -965,31 +974,54 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .ps-chart svg { display: block; max-width: 100%; font-family: var(--f-text); font-variant-numeric: tabular-nums; }
 .ps-chart svg text { font: 600 var(--t-cap)/1 var(--f-text); }  /* every chart label and value: --t-cap, never larger than the chart's fixed geometry (larger text sizes) */
 /* the Why sheet's two players side by side (sheets/why.js pairTable; the user, 2026-10-19: "aligment is fucked, no
-   actual comparision of stats, price"): one grid, a label column and a column each, a hairline under every row, every
-   value right-aligned in the body's type, a group under a cap label (the stats' with its Match | Per 90 at its end) */
-.wy-cmp { display: grid; grid-template-columns: minmax(0, 1.15fr) repeat(2, minmax(0, 1fr)); margin: 16px 0 0; font: 400 var(--t-body)/1.3 var(--f-text); color: var(--ink); }
+   actual comparision of stats, price"; the owner, 2026-10-27: "formating and fonts are fucked up and desing in random in
+   comparison tab"). One grid, one scale (design 1027b; Butterick: few sizes, one alignment per column, tabular
+   numerals): a label column and a column each, a hairline under every row. Only the app's sizes: 15 the labels and
+   values (600 the total and the names), 13 what qualifies a value, 11/600 the cap labels and "xP". Each player's
+   column is a fixed slot for a value's qualifier (a stat's rank, a forecast's opponent) and the value's slot: every
+   value ends on ONE right edge, row after row, whatever stands left of it; a wider value (a club, a status) runs
+   left over the qualifier's slot to the same edge; a second line (the seller's price now, a flag's reason) under it,
+   the same edge. */
+.wy-cmp { --wy-aux: calc(var(--t-sub) * 2.4); --wy-val: calc(var(--t-body) * 2.6); display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, calc(var(--t-body) * 5.4 + 24px)); margin: 16px 0 0; font: 400 var(--t-body)/1.3 var(--f-text); font-variant-numeric: tabular-nums; color: var(--ink); }
 .wy-cmp > .r, .wy-cmp > .wy-later, .wy-later > .r { display: contents; }
-.wy-cmp .r > * { min-width: 0; padding: 6px 0; border-bottom: 1px solid var(--hair); }
-.wy-cmp .n { color: var(--muted); }
-.wy-cmp .c { padding-left: 12px; text-align: right; overflow-wrap: anywhere; }  /* the gap inside the cell: the row's hairline runs unbroken */
-.wy-cmp .hd > * { padding-top: 0; }
-.wy-cmp .hd .wy-pn { display: flex; width: fit-content; max-width: 100%; margin: -12px 0 -12px auto; padding: 12px 0; border: 0; background: none; white-space: nowrap; color: var(--acc); font: 600 var(--t-body)/1.3 var(--f-text); text-align: right; }  /* his card (the pitch research's 4a) */
-.wy-cmp .hd .wy-pn > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.wy-cmp .hd .wy-pn::after { content: "\00a0\203A"; flex: none; }  /* a link's chevron, never cut (the user, 2026-10-23: the names read as column heads) */
-.wy-cmp .hd .wy-pn:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: 2px; }
-/* the title's players, each his card (ahead.movesTitle; the owner, 2026-10-27): the title's own words and ink, a link's
-   underline */
-.wy-ttl .wy-tn { padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-align: inherit; text-decoration: underline 1px color-mix(in oklab, currentColor 35%, transparent); text-underline-offset: .18em; cursor: pointer; }
-.wy-ttl .wy-tn:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: 2px; }
-.wy-cmp .o { display: block; font: 600 var(--t-cap)/1.3 var(--f-text); color: var(--muted); }
-.wy-cmp .hd .o { letter-spacing: .04em; text-transform: uppercase; }
-.wy-cmp .rk { display: inline-block; min-width: 3.1em; font: 400 var(--t-cap)/1.3 var(--f-text); font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); }  /* one width, so the values above and below line up */
+.wy-cmp .r > * { min-width: 0; padding: 7px 0; border-bottom: 1px solid var(--hair); }
+.wy-cmp .n { color: var(--muted); font-variant-numeric: normal; }  /* tabular figures for the values only ("Six-yard" kept whole) */
+.wy-cmp .c { display: grid; grid-template-columns: minmax(var(--wy-aux), 1fr) var(--wy-val); column-gap: 6px; align-items: baseline; padding-left: 24px; text-align: right; }  /* the gap between the columns inside the cell: the row's hairline runs unbroken; a column 5.4em wide, room for "● Available" */
+.wy-cmp .c > .v { grid-area: 1 / 1 / 2 / -1; justify-self: end; min-width: 0; overflow-wrap: break-word; }  /* a status of two words ("● Not available") wraps between them, its dot on the first */
+.wy-cmp .c > .a { grid-area: 1 / 1; justify-self: end; min-width: 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
+.wy-cmp .c > .a > span { display: block; white-space: nowrap; }  /* a double GW's opponents one a line: the slot holds */
+.wy-cmp .c > .a.on { color: var(--ink); }  /* a stats row's better rank (no bold: the totals stay the only 600 figures) */
+.wy-cmp .c > .o { grid-area: 2 / 1 / 3 / -1; justify-self: end; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
 .wy-cmp .tot > * { font-weight: 600; }
+
 .wy-cmp .tot > .n { color: var(--ink); }
-.wy-cmp .grp { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; margin-top: 14px; font: 600 var(--t-cap)/1.3 var(--f-text); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
-.wy-cmp .grp .m-seg { flex: none; margin: 0; letter-spacing: 0; text-transform: none; }
-.wy-cmp .ps-status { margin: 0; }
-.wy-cmp .ps-st { justify-content: flex-end; text-align: right; }
+/* status: one line, its dot on its words (the card's tones: m-ahead.css .ps-st) */
+.wy-cmp .wy-st .dot { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; vertical-align: .08em; background: var(--gain); }
+.wy-cmp .wy-st.amber .dot { background: var(--warn); }
+.wy-cmp .wy-st.red .dot { background: var(--loss); }
+/* the heads: the column's cap label once ("In", "Yours"), the player's name under it in ink, a link to his card by its
+   chevron, never the accent's button green (the names are the content's, not actions'); whole, wrapping at its hyphen
+   before it is ever cut; its target 44 px tall */
+.wy-cmp .hd > * { padding-top: 0; }
+.wy-cmp .hd .c { display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-end; }  /* the label right over its name, both on the row's foot: a name on two lines ("Calvert-/Lewin") keeps the other head's label on its own name, not two lines above it (design 1027b's judges) */
+.wy-cmp .hd .o { display: block; font: 600 var(--t-cap)/1.3 var(--f-text); letter-spacing: var(--wy-caps); text-transform: uppercase; color: var(--muted); }
+.wy-cmp .hd .wy-pn { display: block; width: fit-content; max-width: 100%; min-height: 44px; margin: -10px 0 -12px; padding: 10px 0 12px; border: 0; background: none; color: var(--ink); font: 600 var(--t-body)/1.3 var(--f-text); text-align: right; overflow-wrap: anywhere; }  /* his card (the pitch research's 4a) */
+.wy-cmp .hd .wy-pn::after { content: "\00a0\203A"; color: var(--muted); font-weight: 400; }  /* a link's chevron on the name's last word (the user, 2026-10-23: the names read as column heads) */
+.wy-cmp .hd .wy-pn:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: 2px; }
+/* the title's players, each his card (ahead.movesTitle; the owner, 2026-10-27: "players on comparison not clickable"):
+   tappable, but in the title's one look (no link look on half a heading: the table's heads under it carry the visible
+   link, "Barry ›"); each target 44 px tall */
+.wy-ttl .wy-tn { position: relative; padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-align: inherit; cursor: pointer; }
+.wy-ttl .wy-tn::before { content: ""; position: absolute; inset: -9px -2px; }
+.wy-ttl .wy-tn:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: 2px; }
+/* a group under its cap label; the stats' Match | Per 90 at its end, on a line of its own when the label needs the room */
+.wy-cmp .grp { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; min-height: 30px; margin-top: 14px; font: 600 var(--t-cap)/1.3 var(--f-text); letter-spacing: var(--wy-caps); text-transform: uppercase; color: var(--muted); }
+.wy-cmp .grp .m-seg { flex: none; margin: 0 0 4px auto; letter-spacing: 0; text-transform: none; }
+/* every "xP" on the sheet the cap label's 11/600 (m.css .xp-u is .7em: 7.7, 9.1, 10.5 px here) */
+.m-app .wy-sheet .xp-u { font-size: var(--t-cap); font-weight: 600; }
+/* one caps tracking on the whole sheet, 6% (Butterick: all caps letterspaced 5-12%) */
+.wy-sheet { --wy-caps: .06em; }
+.wy-sheet :is(.m-sec > h3, .wy-wl) { letter-spacing: var(--wy-caps); }
 /* what else it changes: one fact a line, the When line under them */
 /* a taken move's sheet, under its number vs rolling: what your total moved by and against what (ahead.js openWhy,
    COPY.totalMoved), a line of its own in the subtitle's ink (the owner, 2026-10-26: "+1.6 vs rolling but total +5.1") */

@@ -122,6 +122,8 @@ const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'e
 const ORD = (n) => { const v = n % 100, s = ['th', 'st', 'nd', 'rd']; return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`; };
 /** A rank in words with its thousands grouped: 1566 → "1,566th", 12 → "12th" (fmt.ordinal's ending). */
 const rankOrd = (n) => fmt.ordinal(n).replace(/^\d+/, fmt.int(n));
+/** A rank as the You sheet's tile has it: "1,000", "670K", "1.30M" (never "1K"). */
+const rankShort = (n) => (n < 1e4 ? fmt.int(n) : fmt.compact(n, 2));
 /** n hits in words: "a −4", "two hits (−8)". */
 /** [{gw}] → "GW7" | "GW7 and GW8". */
 const gwsWords = (list) => list.map((x) => `GW${x.gw}`).join(' and ');
@@ -1099,10 +1101,17 @@ export const COPY = Object.freeze({
    *  (ahead.sayCheer) and the You row (sheets/you.js) say it: "Last season a manager ranked 1.80M after GW7, below your
    *  1.30M, finished 29th."; "just below you" where the two read alike. */
   cheerLine: (c) => {
-    const short = (n) => (n < 1e4 ? fmt.int(n) : fmt.compact(n, 2));  // "1,000", never "1K"
-    const at = short(c.at ?? c.rank), mine = short(c.rank);
+    const at = rankShort(c.at ?? c.rank), mine = rankShort(c.rank);
     return `Last season a manager ranked ${at} after GW${c.gw}, ${at === mine ? 'just below you' : `below your ${mine}`}, finished ${rankOrd(c.best)}.`;
   },
+  /** While it plans (waitFacts; the owner, 2026-10-27: "more catching … so user can read it while his plan is loading"):
+   *  two true lines about you, each [before, its number, after] (the number bold: the eye's landing). Your rank before
+   *  and after the last GW FPL has checked: "GW8 took you from 1.30M to **670K** overall."; the line every GW in 11
+   *  words: "Last season a manager ranked below you after GW8 finished **29th**." ("like you" where the two ranks read
+   *  alike). */
+  factMove: (gw, from, to) => (rankShort(from) === rankShort(to) ? [`GW${gw} kept you at `, rankShort(to), ' overall.']
+    : [`GW${gw} took you from ${rankShort(from)} to `, rankShort(to), ' overall.']),
+  factRank: (c) => [`Last season a manager ranked ${rankShort(c.at ?? c.rank) === rankShort(c.rank) ? 'like' : 'below'} you after GW${c.gw} finished `, rankOrd(c.best), '.'],
   /** F15b: what the points on screen are (the bundle's meta.scale {k, k_h, seasons}: the plan service puts every
    *  forecast number on the real-points scale, by horizon when k_h is there; a hit is FPL's −4 as it is). */
   realScale: (s) => {
@@ -1655,6 +1664,23 @@ export function planEta(bake, now = Date.now() / 1000) {
   const left = (running.reduce((a, i) => a + avg - ran(i), 0) + open * avg) / Math.max(1, running.length);
   return { done, total, so, left: Math.max(0, left), late: left < 1 };
 }
+/** planEta as the wait's one story says it (Connect's line and Ahead's GW line: design 1027a A-stages; the owner,
+ *  2026-10-27, "Why planning happening in three places"): its time left never back up, counting down a second a second
+ *  from the least it said for this bake; once that ran out with a road still planned, none said again for this bake
+ *  (`spent`: the clock and the bar go on alone; planEta's own went "almost done" ↔ "~10 s left" at each road's landing,
+ *  and an "almost done" kept would have stood 18 s of a 20 s wait). `now` epoch seconds, for the tests. */
+const LEFTS = new Map();  // `${version}@${started}` → {left, at}: the least said, the newest few bakes
+export function steadyEta(bake, now = Date.now() / 1000) {
+  const e = planEta(bake, now);
+  const k = `${bake?.version}@${bake?.started}`, was = LEFTS.get(k);
+  if (was && was.left - (now - was.at) < 1) return { ...e, left: null, late: false, spent: true };
+  if (e.left == null) return e;
+  const left = was ? Math.min(e.left, was.left - (now - was.at)) : e.left;
+  LEFTS.delete(k);
+  LEFTS.set(k, { left, at: now });
+  if (LEFTS.size > 4) LEFTS.delete(LEFTS.keys().next().value);
+  return { ...e, left, late: left < 1 };
+}
 /** 84 → "1:24", 3725 → "1:02:05": every clock on the phone (the bake's and Add a player's checks: B87b); a time before
  *  0 is 0:00 (a server's start time read against a phone clock behind it printed "-1:-1:-1": the review, 2026-10-21). */
 export const clockText = (s) => {
@@ -1676,6 +1702,21 @@ export function planLines(e) {
   const join = (...xs) => xs.filter(Boolean).join(' · ');
   return [join('Planning', so && `${so} so far`, leftText(e)), join('Planning', so, leftText(e)), join(so, leftText(e))];
 }
+/** The wait's one story on Ahead's GW line (design 1027a A-stages), in Connect's words (app.js planning), longest
+ *  first: the plan, `gws` its weeks and `e` steadyEta's ("Planning GW9–12 · 0:12 · ~10 s left", "Planning GW9–12 ·
+ *  0:12", "Planning · 0:12"); then GW g's moves checked (`g`), `n` the choices checked so far (ahead.js tellStory:
+ *  counted up, never back, no total while the bake's roads and chip pre-solves can still add one), on the same clock
+ *  ("Checking GW9's moves · 1:06 · 5 checked", "Checking GW9 · 1:06 · 5 checked", "1:06 · 5 checked"). */
+export function storyLines({ gws = null, e = null, g = null, n = 0, so = null }) {
+  const t = so == null ? '' : clockText(so);
+  const join = (...xs) => xs.filter(Boolean).join(' · ');
+  if (g == null) {
+    const plan = gws?.length ? `Planning ${span(gws)}` : 'Planning';
+    return [join(plan, t, e && e.left != null && leftText(e)), join(plan, t), join('Planning', t)];
+  }
+  const c = n ? `${n} checked` : '';
+  return [join(`Checking GW${g}'s moves`, t, c), join(`Checking GW${g}`, t, c), join(t, c)];
+}
 /** A bake's progress as a share of its time, for a bar (the user, 2026-10-13: "not show 0/6 since users not familiar with
  *  back end but rather show a progress bar instead (smooth progress bar based on eta)"): so far ÷ (so far + left), from
  *  planEta; never back (a landing that lengthens the estimate holds the bar where it was: the most shown for this bake)
@@ -1692,3 +1733,17 @@ export function planShare(bake, now = Date.now() / 1000) {
   if (SHARES.size > 4) SHARES.delete(SHARES.keys().next().value);
   return p;
 }
+/** The lines a wait shows (waitFact; design study 1027a, B-facts), true of bundle b: your rank's move over the last GW, then the line every GW (rank.cheer). Both only
+ *  once FPL has checked that GW for you: rank.cheer is null until then (api/mobile.py), and the history's last row holds
+ *  a provisional rank. Pure. → [[before, number, after]] */
+export function waitFacts(b) {
+  const r = b?.rank, [prev, last] = (b?.entry?.history ?? []).slice(-2);
+  if (!r?.cheer) return [];
+  const moved = last?.gw === r.gw && prev?.gw === r.gw - 1 && last.overall_rank > 0 && prev.overall_rank > 0;
+  return [moved && COPY.factMove(r.gw, prev.overall_rank, last.overall_rank), COPY.factRank(r.cheer)].filter(Boolean);
+}
+/** The wait's line for its act (app.js factPanel: Connect's, then Ahead's cheer slot for the whole wait; the owner,
+ *  2026-10-27: "it can change text when goes from planning to checking … with two differnt acts"): while it plans (act
+ *  0) the first of waitFacts, while it checks the plan's moves (act 1) the second; the one there is in both when there
+ *  is one. Pure. → [before, number, after] | null */
+export const waitFact = (b, act = 0) => { const f = waitFacts(b); return f[Math.min(act, f.length - 1)] ?? null; };

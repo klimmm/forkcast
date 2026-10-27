@@ -4,8 +4,8 @@
 // comparision of stats, price, only points comparision in many places"): every fact once, in this order —
 //   · its title the move ("Saka → Palmer"), its sub the one gain ("GW8 · +5.6 xP over GW8–11 vs no transfers": ahead.js whySub);
 //   · its buttons, two to a row (Remove, Keep, Not; Take), the sheet closing when one acts;
-//   · each move's two players side by side, the buy first: one table, a column each, every number right-aligned on one
-//     grid (pairTable): club and position, price (the buy's, the sale's at FPL's sale price), owned, status; each GW's
+//   · each move's two players side by side, the buy first (its sale; a choice in place of your buy: your buy it
+//     replaces, design 1027b): one table, a column each, every value on one right edge (pairTable): club and position, price (the buy's, the sale's at FPL's sale price), owned, status; each GW's
 //     forecast with its opponent, and their total; their last six matches; the stats the data chose for the buy, per
 //     match or per 90 (the card's switch, this viewer's pick), each with its rank among his position, the head saying
 //     among how many ("ranks among 84 midfielders"), and once under the tables what the stats are against the forecast
@@ -18,14 +18,14 @@
 //   · the run strip ("Every forecast run"): model internals, on a local page only (Dev mode, api.access), as the You
 //     sheet's. Never "objective", "τ" or "seed" in the copy (§9).
 //
-// open(ctx, {title, sub, reason? (a plan's why, read off its solved road), gw (the move's GW: the table's first), pairs: [{in, out, buy, sell}], facts: [text], when?,
+// open(ctx, {title, sub, reason? (a plan's why, read off its solved road), gw (the move's GW: the table's first), pairs: [{in, out, buy, sell, yours?}], facts: [text], when?,
 // acts?: [{label, act, fill, disabled}], changes?: {head, rows: [node]}, later?: {head, lines: [text]}, a: {road, label},
 // b: {road, label, short} (the two plans: the run strip's)}) → sheet.
 
 import * as C from '../calls.js';
 import { h, svg, fmt, fill, posCode, posName, xpNum, xpGain, xpMark } from '../../ui.js';
 import { inputsOf, plan, xpShown, presolveTaps } from '../ahead.js';
-import { STAT, WORD, statusLines, cardOf, statsView, keepStatsView, segControl, pastSums } from './player.js';
+import { STAT, WORD, statusOf, cardOf, statsView, keepStatsView, segControl, pastSums } from './player.js';
 import { oppText } from '../../plan/pitch.js';
 
 const num = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
@@ -85,24 +85,44 @@ export function open(ctx, spec = {}) {
 
 // ================================================================ the two players, side by side
 
+/** A player's status as the table's one cell (design 1027b: one line, its dot on its words): his card's flag in short
+ *  (player.statusOf: "75%", "Injured"), else "Available", the flag's reason under it ("thigh injury"). → {node, sub, said} */
+function statusCell(r) {
+  const fl = statusOf(r);
+  if (!fl) return { node: h('span.wy-st.ok', null, h('i.dot', { 'aria-hidden': 'true' }), 'Available'), said: 'available' };
+  return { node: h('span.wy-st', { class: fl.tone }, h('i.dot', { 'aria-hidden': 'true' }), fl.short), sub: fl.reason || null, said: [fl.short, fl.reason].filter(Boolean).join(', ') };
+}
+
 /**
  * One move's two players, the buy first, each name a button to his card (the user, 2026-10-14: "in this tab better to
  * also see the stats fixtures and stats comparison which players card show"; 2026-10-19: "no actual comparision of
- * stats, price"): a table with a row label and a column each, its groups under cap labels, every value right-aligned on
- * the same two columns:
+ * stats, price"): a table with a row label and a column each, its groups under cap labels.
+ * Which two (one baseline per sheet, the owner 2026-10-22; design 1027b): a move's own sheet sets its buy against its
+ * sale ("In" / "Out"); a choice in place of your buy of the same seller (ahead.openPlanWhy, `pr.yours`) sets its buy
+ * against YOUR buy it replaces ("Choice" / "Yours": Barry against Evanilson, the decision the sheet's number weighs;
+ * the app's own words, Help's "every choice … is vs your plan" and your buy's place's "Yours"), the seller, the same in
+ * both plans, only in the title.
+ * One grid, one scale (the owner, 2026-10-27: "formating and fonts are fucked up and desing in random in comparison
+ * tab"; m-ahead.css .wy-cmp): every value 15 px on ONE right edge per column, tabular; what qualifies it (a stat's
+ * rank, a forecast's opponent) 13 px muted in a fixed slot of its own left of the value, so no value moves; a second
+ * line (the seller's price now, a flag's reason) 13 px muted under it on the same edge; the heads a cap label once
+ * ("In") over the player's name in ink with a chevron, his card. No winner marked in bold or colour (decision of
+ * 2026-10-22: a number's sign its direction, never a verdict; Butterick: bold sparingly, the totals the only 600
+ * figures): the stats compare by their ranks, the better rank of a row in ink, the other muted:
  *   · club and position; price: the buy's and the sale's (`buy`, `sell`: the engine's, FPL's sale price, so the bank
- *     line under it adds up), the seller's current price under his where they differ; owned; status (FPL's flag as his
- *     card says it: player.statusLines, else "Available");
- *   · FORECAST PTS: one row a GW from `g`, each value as the pitch shows it (ahead.xpShown) over the opponent ("TOT"
- *     home, "tot" away, as the card's strip), then their total;
+ *     line under it adds up), the seller's current price under his where they differ; against your buy, both buy
+ *     prices; owned; status: one line, its dot on its words ("● 75%", "● Available"), the reason under it;
+ *   · FORECAST PTS: one row a GW from `g`, each value as the pitch shows it (ahead.xpShown), its opponent beside it
+ *     ("TOT" home, "tot" away, as the card's strip), then their total ("Total xP": the unit once, in the label);
  *   · LAST 6 MATCHES: their points and minutes (the card's, player.pastSums), "–" while a card loads;
- *   · STATS: the buy's rows (the stats the data chose for him: api/card.py _rows), his figure and the seller's on each
+ *   · STATS: the buy's rows (the stats the data chose for him: api/card.py _rows), his figure and the other's on each
  *     (stats.vs, only when they play the same position), each with its rank among his position, the head saying among
- *     how many (COPY.statsHead: "ranks among 84 midfielders", the strip's `n`; one count, the seller's the same: stats.vs
+ *     how many (COPY.statsHead: "ranks among 84 midfielders", the strip's `n`; one count, the other's the same: stats.vs
  *     is of his position); per match or per 90 (the card's switch, this viewer's pick: player.statsView).
  * The card-borne groups fill in place as the cards land (player.cardOf: the bundle's at once, else asked while the sheet
  * is open), so nothing above them moves. g: the move's GW, gws: the table's (g to the plan's end); onStats() once its
- * stats are drawn. → node | null (a player the data lacks).
+ * stats are drawn. pr: {in, out, buy, sell, yours?} (`yours`: `out` is your buy, `sell` his buy price). → node | null
+ * (a player the data lacks).
  */
 function pairTable(ctx, P, pr, g, gws, onStats) {
   const d = ctx.data, L = P.L;
@@ -110,41 +130,51 @@ function pairTable(ctx, P, pr, g, gws, onStats) {
   const rows = ids.map((id) => d.byId?.get(id));
   if (rows.some((r) => !r)) return null;
   const nm = ids.map((id) => L.name(id));
-  const row = (label, cells, cls = '', dataset = null) => h(`div.r${cls}`, { role: 'row', dataset }, h('div.n', { role: 'rowheader' }, label),
-    cells.map((c, i) => h('div.c', { role: 'cell', 'aria-label': c?.said ? `${nm[i]}, ${c.said}` : null }, c?.node ?? c ?? DASH)));
+  // each column's one label (Podmajersky: one word for one thing; "Yours" as your buy's place says it, decision K)
+  const role = pr.yours ? ['Choice', 'Yours'] : ['In', 'Out'];
+  // a cell: a value, or {node, aux (its rank or opponent, in the slot left of the value), sub (a line under it), said}
+  const cellOf = (c, i) => {
+    const o = c && typeof c === 'object' && !Array.isArray(c) && 'node' in c ? c : { node: c };
+    return h('div.c', { role: 'cell', 'aria-label': o.said ? `${nm[i]}, ${o.said}` : null },
+      o.aux ? h('span.a', { class: { on: !!o.on } }, o.aux) : null, h('span.v', null, o.node ?? DASH), o.sub ? h('span.o', null, o.sub) : null);
+  };
+  const row = (label, cells, cls = '', dataset = null) => h(`div.r${cls}`, { role: 'row', dataset }, h('div.n', { role: 'rowheader' }, label), cells.map(cellOf));
   const grp = (label, extra = null, dataset = null) => h('div.grp', { role: 'row', dataset }, h('span', { role: 'rowheader' }, label), extra);
-  // the opponent's code its venue, "COV" at home, "cov" away (the user, 2026-10-16), spoken in words
+  // the opponent's code its venue, "COV" at home, "cov" away (the user, 2026-10-16), spoken in words; a double GW's
+  // one a line ("LEE +" over "mun"), so its slot holds at 320
   const fxs = (row, x) => ctx.pitch?.fixturesAt?.(row, x, d.xpGws) || [];
-  const opp = (row, x) => fxs(row, x).map(oppText).join(' + ') || DASH;
+  const opp = (row, x) => { const t = fxs(row, x).map(oppText); return t.length ? t.map((o, j) => h('span', null, j < t.length - 1 ? `${o} +` : o)) : DASH; };
   const oppSaid = (row, x) => fxs(row, x).map((f) => `${String(f.opp).toUpperCase()} ${f.home ? 'home' : 'away'}`).join(' and ') || 'no match';
   const xpAt = (row, x) => num(ctx.pitch?.xpAt?.(row, x, d.xpGws));
   const money = (x) => (num(x) == null ? DASH : fmt.money(x));
   const sale = pr.sell ?? L.price(ids[1]), now = num(rows[1].price);
   const owned = (r) => (num(r.sel_pct) == null ? DASH : fmt.pct(r.sel_pct));
   const later = h('div.wy-later');
-  const box = h('div.wy-cmp', { role: 'table', 'aria-label': `${nm[0]} in, ${nm[1]} out` },
+  const box = h('div.wy-cmp', { role: 'table', 'aria-label': pr.yours ? `${nm[0]}, your choice, against ${nm[1]}, yours` : `${nm[0]} in, ${nm[1]} out` },
     h('div.r.hd', { role: 'row' }, h('div.n', { role: 'columnheader' }),
       // each name his card (the pitch research's 4a, the user 2026-10-19: an IN card's Why sheet "with a link to his
       // player card"): over a Week sheet it takes the Why sheet's place (app.js: two sheets at most), Back the Week sheet;
-      // read as a link, "Mbeumo ›" (the user, 2026-10-23: "how do i open player cards ... anywhere i click it open only
-      // comparison card"; m-ahead.css .wy-pn::after), the name ellipsised before the chevron
-      ids.map((id, i) => h('div.c', { role: 'columnheader', 'aria-label': `${nm[i]} ${i ? 'out' : 'in'}` },
-        h('button.wy-pn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': C.COPY.cardOf(nm[i]), onClick: () => ctx.openSheet('player', id, { gw: g }) }, h('span', null, nm[i])),
-        h('span.o', null, i ? 'Out' : 'In')))),
+      // a link in the content's own ink, "Mbeumo ›" (the user, 2026-10-23: "how do i open player cards ... anywhere i
+      // click it open only comparison card"; m-ahead.css .wy-pn), never the accent's button green; the name whole
+      ids.map((id, i) => h('div.c', { role: 'columnheader', 'aria-label': `${nm[i]}, ${role[i].toLowerCase()}` },
+        h('span.o', { 'aria-hidden': 'true' }, role[i]),
+        h('button.wy-pn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': C.COPY.cardOf(nm[i]), onClick: () => ctx.openSheet('player', id, { gw: g }) }, nm[i])))),
     row('Club', rows.map((r, i) => `${r.club ?? DASH} · ${posCode(L.pos(ids[i]) ?? posName(r.pos))}`)),
-    row('Price', [money(pr.buy ?? L.price(ids[0])), {
-      node: [money(sale), num(sale) != null && now != null && Math.abs(sale - now) >= 0.05 ? h('span.o', null, `now ${fmt.money(now)}`) : null],
+    // against your buy both are buys, each his price; else the sale's at FPL's sale price, his price now under it
+    row('Price', [money(pr.buy ?? L.price(ids[0])), pr.yours ? money(sale) : {
+      node: money(sale), sub: num(sale) != null && now != null && Math.abs(sale - now) >= 0.05 ? `now ${fmt.money(now)}` : null,
       said: `sells for ${money(sale)}${now != null ? `, now ${fmt.money(now)}` : ''}`,
     }]),
     row('Owned', rows.map(owned)),
-    row('Status', rows.map((r) => ({ node: statusLines(r, P, { lineup: false }) }))),
-    // each forecast in its blue, the group's "xP" over the column, the total's beside it (ui.js xpNum; the user, 2026-10-22)
-    grp(C.COPY.gridUnit, xpMark()),
+    row('Status', rows.map(statusCell)),
+    // each forecast in its blue (ui.js xpNum; the user, 2026-10-22); "Total xP" says once what they all are, its unit in
+    // the row's label so the totals' digits stand on the weeks' digit edge (design 1027b r2); the head says the span once
+    grp(`${C.COPY.gridUnit} · ${span(gws)}`),
     gws.map((x) => row(`GW${x}`, ids.map((id, i) => ({
-      node: [xpNum(xpShown(ctx, id, x), 'span.v', null, false), h('span.o', null, opp(rows[i], x))],
+      node: xpNum(xpShown(ctx, id, x), 'span', null, false), aux: opp(rows[i], x),
       said: `GW${x} ${xpShown(ctx, id, x)}, ${oppSaid(rows[i], x)}`,
     })))),
-    row(`Total, ${span(gws)}`, rows.map((r) => { const xs = gws.map((x) => xpAt(r, x)); return xs.some((v) => v != null) ? { node: xpNum(fmt.pts(xs.reduce((s, v) => s + (v ?? 0), 0))) } : DASH; }), '.tot'),
+    row(['Total', xpMark()], rows.map((r) => { const xs = gws.map((x) => xpAt(r, x)); return xs.some((v) => v != null) ? { node: xpNum(fmt.pts(xs.reduce((s, v) => s + (v ?? 0), 0)), 'span', null, false) } : DASH; }), '.tot'),
     later);
   // undefined while loading, null when none can be had
   const cards = [undefined, undefined];
@@ -156,7 +186,7 @@ function pairTable(ctx, P, pr, g, gws, onStats) {
     const kids = [grp(`Last ${n} matches`),
       row('Points', sums.map((s) => (s ? String(s.pts) : DASH))),
       row('Minutes', sums.map((s) => (s ? `${s.mins}′` : DASH)))];
-    // the stats: the buy's rows with the seller's figures beside his (the same position only: api/card.py stats.vs)
+    // the stats: the buy's rows with the other's figures beside his (the same position only: api/card.py stats.vs)
     const st = cards[0]?.stats, mine = st?.[view], theirs = st?.vs?.[view];
     if (mine && theirs && Object.values(mine.rows).some((r) => r.value != null)) {
       const [g0, g1] = cards[0].season_rounds ?? [];
@@ -166,11 +196,14 @@ function pairTable(ctx, P, pr, g, gws, onStats) {
       }), { view }));
       for (const [k, r] of Object.entries(mine.rows)) {
         const [lab, dp] = STAT[k] ?? [k, 1];
-        const cell = (x, of) => ({
-          node: [h('span.v', null, x?.value == null ? DASH : x.value.toFixed(dp)), x?.rank == null ? null : h('span.rk', null, fmt.ordinal(x.rank))],
+        // the better rank of the two in ink (none on a tie): the row's comparison read at a glance, without a verdict's bold
+        const rk = [r?.rank, theirs.rows[k]?.rank];
+        const best = rk.every((v) => v != null) && rk[0] !== rk[1] ? (rk[0] < rk[1] ? 0 : 1) : -1;
+        const cell = (x, of, i) => ({
+          node: x?.value == null ? DASH : x.value.toFixed(dp), aux: x?.rank == null ? null : fmt.ordinal(x.rank), on: i === best,
           said: `${x?.value == null ? 'none' : x.value.toFixed(dp)}${x?.rank == null ? '' : `, ${fmt.ordinal(x.rank)} of ${of.n} ${WORD[of.pos] ?? 'players'}`}`,
         });
-        kids.push(row(lab, [cell(r, mine), cell(theirs.rows[k], theirs)], '.st', { key: k, in: r.value ?? '', out: theirs.rows[k]?.value ?? '' }));
+        kids.push(row(lab, [cell(r, mine, 0), cell(theirs.rows[k], theirs, 1)], '.st', { key: k, in: r.value ?? '', out: theirs.rows[k]?.value ?? '' }));
       }
       onStats?.();
     }

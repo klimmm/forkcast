@@ -710,6 +710,15 @@ p { margin: 0; }
 .m-prog-t.m-prog-slow { margin-top: 8px; }
 .m-bar { height: 4px; width: 100%; margin-top: 8px; border-radius: 2px; background: var(--track); overflow: hidden; }
 .m-bar i { display: block; height: 100%; width: 0; background: var(--acc-bg); transition: width .3s var(--ease); }
+/* the wait's lines (app.js factPanel; design study 1027a, B-facts): a quiet panel in the page's paper and ink, not a
+   toast's look, two lines at most, its number bold (the eye's landing), the same height whatever it says. On Connect
+   under the bar, its room kept from the tap on (hidden: not drawn, the room still there) */
+.m-facts { display: flex; align-items: center; box-sizing: border-box; height: calc(2 * 1.3 * var(--t-sub) + 12px); padding: 0 12px; border: 1px solid var(--hair); border-radius: 12px; background: var(--surface); color: var(--ink); font: 400 var(--t-sub)/1.3 var(--f-text); pointer-events: none; }
+.m-facts p { margin: 0; }
+.m-facts b { font-weight: 700; }
+.m-facts[hidden] { display: none; }
+.m-prog .m-facts { margin-top: 16px; }
+.m-prog .m-facts[hidden] { display: flex; visibility: hidden; }
 
 /* ------------------------------------------------------------------ phone pitch (plan/pitch.js mountPitch, pm-*)
    Flat turf, white plates (name on --plate, forecast on --plate-2), solid C/V, no glow, vignette, flip or drop-in.

@@ -548,6 +548,7 @@ const ctx = {
   // A10: the bundle only when the refresh worked (null when it failed: its toast or the off-line banner says so)
   refresh: (o) => loader.load({ refresh: !!o?.hard, manual: true }).then((b) => (loader.ok ? b : null)).catch(() => null),
   connect: (entry) => firstLoad(String(entry)),
+  factPanel,
   signOut: () => signOut(),
   teamPicker: (opts) => teamPicker(ctx, opts),
   status,
@@ -1143,9 +1144,25 @@ let loading = 0;
 const SLOW_MS = 12000;
 const SLOW_COPY = 'Still loading: a slow connection can take a minute or two.';
 
-/** The first load of a team (Connect, Switch team, a recent row): the form stays, dimmed, under it one line
- *  "Planning GW6–9" and a thin bar (DESIGN_V2 §3; etaBar: a sweep until a road is done), until the base road is in;
- *  then Ahead. */
+/** A wait's line (calls.waitFact; design study 1027a, B-facts) in `el` (.m-facts: Connect's under its bar, Ahead's cheer
+ *  slot for the whole wait), in the page's paper and ink, not a toast's (Johnson: a box that looks like the last toast is
+ *  the most ignorable thing on screen), faded in as it changes (the wait's next act). null hides it. → whether a line
+ *  shows */
+function factPanel(el, line) {
+  el.hidden = !line;
+  if (!line) return false;
+  const [pre, num, post] = line;
+  if (el.textContent !== pre + num + post) {
+    fill(el, h('p', null, pre, h('b', null, num), post));
+    if (!ui.reduceMotion()) el.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease-out' });
+  }
+  return true;
+}
+
+/** The first load of a team (Connect, Switch team, a recent row): the form stays, dimmed, "Finding team 3604308…"
+ *  under it until the team is found; then Ahead, its squad on the pitch while the plan bakes, the wait told there as one
+ *  story (ahead.js tellStory: design 1027a A-stages; the owner, 2026-10-27, "Why planning happening in three places").
+ *  Only a forecast still updating keeps the form, "Planning GW6–9" and a thin bar under it (DESIGN_V2 §3; etaBar). */
 async function firstLoad(entry) {
   const my = ++loading;
   clearTimeout(loader.timer);
@@ -1158,12 +1175,15 @@ async function firstLoad(entry) {
   const go = $('.m-go .m-primary', gate);
   if (go) { go.disabled = true; go.textContent = 'Finding…'; }
   const prog = $('.m-prog', gate);
+  // the wait's line under the bar (factPanel), its room kept from the tap on (m.css), so nothing under them moves
+  const facts = h('div.m-facts');
   /** The line and the bar for bundle b (none yet: A11 "Finding team 3604308…", the ID being looked up; then "Planning
-   *  GW6–9"): the bake's bar (etaBar), full once the base road is in. */
+   *  GW6–9"): the bake's bar (etaBar), full once the base road is in; then the wait's line from b. */
   const show = (b) => {
     fill(prog, h('p.m-prog-t.m-num', null, b ? planning(b?.meta ? horizonOf(b.meta) : null, b?.bake) : `Finding team ${entry}…`),
       etaBar('div.m-bar', b?.bake, !!b?.roads?.base),
-      b?.state === 'updating' && !b.roads?.base ? h('p.m-prog-t.warn', null, calls.COPY.updating) : null);
+      b?.state === 'updating' && !b.roads?.base ? h('p.m-prog-t.warn', null, calls.COPY.updating) : null, facts);
+    factPanel(facts, calls.waitFact(b));
   };
   const back = (e) => {
     if (my !== loading) return;
@@ -1185,15 +1205,14 @@ async function firstLoad(entry) {
   } catch (e) { return back(e); } finally { clearTimeout(slow); }
   if (my !== loading) return;
   if (b.state === 'offline-data' || !b.entry) return enter(entry, b);  // no next GW: nothing to plan
-  show(b);
-  // wait for the base road while it bakes; a bundle that will never have one (the GW under way with
-  // nothing baked, or a base solve that failed) goes in and shows its own state
-  while (!b.roads?.base && (b.state === 'baking' || b.state === 'updating')) {
-    await wait(b.state === 'updating' ? POLL_MS.updating : POLL_MS.baking);
+  // in at once while it bakes (Ahead says how far); the forecast still updating, wait for the base road; a bundle that
+  // will never have one (the GW under way with nothing baked, or a base solve that failed) goes in and shows its own state
+  while (!b.roads?.base && b.state === 'updating') {
+    show(b);
+    await wait(POLL_MS.updating);
     if (my !== loading) return;
     try { b = await fetchBundle(entry, { prev: b }); } catch (err) { return back(err); }
     if (my !== loading) return;
-    show(b);
   }
   return enter(entry, b, { reveal: true });
 }
