@@ -429,8 +429,9 @@ export const COPY = Object.freeze({
       'In a GW with a transfer, Wildcard or Free Hit of yours, every choice, Roll too, is vs your plan: worse than yours is negative.',
       'Vs rolling, both sides get Forkcast\'s best later moves (none after a Wildcard), so the free transfer rolling saves can be used.',
       'Taking a choice adds its GW\'s moves alone, not the later ones its number counts, so the total can move by another amount.',
-      // (the owner, 2026-10-26: "what means +1.6 vs rolling but total +5.1": the take's message says one number)
-      'Its message says that number again; the total at the top shows its own change once the message goes.',
+      // (the owner, 2026-10-26: "what means +1.6 vs rolling but total +5.1"; its message says no number since the owner,
+      // 2026-10-27: "remove this 'vs ..' message from black tab appearing")
+      'The total at the top shows its own change once the message goes.',
       'Green: it beats the alternative by enough to act on.',
       'Grey: not worth acting on: a plan or chip that doesn\'t beat what it counts against by enough, or a gap too small to matter.',
       // (the user, 2026-10-21, "Same both times, worse ones too": the moves the 2026-10-18 bars keep from being the week's
@@ -560,18 +561,12 @@ export const COPY = Object.freeze({
    *  other transfers that week (`others`: your own GW6 move spends or frees money too), the one after them. */
   bankNow: (money, gw, A, others = false) => (others ? `${money} in the bank after GW${gw}'s other transfers`
     : gw === A ? `${money} in the bank now` : `${money} in the bank after GW${gw - 1}`),
-  /** M1: a chip planned (its verdict toast): its gap against not playing it (or the week it was planned in, `was`; a
-   *  Wildcard's or Free Hit's under your team as it is: chipRolled),
-   *  never "better than before"; `less`: what the week gives up against the chip's honest best (chipLess: "3.0 pts less
-   *  than in GW8", the chip played there; the review of the first-use proposals, 2026-10-21: "less than GW8" was unclear). */
-  /*  Two lines at most at 375 px (the user, 2026-10-22; saffer r7 §6: three covered the total it changed): no span (the
-   *  Chips sheet's subtitle has it), no "pts". */
-  chipChange: (what, cmp, gws, was = null, less = null, swap = null) => `${what} · ${pts(cmp.delta)} vs ${swap ?? (was == null ? 'not playing it' : `GW${was}`)}${less ? ` · ${less}` : ''}`,
   chipLess: (x, gw) => `${fmt.num(Math.max(0, x))} less than in GW${gw}`,
-  /** …a Wildcard or Free Hit under your team as it is (the user, 2026-10-22: "vs rolling everywhere"): its Chips… row's
-   *  number against the week's roll plan (ahead.chipNumber), as the pitch's token, the row and the week line say it, and
-   *  what it gives up against that row's best week (chipLess, both vs rolling); either left out where it isn't known. */
-  chipRolled: (what, cmp = null, less = null, vs = COPY.planVsRoll) => [what, cmp ? COPY.pointsVs(cmp.delta, vs ?? COPY.planVsRoll) : null, less].filter(Boolean).join(' · '),
+  /** M1: a chip planned (its verdict toast, ahead.chipPlan): what was played, then what the week gives up against the
+   *  chip's honest best (`less`, chipLess: "3.0 less than in GW8", the chip played there; the review of the first-use
+   *  proposals, 2026-10-21: "less than GW8" was unclear), left out where it isn't known; no number "vs …" (the owner,
+   *  2026-10-27: "remove this 'vs ..' message from black tab appearing": its Chips… row and the pitch's token have it). */
+  chipToast: (what, less = null) => [what, less].filter(Boolean).join(' · '),
   /** …when the planner's own count parts from the points (QA: a rule is never called better by a count the planner
    *  disagrees with): the points, then why, plainly. way: 'better' | 'worse' by its count, 'no better' | 'no worse' with
    *  none (B39: an estimate claims no count; a count inside the noise is changeLevel's). */
@@ -983,6 +978,10 @@ export const COPY = Object.freeze({
   needsSale: (names) => `needs ${andList(names.map((n) => `${n}'s`))} ${names.length > 1 ? 'sales' : 'sale'}`,
   placeNth: (n) => `a ${n}${['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 > 3 ? 0 : n % 10]} transfer`,
   placeMore: (n) => `⋯ ${n} more`,
+  /** A place's last slot (ahead.drawPlace; the owner, 2026-10-27: "one slot be left for 'other'"): Bring in… at his
+   *  position, for a player its cards don't offer. */
+  placeOther: 'Other…',
+  placeOtherSaid: (name, gw) => `Other players for ${name}'s place: Bring in… in GW${gw}`,
   placeAll: (n) => `All ${n}`,
   placeAt: (i, n) => `${i} of ${n}`,
   /** …its bar's second line: what its numbers are, "Gain vs rolling · GW8–11" (the user, 2026-10-22: one baseline phrase;
@@ -1024,13 +1023,11 @@ export const COPY = Object.freeze({
   planVs: (mine = false) => (mine ? 'your plan' : 'no transfers'),
   /** Under the hold a plan counts against rolling, Forkcast's best moves after it on both sides (ahead.plansOf; the user,
    *  2026-10-19: "Gain over rolling"): its row, heading and Why sheet say so; the Roll row is what they count against
-   *  (spoken, no number); a +'s toast says the row's number alone, the one it was chosen by ("GW9 Saka → Palmer · +2.6
-   *  vs rolling"; the owner, 2026-10-26: "what means +1.6 vs rolling but total +5.1": the 2026-10-21 "· total +4.0" beside
-   *  it read as a second verdict; a × that rolls the week again, the row's number turned round: ahead.removeMove); what
+   *  (spoken, no number); a +'s toast says no number (the owner, 2026-10-27, of "−0.8 vs your plan": "remove this 'vs
+   *  ..' message from black tab appearing"; its row has it), nor a × that rolls the week again (ahead.removeMove); what
    *  your total moves by is the header's change, and the Why sheet says it where that differs (planAdds, totalMoved). */
   planVsRoll: 'rolling',
   planRefSaid: 'what the plans count against',
-  planGain: (what, delta, vs = COPY.planVsRoll) => `${what} · ${COPY.pointsVs(delta, vs)}`,
   vsRolling: (delta) => COPY.pointsVs(delta, COPY.planVsRoll),
   /** A number and what it counts against, "+1.6 vs rolling"; in a week with a transfer, Wildcard or Free Hit of yours
    *  "−0.2 vs your plan" (decision K, the owner, 2026-10-25: "compare + poitns not to rolling now but to transfer made";

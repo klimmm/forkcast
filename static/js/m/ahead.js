@@ -1982,7 +1982,9 @@ export function chipPlan(ctx, g, chip, road = null, { less = null } = {}) {
   const P = plan(ctx);
   const { pins, drop } = chipEdit(P, g, chip);
   const was = plannedAt(P, chip, g);
-  const { what, swap, taken } = chipWords(P, g, chip, drop);
+  // (the chip it replaces there named in its words, "Bench Boost planned for GW10 in place of Free Hit": its toast's "· +x
+  // vs Free Hit" said it until the owner, 2026-10-27, "remove this 'vs ..' message from black tab appearing")
+  const { what, swap, taken } = chipWords(P, g, chip, drop, { inPlace: true });
   const row = SQUAD_CHIPS.has(chip) && P.mem?.hold ? chipStates(ctx, P, g, chipSource(ctx, P)).find((x) => x.chip === chip) : null;
   // (both on one basis: a week of yours counts against your plan, another against rolling, decision K)
   const gap = row?.cmp && row.best && row.best.gw !== g && row.best.delta != null && row.best.vs === row.vs ? COPY.chipLess(row.best.delta - row.cmp.delta, row.best.gw) : null;
@@ -1992,11 +1994,11 @@ export function chipPlan(ctx, g, chip, road = null, { less = null } = {}) {
   // GW8", BB in GW8 measured with TC still in GW9; moved there, BB lost 0.6)
   return edit(ctx, {
     pins, drop, road, from: g, what, taken,
-    text: row ? () => COPY.chipRolled(what, row.cmp, gap, row.vs) : (Q, prev) => {
+    text: row ? () => COPY.chipToast(what, gap) : (Q, prev) => {
       const c = compare(ctx, { weeks: Q.weeks }, { weeks: prev.weeks });
       // against no chip only when it replaced none, here or in another week: then its row's number too (chipGain)
       if (was == null && !swap && SQUAD_CHIPS.has(chip)) chipTold(Q, g, c);
-      return COPY.chipChange(what, c, Q.gws, was != null && was !== g ? was : null, swap ? null : less, swap);
+      return COPY.chipToast(what, swap ? null : less);
     },
   });
 }
@@ -3370,12 +3372,13 @@ export const singleMove = (e) => !!e.pl && !e.pair?.length && !takesBack(e) && e
  *  other choices the Roll or Remove, dealt last, went under "⋯ N more"); the best single move held a slot as the
  *  take-back is, where the best ones are all pairs (the user, 2026-10-22: "i dont see where suggestion to sell gvardiol
  *  only without multiple other players at the same time": Cunha's place dealt two pair cards, Cunha → Rice +2.0 under
- *  "⋯ 3 more"), in the last best one's slot. Pure. */
-export const placeDealt = (entries, n) => {
+ *  "⋯ 3 more"), in the last best one's slot; all only with a slot to spare where the last is always the tile (`tile`:
+ *  its "Other…", placePages). Pure. */
+export const placeDealt = (entries, n, tile = false) => {
   const all = entries;
   // (one card per buy, its next way a line under it: placeBuys, placeLine)
   entries = placeBuys(entries);
-  if (entries.length <= n) return entries;
+  if (entries.length <= n - (tile ? 1 : 0)) return entries;
   const back = entries.find(takesBack) ?? null;
   const k = Math.max(0, n - 1 - (back ? 1 : 0));
   const best = entries.filter((e) => e !== back).slice(0, k);
@@ -3389,11 +3392,12 @@ export const placeDealt = (entries, n) => {
 /** A place's cards page by page (drawPlace): placeDealt's first, then every buy it had no room for (placeBuys, in
  *  placeOrder's order), n − 1 to a page, its last slot the tile that deals the next page, the first again after the last
  *  (the owner, 2026-10-27: "⋯ 2 more" on Evanilson's place opened the Week sheet's list, "all various combinations not
- *  just evanilson and in some random format"); one page where all fit. Pure. → [[entry]] */
-export const placePages = (entries, n) => {
+ *  just evanilson and in some random format"); one page where all fit, beside the tile's slot where it is always drawn
+ *  (`tile`: its "Other…", drawPlace). Pure. → [[entry]] */
+export const placePages = (entries, n, tile = false) => {
   const buys = placeBuys(entries);
-  if (buys.length <= n) return [buys];
-  const first = placeDealt(entries, n), per = Math.max(1, n - 1);
+  if (buys.length <= n - (tile ? 1 : 0)) return [buys];
+  const first = placeDealt(entries, n, tile), per = Math.max(1, n - 1);
   const rest = buys.filter((e) => !first.includes(e));
   const pages = [first];
   for (let i = 0; i < rest.length; i += per) pages.push(rest.slice(i, i + per));
@@ -4332,11 +4336,10 @@ const weekOnto = (base, from, g) => {
  *  useChip plans it (chipEdit: that week's changes are the chip's squad, its Roll or hits rule goes, its
  *  road offered so the plan lands at once when it fits its rules); a rule of yours a move contradicts, or a hits limit
  *  below the week's hits, taken back (withTaken). Its toast names the week's moves with its GW ("GW6 Scott → Groß +
- *  Tavernier → Xhaka (−4)"), the chip with the rule it replaces (chipWords), the transfers it takes back, and ends with
- *  the row's own number against rolling under the hold (COPY.planGain; the user, 2026-10-19: "Gain over rolling"), its
- *  one number ("· +2.6 vs rolling"; with no roll plan the total's, withPoints): what your total moves by (the week alone)
- *  is the header's change, no longer the toast's (the owner, 2026-10-26: "what means +1.6 vs rolling but total +5.1";
- *  it replaces the first-use proposal #1's "· total +4.0" of 2026-10-21). One
+ *  Tavernier → Xhaka (−4)"), the chip with the rule it replaces (chipWords) and the transfers it takes back; under the
+ *  hold no number (its row has it: the owner, 2026-10-27, "remove this 'vs ..' message from black tab appearing"), with no
+ *  roll plan the total's (withPoints); what your total moves by is the header's change (the owner, 2026-10-26: "what
+ *  means +1.6 vs rolling but total +5.1"). One
  *  edit, one Undo, and Why before it (whyAct: its first transfer's Why sheet; first-use proposal #2). → bool (false: it
  *  changes nothing, L1) */
 export function addPlan(ctx, g, pl) {
@@ -4414,10 +4417,8 @@ export function addPlan(ctx, g, pl) {
     ? (head?.startsWith(rg) && roll.label.startsWith(rg) ? roll.label.slice(rg.length) : roll.label) : null;
   // the transfers it takes back in one clause, its GW said once (the first-use findings, 2026-10-21: "GW8 roll · GW8 Groß →
   // Dewsbury-Hall removed · GW8 Calvert-Lewin → …" ran to three lines over the header)
-  // its number is the row's (pl.cmp), against rolling, in a week of yours against your plan ("· −0.2 vs your plan":
-  // choiceVs, decision K; the owner, 2026-10-25): where the week keeps transfers of yours beside its own,
-  // their count named before it (the user, 2026-10-22: "GW8 Semenyo → Palmer + Cunha → Rice · frozen · 3 transfers in
-  // GW8 · +5.8 vs rolling"; COPY.planGain's tail as ui.js toastParts reads it)
+  // where the week keeps transfers of yours beside its own, their count named (the user, 2026-10-22: "GW8 Semenyo →
+  // Palmer + Cunha → Rice · frozen · 3 transfers in GW8")
   const nAt = pl.moves.filter((m) => m.gw === g).length;
   const kept = own.length && !chips.length && nAt > own.length && (weekOf(P, g)?.moves.length ?? 0) > 0 ? COPY.weekTransfers(nAt, g) : null;
   // one move in place of your one transfer of the same player, the place's own words (decision L, "instead of
@@ -4439,11 +4440,11 @@ export function addPlan(ctx, g, pl) {
     // a Roll + that takes nothing back and changes no number says the rule it made (rollMade; saffer r7 §7: "GW8 roll ·
     // total 0.0")
     text: locks && !own.length && !chips.length && !gone.length && !back ? () => COPY.rollMade(g)
-      // its one number the row's, against the row's own baseline (choiceVs): the receipt says what the choice was made by,
-      // never what your total moved by (the owner, 2026-10-26: "what means +1.6 vs rolling but total +5.1"): that is the
-      // header's own change (renderTotal, once the toast over it goes) and the Why sheet's line under its number
-      // (COPY.totalMoved)
-      : pl.vsRoll && !pl.refRow ? (Q, prev) => `${COPY.planGain(what, pl.cmp.delta, choiceVs(P, pl))}${captainMoved(Q, prev, g)}` : withPoints(ctx, what, (Q, prev) => captainMoved(Q, prev, g), { total: true }),
+      // no number: the row's is on its row, "−0.8 vs your plan" under its words read as a second message (the owner,
+      // 2026-10-27: "remove this 'vs ..' message from black tab appearing"); never what your total moved by (the owner,
+      // 2026-10-26: "what means +1.6 vs rolling but total +5.1"): the header's own change (renderTotal) and the Why
+      // sheet's line under its number (COPY.totalMoved)
+      : pl.vsRoll && !pl.refRow ? (Q, prev) => `${what}${captainMoved(Q, prev, g)}` : withPoints(ctx, what, (Q, prev) => captainMoved(Q, prev, g), { total: true }),
     more: own.length ? [whyAct(g, own[0].in)] : [],
     // a take's receipt: two rows on a phone, its head one line, "frozen" and the week's count clipping after the sales,
     // anything it takes back whole (ui.toast; the owner, 2026-10-26: "why this takes 3 lines")
@@ -4462,7 +4463,7 @@ export const yoursTakenBack = (P, g, moves) => (weekOf(P, g)?.moves || []).map((
  *  Wildcard or Free Hit: a choice that moves someone there takes it back (its + a Roll capped at its moves, addPlan; a
  *  sale or a bring-in clashes with it), so its rows and cards say "instead of rolling" (the first-use run, 2026-10-21: "I
  *  just said no transfers. Why is it still dangling Silva in front of me?"). */
-export const rollingAt = (P, g) => { const w = weekOf(P, g); return !!w && !w.moves.length && !squadWeek(w) && P.pins.some((p) => p.id === `roll:${g}`); };
+export const rollingAt = (P, g) => { const w = weekOf(P, g); return !!w && !w.moves.length && !squadWeek(w) && P.pins.some((p) => p.id === `roll:${g}` && !rollKeeps(p)); };
 
 /** The rule of yours that makes transfer m (a sale, with its buy or the plan's pick; a slide or a Wish that buys him;
  *  a chip week's pick only in its week, so only a move that names its gw: review 5, 2026-10-12, a later Scott → Groß
@@ -4531,18 +4532,13 @@ export function removeMove(ctx, m) {
   // of the edit's week (A1: an edit never moves the armband unsaid), never the move its own words name
   const end = (Q, prev) => endingOf(Q, prev, own.gw, { own: m.out, named: [own] });
   // the reviews, 2026-10-11 (B24's premise, "its number is on its row", fails here: the row is gone): its points even
-  // when it lands at once, named as what your total moves by; where it was GW g's one move (it rolls again), the row's
-  // number against rolling turned round alone, as its week's choices stand (weekRollOf on plansListed: no solve asked,
-  // the same whichever week is drawn, so every door says the same; the user, 2026-10-21: fix all (first-use proposal
-  // #1): Dana's "Taking it was +0.4, undoing it is −2.8"), one number as a take's toast (COPY.planGain; the owner,
-  // 2026-10-26: "what means +1.6 vs rolling but total +5.1": the total is the header's change; so, as a take's, no
-  // "Forkcast rates it …" after it: that clause weighs the total's change, changeText)
+  // when it lands at once, named as what your total moves by; where it was GW g's one move (it rolls again, its week's
+  // choices standing: weekRollOf on plansListed, no solve asked) no number, as a take's toast (the owner, 2026-10-27, of
+  // "−0.8 vs your plan": "remove this 'vs ..' message from black tab appearing")
   const w = weekOf(P, own.gw);
   const rolls = !!w && !squadWeek(w) && w.moves.every((x) => x.out === own.out && x.in === own.in);
   const vr = rolls ? weekRollOf(ctx, P, w, (x) => plansListed(ctx, P, x)) : null;
-  // (the week's Roll in its place is a choice of a week of yours: its number against your plan, the transfer's turned
-  // round, decision K; the owner, 2026-10-25: "compare + poitns not to rolling now but to transfer made")
-  const text = vr ? (Q, prev) => `${COPY.planGain(what, -vr.delta, COPY.planVs(true))}${end(Q, prev)}` : withPoints(ctx, what, end, { total: true });
+  const text = vr ? (Q, prev) => `${what}${end(Q, prev)}` : withPoints(ctx, what, end, { total: true });
   // B129: the move its toast names is remembered as removed by you, part of its Undo (edit's `also`, after the snapshot)
   return edit(ctx, { drop: [pin.id, ...taken.map((q) => q.id)], from, what, taken, text, also: () => noteRemoved(P, [own]) });
 }
@@ -6612,6 +6608,10 @@ export function mount(el, ctx) {
   function renderLine(P, w, M) {
     const g = w.gw, n = w.moves.length;
     const ap = ap0(P, g);
+    // a take of k transfers this week still checked, the plan before it drawn (no move there yet): its rule keeps them
+    // (memory.pinRoll's caps, "GW9 frozen"), so the line says "1 transfer" and "checking…", never the week as drawn (the
+    // owner, 2026-10-27, of João Pedro → Evanilson: "it shows 'Rolling' first as if i chose rolling")
+    const kept = !n && !M.live && !M.sq && ap ? rollKeeps(P.pins.find((p) => p.id === `roll:${g}`)) : 0;
     // (`mine`: the week's own words on the line, said whatever takes it: "Out: Saka", "8 changes")
     let one = null, gain = null, wait = false, two, said, short = null, facts = false, factsSaid = '', mine = null;
     if (M.live) {
@@ -6636,9 +6636,10 @@ export function mount(el, ctx) {
     } else {
       // ("Rolling is best" where the Roll's token said it: the week settled, no move its best, its Roll offered)
       const f = rollFacts(P, w, !!M.settled && !M.lit.best && M.toks.some(rollOnly));
-      one = f.head;
+      one = kept ? COPY.nTransfers(kept) : f.head;
+      wait = kept > 0;
       two = f.rest;
-      said = f.head;
+      said = kept ? `${one}, ${numSaid(true)}` : f.head;
       factsSaid = f.said;
       facts = true;
     }
@@ -6680,7 +6681,7 @@ export function mount(el, ctx) {
     // green where the week is yours (your transfers, your chip, your Roll), as "Wildcard · yours" and "Rolling ✓" were;
     // the lineup notice in its place (never green: FPL's to do, not yours) said after the week's own words ("Rolling.
     // Set in FPL: 3 changes", its words in its name)
-    S.status = M.live ? null : { g, one, hits: n && !M.sq ? w.hits : 0, wait, gain, ap, said: lineup ? `${said}. ${lineup}` : said, sub, mine: n > 0 || !!M.sq || (facts && !(lineup && !sub) && rollingAt(P, g)) };
+    S.status = M.live ? null : { g, one, hits: n && !M.sq ? w.hits : 0, wait, gain, ap, said: lineup ? `${said}. ${lineup}` : said, sub, mine: n > 0 || kept > 0 || !!M.sq || (facts && !(lineup && !sub) && rollingAt(P, g)) };
     fill(strip, h('section.ah-block', { 'aria-label': COPY.weekTitle(g), tabindex: '-1', dataset: { focusHome: '' } },
       barNode({
         two, warn: !!problem?.warn,
@@ -6962,7 +6963,9 @@ export function mount(el, ctx) {
     // a multi-move best is ONE mark, its sentence (design 1026e "line"; a chess engine's best line): one ink plate as
     // wide as its words, centred over its top-most sellers' row, "Cunha → Palmer, Neto → Tavernier +3.8", its other
     // sellers' places each a plate of his own single moves, as every place has; never a tag, a ring or "& 1 more"
-    const lineBest = !!lead?.length && multiMove(lead[0].L.e);
+    // (in his own buy's place, a choice in place of that buy is a single: "Evanilson +0.8" on Thiago, never "João Pedro →
+    // Evanilson instead of Thiago" over the row, whose tap opened its Why sheet, not his place; the owner, 2026-10-27)
+    const lineBest = !!lead?.length && multiMove(lead[0].L.e, lead[0].d.a);
     const litAt = (a) => (lineBest && lit.get(a)?.best && !lead.some((x) => x.d.a === a) ? null : lit.get(a));
     // (a buy the sentence names is no other plate's: one name, one number; the owner's judge of design 1026e, of
     // "Tavernier +1.2" beside "Tavernier … +3.8")
@@ -7330,7 +7333,7 @@ export function mount(el, ctx) {
     const g = w.gw, out = [];
     // (a multi-move best none: its one mark is its sentence's plate over its sellers' row, renderDecks; design 1026e
     // "line": "Cunha → Palmer, Neto → Tavernier +3.8" never stands whole in the room beside the goal, 149 px at 393 wide)
-    const mv = lit.move, top = mv && lead?.[0]?.L.e.pl === mv && !multiMove(lead[0].L.e) ? lead : null;
+    const mv = lit.move, top = mv && lead?.[0]?.L.e.pl === mv && !multiMove(lead[0].L.e, lead[0].d.a) ? lead : null;
     if (top) {
       const nm = P.L.name, e = top[0].L.e;
       const moves = e.adds.map((m) => COPY.moveSaid(nm(m.out), nm(m.in)));
@@ -7540,13 +7543,18 @@ export function mount(el, ctx) {
     // his own single moves the cards, at most one line for a plan he is part of (placeSplit; design 1026e "line": no "or
     // …" line under a card, no "also …" note, the owner, 2026-10-26, "what means 'or' here if it repeat same thing")
     const { singles, line: pline } = placeSplit(entries, d.a);
-    // (its pages: placePages; "⋯ N more" deals the next)
-    const pages = placePages(singles, room.length), pg = (S.place.page ?? 0) % pages.length;
+    // its last slot a tile (placePages): "Other…", Bring in… on this week at his position, any player the cards don't
+    // offer (the owner, 2026-10-27: "one slot be left for 'other' clicking on which the 'bring in.' window pop up so i
+    // can choose other defenders not suggested here"), under "⋯ N more" where his choices take more than a page (its
+    // next page dealt)
+    const other = P.editable && !frozenAt(P, g);
+    const pages = placePages(singles, room.length, other), pg = (S.place.page ?? 0) % pages.length;
     const over = pages.length > 1;
     const shown = pages[pg];
-    // his row steps aside only where a dealt card (or "⋯ N more") takes a row-mate's slot: the rest stay, under the shade
+    const tileAt = over ? room.at(-1) : other ? room[shown.length] ?? null : null;
+    // his row steps aside only where a dealt card (or the tile) takes a row-mate's slot: the rest stay, under the shade
     // (the user, 2026-10-21: "why players dissapering from pitch": one choice dealt hid the whole row)
-    const used = room.slice(0, shown.length + (over ? 1 : 0));
+    const used = room.slice(0, shown.length + (tileAt != null ? 1 : 0));
     const out = mates.filter((q) => used.some((x) => Math.abs(q.x - x) < q.w));
     for (const q of out) { q.n.classList.add('ah-stepout'); q.n.inert = true; }
     const tab = (x) => `calc(${c.y}px - var(--pm-tab))`;
@@ -7637,10 +7645,14 @@ export function mount(el, ctx) {
     // All N: the Week sheet at its plans, his card focused first (the sheet gives focus back to it)
     const toWeek = (plan = null) => { c.n.focus({ preventScroll: true }); closePlace(false); weekSheet(g, 'plans', plan); };
     // ⋯ N more: his choices on the place's other pages, the next page dealt in his cards (placePages; it opened the Week
-    // sheet's list of every choice of the week until the owner's "not just evanilson", 2026-10-27)
+    // sheet's list of every choice of the week until the owner's "not just evanilson", 2026-10-27); "Other…" under it,
+    // the two then taking the slot from its header's top, each a 44 pt target
     const unseen = placeBuys(singles).length - shown.length;
-    const more = over ? h('button.ah-pmore', { type: 'button', dataset: { key: 'more' }, style: { ...px(room.at(-1), c.y), height: `${c.h}px` },
-      onClick: () => { S.place.page = pg + 1; drawPlace(true); } }, COPY.placeMore(unseen)) : null;
+    const both = over && other;
+    const tile = tileAt == null ? null : h('div.ah-ptile', { style: { ...px(tileAt, 0), top: both ? tab() : `${c.y}px`, height: both ? `calc(${c.h}px + var(--pm-tab))` : `${c.h}px` } },
+      over ? h('button.ah-pmore', { type: 'button', dataset: { key: 'more' }, onClick: () => { S.place.page = pg + 1; drawPlace(true); } }, COPY.placeMore(unseen)) : null,
+      other ? h('button.ah-pmore.ah-pother', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.placeOtherSaid(nm(d.a), g), dataset: { key: 'other' },
+        onClick: () => { c.n.focus({ preventScroll: true }); closePlace(false); ctx.openSheet('wish', null, { gw: g, pos: P.L.pos(d.a) }); } }, COPY.placeOther) : null);
     const i = S.decks.indexOf(d), n = S.decks.length, place = COPY.placeOf(nm(d.a));
     // its buys your saved lineup leaves on your bench, said under its numbers (benchedBuys; the user, 2026-10-22: a sub's
     // "Palmer 0.0" explained, the number as computed)
@@ -7656,7 +7668,7 @@ export function mount(el, ctx) {
       pline ? planLine(P, g, d, pline) : null);
     const layer = h('div.ah-place', { role: 'group', 'aria-label': `${place}, ${COPY.placeAt(i + 1, n)}` },
       // (read in the block's order, a header's Swap, its note's line, then his card: VoiceOver too)
-      shade, own, nowHead, dealt.map(([card, head, note]) => [head, note, card]), more, walk);
+      shade, own, nowHead, dealt.map(([card, head, note]) => [head, note, card]), tile, walk);
     root.append(layer);
     // the dealt cards' fixtures fitted as the pitch's are (a two-line one: his tile shorter, fitBlocks measures it); each header's
     // number never cut, as a tab's (fitNum)
@@ -7670,9 +7682,9 @@ export function mount(el, ctx) {
     scaleHeads(dealt.map(([, x]) => x));
     // its one line on one line (design 1026e: one line of words per choice), its "xP" first, then a smaller type
     fitLine(layer.querySelector('.ah-pline'));
-    // (dropped into the turf under his row: its "⋯ N more" with them)
+    // (dropped into the turf under his row: its tile with them)
     const drop = fitBlocks(root, boxes, c, dealt);
-    if (drop && more) more.style.top = `${c.y + drop}px`;
+    if (drop && tile) tile.style.top = both ? `calc(${c.y + drop}px - var(--pm-tab))` : `${c.y + drop}px`;
     // a sideways swipe only closes it (never a week: the pitch's swipe starts nowhere in it), its click then swallowed
     let from = null;
     layer.addEventListener('pointerdown', (e) => { from = [e.clientX, e.clientY]; });

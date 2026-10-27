@@ -622,8 +622,9 @@ export function toast(msg, kind = 'info', opts = {}) {
   // then the clauses of `take`, the buy last, each with "…"; the other clauses whole), and its one number on the second
   // beside its buttons, its " · " not drawn (the owner, 2026-10-26: "GW9 Calvert-Lewin → Evanilson · frozen · +1.6 vs
   // rolling", two lines at 393 and 320 px, no line opened with "·", "why this takes 3 lines"; Saffer p. 92, "convey the
-  // most with the least"). Where the head or the number can't (a larger text size, an armband's ending past the number),
-  // the way every toast has, below
+  // most with the least"); with no number (the owner, 2026-10-27: no "vs …" in it) its buttons alone on the second.
+  // Where the head or the number can't (a larger text size, an armband's ending past the number), the way every toast
+  // has, below
   const fit = () => globalThis.requestAnimationFrame?.(() => {
     if (!text.isConnected) return;
     text.classList.remove('long', 'tailrow');
@@ -631,7 +632,7 @@ export function toast(msg, kind = 'info', opts = {}) {
     const lh = parseFloat(getComputedStyle(text).lineHeight) || 17;
     const lines = (e) => (e ? Math.round(e.getBoundingClientRect().height / lh) : 0);
     const tail = text.querySelector('.toast-tail');
-    if (take && SPLITS && tail && btns.length && text.getBoundingClientRect().height > lh + 1) {
+    if (take && SPLITS && btns.length && text.getBoundingClientRect().height > lh + 1) {
       el.classList.add('split');
       const whole = (e) => !e || e.scrollWidth <= e.clientWidth + 1;
       const head = text.querySelector('.toast-head');

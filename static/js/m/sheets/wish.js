@@ -109,7 +109,7 @@ const works = (o) => o?.kind === 'buy' || o?.kind === 'road';
  *  solved road's GW-g moves, ahead.holdBuy). */
 const how = (o) => ({ bp: o.bp });
 
-export function open(ctx, preId = null, { gw = null } = {}) {
+export function open(ctx, preId = null, { gw = null, pos = null } = {}) {
   const P0 = plan(ctx);
   if (!P0) return null;
   // the GW it was opened on (the week line's Bring in… door, his card: {gw}): his pills open on that week
@@ -118,7 +118,8 @@ export function open(ctx, preId = null, { gw = null } = {}) {
   const live = (g) => !inkAt(ctx, P0, g);  // a week an arrival can still reach (B7: not frozen, not GW A under way)
   // out: the sale you chose for a player's selected week ({g, out}; none: Forkcast picks); need: the weeks his reach sent to
   // a solve, in its order; wait: the solve out ({g, i, n, t0}, B87b), its line's clock ticking (tick)
-  const st = { q: '', open: null, res: {}, sel: {}, own: {}, out: {}, ask: null, need: {}, wait: null, tick: null, req: null, run: 0, g: G ?? P0.gws.find(live) ?? P0.A, pos: 'all', sort: 'pts', flip: false };
+  // (pos: the position its list opens on, a player's place's "Other…": ahead.drawPlace; else all)
+  const st = { q: '', open: null, res: {}, sel: {}, own: {}, out: {}, ask: null, need: {}, wait: null, tick: null, req: null, run: 0, g: G ?? P0.gws.find(live) ?? P0.A, pos: POSITIONS.includes(pos) ? pos : 'all', sort: 'pts', flip: false };
   const no = barred(P0, P0.A);
 
   const stop = () => { st.run++; st.req?.cancel?.(); st.req = null; clearInterval(st.tick); st.wait = null; presolveTaps(ctx, null, { owner: st }); };

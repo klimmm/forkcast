@@ -378,8 +378,8 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
    user, 2026-10-22: his tab over the panel hung under the forward's plate over him).
    .ah-place a player's place: .ah-pshade over the pitch, his own card again (.ah-pown) under .ah-phead.now ("Keep",
    outlined: .ah-pkeep.outl), each choice a pitch card (.ah-pcard) under its header (.ah-phead: the number and its worded
-   take .ah-pgo, "Swap"; .best ink, .pays white, .lo dark with an outlined take) over its note (.ah-pnote), "⋯ N more"
-   (.ah-pmore), the bar
+   take .ah-pgo, "Swap"; .best ink, .pays white, .lo dark with an outlined take) over its note (.ah-pnote), its last slot
+   (.ah-ptile: "⋯ N more" .ah-pmore, "Other…" .ah-pother), the bar
    (.ah-walk, .top for a bench place); its row-mates step out (.ah-stepout). .ah-ghost the card a take sends behind its
    buy (ahead.js landFly) */
 .ah-pitch .pm { --pm-back: light-dark(#0A6A3F, #0B3D24); }
@@ -600,7 +600,9 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .ah-porv.wait { font-weight: 500; font-style: italic; }
 .ah-por:disabled { opacity: .5; cursor: default; }
 .ah-por:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; border-radius: 4px; }
-.ah-pmore { position: absolute; z-index: 1; border: 1.5px dashed #FFFFFF; border-radius: 7px; background: rgb(255 255 255 / .12); color: #FFFFFF; font: 600 var(--t-cap)/1.3 var(--f-text); cursor: pointer; }
+/* its last slot (.ah-ptile): "⋯ N more" (.ah-pmore) and "Other…" (.ah-pother), each its share of the slot */
+.ah-ptile { position: absolute; z-index: 1; display: flex; flex-direction: column; gap: 4px; }
+.ah-pmore { flex: 1 1 0; min-height: 0; padding: 0 4px; border: 1.5px dashed #FFFFFF; border-radius: 7px; background: rgb(255 255 255 / .12); color: #FFFFFF; font: 600 var(--t-cap)/1.3 var(--f-text); cursor: pointer; }
 /* (its ink #17191A in both themes: on the pitch --plate-ink is --ink, which goes light in dark; design 1026e) */
 .ah-walk {
   position: absolute; z-index: 4; left: 8px; right: 8px; bottom: 6px; min-height: 44px; display: flex; align-items: center;
