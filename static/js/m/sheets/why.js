@@ -24,7 +24,7 @@
 
 import * as C from '../calls.js';
 import { h, svg, fmt, fill, posCode, posName, xpNum, xpGain, xpMark } from '../../ui.js';
-import { inputsOf, plan, xpShown } from '../ahead.js';
+import { inputsOf, plan, xpShown, presolveTaps } from '../ahead.js';
 import { STAT, WORD, statusLines, cardOf, statsView, keepStatsView, segControl, pastSums } from './player.js';
 import { oppText } from '../../plan/pitch.js';
 
@@ -39,9 +39,15 @@ export function open(ctx, spec = {}) {
   const P = inputs ? plan(ctx) : null;
   if (!P || !spec.a || !spec.b) return null;
   const why = { a: spec.a, b: spec.b, cmp: C.compare(inputs, spec.a.road, spec.b.road), noise: num(inputs.noise) ?? 0, A: inputs.A };
+  let me = null;
   return ctx.sheets.open({
     title: spec.title, sub: spec.sub, detent: 'medium', detents: ['medium', 'large'], cls: 'wy-sheet',
+    // its taps (spec.presolve: Take it, Remove, Keep, Not, Move to GWn) solved ahead while it is open (the owner,
+    // 2026-10-26: "fix speed so all pre solved and done without no cost")
+    onClose: () => presolveTaps(ctx, null, { owner: me }),
     build(body, sheet) {
+      me = sheet;
+      if (spec.presolve?.length) presolveTaps(ctx, spec.presolve, { gw: spec.gw ?? null, owner: sheet });
       // the move's answers by tap (the six-book review, 2026-10-09: the swipes had no visible twin): "Keep Scott · GW6",
       // "Not Groß · GW6" (the row's left swipe by tap, B19), each with its toast and Undo; the sheet closes when one acts.
       // B99: the row's own one ("Remove") filled only when it beats the noise (a.fill)

@@ -52,7 +52,7 @@
 import * as E from '../../plan/engine.js';
 import { h, fmt, fill, norm, icon, roving, xpNum } from '../../ui.js';
 import { COPY } from '../calls.js';
-import { plan, weekOf, squadBefore, squadWeek, addMove, draftOf, estimate, wishSolve, want, reroute, editable, barred, barringRule, ruleOf, clearGain, inkAt, buyPlan, holdBuy, bringIn, bringInTakes, removesText, inWords, weekWith, saleOptions, waitedText, solvesRound, problemText } from '../ahead.js';
+import { plan, weekOf, squadBefore, squadWeek, addMove, draftOf, estimate, wishSolve, want, reroute, editable, barred, barringRule, ruleOf, clearGain, inkAt, buyPlan, holdBuy, bringIn, bringInTakes, removesText, inWords, weekWith, saleOptions, waitedText, solvesRound, problemText, presolveTaps } from '../ahead.js';
 import { weekPills, tabs, barTop, bars, shirt, found, askBoth, sameAsk } from './buylist.js';
 
 const plusGlyph = () => {
@@ -121,7 +121,7 @@ export function open(ctx, preId = null, { gw = null } = {}) {
   const st = { q: '', open: null, res: {}, sel: {}, own: {}, out: {}, ask: null, need: {}, wait: null, tick: null, req: null, run: 0, g: G ?? P0.gws.find(live) ?? P0.A, pos: 'all', sort: 'pts', flip: false };
   const no = barred(P0, P0.A);
 
-  const stop = () => { st.run++; st.req?.cancel?.(); st.req = null; clearInterval(st.tick); st.wait = null; };
+  const stop = () => { st.run++; st.req?.cancel?.(); st.req = null; clearInterval(st.tick); st.wait = null; presolveTaps(ctx, null, { owner: st }); };
 
   return ctx.sheets.open({
     title: COPY.bringInSheet, detent: 'large', cls: 'ws',
@@ -336,6 +336,18 @@ export function open(ctx, preId = null, { gw = null } = {}) {
           h('div.m-sec', null, items.length ? items.map((o) => row(o.id, null, top, o.mine)) : h('p.ah-empty', null, q ? COPY.noneCalled('player', st.q.trim()) : 'No one fits this filter.')),
           !q && later.length ? h('div.m-sec', null, h('h3', null, 'Your plan buys later'),
             later.map(({ id, gw: at }) => row(id, `arrives GW${at} · bring him in earlier`))) : null);
+        // the open player's taps solved ahead (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and done
+        // without no cost"): the week his line speaks for first, each week as its button makes it (take), then that week's
+        // sale chips one sale pays for (sale: buyPlan with that sale)
+        const id = st.open, res = id != null ? st.res[id] || {} : {}, sel = id != null ? st.sel[id] : null;
+        const weeks = id == null ? [] : [sel, ...P.gws.filter((x) => x !== sel)].filter((x) => x != null && works(res[x]));
+        const sales = sel != null && weeks.includes(sel) && !squadWeek(weekOf(P, sel)) ? saleOptions(ctx, id, sel).filter((x) => x.cmp) : [];
+        if (P.editable && weeks.length) {
+          presolveTaps(ctx, [
+            ...weeks.map((x) => ({ kind: 'bring', gw: x, run: () => (res[x].kind === 'buy' ? bringIn(ctx, id, x, res[x].bp) : want(ctx, id, x, res[x].road)) })),
+            ...sales.map((x) => ({ kind: 'bring', gw: sel, run: () => { const bp = buyPlan(ctx, id, sel, { out: x.out }); return bp.kind === 'one' && bringIn(ctx, id, sel, bp); } })),
+          ], { gw: sel ?? g, sig: `${id}|${weeks.join()}|${sales.map((x) => x.out).join()}`, owner: st });
+        }
       }
 
       /** B87b: the time since the first solve went out (ahead.waitedText, the bake's clock), after the line's " · ": drawn

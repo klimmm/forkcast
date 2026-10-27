@@ -22,7 +22,7 @@
 import { h, fmt, fill, toast, norm, posName, icon, xpGain } from '../../ui.js';
 import * as E from '../../plan/engine.js';
 import { COPY } from '../calls.js';
-import { plan, squadBefore, inTeamAt, addMove, draftOf, planBaseline, takenBy, sellOut, problemText, problemShort, barred, barringRules, removeRule, openRules, baseOf, weekOf, buyPlan, bringIn, sayBuyProblem } from '../ahead.js';
+import { plan, squadBefore, inTeamAt, addMove, draftOf, planBaseline, takenBy, sellOut, problemText, problemShort, barred, barringRules, removeRule, openRules, baseOf, weekOf, buyPlan, bringIn, sayBuyProblem, presolveTaps } from '../ahead.js';
 import { weekPills, sortTabs, sortName, sorter, barTop, bars, who, found, askBoth, sameAsk } from './buylist.js';
 
 const CAP = 30;
@@ -74,9 +74,12 @@ export function open(ctx, rawOut, rawGw) {
     return list.filter((o) => !o.blocked).sort((a, b) => b.delta - a.delta)[0] ?? null;
   }
 
+  let me = null;
   return ctx.sheets.open({
     title: titleOf(st.g), detent: 'large', cls: 'rs',
+    onClose: () => presolveTaps(ctx, null, { owner: me }),
     build(body, sheet) {
+      me = sheet;
       const subEl = h('p.rs-sub');
       const pills = h('div.ah-pills', { role: 'group', 'aria-label': 'From gameweek' });
       // B93: the names FPL writes are mostly surnames (a first name finds no one)
@@ -152,6 +155,10 @@ export function open(ctx, rawOut, rawGw) {
         h('span.nm', null, h('b', null, 'Let Forkcast choose'), h('span', null, best ? COPY.autoBuy : 'No buy fits')),
         h('span.rt.m-num', null, best ? [xpGain(best.delta, 'span', null, true, '≈ '), h('small', null, COPY.listTotal)] : h('small', null, '—'))));
         fill(foot, `"${sortName('plan', P.gws, st.g)}" is an estimate over ${COPY.span(P.gws)} (best XI each week but a lineup you saved); Forkcast confirms it.`);
+        // its taps solved ahead while it is open (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and
+        // done without no cost"): Let Forkcast choose, then the rows the list ranks first that can be made
+        const g = st.g;
+        if (P.editable) presolveTaps(ctx, [...(best ? [null] : []), ...shown.filter((o) => !o.blocked).map((o) => o.id)].map((inn) => ({ kind: 'sell', gw: g, run: () => sellOut(ctx, g, out, inn) })), { gw: g, sig: `${g}|${st.sort}|${q}`, owner: sheet });
       }
 
       function pick(o) {

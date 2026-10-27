@@ -188,7 +188,7 @@ export { clockText, waitedText };  // the sheets' clocks (wish.js, chips.js) rea
 import {
   attach, makePin, pinSell, pinVeto, pinNever, pinKeep, pinChip, pinHits, pinRoll, squadInto, isRoll, isExact, exactAt, composePins, pinConflicts, pinsDir,
   findRoad, optionsRoad, optionsValues, barredAt, ruleText, scopeOf, rulesBroken, brokenCells, parseSpans, withBank, forcedHits, solveKept, bundleRoads,
-  deadlinePassed, switchWithUndo, frozenSince, sinceText, rollKeeps, solvedLineup,
+  deadlinePassed, switchWithUndo, frozenSince, sinceText, rollKeeps, solvedLineup, solvedKey,
 } from './memory.js';
 
 const LONG_MS = 430;           // long-press to lift a shirt
@@ -553,7 +553,7 @@ export function plan(ctx) {
 /** Options solves (optionsRef), per roads version and options: a Road, 'solving', or 'error' (never asked again). */
 const OPTIONS = new Map();
 /** A background solve's cache key: the roads version and its values (key order aside). I: info(ctx) or a plan view. */
-const valuesKey = (I, values) => `${I.b.version}|${JSON.stringify(Object.keys(values).sort().map((k) => [k, values[k]]))}`;
+const valuesKey = (I, values) => solvedKey(I.b.version, values);
 
 /**
  * What your rules' cost is measured against (QA: rules only): the planner's best with your options (chips, hit caps,
@@ -880,8 +880,9 @@ const vsPrevOr = (ctx, same, drop, changed) => (Q, prev) => {
   return kept ? same(Q) : changed(Q, prev);
 };
 
-/** The shell's toast (ctx.ui: app.js passes ui.js; the node tests a recorder), so the plan view needs no DOM. */
-const toastOf = (ctx) => ctx.ui?.toast ?? toast;
+/** The shell's toast (ctx.ui: app.js passes ui.js; the node tests a recorder), so the plan view needs no DOM; none while
+ *  a tap's edit is made dry (DRY: presolve), which says nothing. */
+const toastOf = (ctx) => (DRY ? () => () => {} : ctx.ui?.toast ?? toast);
 let lastSay = null;  // the verdict toast on screen: a newer edit replaces it (UX-7)
 /** An edit's pending toast while the full plan checks it: {said, toast (its dismiss), text}, for pendingTick. */
 let PENDING = null;
@@ -1264,10 +1265,12 @@ export function clashLine(P, clash = CLASH) {
  * `more`: actions its verdict toast carries before its Undo (a take's Why: whyAct); `take`: its verdict a take's
  * receipt, the clauses of its words that may clip (addPlan; ui.toast).
  */
-function edit(ctx, { pins = [], drop = [], road = null, from, text = null, what = null, also = null, inPlace = null, ending = null, taken = [], more = [], take = null }) {
+function edit(ctx, { pins = [], drop = [], road = null, from, text = null, what = null, also = null, inPlace = null, ending = null, taken = [], more = [], take = null, hitsMax }) {
   if (!editable(ctx)) { toastOf(ctx)(OFFLINE_EDIT, 'warn'); return false; }
   const ink = memOf(ctx).inkOf(pins);  // GW A under way is FPL's (B7)
   if (ink) { toastOf(ctx)(ink.text, 'warn'); return false; }
+  // made dry (presolve): the rules it would make, recorded, nothing changed
+  if (DRY) { DRY.got = { pins, drop, inPlace, hitsMax, was: memPlan(ctx)?.pins.map((p) => p.id) ?? [] }; return true; }
   // the verdict toast goes; an edit's pending toast stays for what replaces it (say)
   if (lastSay !== PENDING?.toast) lastSay?.();
   lastSay = null;
@@ -1299,8 +1302,9 @@ function edit(ctx, { pins = [], drop = [], road = null, from, text = null, what 
   // a road solved for these pins (a chip prepared with your rules, a Wish pill, a solved choice) is the plan at once when
   // it fits them
   if (road) mem.offer(road);
-  // its rules changed as one (memory.batch: planned once, never for the rules half changed)
+  // its rules changed as one (memory.batch: planned once, never for the rules half changed), You → Hits with them
   mem.batch(() => {
+    if (hitsMax !== undefined) mem.setHitsMax(hitsMax);
     for (const id of drop) if (mem.getPlan().pins.some((p) => p.id === id)) mem.removePin(id);
     for (const p of pins) mem.addPin(p);
     // a rule remade in its place (`inPlace`, its id: sellFrom's and sellAny's chain) keeps its place among your asks, as
@@ -1312,13 +1316,22 @@ function edit(ctx, { pins = [], drop = [], road = null, from, text = null, what 
     }
   });
   OV.armed = true;
-  if (!mem.getPlan().pending) land(ctx, { instant: true });   // a baked or offered road fitted (memory.findRoad), or nothing to solve
+  if (!mem.getPlan().pending) landNow(ctx);   // a baked, offered or pre-solved road fitted, or nothing to solve
   // s48 (QA check6: an own pick's Undo came only with its verdict, 38 s later): the newest edit's toast at once, its Undo
   // with it while the full plan solves, the receipt naming the chain whole (checkEdit); the verdict changes this toast in
   // place when it lands (land, fail; B23), its age meanwhile pendingTick's
   else checkEdit(ctx, OV);
   return true;
 }
+
+/** The armed edit's plan memory has with no wait: a baked or offered road (B24: said in its own words, `instant`), or the
+ *  answer of a solve of exactly its values asked before the tap (memory's Plan.ahead: presolve), its plan or its error
+ *  said as that heal's would be (land, fail): the same solve, the same verdict. */
+const landNow = (ctx) => {
+  const gp = memPlan(ctx);
+  if (gp?.ahead && gp.error) fail(ctx, gp.error);
+  else land(ctx, { instant: !gp?.ahead });
+};
 
 /** s48 (QA check6: an own pick's Undo came only with its verdict, 38 s later): the newest edit's toast while the full
  *  plan checks it, its Undo at once; the verdict replaces it when it lands (land, fail). B133: it names that edit only
@@ -1337,7 +1350,7 @@ function undoNewest(ctx, chain) {
   if (!rest.length) return;
   OV = { ...ovFor(ctx, info(ctx), rest), armed: true };
   bump(ctx);
-  if (!memOf(ctx).getPlan().pending) land(ctx, { instant: true });
+  if (!memOf(ctx).getPlan().pending) landNow(ctx);
   else pendingSay(ctx, rest);
   return 'again';
 }
@@ -1987,7 +2000,7 @@ export function useChip(ctx, c, g) {
   const P = plan(ctx);
   if (weekOf(P, g)?.chip === c || chipPins(P).some((x) => x.chip === c && x.gw === g)) return chipOff(ctx, g);
   const check = chipCheck(ctx, P, c, g);
-  if (!check.ok) { toast(check.reason, 'warn'); return false; }
+  if (!check.ok) { toastOf(ctx)(check.reason, 'warn'); return false; }
   const src = chipSource(ctx, P);
   const pre = src.at(c, g);
   // (a Wildcard's or Free Hit's under your team as it is: chipPlan's own, vs rolling)
@@ -2317,7 +2330,12 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const chipMine = SQUAD_CHIPS.has(w.chip) ? w.chip : null;
   let by = PLANS.get(P);
   if (!by || by.rev !== PAIR.rev) PLANS.set(P, (by = { rev: PAIR.rev, gw: new Map() }));
-  if (by.gw.has(g)) return by.gw.get(g);
+  if (by.gw.has(g)) {
+    // (its taps' solves asked as its choices are checked, at every draw: presolveWeek; none from inside a tap made dry)
+    const got = by.gw.get(g);
+    if (!peek && !prep && !DRY) presolveWeek(ctx, P, g, got);
+    return got;
+  }
   const d0 = draftOf(ctx), before = planBaseline(ctx, P, g), mine = flatMoves(d0);
   // (the plans set against rolling measured alike on both sides, in the xP order: asTaken's `held` false; what a + gives,
   // `alone`, on the lineups the plan it lands plays, `before`'s)
@@ -2722,8 +2740,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   let letGo = false;
   // (the next week's flights of this plan view stay: its preparation, prepNext, or its own draw's before you came back)
   const nx = nextGw(P, g);
+  if (!peek && !prep) AHEAD.at = { P, g };
   for (const [lane, f] of peek || prep ? [] : forkFlights()) {
-    if (asks.some((a) => a.ask?.key === f.key) || (f.P === P && f.gw === nx)) continue;
+    if (asks.some((a) => a.ask?.key === f.key) || (f.P === P && f.gw === nx && !f.ahead) || aheadAsks(f, P, g)) continue;
     f.cancel?.();
     if (lane) FORK_FLIGHTS.delete(lane); else PAIR.flight = null;
     letGo = true;
@@ -2919,10 +2938,14 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   list.full = !room();
   if (peek || prep) return list;
   by.gw.set(g, list);
-  // the week settled (none checks, nor what its rows count against): the next one prepared
-  if (!list.pending && !list.some((x) => x.state === 'solving')) prepNext(ctx, P, g);
+  // its taps' solves asked ahead as its choices are checked (presolve), in the lanes its checks leave; the week settled
+  // (none checks, nor what its rows count against), the next one prepared
+  if (!DRY) presolveWeek(ctx, P, g, list);
+  if (settledList(list)) prepNext(ctx, P, g);
   return list;
 }
+/** A week's choices (plansOf's list) settled: none checks, nor what its rows count against. */
+const settledList = (list) => !list.pending && !list.some((x) => x.state === 'solving');
 /** The GW after g in the plan's window, or null at its end. */
 const nextGw = (P, g) => P.gws.reduce((m, x) => (x > g && (m === null || x < m) ? x : m), null);
 /**
@@ -3683,9 +3706,17 @@ function forkPump(ctx, P, ask) {
   if (leftBehind(ctx, P)) return;  // no timer: the new plan's bundle re-draws the choices, which asks its own
   const holder = ctx.api.slotHolder?.('spec') ?? (ctx.api.slotBusy?.('spec') ? 'busy' : null);
   const free = Array.from({ length: (P.b?.meta?.pair_lanes ?? 1) - 1 }, (_, i) => i + 1).find((i) => !FORK_FLIGHTS.has(i));
-  // (a viewed ask with every lane busy: another week's flight, the next week's preparation, gives its lane up)
-  const other = !same && !prep && PAIR.flight && free === undefined ? forkFlights().find(([, f]) => f.gw !== ask.gw) : null;
-  const lane = same ? same[0] : prep ? free ?? (!PAIR.flight && !holder && !prepsWaiting(ctx, P) ? 0 : undefined)
+  // (a viewed ask with every lane busy: another week's flight, the next week's preparation, or a tap's solve asked ahead
+  // gives its lane up)
+  const other = !same && !prep && PAIR.flight && free === undefined ? forkFlights().find(([, f]) => (f.gw !== ask.gw || f.ahead) && !aheadWaited(f)) : null;
+  // (a tap's solve asked ahead with every lane busy: the next week's preparation gives its lane up, asked again once
+  // the taps' are in: prepNext; then one asked ahead that no source asks any more (its rules replaced, the next draw
+  // would let it go: L5); for an open sheet's, a week's tap asked ahead too: the sheet
+  // covers its plates, and a tap in the sheet makes another plan view, whose own week's are asked then)
+  const yielded = !same && ask.ahead && free === undefined
+    ? forkFlights().find(([, f]) => f.prep && !f.ahead) ?? forkFlights().find(([, f]) => f.ahead && !aheadWaited(f) && !aheadAsks(f, P, ask.gw))
+      ?? (ask.src === 'sheet' ? forkFlights().find(([, f]) => f.ahead && f.src === 'week' && !aheadWaited(f)) : null) ?? null : null;
+  const lane = same ? same[0] : prep ? free ?? (!PAIR.flight && !holder && !prepsWaiting(ctx, P) ? 0 : yielded?.[0])
     : !PAIR.flight ? 0 : free ?? other?.[0];
   if (lane === undefined) return;  // every lane busy: a landing re-draws the choices, which asks again
   if (holder && !(prep ? PREP_BESIDE : PAIR_TAKES).has(holder)) {
@@ -3697,20 +3728,38 @@ function forkPump(ctx, P, ask) {
   const wait = Math.max(0, PAIR.until - Date.now(), prep ? PAIR.prepUntil - Date.now() : 0);
   if (wait > 0) { forkAgain(ctx, wait); return; }
   if (other) other[1].cancel?.();
-  const flight = { key: ask.key, fork: true, cancel: null, gw: ask.gw, P, prep };
+  if (yielded && yielded[0] === lane) yielded[1].cancel?.();
+  const flight = { key: ask.key, fork: true, cancel: null, gw: ask.gw, P, prep, ahead: !!ask.ahead, src: ask.src ?? null };
   if (lane) FORK_FLIGHTS.set(lane, flight); else PAIR.flight = flight;
   const ours = () => (lane ? FORK_FLIGHTS.get(lane) : PAIR.flight) === flight;
-  const p = solveKept(ctx.api, { entry: Number(P.entry), purpose: prep ? 'pairnext' : 'pair', values: ask.values, ...(lane ? { lane } : {}) }, lane ? { slot: `fork${lane}` } : undefined);
+  const purpose = ask.ahead ? 'presolve' : prep ? 'pairnext' : 'pair';
+  if (ask.ahead) AHEAD.asked.push({ at: Date.now(), key: ask.key, src: ask.src });
+  const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, lane ? { slot: `fork${lane}` } : undefined);
   flight.cancel = () => p.cancel?.();
   p.then((res) => {
-      if (res.road || res.state === 'error') {
+      // a tap's solve asked ahead: its answer memory's for exactly those values (presolve); one that failed for another
+      // reason than your rules is never asked again on this page (no cost: the tap heals as before)
+      if (ask.ahead && (res.road || res.state === 'error')) {
+        // (kept for the data version the plan service solved it on, never the one the view was drawn on: the review of
+        // presolve, 2026-10-26, an older code's roads served while it solved on the newer; none told, none kept)
+        if (res.version != null) memOf(ctx).offer(res.road, { values: ask.values, error: res.error, version: res.version });
+        // (one that can't be kept, an error not your rules' or no version told, is never asked again on this page)
+        if (res.version == null || (!res.road && res.error?.code !== 'infeasible')) AHEAD.failed.add(ask.key);
+      } else if (res.road || res.state === 'error') {
         keepNewest(FORK_ROADS, ask.key, res.road ?? (res.error?.code === 'infeasible' ? 'infeasible' : { failedAt: Date.now() }), FORK_ROADS_MAX);
-      } else if (ours() && res.state === 'cancelled') PAIR[pause] = Date.now() + PAIR_AGAIN_MS;
+      } else if (ours() && res.state === 'cancelled') {
+        // (one the plan service dropped for another's room, never let go here: asked once more after the pause, then never
+        // again on this page, no churn)
+        if (ask.ahead && (AHEAD.dropped.set(ask.key, (AHEAD.dropped.get(ask.key) ?? 0) + 1).get(ask.key)) > 1) AHEAD.failed.add(ask.key);
+        else PAIR[pause] = Date.now() + PAIR_AGAIN_MS;
+      }
     }, () => { if (ours()) PAIR[pause] = Date.now() + PAIR_HOLD_MS; })
     .finally(() => {
       if (!ours()) return;
       if (lane) FORK_FLIGHTS.delete(lane); else PAIR.flight = null;
-      pairChanged(ctx);
+      // (a solve asked ahead changes nothing drawn: the next one asked in its lane, the choices re-drawn only once none
+      // is left, so the next week's preparation takes the lane: prepNext)
+      if (!ask.ahead || !pumpAhead(ctx)) pairChanged(ctx);
     });
 }
 /** The block re-drawn in `ms` (one timer), so its plans ask their next solve. */
@@ -3729,6 +3778,206 @@ export function resetForks() {
   clearTimeout(FORK_TIMER);
   FORK_TIMER = null;
   FORK_ROADS.clear();
+  AHEAD.srcs.clear();
+  AHEAD.failed.clear();
+  AHEAD.at = null;
+  AHEAD.asked = [];
+  AHEAD.dropped.clear();
+}
+
+// ---------------------------------------------------------------- a tap's solve asked before the tap
+/**
+ * The owner, 2026-10-26 (once every squad drawn was the solver's, solversquad: a take went 0.4 s → 1.5 s, a Remove 0.4 →
+ * 2.5 s): "fix speed so all pre solved and done without no cost". A tap that changes your plan lands at once on the
+ * solver's plan for its rules, because that solve was asked before the tap: its edit made dry (dryEdit: the very edit
+ * function the tap calls, edit recording the rules it would make, nothing changed, nothing said), the values its heal
+ * would send (memory.values with the edit's own order and You → Hits), asked in the fork lanes the view leaves free at
+ * the lowest priority (forkPump's `prep` way, purpose 'presolve': the plan service's SPECULATIVE, unmetered, pre-empted
+ * by any solve someone waits on, joined by the tap's heal while in flight), its answer offered to memory for exactly those
+ * values (memory.offer `values`): the tap's heal finds it (memory.replan) and lands it with no wait, the same request's
+ * answer, said as that heal's verdict (landNow); a heal of those values already waiting takes it as it lands.
+ * Asked, most likely first, at most PRESOLVE_MAX a source (each solve a plan's worth of the solver's time: the bound,
+ * presolve_report.md), an open sheet's before the week's (its buttons are what a tap can reach while it is up):
+ *  · 'week' (presolveWeek): a Remove of your rules (that week's first) once the view is drawn, then, once its choices
+ *    are settled, the takes of the week's best and the next lit plate (those that pay, by their number);
+ *  · 'sheet', when a sheet opens and as it re-draws (presolveTaps: a Why sheet's Take, Remove, Keep, Not and Move to
+ *    GWn; a player's Keep, Not, Never and Off; the Sell list's Let Forkcast choose and first rows; Bring in's weeks;
+ *    Chips…'s play and off; You → Hits and Reset plan; the Week sheet's other takes and Removes), until it closes.
+ * An Undo needs none: memory offers the plan it replaces (replan) and the snapshot keeps it (restore).
+ * Never asked while your plan heals or the bundle is behind; a source is made again for each plan view (a view for the
+ * same rules asks the same solves: its flights go on), and a flight no source asks is let go (plansOf's L5: the rules
+ * changed, the week left), as is every one when the page is hidden (stopAhead), but the one the heal of your rules
+ * waits on (aheadWaited).
+ */
+const PRESOLVE_MAX = { week: { take: 2, remove: 1 }, sheet: 3 };
+// and at most PRESOLVE_RATE solves (distinct) asked a minute on a page, the week's at most its share, so an open
+// sheet's taps (the likelier) always have room (the review of presolve, 2026-10-26: a sheet opened and closed again and
+// again, a search typed in the Sell list, each made its taps' solves again, unbounded)
+const PRESOLVE_RATE = { all: 30, week: 16 }, PRESOLVE_WINDOW_MS = 60000;
+// the tap's edit made dry (dryEdit): {got} while one is, edit's args then
+let DRY = null;
+// srcs: 'week' | 'sheet' → {P, gw, sig, owner, asks: [ask], made: [ask], tried: Set(tap id)}; failed: keys whose solve
+// failed (not your rules'); at: the viewed week {P, g} (plansOf); ctx: the page's (stopAhead, aheadWaited)
+const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map() };
+
+/** The rules tap `run` (an edit function's call: addPlan, removeRule, keep…) would make, made dry → edit's args
+ *  {pins, drop, inPlace, hitsMax, was} | null (it changes nothing, or is refused: no solve to ask). */
+function dryEdit(run) {
+  const was = DRY, mine = (DRY = { got: null });
+  try { return run() ? mine.got : null; } catch (e) { console.warn('Forkcast: a tap made dry', e); return null; } finally { DRY = was; }
+}
+
+/** Tap t ({kind, gw, run} | {kind: 'reset'}) as the solve its heal would ask on plan view P: {key, values, version, gw,
+ *  kind, src, prep, ahead} | null. Reset plan is no edit: your rules all off and You → Hits back to the solver's own
+ *  (memory.reset). */
+function askOf(ctx, P, t, src) {
+  const a = t.kind === 'reset' ? { pins: [], drop: P.pins.filter((p) => !derivedPin(p)).map((p) => p.id), hitsMax: null } : dryEdit(t.run);
+  if (!a) return null;
+  let values;
+  try {
+    values = memOf(ctx).values({ extra: a.pins, drop: a.drop, hitsMax: a.hitsMax, order: a.inPlace ? (list) => inPlaceOf(list, a.inPlace, a.was) : null });
+  } catch { return null; }
+  return { key: valuesKey(P, values), values, gw: t.gw ?? P.A, kind: t.kind, src, prep: true, ahead: true };
+}
+
+/** Source `src`'s taps (most likely first) on plan view P: the first PRESOLVE_MAX[src] that make a solve asked, those
+ *  memory has (memory.solved) or that failed not again. `sig`: what the taps were made from (once per it). */
+function presolve(ctx, P, src, taps, { gw = P.A, sig = '', owner = null } = {}) {
+  // (none from inside a tap made dry: a draw it reads settling)
+  if (DRY || !ctx.api?.solve || ctx.store.get('conn')?.state === 'offline') return;
+  watchPage(ctx);
+  let cur = AHEAD.srcs.get(src);
+  // the same view's taps with ids (the week's: a take's choice, a Remove's rule) add to what it asked as more are ready,
+  // each made dry once (tried); another's are asked afresh
+  const grows = taps.every((t) => t.id != null);
+  if (!(cur?.P === P && cur.gw === gw && cur.owner === owner && (cur.sig === sig || grows))) AHEAD.srcs.set(src, (cur = { P, gw, sig: null, owner, asks: [], made: [], tried: new Set() }));
+  if (cur.sig !== sig) {
+    cur.sig = sig;
+    // (none another source asks, nor one memory has: a sheet's taps besides the week's)
+    const others = [...AHEAD.srcs].filter(([k, x]) => k !== src && x.P === P).flatMap(([, x]) => x.asks.map((a) => a.key));
+    const cap = PRESOLVE_MAX[src], room = (kind) => (typeof cap === 'number' ? cur.asks.length < cap : cur.asks.filter((a) => a.kind === kind).length < (cap[kind] ?? 0));
+    for (const t0 of taps) {
+      const t = typeof t0 === 'function' ? t0() : t0;
+      if (!room(t.kind) || (t.id != null && cur.tried.has(t.id))) continue;
+      if (t.id != null) cur.tried.add(t.id);
+      const a = askOf(ctx, P, t, src);
+      if (a) cur.made.push(a);  // (every tap's, asked here or not: presolveTaps)
+      if (a && !cur.asks.some((x) => x.key === a.key) && !others.includes(a.key) && !memOf(ctx).solved(a.values)) cur.asks.push({ ...a, pri: t.pri ?? cur.asks.length });
+    }
+    cur.asks.sort((x, y) => x.pri - y.pri);
+  }
+  pumpAhead(ctx);
+}
+
+/** GW g's taps on plan view P (`list`: its choices, plansOf's): its ready choices' takes (addPlan), those that pay first
+ *  by their number (the week's best, the lit plates: litShown's), and the Removes of your rules (removeRule: that week's
+ *  first, the newest first). → {takes, removes, sig} */
+function weekTaps(ctx, P, g, list) {
+  const ready = list.filter((pl) => pl.state === 'ready' && !pl.self && !rollOnly(pl) && !pl.removed)
+    .sort((a, b) => plPays(b) - plPays(a) || b.cmp.delta - a.cmp.delta);
+  // (`pri`: the order they are asked in, the takes first by their number; `id`: one tap of the view's, made dry once)
+  const takes = ready.map((pl, i) => ({ kind: 'take', gw: g, id: `take:${forkKey(pl.choice, g)}`, pri: i, run: () => addPlan(ctx, g, pl) }));
+  const rules = rulesOf(P).filter((p) => ruleOf(P, p).removable);
+  const removes = [...rules.filter((p) => num(p.gw) === g), ...rules.filter((p) => num(p.gw) !== g)]
+    .map((p, i) => ({ kind: 'remove', gw: g, id: `rm:${p.id}`, pri: 100 + i, run: () => removeRule(ctx, p.id) }));
+  return { takes, removes, sig: `${ready.map((pl) => forkKey(pl.choice, g)).join(';')}|${rules.map((p) => p.id).join(',')}` };
+}
+/** The viewed week's taps (weekTaps), asked in the fork lanes its own checks leave free: a Remove of your rules at
+ *  once, and once its choices are settled (the week's best and its lit plates known: litOf) its first takes
+ *  (PRESOLVE_MAX). */
+function presolveWeek(ctx, P, g, list) {
+  if (P.healing || leftBehind(ctx, P) || inkAt(ctx, P, g)) return;
+  const { takes, removes, sig } = weekTaps(ctx, P, g, list);
+  const settled = settledList(list);
+  presolve(ctx, P, 'week', [...(settled ? takes : []), ...removes], { gw: g, sig: `${settled}|${sig}` });
+}
+
+/** An open sheet's taps, asked ahead while it is open (presolve 'sheet'): each {kind, gw, run} (or a function making
+ *  one, made only if its turn comes), most likely first; none (`taps` null) when it closes. `owner`: the sheet (its
+ *  closing stops its own taps only, never a sheet's opened over it). → each tap's solve ({key, values, kind, …}: asked
+ *  here, or already by the week's own taps or memory's) */
+export function presolveTaps(ctx, taps, { gw = null, sig = '', owner = null } = {}) {
+  const P = plan(ctx);
+  if (!taps || !P) {
+    if (!owner || AHEAD.srcs.get('sheet')?.owner === owner) stopAhead('sheet');
+    return [];
+  }
+  if (P.healing || leftBehind(ctx, P)) return [];
+  presolve(ctx, P, 'sheet', taps, { gw: gw ?? P.A, sig, owner });
+  return AHEAD.srcs.get('sheet')?.made ?? [];
+}
+
+/** Ask the next solves of the sources, an open sheet's first, each in its order (forkPump: in a lane the view leaves
+ *  free) → whether any is still to land. A source of another plan view asks nothing (the view's own draw replaces it: presolve); the week's
+ *  waits while another week is viewed. */
+function pumpAhead(ctx) {
+  const P = plan(ctx), mem = memOf(ctx);
+  if (!P || P.healing || leftBehind(ctx, P)) return false;
+  let left = false;
+  // (an open sheet's first: while it is up its buttons are what a tap can reach, the plates under it)
+  for (const src of ['sheet', 'week']) {
+    const s = AHEAD.srcs.get(src);
+    if (!s || s.P !== P) continue;
+    if (src === 'week' && (AHEAD.at?.P !== P || AHEAD.at.g !== s.gw)) continue;
+    for (const a of s.asks) {
+      if (AHEAD.failed.has(a.key) || mem.solved(a.values)) continue;
+      left = true;
+      if (forkFlights().some(([, f]) => f.key === a.key)) continue;
+      // (PRESOLVE_RATE a minute: the rest waits for the window to move on, a re-draw then asks it; one asked again, an
+      // Undo back to its rules, counts once)
+      const now = Date.now();
+      AHEAD.asked = AHEAD.asked.filter((x) => x.at > now - PRESOLVE_WINDOW_MS);
+      const keys = (s0) => new Set(AHEAD.asked.filter((x) => !s0 || x.src === s0).map((x) => x.key));
+      const again = keys().has(a.key);
+      if (!again && (keys().size >= PRESOLVE_RATE.all || (src === 'week' && keys('week').size >= PRESOLVE_RATE.week))) {
+        forkAgain(ctx, AHEAD.asked[0].at + PRESOLVE_WINDOW_MS - now);
+        continue;
+      }
+      forkPump(ctx, P, a);
+    }
+  }
+  return left;
+}
+
+/** Whether fork flight f is a solve asked ahead that a source of plan view P still asks for week g, or the one the heal
+ *  of your rules now waits on (a tap made from a sheet that then closed, or whose plan view went: tapped before its
+ *  solve landed, the heal joins it in flight at its own priority, api/mobile.py _ensure_solve, and memory takes its
+ *  answer as it lands: offer; letting it go would cancel the job under the heal, the plan service's DELETE releasing
+ *  every slot of this browser's) → plansOf's L5 and stopAhead keep it. */
+const aheadAsks = (f, P, g) => {
+  if (!f.ahead) return false;
+  if (aheadWaited(f)) return true;
+  // (by its key, not its plan view's object: a view drawn anew for the same rules asks the same solves, and one for
+  // other rules replaces the source before the next draw lets the flight go)
+  const s = AHEAD.srcs.get(f.src);
+  return !!s && s.P.entry === P.entry && s.P.A === P.A && (f.src !== 'week' || s.gw === g) && s.asks.some((a) => a.key === f.key);
+};
+/** Fork flight f is the solve asked ahead your rules' heal waits on (memory's pending heal of those values). */
+const aheadWaited = (f) => !!f.ahead && !!AHEAD.ctx && memOf(AHEAD.ctx)?.getPlan().pending?.ahead === f.key;
+
+/** The solves asked ahead of source `src` (every source: null) let go, its taps forgotten. */
+function stopAhead(src = null) {
+  for (const k of src ? [src] : [...AHEAD.srcs.keys()]) AHEAD.srcs.delete(k);
+  let gone = 0;
+  for (const [lane, f] of forkFlights()) {
+    if (!f.ahead || (src && f.src !== src) || aheadWaited(f)) continue;
+    f.cancel?.();
+    if (lane) FORK_FLIGHTS.delete(lane); else PAIR.flight = null;
+    gone++;
+  }
+  // (their lanes free: the choices re-drawn, so the next week's preparation a sheet's tap took a lane from asks again)
+  if (gone && AHEAD.ctx && attach()?.ctx === AHEAD.ctx) forkAgain(AHEAD.ctx, 0);
+}
+
+/** The page hidden: every solve asked ahead let go; shown again, the choices re-drawn, which asks them again. */
+function watchPage(ctx) {
+  AHEAD.ctx = ctx;
+  if (AHEAD.watching || typeof document === 'undefined' || !document.addEventListener) return;
+  AHEAD.watching = true;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') stopAhead();
+    else if (AHEAD.ctx && attach()?.ctx === AHEAD.ctx) pairChanged(AHEAD.ctx);
+  });
 }
 
 /** GW g's free transfers all used by your plan (its transfers there at least its FTs): another move
@@ -3990,10 +4239,10 @@ const PAIR_AGAIN_MS = 1500, PAIR_HOLD_MS = 30000;
 /** The speculative-slot solves of this browser a suggested plan's solve takes the slot from: its own background asks
  *  (a chip preparation, the options road; each is asked again later) and an older fork. A Wish solve is a
  *  sheet you are looking at (closing it cancels it): the fork waits for it. */
-const PAIR_TAKES = new Set(['chipprep', 'speculative', 'pair', 'pairnext']);
+const PAIR_TAKES = new Set(['chipprep', 'speculative', 'pair', 'pairnext', 'presolve']);
 /** …and those the next week's preparation (prepNext) goes beside, in a lane of its own: never a Wish's or the options
  *  road's (the speculative slot then holds every fork lane). */
-const PREP_BESIDE = new Set(['chipprep', 'pair', 'pairnext']);
+const PREP_BESIDE = new Set(['chipprep', 'pair', 'pairnext', 'presolve']);
 /** A suggested plan's solve landed: the week line, the choices on the pitch and an open Week sheet alone re-draw (Ahead's
  *  mount listens to aheadPair: renderPair). */
 const pairChanged = (ctx) => ctx.store.set('aheadPair', ++PAIR.rev);
@@ -4781,7 +5030,7 @@ export function setHitsMaxWithUndo(ctx, n) {
   if (n === at) return false;
   const cap = hitCap(P?.b?.meta);
   const what = COPY.hitsMax(n);
-  return edit(ctx, { from: info(ctx)?.A, what, text: vsPrev(ctx, what), also: () => memOf(ctx).setHitsMax(cap !== null && n >= cap ? null : n) });
+  return edit(ctx, { from: info(ctx)?.A, what, text: vsPrev(ctx, what), hitsMax: cap !== null && n >= cap ? null : n });
 }
 
 /** F17: the chip GW g's plan plays when it is a Wildcard or Free Hit ('wc' | 'fh'), else null: such a week says over its
@@ -7195,7 +7444,7 @@ export function mount(el, ctx) {
     S.place = { a, order: null };
     globalThis.addEventListener('keydown', placeKey);
     drawPlace(true);
-    // his other buys asked beside the week's choices (askPlace), dealt after those it shows as they land
+    // his other buys asked beside the week's choices (askPlace), dealt after the choices it shows, before the take-backs
     if (S.drawn) askPlace(ctx, S.drawn, gwNow(S.drawn), a);
     const layer = pitchHost.querySelector(':scope > .pm > .ah-place');
     ([...layer?.querySelectorAll('.ah-pgo') ?? []].find((x) => !x.disabled) ?? layer?.querySelector('.ah-walk button:not(:disabled)'))?.focus({ preventScroll: true });
@@ -7232,9 +7481,12 @@ export function mount(el, ctx) {
     const g = w.gw, nm = P.L.name, W = root.clientWidth, data = ctx.data;
     const px = (x, y) => ({ left: `${x}px`, top: `${y}px`, width: `${c.w}px` });
     // its order held while it is open: a solve landing fills a number in place, nothing moves under a finger
+    // (one listed after it opened, his other buys askPlace asked, in placeOrder's order after those held, the take-backs
+    // still last: the cloud's presolve QA, 2026-10-27, Hill's place "−1.3 · −1.7 · Remove · −1.1")
     S.place.order ??= placeOrder(d.entries).map((e) => entryKey(g, e));
-    const rank = new Map(S.place.order.map((k, i) => [k, i]));
-    const entries = d.entries.slice().sort((x, y) => (rank.get(entryKey(g, x)) ?? 1e9) - (rank.get(entryKey(g, y)) ?? 1e9));
+    const rank = new Map([...S.place.order, ...placeOrder(d.entries).map((e) => entryKey(g, e))].map((k, i) => [k, i]).reverse());
+    const at = (e) => [takesBack(e) ? 1 : 0, rank.get(entryKey(g, e))];
+    const entries = d.entries.slice().sort((x, y) => { const [p, i] = at(x), [q, j] = at(y); return p - q || i - j; });
     const row = c.n.closest('.pm-row, .pm-bench');
     const mates = boxes.filter((q) => q !== c && q.n.closest('.pm-row, .pm-bench') === row);
     const xs = [c, ...mates].map((q) => q.x).sort((p, q) => p - q);
@@ -7573,7 +7825,7 @@ export function mount(el, ctx) {
           body.append(S.week.host);
           uncovered.observe(sheet.el, { attributes: true, attributeFilter: ['inert'] });
         },
-        onClose: () => { S.week = null; },
+        onClose: () => { presolveTaps(ctx, null, { owner: S.week?.sheet }); S.week = null; },
       });
     }
     drawWeek(P, w, weekModel(P, w));
@@ -7622,6 +7874,11 @@ export function mount(el, ctx) {
             return sh ? [h('div.ah-wh', { dataset: { at: 'instead' } }, h('p.ah-bs', null, capFirst(M.sharedBack))), rows] : rows;
           })] : null,
       asksHost.firstChild ? [h('div.ah-wh', { dataset: { at: 'rules' } }, h('h3', null, COPY.rulesHead)), asksHost] : null);
+    // its rows' taps solved ahead while it is open (presolveTaps): the takes and Removes the week's own leave (weekTaps)
+    if (P.editable && !M.live && M.settled) {
+      const { takes, removes, sig } = weekTaps(ctx, P, g, M.plans);
+      presolveTaps(ctx, [...takes, ...removes], { gw: g, sig, owner: W.sheet });
+    }
   }
   /** B12: the status row of a re-plan that couldn't keep your choices (clashLine): a warning glyph, its words, and a
    *  Remove for each choice they name (removeRule: Undo), in the look of a question asked in place (m-a.css .ah-ask). B7:
@@ -7832,6 +8089,8 @@ export function mount(el, ctx) {
       // toast and Undo, and the sheet closes
       when: whenSheet(P, g, m, vr ? { head: vr.delta, vs } : null, shares),
       acts: [...(whyActs(P, g, m, c) ?? []), ...placeAct(m.in, g)],
+      // its taps solved ahead (presolve): its buttons', then your transfer moved to each other week of the When line
+      presolve: frozenAt(P, g) ? null : [...whyTaps(P, g, m), ...(pinOfMove(P, { ...m, gw: g }) ? P.gws.filter((x) => x !== g).map((x) => ({ kind: 'move', gw: g, run: () => moveTo(ctx, { ...m, gw: g }, x) })) : [])],
     });
   }
   /** Player `id`'s place on the pitch as drawn, when it draws GW g (S.decks.gw: renderDecks) | null. */
@@ -7853,6 +8112,15 @@ export function mount(el, ctx) {
    *  has no ×), filled when taking it off gains beyond the noise (c, the sheet's number, turned round); a move Forkcast
    *  made has no rule of yours, so its × is the Keep (removeMove), and the Keep button is that one. None in GW A under
    *  way (frozenAt). */
+  /** The Why sheet's edits (whyActs: Remove, Keep, Not) as taps solved ahead while it is open (presolve). */
+  function whyTaps(P, g, m) {
+    const mv = { out: m.out, in: m.in, gw: g };
+    return [
+      ...(pinOfMove(P, mv) ? [{ kind: 'remove', gw: g, run: () => removeMove(ctx, mv) }] : []),
+      { kind: 'keep', gw: g, run: () => keep(ctx, m.out, { gw: g, scope: 'gw' }) },
+      { kind: 'veto', gw: g, run: () => veto(ctx, mv) },
+    ];
+  }
   function whyActs(P, g, m, c) {
     if (frozenAt(P, g)) return null;
     const nm = P.L.name;
@@ -8242,6 +8510,8 @@ export function mount(el, ctx) {
       // why, its "Not …" vetoes are each player's own sheet's; the owner's judge of design 1026e)
       acts: frozenAt(P, g) ? null : several ? [{ label: COPY.swapGo(added.length), said: COPY.planTake(head), fill: lit, act: () => addPlan(ctx, g, pl) }]
         : [...(rollOnly(pl) ? [] : [{ label: COPY.takeIt, said: COPY.planTake(head), fill: lit, act: () => addPlan(ctx, g, pl) }]), ...now.map((m) => notAct(P, g, m))],
+      // (its buttons' edits, solved ahead while it is open: presolve)
+      presolve: frozenAt(P, g) ? null : [...(rollOnly(pl) ? [] : [{ kind: 'take', gw: g, run: () => addPlan(ctx, g, pl) }]), ...(several ? [] : now.map((m) => ({ kind: 'veto', gw: g, run: () => veto(ctx, { ...m, gw: g }) })))],
     });
   }
   /** N7: the free transfers a Free Hit week keeps for the week after it: the plan's own count there, else FPL's
@@ -9161,11 +9431,15 @@ export function mount(el, ctx) {
     const go = () => {
       if (done) return;
       done = true;
-      globalThis.removeEventListener('click', go);
+      globalThis.removeEventListener('click', soon, true);
       S.down.delete(id);
       if (!S.down.size && S.held) draw();
     };
-    globalThis.addEventListener('click', go);  // bubbling: after the control's own handler
+    // (caught as it starts, gone a task later: after every handler of it, a control's that stops its propagation too, a
+    // take's + (addOnce), whose plan pre-solved lands in its tap and waited LIFT_MS to be drawn: the presolve merge's QA,
+    // 2026-10-27, its Week sheet still closing when the next one was opened)
+    const soon = () => setTimeout(go, 0);
+    globalThis.addEventListener('click', soon, true);
     setTimeout(go, LIFT_MS);
   };
   const lifts = ['pointerup', 'pointercancel', 'blur'];

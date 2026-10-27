@@ -17,7 +17,7 @@
 // the help sheet alone).
 
 import { COPY, horizonFeature } from '../calls.js';
-import { initials, resetPlan, inputsOf, plan, hitsChoices, setHitsMaxWithUndo, showTipsAgain } from '../ahead.js';
+import { initials, resetPlan, inputsOf, plan, hitsChoices, setHitsMaxWithUndo, showTipsAgain, presolveTaps, planHasYours } from '../ahead.js';
 import { clip } from './about.js';
 
 /** Epoch s → "22:10" today, else "Thu 22:10". */
@@ -51,7 +51,7 @@ export function open(ctx, what = null) {
 
   return ctx.sheets.open({
     title: 'You', detent: 'large', label: 'You',
-    onClose: () => offs.forEach((f) => f()),
+    onClose: () => { offs.forEach((f) => f()); presolveTaps(ctx, null, { owner: offs }); },
     build(body) {
       const team = h('div');
       const engine = h('div.m-sec');
@@ -78,6 +78,12 @@ export function open(ctx, what = null) {
             }, l))), { pick: (b) => b.click() }),
           h('p.m-foot', null, COPY.hitsNote),
           ...weeksCtl(reach, P.editable));
+        // its taps solved ahead while it is open (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and done
+        // without no cost"): Reset plan where it takes something off, and each other Hits choice
+        if (P.editable) {
+          presolveTaps(ctx, [...(planHasYours(P) ? [{ kind: 'reset' }] : []), ...choices.filter(([n]) => n !== at).map(([n]) => ({ kind: 'hits', run: () => setHitsMaxWithUndo(ctx, n) }))],
+            { sig: `${at}|${planHasYours(P)}`, owner: offs });
+        }
       }
       /** Plan ahead (the user, 2026-10-14: "to the setting where hit cost are set also add forecast horizon"): 1 week to the
        *  longest plan's (the bundle's reach), the one asked for checked (ctx.weeks: a locked pick falls back to the longest

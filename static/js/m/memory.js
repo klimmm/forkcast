@@ -174,6 +174,9 @@ export const TIMING = { heal: 600, flush: 250 };
  *  it here. */
 export { FORGET_MS };
 const OFFERED_MAX = 24;  // roads offered (Memory.offer) kept per roads version: a window's chips × GWs and then some
+// solves of exactly their values asked ahead (Memory.offer with `values`: ahead.js presolve) kept per roads version: a
+// view's takes, your rules' Removes and an open sheet's taps (PRESOLVE_MAX each) and the views an Undo goes back to
+const SOLVED_MAX = 48;
 const LOCAL = (entry) => `fc:mem:${entry}`;
 const SEEN = (entry) => `fc:mem:seen:${entry}`;
 const EDIT = (entry) => `fc:mem:edit:${entry}`;
@@ -1163,14 +1166,16 @@ function ruleWords(p, nameOf, { end, start, cap = null, hold = false } = {}) {
 }
 
 /** The first bundle road that is your plan (roadFits), the model's road first, then one of `also` (roads this page
- *  solved for some pins: Memory.offer); null when it needs a solve. */
+ *  solved for some pins: Memory.offer); null when it needs a solve. The bake's hold road (your team as it is, no transfer
+ *  in any GW: api/mobile.py bake_plan; the owner, 2026-10-26: "all pre solved", an untouched team's plan drawn at once)
+ *  is one of them here alone: no choice, lineup or chip of Ahead's reads it (bundleRoads). */
 export function findRoad(roads, c, gws, also = []) {
   // the bundle's part once per roads and what the pins ask (sigOf: all roadFits reads of them): an edit's replan and its
   // plan view's options road ask the same of the same roads
   let by = BUNDLE_FIT.get(roads ?? BUNDLE_FIT);
   if (!by) BUNDLE_FIT.set(roads ?? BUNDLE_FIT, (by = new Map()));
   const k = `${gws.join(',')}#${sigOf(c)}`;
-  if (!by.has(k)) by.set(k, bundleRoads(roads).find((r) => roadFits(r, c, gws)) ?? null);
+  if (!by.has(k)) by.set(k, [...bundleRoads(roads), roads?.hold].filter((r) => r?.weeks?.length).find((r) => roadFits(r, c, gws)) ?? null);
   return by.get(k) ?? also.filter((r) => r?.weeks?.length).find((r) => roadFits(r, c, gws)) ?? null;
 }
 const BUNDLE_FIT = new WeakMap();
@@ -1510,6 +1515,9 @@ export function journalRows(docs, { nameOf = (id) => `#${id}` } = {}) {
 export const madeOn = (acc) => acc?.roads_version ?? acc?.data_version ?? null;
 /** The pins a plan was made for, as one string (composePins output): a plan with the same one needs no solve. Rolls
  *  are added only when there are some, so a plan made before they had their own field keeps its signature. */
+/** A solve's own key: the data version it is solved on and its values, key order aside (the plan service keys a solve
+ *  by its argv on that data: api/mobile.py solve_key, so two asks of one key are one request with one answer). */
+export const solvedKey = (version, values) => `${version}|${JSON.stringify(Object.keys(values).sort().map((k) => [k, values[k]]))}`;
 const sigOf = (c) => `${c.must_have}|${c.exclude}|${JSON.stringify(c.hits)}|${JSON.stringify(c.chips)}|${c.cash}${c.rolls.length ? `|roll:${c.rolls.join(',')}` : ''}${Object.keys(c.caps ?? {}).length ? `|cap:${JSON.stringify(c.caps)}` : ''}`;
 /** A road as the stored plan: its weeks, the values it was solved for, its objective (the planner's own count of
  *  it: calls.plannerOf compares it with another road of the same data), the scale by horizon that objective is on
@@ -1611,7 +1619,7 @@ export function createMemory(ctx) {
   const S = {
     entry: null, A: null, doc: null, docs: null, dirty: false, seq: 0, inflight: null, flushTimer: null,
     drift: null, judged: null, pending: null, healTimer: null, healSeq: 0, queued: null, error: null, carried: null, notice: null,
-    offered: { v: null, roads: [] }, reopened: null, base: null, last: null, batch: null,
+    offered: { v: null, roads: [], solved: new Map() }, reopened: null, base: null, last: null, batch: null, aheadSig: null,
   };
   const subs = new Set();
   const store = ctx.store;
@@ -1663,8 +1671,8 @@ export function createMemory(ctx) {
   /** You → Hits below the solver's own cap (accepted.hits_max; setHitsMax): a derived pin 'hits' (never stored, as the
    *  hold's), every GW of the window at most that many hits, composed last so it bounds every per-week cap a solve's own
    *  pins set (ahead.forkValues' later weeks at the bake's cap); after the hold is derived, so it lifts no week of it. */
-  const withHits = (list) => {
-    const most = num(accNow()?.hits_max), cap = hitCap(ctx.bundle?.meta);
+  const withHits = (list, most = num(accNow()?.hits_max)) => {
+    const cap = hitCap(ctx.bundle?.meta);
     if (most === null || (cap !== null && most >= cap)) return list;
     return [...list.filter((p) => p.id !== 'hits'), makePin({ id: 'hits', kind: 'hits', label: COPY.hitsMax(most), hits: Object.fromEntries(range(S.A, endNow()).map((g) => [g, most])) })];
   };
@@ -1716,6 +1724,9 @@ export function createMemory(ctx) {
       // the plan stored is the one solved for these rules (its sig): an edit whose heal ends with no plan and no error
       // lands on it (ahead.js listen)
       current: acc ? !!acc.plan?.weeks?.length && acc.plan.sig === sigOf(c) : baseNow()?.sig === sigOf(c),
+      // the plan (or the error) for these rules came from a solve of exactly their values asked ahead (offer `values`):
+      // the answer their heal gets, landed with no wait (ahead.js edit: its verdict as a heal's)
+      ahead: S.aheadSig != null && S.aheadSig === sigOf(c),
       drift: S.drift, pending: S.pending ? { ...S.pending, cancel: undefined, ...(edit ? { edit } : {}) } : null, error: S.error, saving: S.dirty,
       carried: S.notice?.gw === S.A ? S.notice.text : null,
     };
@@ -1891,10 +1902,11 @@ export function createMemory(ctx) {
     // the plan these pins replace, solved on these roads, may be theirs again (a chip taken back off): offered too
     if (acc?.plan?.weeks?.length && acc.plan.version === v) offer(acc.plan);
     const also = S.offered.v === v ? S.offered.roads : [];
-    const hit = findRoad(ctx.bundle?.roads, c, gwsNow(), also);
+    const hit = findRoad(fitRoads(), c, gwsNow(), also);
     if (hit) {
       cancelHeal();
       S.error = null;  // these rules have a plan: an earlier "can't keep them all" is over
+      S.aheadSig = null;
       if (!acc) { keepBase(hit, v, sig); return; }
       if (acc.plan?.key !== hit.key || acc.plan?.version !== v || acc.plan?.sig !== sig) {
         const own = yours(why, acc, sig);
@@ -1908,11 +1920,46 @@ export function createMemory(ctx) {
       // the plan is already the one for these rules (an Undo took the failing one back): nothing to solve. Never one
       // whose squads break them (QA-5 #1: a lock never sits over a plan that buys someone else in GW A)
       cancelHeal();
+      S.aheadSig = null;
       if (S.error) { S.error = null; emit('plan'); }
       return;
     }
-    // the plan heal is a user-class solve (api/mobile.py PURPOSES): one per client, a newer one supersedes it
-    scheduleHeal('heal', { reason: why });
+    // a solve of exactly the values the heal would send, asked ahead (offer `values`: ahead.js presolve): its answer, the
+    // same request's, at once (the owner, 2026-10-26: "fix speed so all pre solved and done without no cost")
+    const k = keyNow();
+    const got = k && S.offered.v === v ? S.offered.solved.get(k) : null;
+    if (got) { cancelHeal(); took(got, sig, why, true); return; }
+    // the plan heal is a user-class solve (api/mobile.py PURPOSES): one per client, a newer one supersedes it. Debounced
+    // for an edit (a second tap re-plans once); a re-plan of no edit (a team opened, new roads: 'sync') asks at once (the
+    // owner, 2026-10-26: opening the app went 1.7 s → 2.0 s once an untouched team's plan became a solve)
+    scheduleHeal('heal', { reason: why, now: why === 'sync', ahead: k });
+  }
+  /** The bundle's roads a plan may be found in: its hold road (your team, every GW rolled) only on a bundle of this data
+   *  and while its GW-A squad is your team's (the review of presolve, 2026-10-26: a stale bundle's, from before a
+   *  transfer made on FPL, fitted the untouched rules whatever its squad). */
+  const fitRoads = () => {
+    const r = ctx.bundle?.roads, h = r?.hold;
+    return !h || (ctx.bundle?.state !== 'stale' && squadKey(weekAt(h, S.A)) === idsKey(ownedNow())) ? r : { ...r, hold: null };
+  };
+  /** The key (solvedKey) of the solve your pins' heal sends now, or null while it can't be made (no bundle yet). */
+  const keyNow = () => { try { return solvedKey(ctx.bundle?.version ?? null, values()); } catch { return null; } };
+
+  /** A solve's answer for your pins as they are (`sig`): its road your plan (a team with no document: keepBase), or its
+   *  error said (Plan.error); `ahead`: a solve of exactly these values asked ahead (Plan.ahead). One way for a heal's
+   *  answer and one asked ahead (runHeal, replan, offer), so the two are the same plan. */
+  function took(r, sig, reason, ahead = false) {
+    S.aheadSig = ahead ? sig : null;
+    if (r.road) {
+      S.error = null;
+      if (!accNow()) { keepBase(r.road, versionNow(), sig); return; }
+      const own = yours(reason, accNow(), sig);
+      mutate((d) => { ensure(d).plan = planOfRoad(r.road, ctx.bundle?.version ?? versionNow(), sig); }, 'plan');
+      if (own) { markSeen(); receipt(sig); }
+    } else {
+      S.error = r.error ?? { code: 'solver', plain: COPY.infeasible(S.A) };
+      emit('error');
+      receipt(sig, S.error);
+    }
   }
 
   /** `fn`'s changes of your rules (an edit's drops and adds, an Undo's restore) planned once, after the last of them:
@@ -1953,11 +2000,12 @@ export function createMemory(ctx) {
     if (S.pending) { S.pending.cancel?.(); S.pending = null; S.healSeq++; emit('heal'); }
   }
 
-  function scheduleHeal(purpose = 'heal', { now = false, reason = 'pins' } = {}) {
+  function scheduleHeal(purpose = 'heal', { now = false, reason = 'pins', ahead = null } = {}) {
     clearTimeout(S.healTimer);
     const my = ++S.healSeq;
     S.pending?.cancel?.();
-    S.pending = { purpose, reason, state: 'waiting', key: null, position: null, since: Date.now() };
+    // (`ahead`: its values' solvedKey, so a solve of them asked ahead that lands meanwhile is its answer: offer)
+    S.pending = { purpose, reason, state: 'waiting', key: null, position: null, since: Date.now(), ahead };
     emit('heal');
     return new Promise((resolve) => {
       S.healTimer = setTimeout(() => resolve(runHeal(purpose, my)), now ? 0 : TIMING.heal);
@@ -1999,18 +2047,8 @@ export function createMemory(ctx) {
         replan(reason ?? 'pins');
         return { state: 'superseded' };
       }
-      if (r.state === 'done' && r.road) {
-        S.error = null;
-        const v = ctx.bundle?.version ?? versionNow();
-        if (!accNow()) { keepBase(r.road, versionNow(), sig); return r; }
-        const own = yours(reason, accNow(), sig);
-        mutate((d) => { ensure(d).plan = planOfRoad(r.road, v, sig); }, 'plan');
-        if (own) { markSeen(); receipt(sig); }
-      } else if (r.state === 'error') {
-        S.error = r.error ?? { code: 'solver', plain: COPY.infeasible(S.A) };
-        emit('error');
-        receipt(sig, S.error);
-      } else emit('heal');
+      if ((r.state === 'done' && r.road) || r.state === 'error') took(r, sig, reason);
+      else emit('heal');
       return r;
     } catch (e) {
       if (my !== S.healSeq) return { state: 'superseded' };
@@ -2037,9 +2075,12 @@ export function createMemory(ctx) {
   }
 
   /** The solve values of your pins after an edit that drops `drop` (ids) and adds `extra` (pinsAfter: exactly the
-   *  pins the edit makes, so its heal asks for the same values), the edit not made. */
-  function values({ extra = [], drop = [] } = {}) {
-    const list = withHits(withHold(pinsAfter(storedNow(), { add: extra, drop }, S.A, ownedNow())));
+   *  pins the edit makes, so its heal asks for the same values), the edit not made. `order`: the edit's own reorder of
+   *  your rules after it (ahead.js edit's inPlace); `hitsMax`: You → Hits as the edit leaves it (null: the solver's own
+   *  cap; Reset plan's), else as it is. */
+  function values({ extra = [], drop = [], order = null, hitsMax } = {}) {
+    const after = pinsAfter(storedNow(), { add: extra, drop }, S.A, ownedNow());
+    const list = withHits(withHold(order ? order(after) : after), hitsMax === undefined ? num(accNow()?.hits_max) : num(hitsMax));
     const cctx = cctxNow(list);
     if (!cctx) throw new Error('Forkcast memory: no bundle yet');
     return planValues(cctx, list);
@@ -2048,11 +2089,30 @@ export function createMemory(ctx) {
   /** A road this page solved for some pins (F14: a chip prepared with your rules; a Wish pill; a plan your pins had
    *  before): replan takes it as your plan when it fits your pins as a bundle road would (findRoad: roadFits), so the
    *  edit it was solved for lands without a solve. Kept for the roads version it came on (the newest few, one per
-   *  solve key). */
-  function offer(road) {
-    if (!road?.weeks?.length) return;
+   *  solve key). With `values` (ahead.js presolve: a tap's solve asked before the tap), the answer of a solve of exactly
+   *  those values, a road or its error ({road, error}: the solver's own 'infeasible' alone, the one that never changes on
+   *  the same data), kept apart (SOLVED_MAX): replan takes it only for pins whose heal would send exactly those values
+   *  (solvedKey), never for others a road fits (the owner, 2026-10-26: "all pre solved and done without no cost", a
+   *  pre-solved plan the very solve the tap would ask); the heal of those values already waiting takes it at once. */
+  function offer(road, { values: vals = null, error = null, version = null } = {}) {
     const v = versionNow();
-    if (S.offered.v !== v) S.offered = { v, roads: [] };
+    if (S.offered.v !== v) S.offered = { v, roads: [], solved: new Map() };
+    if (vals) {
+      if (version == null || (!road?.weeks?.length && error?.code !== 'infeasible')) return;
+      // (keyed by the data version its values were made on: a bundle that came since keys its own)
+      const k = solvedKey(version, vals), got = road?.weeks?.length ? { road, error: null } : { road: null, error };
+      const solved = S.offered.solved;
+      solved.delete(k);
+      solved.set(k, got);
+      for (const old of solved.keys()) { if (solved.size <= SOLVED_MAX) break; solved.delete(old); }
+      if (S.pending?.ahead === k && S.pending.state !== 'offline' && keyNow() === k) {
+        const { reason } = S.pending;
+        cancelHeal();
+        took(got, sigOf(composeNow()), reason, true);
+      }
+      return;
+    }
+    if (!road?.weeks?.length) return;
     const same = (r) => r === road || (road.key != null && r.key === road.key);
     S.offered.roads = [road, ...S.offered.roads.filter((r) => !same(r))].slice(0, OFFERED_MAX);
   }
@@ -2527,6 +2587,8 @@ export function createMemory(ctx) {
   return {
     ctx, getPlan, onChange(fn) { subs.add(fn); return () => subs.delete(fn); },
     note, inkOf, inkClash, addPin, removePin, restorePins, clearPins, batch, setHitsMax, reset, setLineup, setPlan, values, offer, heal, settled, compare,
+    // whether a solve of exactly these values was offered (offer `values`): ahead.js presolve asks it no more
+    solved: (vals) => S.offered.v === versionNow() && S.offered.solved.has(solvedKey(ctx.bundle?.version ?? null, vals)),
     weekState, pencilDiff, markSeen, forecastChange, keepMine, adoptDrift, journal, noteEdit, claimEdit,
     // detached: a save still in flight lands without writing this device's mirror (sign-out cleared it) → that save
     // (forget waits for it, so it never lands over the forgetting)

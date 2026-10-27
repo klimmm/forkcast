@@ -142,7 +142,7 @@ export function open(ctx, rawId, { gw, place = null } = {}) {
     label: `${row.full_name || row.name}, ${row.club}, ${fmt.money(row.price)}`,
     // full screen (the user, 2026-10-15: "make that player pop up to full screen not half of it")
     detent: 'large', cls: 'ps',
-    onClose: () => { closed = true; off?.(); },
+    onClose: () => { closed = true; off?.(); AH.presolveTaps(ctx, null, { owner: row }); },
     build(body, sheet) {
       // the stats' view, Per match or Per 90: this viewer's last pick (statsView)
       let view = statsView(ctx);
@@ -175,6 +175,22 @@ export function open(ctx, rawId, { gw, place = null } = {}) {
           stripSection(m, G, chartKey),
           statsSection(card, W, { view, setView, among, setAmong }));
         if (kept) main.querySelector(kept)?.focus({ preventScroll: true });
+        // the taps of his controls solved ahead while the sheet is open (AH.presolveTaps; the owner, 2026-10-26: "fix
+        // speed so all pre solved and done without no cost"): each option that isn't the one in force
+        if (P.editable) AH.presolveTaps(ctx, aheadTaps(P), { gw: g, owner: row });
+      };
+      /** His controls' edits as taps (AH.presolveTaps): Keep in this GW and through the end, Not him in this GW (a buy of
+       *  him there its veto), Never, and Off for a rule of his (removeRule); the one in force none. */
+      const aheadTaps = (P) => {
+        const keepOn = pinOf(P, 'keep', id, g), outOn = pinOf(P, ['sell', 'veto', 'never'], id, g);
+        const buy = AH.squadWeek(weekOf(P, g)) ? null : weekOf(P, g).moves.find((m) => m.in === id);
+        const keepIs = keepOn ? (ruleOf(P, keepOn).scope === 'gw' ? 'gw' : 'all') : 'off';
+        return [
+          ...(owns(P) ? ['gw', 'all'].filter((k) => k !== keepIs).map((k) => ({ kind: 'keep', gw: g, run: () => keep(ctx, id, { gw: g, scope: k }) })) : []),
+          ...(outOn ? [] : [{ kind: 'veto', gw: g, run: () => veto(ctx, buy ? { ...buy, gw: g } : { gw: g, out: null, in: id }, { scope: 'gw' }) }]),
+          ...(owns(P) || pinOf(P, ['veto', 'never'], id) ? [] : [{ kind: 'never', gw: g, run: () => never(ctx, id) }]),
+          ...[keepOn, outOn].filter(Boolean).map((q) => ({ kind: 'rule', gw: g, run: () => removeRule(ctx, q.id) })),
+        ];
       };
       // the chart's key (ⓘ: infoBtn): shut until asked, kept open across redraws
       const keyOf = () => { const k = { open: false, toggle: () => { k.open = !k.open; draw(); } }; return k; };

@@ -27,7 +27,7 @@ export function open(ctx, { gw } = {}) {
 
   return ctx.sheets.open({
     title: COPY.chipsIn(g), detent: 'medium', fit: true, cls: 'cs', label: COPY.chipsIn(g),
-    onClose: () => { clearInterval(tick); offs.forEach((f) => f()); },
+    onClose: () => { clearInterval(tick); offs.forEach((f) => f()); AH.presolveTaps(ctx, null, { owner: offs }); },
     build(body, sheet) {
       const sub = h('p.rs-sub', null, COPY.chipsSub(P0.gws.filter((x) => x >= g)));
       const list = h('div.ah-list', { role: 'group', 'aria-label': COPY.chipsIn(g) });
@@ -103,6 +103,12 @@ export function open(ctx, { gw } = {}) {
           h('span.rt.m-num', null, numberOf(r)));
         }));
         if (focused) list.querySelector(`[data-chip="${focused}"]`)?.focus();
+        // its rows' taps solved ahead (AH.presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and done without
+        // no cost"): a chip taken off, and one to play whose preparation isn't in (one that is lands at once on it: useChip)
+        if (can && src) {
+          const chips = rows.filter((r) => r.state !== 'off' && (r.state === 'on' || src.at(r.chip, g)?.state !== 'ready')).map((r) => r.chip);
+          AH.presolveTaps(ctx, chips.map((c) => ({ kind: 'chip', gw: g, run: () => act(c) })), { gw: g, sig: chips.join(), owner: offs });
+        }
         // the week gone live while the sheet was open: why once, the rows' facts kept (a plan you can't change has no
         // door: chipsDoor)
         const why = AH.inkAt(ctx, P, g) ? COPY.live(g) : null;

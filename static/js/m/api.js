@@ -264,9 +264,10 @@ export const SOLVE_POLL_MS = 700;
 const FINAL = new Set(['done', 'error', 'cancelled']);
 /** The plan service keeps one user and one speculative solve in flight per client and supersedes the older
  *  (api/mobile.py solve_post, PURPOSES), so a solve's default slot is its purpose's class. 'chipprep' (F14: a chip
- *  prepared with your rules in the background), 'pair' (the suggested plans' fork solves: ahead.js forkPump) and 'pairnext' (the next
- *  week's, prepared in the background: ahead.js prepNext) are speculative, and the service never counts them in its hourly quota. */
-export const SOLVE_CLASS = { heal: 'user', chip: 'user', cash: 'user', wish: 'spec', speculative: 'spec', chipprep: 'spec', pair: 'spec', pairnext: 'spec' };
+ *  prepared with your rules in the background), 'pair' (the suggested plans' fork solves: ahead.js forkPump), 'pairnext' (the next
+ *  week's, prepared in the background: ahead.js prepNext) and 'presolve' (a tap's solve asked before the tap: ahead.js
+ *  presolve) are speculative, and the service never counts them in its hourly quota. */
+export const SOLVE_CLASS = { heal: 'user', chip: 'user', cash: 'user', wish: 'spec', speculative: 'spec', chipprep: 'spec', pair: 'spec', pairnext: 'spec', presolve: 'spec' };
 const inflight = new Map();  // slot → {key, ctrl, superseded, purpose}
 /** Whether a solve of this browser's is in flight in `slot` ('user' | 'spec'): a background ask (Ahead's options road,
  *  its chip preparations) waits for a free slot instead of superseding a Wish solve someone is looking at. */
@@ -293,8 +294,8 @@ export const cancelSolve = (key) => request('DELETE', `/api/m/solve/${enc(key)}`
  * (default SOLVE_CLASS[purpose]: 'user' | 'spec') stops polling this one and sends `supersedes: <its key>`,
  * so the service drops it; the service also supersedes by class on its own. onUpdate(status)
  * gets {key, state: 'cached'|'queued'|'running'|…, position, road} as it changes. Resolves
- *   {key, state: 'done', road}                 the Road (§7.4)
- *   {key, state: 'error', error: {code, plain}} the service's plain-words error (§7.9)
+ *   {key, state: 'done', road, version}        the Road (§7.4), and the data version it was solved on
+ *   {key, state: 'error', error: {code, plain}, version} the service's plain-words error (§7.9)
  *   {key, state: 'cancelled'|'superseded'}     cancel(), signal, or a newer solve in the slot
  * and rejects only when the server can't be reached (code 'unreachable' / 'timeout') or refuses the request.
  */
@@ -329,7 +330,7 @@ export function solve({ entry, purpose, values, lane = 0 }, { slot = SOLVE_CLASS
           if (!(e.code === 'unreachable' || e.code === 'timeout') || ++misses >= 5) throw e;
         }
       }
-      return { key: mine.key, state: s.road ? 'done' : s.state, road: s.road ?? null, error: s.error ?? null };
+      return { key: mine.key, state: s.road ? 'done' : s.state, road: s.road ?? null, error: s.error ?? null, version: s.version ?? null };
     } catch (e) {
       if (sig.aborted) return stopped();
       throw e;
