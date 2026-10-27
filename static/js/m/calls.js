@@ -33,7 +33,8 @@
 // priceMorning(kept, meta, {now, prices, bank, name}) → the word the morning after a watch's night ("Groß rose
 //   overnight (+£0.1m): your GW6 moves still fit", "Prices held overnight") | null while the bundle predates it
 // withPrices(cols, prices) → the bundle's players columns with its prices block (FPL's projections read since the
-//   snapshot) laid over them by id: the rows derive and planInputs build
+//   snapshot) laid over them by id; shownPlayers(bundle) → its players with its live block (the newest capture's display
+//   fields) and then its prices block laid over them: the rows derive and planInputs build
 // priceNights(meta, {now, until}) → {nights [{k, epoch}], stale, asOf}; priceOutlook(row, nights) → a player's FPL outlook
 //   {dir, sure, night, likelihood, word, held}; nightWords(epoch, now, tz) → a night in words; pricePlate(row, meta,
 //   {now, tz}) → the Player data plate ("▲ tonight", "▼ Wed", "▲ likely", "Locked", "—"); PRICE_WORD (FPL's labels);
@@ -1173,7 +1174,7 @@ export function planInputs(bundle, data) {
       seeds: E.decodeSeeds(data.seeds ?? bundle.seeds), noise: num(data.noise) ?? E.noiseFloor(meta, A) ?? 0,
     };
   }
-  const cols = withPrices(bundle.players || {}, bundle.prices);
+  const cols = shownPlayers(bundle) || {};
   const width = (Array.isArray(cols.players) ? cols.players[0]?.xp : cols.rows?.[0]?.[(cols.fields || []).indexOf('xp')])?.length ?? 5;
   const horizon = ids(cols.horizon).length ? ids(cols.horizon)
     : ids(bundle.seeds?.gws).length ? ids(bundle.seeds.gws) : Array.from({ length: width }, (_, i) => A + i);
@@ -1453,6 +1454,11 @@ export function priceNights(meta, { now = Date.now() / 1000, until = null } = {}
  *  → `cols` itself without a block. The bundle's own players are never changed, so a reply without a block falls back
  *  to the snapshot's. app.js derive and planInputs build their rows from it: the price watch, the plates and the player
  *  card all read the overlaid rows. */
+/** The bundle's players columns as the phone shows them: its live block laid over them (the newest capture's display
+ *  fields, api/data.py live_block: kept players' status, news, price, ownership...), then its prices block (FPL's
+ *  projections read since the snapshot). */
+export const shownPlayers = (b) => withPrices(withPrices(b?.players, b?.live), b?.prices);
+
 export function withPrices(cols, prices) {
   const pf = prices?.fields, cf = cols?.fields;
   if (!Array.isArray(pf) || !Array.isArray(prices.rows) || !Array.isArray(cf) || !Array.isArray(cols.rows)) return cols;

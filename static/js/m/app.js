@@ -196,10 +196,10 @@ function paintEta(i) {
 }
 
 /** The client-side views of a bundle (ctx.data); the bundle itself stays as the server sent it. Its rows are the players
- *  with the prices block laid over them (calls.withPrices: FPL's projections read since the snapshot). */
+ *  with the live and prices blocks laid over them (calls.shownPlayers). */
 function derive(b, receivedAt) {
   const m = b.meta || {};
-  const cols = calls.withPrices(b.players, b.prices);
+  const cols = calls.shownPlayers(b);
   const fields = cols?.fields || [];
   const rows = (cols?.rows || []).map((r) => Object.fromEntries(fields.map((f, i) => [f, r[i]])));
   const byId = new Map(rows.map((r) => [Number(r.id), r]));
@@ -753,22 +753,27 @@ const pollMs = (b) => (b.state === 'ready' && b.bake?.chips?.pending ? POLL_MS.c
 const BACKOFF_MS = [5000, 10000, 20000, 30000];
 
 /** GET the bundle. With the same entry's previous bundle, ask with ?have=<its version>: an unchanged
- *  data version comes back without players and seeds (api/mobile.py bundle), so keep the old ones. Its prices block
- *  (FPL's projections read since the snapshot) comes with every reply; derive lays it over the players kept. It plans
+ *  data version comes back without players and seeds (api/mobile.py bundle), so keep the old ones; and with ?hl=<its
+ *  live block's stamp>: an unchanged live block (the newest capture's display fields) comes back null, so keep the
+ *  old one, which fresh players carry already. Its prices block (FPL's projections read since the snapshot) comes with
+ *  every reply; derive lays both over the players kept (calls.shownPlayers). It plans
  *  the weeks this browser picked for the team (weeksOf, as prev's locks allow). The cards come apart (cl=1: askCards)
  *  and ride on every bundle as held (held: none until the first land). */
 async function fetchBundle(entry, { refresh = false, prev = null } = {}) {
   const same = String(prev?.entry?.id) === String(entry);
   const have = prev?.version && same ? prev.version : null;
+  const hl = same ? prev.live_v ?? null : null;
   // a bundle held from before (a snapshot's, a loader's) brings its cards: their stamp is asked again, not the cards
   if (same && prev.cards && String(held.entry) !== String(entry)) Object.assign(held, { entry: String(entry), cards: prev.cards, v: prev.cards_v ?? null, version: prev.version ?? null, key: null, at: 0 });
   const w = weeksOf(entry, prev ?? undefined);
-  const b = await api.getBundle(entry, { refresh, have, w, cl: true });
+  const b = await api.getBundle(entry, { refresh, have, hl, w, cl: true });
   askCards(entry, b, w);
   // only cards asked after a bundle of this data version (the review, 2026-10-26: a finished GW's bundle came with the
   // GW before's cards until the new ones landed): none meanwhile, and a card opened asks GET /api/m/player
   const mine = String(held.entry) === String(entry) && held.version === b.version ? held : { cards: null, v: null };
-  return { ...(have && b.version === have && b.players == null && b.seeds == null ? { ...b, players: prev.players, seeds: prev.seeds } : b),
+  const kept = have && b.version === have && b.players == null && b.seeds == null;
+  return { ...(kept ? { ...b, players: prev.players, seeds: prev.seeds } : b),
+    ...(kept && b.live == null && hl && b.live_v === hl ? { live: prev.live ?? null } : {}),
     // a server that sent them anyway (one from before cl) is read as before
     ...(b.cards ? {} : { cards: mine.cards, cards_v: mine.v }) };
 }

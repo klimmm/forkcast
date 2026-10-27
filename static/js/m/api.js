@@ -188,11 +188,12 @@ export const getMeta = () => get('/api/meta');
 /**
  * The phone's world for one entry (§7.4; api/mobile.py bundle). refresh → refetch the entry and re-bake;
  * have = the data version already held → the reply leaves players and seeds null (they only change with it); its
- * prices block (FPL's price projections read since the snapshot, calls.withPrices) comes every time. w = the plan's
- * weeks (You → Plan ahead, calls.planWeeks; none: the server's longest).
+ * prices block (FPL's price projections read since the snapshot, calls.withPrices) comes every time. hl = the live
+ * block's stamp held (live_v) → its live block (the newest capture's display fields, calls.shownPlayers) comes back
+ * null while unchanged. w = the plan's weeks (You → Plan ahead, calls.planWeeks; none: the server's longest).
  */
-export const getBundle = (entry, { refresh, have, hc, w, cl, signal } = {}) =>
-  get('/api/m/bundle', { entry, refresh, have, hc, w, cl: cl ? 1 : null }, { timeout: have ? BUNDLE_TIMEOUT_MS : FIRST_BUNDLE_TIMEOUT_MS, signal })
+export const getBundle = (entry, { refresh, have, hc, hl, w, cl, signal } = {}) =>
+  get('/api/m/bundle', { entry, refresh, have, hc, hl, w, cl: cl ? 1 : null }, { timeout: have ? BUNDLE_TIMEOUT_MS : FIRST_BUNDLE_TIMEOUT_MS, signal })
     .then((b) => (b?.cards ? { ...b, cards: unpackCards(b.cards) } : b));
 /** The cards of the players the bundle carries (api/mobile.py cards: a bundle asked with cl=1 comes without them) →
  *  {cards: unpacked (unpackCards), or null while `hc` is still their stamp, cards_v}. */
