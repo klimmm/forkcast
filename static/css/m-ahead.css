@@ -134,6 +134,10 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
 /* (--ah-head-h set on it as the header is drawn, ahead.js refitPitch: two GW lines where the deadline wraps) */
 .ah-ctl { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--ah-head-h)); z-index: 2; margin: 8px 0 0; padding: 0 8px; background: var(--bg); }  /* the screen's width on --bg, so nothing scrolls past beside it */
 .ah-ctl[hidden] { display: none; }
+/* the line every GW (ahead.sayCheer) under the status bar, over the GW tiles' top in the toasts' look, for as long as it
+   plans (the owner, 2026-10-27: "not overlap status bar"; his pick of three places): a tap on a tile goes through it */
+.ah-cheer { position: absolute; z-index: 3; top: 0; left: 8px; right: 8px; padding: 6px 12px; border-radius: var(--r-ctl); background: var(--toast); color: var(--toast-ink); font: 400 var(--t-sub)/1.3 var(--f-text); text-align: center; pointer-events: none; animation: m-toast-in var(--dur) var(--ease); }
+.ah-cheer[hidden] { display: none; }
 .ah-tdelta { font-weight: 600; animation: ah-tfade var(--left, 6s) linear forwards; }
 @keyframes ah-tfade { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
 .ah-railwrap { position: relative; min-width: 0; }
@@ -967,6 +971,10 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .wy-cmp .hd .wy-pn > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .wy-cmp .hd .wy-pn::after { content: "\00a0\203A"; flex: none; }  /* a link's chevron, never cut (the user, 2026-10-23: the names read as column heads) */
 .wy-cmp .hd .wy-pn:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: 2px; }
+/* the title's players, each his card (ahead.movesTitle; the owner, 2026-10-27): the title's own words and ink, a link's
+   underline */
+.wy-ttl .wy-tn { padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-align: inherit; text-decoration: underline 1px color-mix(in oklab, currentColor 35%, transparent); text-underline-offset: .18em; cursor: pointer; }
+.wy-ttl .wy-tn:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: 2px; }
 .wy-cmp .o { display: block; font: 600 var(--t-cap)/1.3 var(--f-text); color: var(--muted); }
 .wy-cmp .hd .o { letter-spacing: .04em; text-transform: uppercase; }
 .wy-cmp .rk { display: inline-block; min-width: 3.1em; font: 400 var(--t-cap)/1.3 var(--f-text); font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); }  /* one width, so the values above and below line up */

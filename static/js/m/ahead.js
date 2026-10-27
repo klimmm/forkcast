@@ -989,20 +989,34 @@ export function driftSay(ctx, d) {
 const CHEER_KEY = (entry) => `fc:cheer:${entry}`;
 const CHEER_MS = 8000;
 let CHEERED = { local: null, said: null };
-/** The bundle's rank.cheer (api/cheer.py) said as a toast once a GW and team on this browser (CHEER_KEY, written as it
- *  shows), and only while nothing else holds the screen: a live bundle (a warm start's saved one may be a GW past: the
- *  review, 2026-10-21), the connection neither offline nor updating, no other toast up, no sheet open (else the next draw
- *  asks again). Mount's renderWeek, every draw, last. P: a plan view. → whether it showed */
-export function sayCheer(ctx, P) {
-  const c = P?.b?.rank?.cheer, local = ctx.api?.local, cs = ctx.store.get('conn'), conn = cs?.state;
-  if (!c || !local || cs?.snapshot || conn === 'offline' || conn === 'updating' || ctx.sheets?.depth?.()) return false;
-  if (globalThis.document?.getElementById('toasts')?.querySelector('.toast:not(.leaving)')) return false;
+/** The bundle's rank.cheer (api/cheer.py) in `el`, its place under the status bar over the GW tiles' top (m-ahead.css
+ *  .ah-cheer; a toast lay over the header: the owner, 2026-10-27, "display always when there is waiting time and
+ *  planning at load but not overlap status bar"): for as long as it plans (`planning`: a bake, a new forecast's, the
+ *  forecast updating), and otherwise once a GW and team on this browser (CHEER_KEY, written as it shows; one said while
+ *  planning counts) for CHEER_MS, while no sheet is open (else the next draw asks again). Only from a live bundle (a
+ *  warm start's saved one may be a GW past: the review, 2026-10-21), never offline. Mount's renderWeek, every draw,
+ *  last. P: a plan view. → whether it shows */
+export function sayCheer(ctx, P, el, planning = false) {
+  const c = P?.b?.rank?.cheer, local = ctx.api?.local, cs = ctx.store.get('conn');
+  const show = (on) => {
+    clearTimeout(el._cheerT);
+    el.hidden = !on;
+    if (on) el.textContent = COPY.cheerLine(c);
+    return on;
+  };
+  if (!el) return false;
+  if (!c || !local || cs?.snapshot || cs?.state === 'offline') return show(false);
   const k = CHEER_KEY(P.entry), s = P.season, sig = `${P.entry}:${s}:${c.gw}`;
   const was = local.json(k);
-  if ((was?.s === s && was.gw === c.gw) || (CHEERED.local === local && CHEERED.said === sig)) return false;
-  CHEERED = { local, said: sig };
-  local.set(k, JSON.stringify({ s, gw: c.gw }));
-  toastOf(ctx)(COPY.cheerLine(c), 'info', { timeout: CHEER_MS });
+  const said = (was?.s === s && was.gw === c.gw) || (CHEERED.local === local && CHEERED.said === sig);
+  if (!planning && (said || ctx.sheets?.depth?.())) return el.dataset.planning ? show(false) : !el.hidden;
+  el.dataset.planning = planning ? '1' : '';
+  if (!said) {
+    CHEERED = { local, said: sig };
+    local.set(k, JSON.stringify({ s, gw: c.gw }));
+  }
+  show(true);
+  if (!planning) el._cheerT = setTimeout(() => show(false), CHEER_MS);
   return true;
 }
 
@@ -5947,7 +5961,9 @@ export function mount(el, ctx) {
     ctx.api?.local?.set?.(LEARN_KEY, JSON.stringify([...S.learnt]));
     for (const [n, k] of HINTS) if (k === name) n.hidden = true;
   }
-  const ctl = h('div.ah-ctl', null, railWrap, hint);
+  // the line every GW under the status bar, over the GW tiles' top (sayCheer: for as long as it plans, else once a GW)
+  const cheerEl = h('div.ah-cheer', { role: 'status', hidden: true });
+  const ctl = h('div.ah-ctl', null, railWrap, hint, cheerEl);
   // the week line (renderWeek: the viewed GW's plan in one row, its Week sheet behind it); the preseason line takes its
   // place
   const strip = h('div.ah-blockhost');
@@ -6455,7 +6471,7 @@ export function mount(el, ctx) {
     sayCarried(P);
     pendingAgain(ctx, P.mem);
     // the line every GW: last, so a toast above (a reopened check's, with its Undo) never takes its place at once
-    sayCheer(ctx, P);
+    sayCheer(ctx, P, cheerEl, replanning());
   }
   /**
    * The viewed week's model, once per draw: its choices (the user, 2026-10-11, "make him to suggest plans, not just
@@ -8042,6 +8058,15 @@ export function mount(el, ctx) {
    * as taken, your saved lineups kept), as its row measures it (rowGains); a funding sale: weighed with the buy it pays
    * for, both against neither ("Frees £1.4m so Saka fits · on its own −1.4"), both moves side by side.
    */
+  /** A Why sheet's title, each of its moves' players a link to his card, its words as before: "Calvert-Lewin →
+   *  Evanilson", a plan's "Saka → Rice, Gabriel → Saliba" (`nb`: their spaces kept, as titled since; `tail`: what it takes
+   *  back). The owner, 2026-10-27: "players on comparison not clickable so go to their profile", the title's names
+   *  tapped; the table's own "Mbeumo ›" links stay. → node */
+  function movesTitle(P, g, moves, { nb = false, tail = '' } = {}) {
+    const name = (id) => (nb ? P.L.name(id).replace(/ /g, ' ') : P.L.name(id));
+    const link = (id) => h('button.wy-tn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.cardOf(P.L.name(id)), onClick: () => ctx.openSheet('player', id, { gw: g }) }, name(id));
+    return h('span.wy-ttl', null, moves.map((m, i) => [i ? ', ' : null, link(m.out), nb ? ' → ' : ' → ', link(m.in)]), tail ? ` ${tail}` : null);
+  }
   function openWhy(P, g, m) {
     const nm = P.L.name;
     const w = weekOf(P, g);
@@ -8086,7 +8111,7 @@ export function mount(el, ctx) {
     return ctx.openSheet('why', {
       a: { road: roadOfEv(vr ? vr.mine : withIt, g), label: `${nm(m.out)} → ${nm(m.in)}` },
       b: { road: vr ? roadOfEv(vr.ev, g) : roadOfEv(without, g), label: vr ? `Roll GW${g}` : `Keeping ${nm(m.out)}`, short: rolls ? 'Rolling' : `Keeping ${nm(m.out)}` },
-      title: `${nm(m.out)} → ${nm(m.in)}`, sub: moved ? [...[sub].flat(), moved] : sub, gw: g,
+      title: movesTitle(P, g, [m]), sub: moved ? [...[sub].flat(), moved] : sub, gw: g,
       // the two players side by side, the one bought first (the user, 2026-10-14: "see the stats fixtures and stats
       // comparison which players card show"), each with the price the move pays and gets
       pairs: pairs ?? [pairOf(withIt, g, m)],
@@ -8512,7 +8537,9 @@ export function mount(el, ctx) {
     ctx.openSheet('why', {
       a: { road: roadOfEv(ev, g), label: title },
       b: { road: roadOfEv(other, g), label: short, short },
-      title, sub: whySub(g, cmp.delta, `over ${span(gws)} vs ${vs}`), gw: g, reason: room.join('. ') || null,
+      // (its players each a link to his card where the title names its moves: movesTitle)
+      title: several ? movesTitle(P, g, added, { nb: true, tail: undone }) : now.length === 1 && title === `${nm(now[0].out)} → ${nm(now[0].in)}` ? movesTitle(P, g, now) : title,
+      sub: whySub(g, cmp.delta, `over ${span(gws)} vs ${vs}`), gw: g, reason: room.join('. ') || null,
       pairs: now.map((m) => pairOf(pl.ev, g, m)), facts, later,
       changes: sq.length ? { head: COPY.nChanges(sq.filter((m) => !m.kept).length), rows: sq.map((m) => changeRow(P, { gw: g }, m, true)) } : null,
       // (a choice of several moves: its one take named for what it does, "Swap both", and nothing else: the sheet says
