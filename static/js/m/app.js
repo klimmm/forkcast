@@ -179,11 +179,14 @@ function planning(gws, bake) {
  *  sweep while nothing is estimated yet (no road done). */
 let etaTimer = null;
 function etaBar(tag, bake, full = false) {
-  const i = h('i.m-eta');
+  const i = h('i.m-eta', { dataset: { eta: '' } });
   Object.assign(i, { _bake: bake, _full: full });
   paintEta(i);
   etaTimer ??= setInterval(() => {
-    const bars = document.querySelectorAll('i.m-eta');
+    // only the bars made here: Ahead's story bar is an i.m-eta too (its look), painted by its own (ahead.js
+    // paintStoryBar); repainted here with no bake it went to a sweep and back each second (the owner, 2026-10-28: "why
+    // progress bar moving forward and backward instead of just forward")
+    const bars = document.querySelectorAll('i.m-eta[data-eta]');
     if (!bars.length) { clearInterval(etaTimer); etaTimer = null; }
     bars.forEach(paintEta);
   }, 1000);
