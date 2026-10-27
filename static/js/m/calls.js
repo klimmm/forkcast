@@ -759,19 +759,28 @@ export const COPY = Object.freeze({
   /** RULES_V2 §5: a heal that can't keep every rule. The rules stay; the plan is the last one that worked. The choice
    *  named as its row says it (ahead.rowName: "Scott → Groß · GW6"), and "rule" kept for what Your rules lists (johnson
    *  Part 4 §5: a transfer was called a rule, under a name no row showed). */
-  rulesClash: (stuck, what) => `No plan keeps ${stuck ?? 'all your choices'}${what ? ` with “${what}”` : ''}. Your plan is unchanged. Remove one, or Undo.`,
+  rulesClash: (stuck, what, why = null) => `No plan keeps ${stuck ?? 'all your choices'}${what ? ` with “${what}”` : ''}${why ? `: ${why}` : ''}. Your plan is unchanged. Remove one, or Undo.`,
   /** …for an edit that adds no rule (a removal, Reset plan, "Without …"): its own words, then what the rules left can't
    *  keep, as the solver said it (ahead.clashParts; the owner, 2026-10-26: a Remove left four Arsenal players' worth of
    *  rules, and the phone drew them): "Calafiori → Hill removed: no plan keeps your GW9 choices (Leno → Raya and João
    *  Pedro → Evanilson). Your plan is unchanged. Remove one, or Undo." */
-  dropClash: (said, stuck) => `${said ? `${said}: no` : 'No'} plan keeps ${stuck ?? 'your other choices'}. Your plan is unchanged. Remove one, or Undo.`,
+  dropClash: (said, stuck, why = null) => `${said ? `${said}: no` : 'No'} plan keeps ${stuck ?? 'your other choices'}${why ? `; ${why}` : ''}. Your plan is unchanged. Remove one, or Undo.`,
   /** The week the solver found no plan for and your choices there (ahead.clashParts): "your GW9 choices (Leno → Raya and
    *  João Pedro → Evanilson)". */
   choicesAt: (gw, names) => `your GW${gw} choices (${andList(names)})`,
   /** B12: the Week sheet's status row (its first words the week line's second line) while that failure stands (ahead.clashLine): what the solve couldn't keep ("Groß in
    *  GW6", else all of these) with the choice that broke it, as its row says it ("Keep Scott · GW6"). Its Removes are on
    *  the row; the toast's Undo is gone by then, so the row never offers it. */
-  rulesStuck: (what, by) => `No plan keeps ${what ?? 'all of these'}${by ? ` with ${by}` : ''}. Remove one.`,
+  rulesStuck: (what, by, why = null) => `No plan keeps ${what ?? 'all of these'}${by ? ` with ${by}` : ''}${why ? `: ${why}` : ''}. Remove one.`,
+  /** Why the week the solver found no plan for has none, as the solver found it (api/mobile.py _road_error's `why`:
+   *  rolling._why_unsolvable, `short` in £0.1m; the owner, 2026-10-28: "find why 3 transfers not enough to get haaland
+   *  in and fix", £0.4m short, which nothing said): "they need 4 transfers in GW9, where 3 are allowed", "they need
+   *  £0.4m more than you have", or both; null when the solver found nothing that lifts it. */
+  clashWhy: (why, gw) => {
+    const xf = why?.transfers != null ? `${why.transfers} transfers in GW${gw}, where ${why.allowed} are allowed` : null;
+    const money = why?.short ? `${fmt.money(why.short / 10)} more than you have` : null;
+    return xf || money ? `they need ${xf && money ? `${xf}, and ${money}` : xf || money}` : null;
+  },
   unfinished: "Forkcast couldn't finish checking that. Your plan is unchanged.",
   pinClash: (name, keepTo, sellGw) => `Keeping ${name} through GW${keepTo} clashes with selling him in GW${sellGw}. Which one?`,
   /** A week of your plan that takes hits: a fact, never "needs" (the plan takes a hit only where its count says it pays,

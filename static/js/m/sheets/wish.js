@@ -109,7 +109,7 @@ const works = (o) => o?.kind === 'buy' || o?.kind === 'road';
  *  solved road's GW-g moves, ahead.holdBuy). */
 const how = (o) => ({ bp: o.bp });
 
-export function open(ctx, preId = null, { gw = null, pos = null } = {}) {
+export function open(ctx, preId = null, { gw = null, pos = null, out = null } = {}) {
   const P0 = plan(ctx);
   if (!P0) return null;
   // the GW it was opened on (the week line's Bring in… door, his card: {gw}): his pills open on that week
@@ -118,8 +118,9 @@ export function open(ctx, preId = null, { gw = null, pos = null } = {}) {
   const live = (g) => !inkAt(ctx, P0, g);  // a week an arrival can still reach (B7: not frozen, not GW A under way)
   // out: the sale you chose for a player's selected week ({g, out}; none: Forkcast picks); need: the weeks his reach sent to
   // a solve, in its order; wait: the solve out ({g, i, n, t0}, B87b), its line's clock ticking (tick)
-  // (pos: the position its list opens on, a player's place's "Other…": ahead.drawPlace; else all)
-  const st = { q: '', open: null, res: {}, sel: {}, own: {}, out: {}, ask: null, need: {}, wait: null, tick: null, req: null, run: 0, g: G ?? P0.gws.find(live) ?? P0.A, pos: POSITIONS.includes(pos) ? pos : 'all', sort: 'pts', flip: false };
+  // (pos: the position its list opens on, a player's place's "Other…": ahead.drawPlace; else all; place: that player,
+  // whose sale the Sells row leads with: sells)
+  const st = { q: '', open: null, res: {}, sel: {}, own: {}, out: {}, ask: null, need: {}, wait: null, tick: null, req: null, run: 0, g: G ?? P0.gws.find(live) ?? P0.A, pos: POSITIONS.includes(pos) ? pos : 'all', place: out != null ? Number(out) : null, sort: 'pts', flip: false };
   const no = barred(P0, P0.A);
 
   const stop = () => { st.run++; st.req?.cancel?.(); st.req = null; clearInterval(st.tick); st.wait = null; presolveTaps(ctx, null, { owner: st }); };
@@ -280,16 +281,22 @@ export function open(ctx, preId = null, { gw = null, pos = null } = {}) {
         const P = plan(ctx), nm = P.L.name;
         const act = (out) => sale(id, g, out, o0);
         const chip = (label, aria, onClick, cls = '', off = false) => h(`button${cls}`, { type: 'button', disabled: off || !editable(ctx), 'aria-label': aria, onClick }, label);
+        const opts = saleOptions(ctx, id, g);
+        // opened from a player's place ("Other…": st.place), the sale is his: his chip first and the row's own action,
+        // Forkcast's pick after it (the owner, 2026-10-28: Haaland chosen in João Pedro's place came in for Isak)
+        const his = opts.find((x) => x.out === st.place && !saleWords(ctx, id, g, x).off) ?? null;
+        const saleChip = (x) => {
+          const w = saleWords(ctx, id, g, x);
+          // (a sale's number blue with "xP", as the week pill's: xpNum; words, the money it needs, in the chip's ink)
+          return chip([nm(x.out), ' ', x.cmp ? xpNum(w.tail, 'span.m-num') : h('span.m-num', { class: { 'g-loss': w.loss } }, w.tail), w.unit ? h('small.u', null, ` ${w.unit}`) : null],
+            `${COPY.bringIn(nm(id), g)} for ${nm(x.out)}: ${w.said}`, () => act(x.out), w.off ? '.off' : x === his ? '.rec' : '');
+        };
         return h('div.ws-sells', { role: 'group', 'aria-label': `Bring in ${nm(id)} from GW${g}, selling` },
           h('span.ws-sl', { 'aria-hidden': 'true' }, 'Sells'),
+          his ? saleChip(his) : null,
           // (an outlined + action, never a filled pill: it read as a toggle already on; the user, 2026-10-22)
-          chip([icon('plus', { size: 14 }), 'Forkcast picks'], `${COPY.bringIn(nm(id), g)}: Forkcast picks the sale`, () => act(null), '.rec', !works(o0)),
-          saleOptions(ctx, id, g).map((x) => {
-            const w = saleWords(ctx, id, g, x);
-            // (a sale's number blue with "xP", as the week pill's: xpNum; words, the money it needs, in the chip's ink)
-            return chip([nm(x.out), ' ', x.cmp ? xpNum(w.tail, 'span.m-num') : h('span.m-num', { class: { 'g-loss': w.loss } }, w.tail), w.unit ? h('small.u', null, ` ${w.unit}`) : null],
-              `${COPY.bringIn(nm(id), g)} for ${nm(x.out)}: ${w.said}`, () => act(x.out), w.off ? '.off' : '');
-          }));
+          chip([icon('plus', { size: 14 }), 'Forkcast picks'], `${COPY.bringIn(nm(id), g)}: Forkcast picks the sale`, () => act(null), his ? '' : '.rec', !works(o0)),
+          opts.filter((x) => x !== his).map(saleChip));
       }
 
       /** The list for the week in the sort's order: every player you could buy then (not kept out by a rule of yours) and

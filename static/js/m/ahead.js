@@ -1197,8 +1197,9 @@ function fail(ctx, error) {
   const c = P ? clashParts(P, CLASH) : { what: null };
   // (an edit that added no rule is always named by its own words, whatever earlier rule still clashes: reviewer 2 of
   // solversquad, 2026-10-26)
+  const why = COPY.clashWhy(error?.why, error?.gw);
   const text = !rules ? error?.plain || COPY.unfinished
-    : newest?.id ? COPY.rulesClash(c.what ?? null, CLASH?.what ?? newest.what) : COPY.dropClash(newest?.said ?? null, c.what);
+    : newest?.id ? COPY.rulesClash(c.what ?? null, CLASH?.what ?? newest.what, why) : COPY.dropClash(newest?.said ?? null, c.what, why);
   // B89 (johnson Part 3 §12: "couldn't finish checking" with nothing to do about it): a failure not about your choices
   // (the solver's own, the connection's) offers "Try again": the same check at once (memory.heal), its pending toast back
   // and the edit armed again, so its verdict is spoken; Undo stays beside it
@@ -1256,7 +1257,7 @@ export function clashLine(P, clash = CLASH) {
   if (!aboutRules(err)) return { text: err.plain || COPY.unfinished, pins: [] };
   const by = asksOf(P).find((p) => p.id === clash?.id) ?? null;
   const { what, pins } = clashParts(P, clash);
-  return { text: COPY.rulesStuck(what, by ? rowName(P, by) : null), pins };
+  return { text: COPY.rulesStuck(what, by ? rowName(P, by) : null, COPY.clashWhy(err.why, err.gw)), pins };
 }
 
 /**
@@ -6377,7 +6378,7 @@ export function mount(el, ctx) {
       // (in the story the header says how far: here the squad drawn is named, FPL's lineup until the plan's comes)
       : S.story ? barNode({ one: h('span.ah-bn', null, COPY_FPL_TEAM), doors: doorStubs(), cls: '.ah-pbake' })
       : barNode({ one: [h('span.ah-spin', { 'aria-hidden': 'true' }), h('span.ah-bn', null, planning(d.horizon))], status: true, doors: doorStubs(), cls: '.ah-pbake' }),
-    c?.pins.length ? h('div.ah-brow.ah-ask.ah-clash', { role: 'status' }, icon('warn', { size: 16 }), h('p.ah-askt', null, COPY.rulesStuck(c.what, null)),
+    c?.pins.length ? h('div.ah-brow.ah-ask.ah-clash', { role: 'status' }, icon('warn', { size: 16 }), h('p.ah-askt', null, COPY.rulesStuck(c.what, null, COPY.clashWhy(gp.error.why, gp.error.gw))),
       h('div.ah-askb', null, c.pins.map((p) => h('button.ah-askno', { type: 'button', disabled: !V.editable, onClick: () => off(p) }, `Remove ${rowName(V, p)}`)))) : null));
     fill(decks);
     S.M = null;
@@ -7720,7 +7721,7 @@ export function mount(el, ctx) {
     const tile = tileAt == null ? null : h('div.ah-ptile', { style: { ...px(tileAt, 0), top: both ? tab() : `${c.y}px`, height: both ? `calc(${c.h}px + var(--pm-tab))` : `${c.h}px` } },
       over ? h('button.ah-pmore', { type: 'button', dataset: { key: 'more' }, onClick: () => { S.place.page = pg + 1; drawPlace(true); } }, COPY.placeMore(unseen)) : null,
       other ? h('button.ah-pmore.ah-pother', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.placeOtherSaid(nm(d.a), g), dataset: { key: 'other' },
-        onClick: () => { c.n.focus({ preventScroll: true }); closePlace(false); ctx.openSheet('wish', null, { gw: g, pos: P.L.pos(d.a) }); } }, COPY.placeOther) : null);
+        onClick: () => { c.n.focus({ preventScroll: true }); closePlace(false); ctx.openSheet('wish', null, { gw: g, pos: P.L.pos(d.a), out: d.a }); } }, COPY.placeOther) : null);
     const i = S.decks.indexOf(d), n = S.decks.length, place = COPY.placeOf(nm(d.a));
     // its buys your saved lineup leaves on your bench, said under its numbers (benchedBuys; the user, 2026-10-22: a sub's
     // "Palmer 0.0" explained, the number as computed)
