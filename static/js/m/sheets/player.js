@@ -511,7 +511,8 @@ function stripSection(m, G, key) {
   // each sum unbroken (a no-break space inside it): on a 320 pt phone the line wraps between them, never in "GW6–10 13.5";
   // the forecast's sum names its weeks (B104: "next 5" beside the plan's four-week sums), its range through COPY.span
   // (the forecast's sum in its blue with "xP": ui.js xpNum; the user, 2026-10-22)
-  const nb = (x) => x.replace(/ /g, '\u00a0');
+  // (no break at a space, nor after a span's dash: "GW9–" over "15" at 320 px)
+  const nb = (x) => x.replace(/ /g, '\u00a0').replace(/–/g, '\u2060–\u2060');
   const head = h('span.ps-sums', null, m.past.length ? `${nb(`${pts} pts in ${mins}′`)} · ` : null, h('span.ps-sum', null, `${nb(COPY.span(m.fut.map((f) => f.gw)))}\u00a0`, xpNum(f1(next))));
   const info = infoBtn(key, 'What the chart shows');
   return h('div.m-sec.ps-strip', null,

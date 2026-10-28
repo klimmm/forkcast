@@ -482,7 +482,7 @@ export const COPY = Object.freeze({
     { clip: 'rules', ask: 'Keep your player, or rule one out?', text: 'Tap the line above the pitch, then swipe a transfer left: Not the player it buys. It holds for that gameweek, goes into Your rules, and the plan is made again around it.' },
     { clip: 'bench', ask: 'Who starts? Who\'s on the bench?', text: 'Forkcast picks your XI, captain and bench order for every gameweek, the bench in the order FPL\'s auto-subs use.' },
     { clip: 'bringin', ask: 'Take a −4 now, or wait a week?', text: 'Name any player: see what bringing him in gains in each of the next four gameweeks, a −4 taken off in a week that costs one, and who Forkcast would sell to pay for him. Take the best week in one tap.' },
-    { clip: 'player', ask: 'Will he start? Is he worth it?', text: 'Tap a player for his card: his team news, his last six matches with the cup and international games between them, his next five forecasts, and the stats that best foretell his points, ranked against his position.' },
+    { clip: 'player', ask: 'Will he start? Is he worth it?', text: 'Tap a player for his card: his team news, his last six matches with the cup and international games between them, his next seven forecasts, and the stats that best foretell his points, ranked against his position.' },
   ],
   /** The seasons replayed (why.json records: the rank after each GW, on the solver's own tables). */
   /** How it works' folded row over the seasons replayed and the scouts' tables (sheets/about.js `proof`). */
@@ -517,7 +517,7 @@ export const COPY = Object.freeze({
    *  differnt architecture averaged": the pool, ml/configs/utils/paths.py PROD_PRED_DIRS, is checkpoint sets of different
    *  structure, a dozen or more seeds each, averaged). Nothing says Forkcast is free ("maybe later adding a paywall"). */
   whyHow: [
-    ['It forecasts every player.', 'Several neural networks built for FPL, with different architectures, forecast each player\'s points for his next five fixtures, and Forkcast averages them. They learned from every Premier League season since 2009/10 and its players\' cup and European matches, and read match data, team news and prices, never ownership.'],
+    ['It forecasts every player.', 'Several neural networks built for FPL, with different architectures, forecast each player\'s points for his next seven fixtures, and Forkcast averages them. They learned from every Premier League season since 2009/10 and its players\' cup and European matches, and read match data, team news and prices, never ownership.'],
     ['It plans four gameweeks at once.', 'Transfers, XI, captain and bench are solved together within FPL\'s rules (your players\' selling prices and your bank, three per club, free transfers banked, −4 hits), around any chip you play.'],
     ['It\'s fresh before every deadline.', 'The data is fetched and the forecast re-run every night and again before each deadline, ready 75 minutes before it for the late team news.'],
   ],
