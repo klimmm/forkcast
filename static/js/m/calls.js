@@ -37,7 +37,7 @@
 //   fields) and then its prices block laid over them: the rows derive and planInputs build
 // priceNights(meta, {now, until}) → {nights [{k, epoch}], stale, asOf}; priceOutlook(row, nights) → a player's FPL outlook
 //   {dir, sure, night, likelihood, word, held}; nightWords(epoch, now, tz) → a night in words; pricePlate(row, meta,
-//   {now, tz}) → the Player data plate ("▲ tonight", "▼ Wed", "▲ likely", "Locked", "—"); PRICE_WORD (FPL's labels);
+//   {now, tz}) → the Player data plate ("▲ tonight", "▼ tomorrow", "▼ Sat", "▲ likely", "Locked", "—"); PRICE_WORD (FPL's labels);
 //   priceSaid(outlook, when) → the price watch's word ("very likely to drop", "may rise (FPL: likely)")
 // roundedParts(parts, d) → the parts rounded to d decimals so they add up to their sum rounded (a table's rows and its
 //   total; its one caller, the drift's Compare sheet, went in v1.1, 2026-10-10: only the unit tests call it now)
@@ -1536,16 +1536,21 @@ export function priceOutlook(row, nights) {
 }
 
 /** A price-change night in words, for the viewer (tz: theirs, default this browser's) → {tonight (less than a day
- *  away), when ('tonight' | 'Wednesday night': the UK evening it ends, as FPL changes prices at 00:00 UK), short
- *  ('tonight' | 'Wed'), clock ("00:00 UK · 02:00 your time"; "Thu 00:00 UK · Thu 02:00 your time" for a later night;
- *  the UK time alone when the viewer's is the same)}. */
+ *  away), when ('tonight' | 'tomorrow', the night after | 'Saturday night': the UK evening it ends, as FPL changes prices
+ *  at 00:00 UK), short ('tonight' | 'tomorrow' | 'Sat'), clock ("00:00 UK · 02:00 your time"; "Thu 00:00 UK · Thu 02:00
+ *  your time" for a later night; the UK time alone when the viewer's is the same)}. The night after tonight is
+ *  "tomorrow", never its UK evening's day (the owner, 2026-10-29, at 01:38 on a Thursday: "what means thursday night its
+ *  confusing today is thursday … tonight's and one after as tomorrow's"). */
 export function nightWords(epoch, now, tz) {
   const ms = epoch * 1000;
-  const tonight = epoch - now <= DAY_S;
+  const tonight = epoch - now <= DAY_S, tomorrow = !tonight && epoch - now <= 2 * DAY_S;
   const eve = fmtIn(LONDON, { weekday: 'long' }).format(ms - 3600e3);
   const day = (z) => (tonight ? '' : `${fmtIn(z, { weekday: 'short' }).format(ms)} `);
   const uk = `${day(LONDON)}${fmtIn(LONDON, HM).format(ms)}`, local = `${day(tz)}${fmtIn(tz, HM).format(ms)}`;
-  return { tonight, when: tonight ? 'tonight' : `${eve} night`, short: tonight ? 'tonight' : eve.slice(0, 3), clock: uk === local ? `${uk} UK` : `${uk} UK · ${local} your time` };
+  return {
+    tonight, when: tonight ? 'tonight' : tomorrow ? 'tomorrow' : `${eve} night`, short: tonight ? 'tonight' : tomorrow ? 'tomorrow' : eve.slice(0, 3),
+    clock: uk === local ? `${uk} UK` : `${uk} UK · ${local} your time`,
+  };
 }
 
 /** The Player data plate "Price change" (FPL's semantics, priceOutlook over every night FPL projects): "▲ tonight" /

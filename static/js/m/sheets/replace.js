@@ -133,8 +133,13 @@ export function open(ctx, rawOut, rawGw) {
           : (o) => { const v = x.val(P, o.row, st.g); return v == null ? null : h('span.rs-stat', null, ` · ${x.num(v)} ${x.unit(P, st.g)}`); };
         const q = norm(st.q.trim());
         const by = orderOf(x, st.flip, P, st.g, (o) => o.row);
+        // the rows that can't be taken last (in team, your rule, …); one the bank can't pay for is taken as it is (FPL's
+        // draft short of money, the owner 2026-10-28), so it ranks by the chosen sort as any row, after the estimated rows
+        // only by Best (it has no estimate): the owner, 2026-10-29, "why isak missing when i try to sell evanilson" (Price
+        // ↓: 41 forwards in the £6.7m, the 10 dearer after them all, past the list's CAP)
+        const last = (o) => !!o.blocked && o.code !== 'budget';
         const shown = all.filter((o) => !q || found(o.row, q))
-          .sort((a, b) => (!!a.blocked - !!b.blocked) || by(a, b)).filter((o, i) => i < CAP);
+          .sort((a, b) => (last(a) - last(b)) || by(a, b)).filter((o, i) => i < CAP);
         const top = barTop(L, shown, P.gws);
         fill(list, shown.length ? shown.map((o) => {
           const rowEl = h('button.ah-lrow', {
