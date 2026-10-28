@@ -5,7 +5,7 @@
 
 import { h, fill, fmt, norm, roving } from '../../ui.js';
 import { COPY } from '../calls.js';
-import { shirtOf, fundAsk } from '../ahead.js';
+import { shirtOf } from '../ahead.js';
 
 /** The sort tabs: the estimate over the window, the week's forecast, the price; each named by its weeks (B88b,
  *  podmajersky P1 §9: "Best for plan · This week" named none), (gws, g) → "Best GW6–9 · Best GW6 · Cheapest". */
@@ -57,21 +57,3 @@ export const shirt = (L, id) => h('span.mk', { 'aria-hidden': 'true' }, shirtOf(
 /** A row's shirt and name block: "Groß" over "BHA · £6.5m" (`extra`: nodes after it, e.g. "· bench in GW6"). */
 export const who = (L, r, extra = null) => [shirt(L, r.id), h('span.nm', null, h('b', null, r.name), h('span', null, `${r.club} · ${fmt.money(r.price)}`, extra))];
 
-/** Do both on the plan as it is now (Replace's and Bring in's): `now` (buyPlan's fresh way) still says what `asked`
- *  said, its question and its number (a bake's poll rebuilds the plan view without changing them), so it is made; else
- *  the caller asks again, makes it alone or says why. */
-export const sameAsk = (P, now, asked, { fixed = false } = {}) => now.kind === 'two' && !!asked
-  && `${fundAsk(P, now, { fixed })} ${COPY.doBoth(now.cmp.delta)}` === `${fundAsk(P, asked, { fixed })} ${COPY.doBoth(asked.cmp.delta)}`;
-/** A3 / B36: a buy the money can't pay alone, asked in place before anything changes (Replace's row, Bring in a player's
- *  sale chip: review 6, 2026-10-13, the chip made the second sale unseen; the user: "Ask first"): "Groß for Rogers needs
- *  £0.4m more · Also sell Calafiori → Bassey (−4)?" [Do both · +1.2] [Cancel], the button carrying what doing both gives
- *  over the window (B145: the number last). `fixed`: the sale is the sheet's own (Replace), so its name is left out
- *  ("Groß needs £0.4m more · …"). */
-export function askBoth(P, bp, { fixed = false, onDo, onCancel }) {
-  const q = fundAsk(P, bp, { fixed });
-  return h('div.rs-ask', { role: 'group', 'aria-label': q },
-    h('p.rs-askt', null, q),
-    h('div.rs-askb', null,
-      h('button.rs-askgo', { type: 'button', disabled: !P.editable, 'aria-label': COPY.doBothSaid(bp.cmp.delta, P.gws), onClick: onDo }, COPY.doBoth(bp.cmp.delta)),
-      h('button.rs-askno', { type: 'button', onClick: onCancel }, 'Cancel')));
-}

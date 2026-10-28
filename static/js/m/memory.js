@@ -258,8 +258,8 @@ const cashOf = (list) => list.reduce((cash, pin) => (pin && num(pin.cash) !== nu
  * the solver's own default cap, F17), rolls [gw] (the GWs your Rolls make no transfer in, ascending), caps {gw: n} (at
  * most n transfers: the hold's, a Roll keeping your exact moves there), chips {gw: chip}
  * (newest per GW; a Wildcard or Free Hit GW takes no hits cap and no Roll: the chip makes every transfer free there),
- * cash (the newest), cells Map(id → Map(gw → {want, pin})), overridden [{pin, by, id, gw, was}] (cells a newer pin
- * took)}.
+ * debts [gw] (the GWs whose bank may go below 0: the hold's, ascending), cash (the newest), cells Map(id → Map(gw →
+ * {want, pin})), overridden [{pin, by, id, gw, was}] (cells a newer pin took)}.
  */
 export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
   const cells = new Map();
@@ -293,6 +293,7 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
   const hits = {};
   const rolls = new Set();
   const caps = {};  // gw → at most n transfers (the hold's: a week of your exact moves after a planner week, holdOf)
+  const debts = new Set();  // the GWs whose bank may go below 0 (the hold's, holdOf)
   for (const pin of list) {
     if (!pin) continue;
     const put = (id, g, want) => {
@@ -331,6 +332,7 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
       if (g >= from && g <= to) { if (keep) caps[g] = keep; else rolls.add(g); }
     }
     for (const g of pin.rolls || []) if (Number(g) >= from && Number(g) <= to) rolls.add(Number(g));  // the hold's (holdOf)
+    for (const g of pin.debts || []) if (Number(g) >= from && Number(g) <= to) debts.add(Number(g));  // the hold's (holdOf)
     if (!isRoll(pin)) for (const [g, n] of Object.entries(pin.caps || {})) if (Number(g) >= from && Number(g) <= to) caps[Number(g)] = Number(n);
   }
   // F17: a Wildcard or Free Hit week: no hits cap and no Roll is sent for it (the chip makes every transfer free there)
@@ -345,7 +347,7 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
   const must_have = spanString(must), exclude = spanString(excl);
   return {
     must_have, exclude, must: parseSpans(must_have), excl: parseSpans(exclude), hits,
-    rolls: [...rolls].sort((a, b) => a - b), caps, chips, cash, cells, overridden,
+    rolls: [...rolls].sort((a, b) => a - b), caps, debts: [...debts].sort((a, b) => a - b), chips, cash, cells, overridden,
   };
 }
 
@@ -835,6 +837,11 @@ export function carryPins(prevDoc, A, end) {
  *   · a Wildcard or Free Hit week is the chip's (a Free Hit's squad is thrown away: the squad after it stays known); a
  *     Roll (a suggested plan's +, addPlan) keeps its own, as a frozen week (the road pin's hold) did (an older
  *     document's: thawed on load since 2026-10-12, normalizeAccepted).
+ * From the first week of your exact moves on, each week the hold makes (those of your exact moves, a roll, a Roll of
+ * yours) may leave the bank below 0 (`debts`, values.debt_gw: the tap's --debt-gw), as FPL lets a draft of your transfers
+ * stand short of money until it is confirmed (the owner, 2026-10-28: "add player even with negative itb like official
+ * fpl allow"); a week the planner plans pays it back (its bank is never below 0). Every squad is the same with it or
+ * without: those weeks' transfers are yours.
  * Every plan under it is the solver's (replan), never the engine's evaluation of your moves (holdRoad went: the owner,
  * 2026-10-26). → {pin (or null: nothing to hold)}
  */
@@ -844,7 +851,10 @@ export function holdOf(list = [], { A, end, owned = [] } = {}) {
   const rp = user.find((p) => p.id === 'road' && p.locked);
   const frozen = rp ? pinFrozen(rp, A) : [];
   let squad = ids(owned), known = true;
-  const rolls = [], must = [], excl = [], hits = {}, caps = {};
+  const rolls = [], must = [], excl = [], hits = {}, caps = {}, debts = [];
+  // owes: a week of your exact moves came before (debts)
+  let owes = false;
+  const owe = (g) => { if (owes) debts.push(g); };
   for (const g of range(A, end)) {
     const chip = c.chips[g];
     if (frozen.includes(g)) {
@@ -852,22 +862,25 @@ export function holdOf(list = [], { A, end, owned = [] } = {}) {
       const held = heldAt(rp.must, g);
       if (known && idsKey(held) === idsKey(squad)) rolls.push(g);
       squad = held; known = true;
+      owe(g);
       continue;
     }
     if (chip === 'wc') { known = false; continue; }
     if (chip === 'fh') continue;
-    if (c.rolls.includes(g)) continue;  // your Roll: no transfer there
+    if (c.rolls.includes(g)) { owe(g); continue; }  // your Roll: no transfer there
     const free = user.some((p) => kindOf(p) === 'hits' && Object.keys(p.hits || {}).map(Number).includes(g));
     // L3 (the plans review, 2026-10-11: a buy resold the next week made GW6 a 16-player hold): an exact move of yours
     // moves someone in its own GW only (its "still yours in g − 1" is the week before's, not a move there)
     const moving = known ? user.filter((p) => !['road', 'chip', 'cash', 'hits', 'roll'].includes(kindOf(p)) && (!isExact(p) || num(p.gw) === g) && movedAt(p, g, squad).length)
       : user.filter((p) => ['sell', 'slide', 'wish'].includes(kindOf(p)) && num(p.gw) === g);
-    if (!free && !moving.length) { rolls.push(g); continue; }
+    if (!free && !moving.length) { rolls.push(g); owe(g); continue; }
     if (!free && known && moving.every(isExact)) {
       const outs = new Set(moving.map((p) => Number(kindOf(p) === 'slide' ? p.out : p.player)));
       const ins = moving.map((p) => Number(kindOf(p) === 'slide' ? p.player : p.in));
       squad = [...squad.filter((x) => !outs.has(x)), ...ins.filter((x) => !squad.includes(x))];
       must.push(...squad.map((x) => [x, g, g]));
+      owes = true;
+      owe(g);
       continue;
     }
     // a sale of yours whose buy Forkcast picks (Replace's "Let Forkcast choose", ahead.sellAny; the user, 2026-10-13:
@@ -897,6 +910,8 @@ export function holdOf(list = [], { A, end, owned = [] } = {}) {
         }
       }
       caps[g] = moving.length;
+      owes = true;
+      owe(g);
       continue;
     }
     // the planner's week: its squad is the solve's
@@ -904,7 +919,7 @@ export function holdOf(list = [], { A, end, owned = [] } = {}) {
     known = false;
   }
   if (!rolls.length && !must.length && !excl.length && !Object.keys(hits).length && !Object.keys(caps).length) return { pin: null };
-  const pin = makePin({ id: 'hold', kind: 'hold', label: 'No transfers unless you add them', gw: A, must, excl, hits, rolls, ...(Object.keys(caps).length ? { caps } : {}) });
+  const pin = makePin({ id: 'hold', kind: 'hold', label: 'No transfers unless you add them', gw: A, must, excl, hits, rolls, ...(Object.keys(caps).length ? { caps } : {}), ...(debts.length ? { debts } : {}) });
   return { pin };
 }
 
@@ -924,7 +939,8 @@ export function solvedLineup(roads, g, sq, chip) {
  * clean_values whitelists these): the base values (int_rounds = w, chip defaults as '0'), your hit caps per GW where
  * they restrict (--max-hits-gw; F13, F17: no --max-hits and no --hit-cost, the solver's own default cap at its own price
  * elsewhere, meta.hit_cap), your chips through a draft (setChip), then your windows, your Rolls (no_buys_gw "7,8":
- * api/mobile.py rolls_gw, the tap's --no-buys-gw) and cash. A Wildcard or Free Hit week sends neither (composePins).
+ * api/mobile.py rolls_gw, the tap's --no-buys-gw), the weeks whose bank may go below 0 (debt_gw "9,10": the hold's,
+ * the tap's --debt-gw) and cash. A Wildcard or Free Hit week sends neither (composePins).
  */
 export function planValues(cctx, list) {
   const gws = cctx.gws;
@@ -940,6 +956,7 @@ export function planValues(cctx, list) {
   if (c.rolls.length) values.no_buys_gw = c.rolls.join(',');
   const capped = Object.entries(c.caps).sort(([a], [b]) => a - b);
   if (capped.length) values.max_buys_gw = capped.map(([g, n]) => `${g}:${n}`).join(',');
+  if (c.debts.length) values.debt_gw = c.debts.join(',');
   if (c.cash !== null) values.cash = c.cash;
   return values;
 }
@@ -1024,6 +1041,8 @@ export function roadFits(road, c, gws) {
   const buysAt = (g) => { const w = weekAt(road, g); return w ? ids(w.in).length : 0; };
   if (Object.entries(c.caps ?? {}).some(([g, n]) => buysAt(Number(g)) > n)) return false;
   if (String(v.max_buys_gw ?? '').split(',').filter(Boolean).some((t) => { const [g, n] = t.split(':').map(Number); return !(c.caps?.[g] <= n); })) return false;
+  // a road solved letting a week's bank go below 0 (debt_gw, holdOf) is short there only where your plan lets it be
+  if (parseRolls(v.debt_gw).some((g) => !c.debts?.includes(g) && (num(weekAt(road, g)?.bank) ?? 0) < -1e-9)) return false;
   return brokenCells(road, c).length === 0;
 }
 

@@ -251,13 +251,6 @@ export const COPY = Object.freeze({
   statsPast: (gws) => `Stats are past matches; the ${span(gws)} points above are the forecast.`,
   captainNow: (name) => `${name} captain`,
   viceNow: (name) => `${name} vice`,
-  /** A1: a buy that needs a second sale, asked in place before anything changes: "Saka needs £1.2m more · Also sell
-   *  Calafiori → Bassey (−4)?" (the hit when the extra sale takes one: FPL's count). */
-  /** …its button, with what doing both gives (Replace's ask: the reviews, 2026-10-11, no points was asked for): "Do both ·
-   *  +1.2", spoken "Do both, +1.2 points over GW6–9". */
-  doBoth: (delta) => `Do both · ${fmt.signed(delta)}`,
-  doBothSaid: (delta, gws) => `Do both, ${fmt.signed(delta)} points over ${span(gws)}`,
-  fundAsk: (name, short, outName, inName, hits = 0, forName = null) => `${name}${forName ? ` for ${forName}` : ''} ${COPY.moneyNeeds(short)} · Also sell ${outName} → ${inName}${hits ? ` (${MINUS}${E.HIT_COST * hits})` : ''}?`,
   /** A2: a funding sale's row and its Why: what it frees, and what it scores on its own. */
   funds: (money, name) => `Frees ${money} so ${name} fits`,
   /** B95: the tie's other end, on the buy's row: the sales that fund it ("with Haaland → Thiago"); a sale of yours whose
@@ -308,7 +301,7 @@ export const COPY = Object.freeze({
   /** A buy the money can't pay, in the same words shown and said (Add a player's Sells chip, Replace's row; first-use
    *  findings #7: "Groß −£5.0m" read as money lost on the sale): "£5.0m short". */
   moneyShort: (x) => `${fmt.money(x)} short`,
-  /** …the same fact where it follows the sale or buy it is about, in the words noFit and fundAsk say it (the user,
+  /** …the same fact where it follows the sale or buy it is about, in the words noFit says it (the user,
    *  2026-10-22: Bring in…'s "Groß £5.2m short" read as Groß short of money): "Groß · needs £5.2m more". */
   moneyNeeds: (x) => `needs ${fmt.money(x)} more`,
   /** A Sell list row's ≈ and a Bring in week pill's number (replace.js, wish.js pillWords): what your total moves by when
@@ -387,7 +380,7 @@ export const COPY = Object.freeze({
     ], 'plans'],
     ['Bring in a player', [
       `Tap ${COPY.bringInShort} (above the pitch, beside ${COPY.chipsDoor}), then + beside a player.`,
-      'Pick a GW, then under Sells tap who goes out, or Forkcast picks.',
+      'Pick a GW, then under Sells tap who goes out, even short of money.',
     ], 'bringin'],
     ['Your players', [
       'Tap a shirt for his card: Keep, or Force out (one week, or sold from a week on).',

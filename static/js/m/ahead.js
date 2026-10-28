@@ -124,8 +124,9 @@
 //   newest, and the copy names the rule that broke the set and what the solver couldn't keep (clashParts).
 // The fix pass (2026-10-08; the core rule: an action does only what it says, anything more is asked first):
 //   A1 buyPlan(ctx, id, g, {out}) → {kind: 'one' | 'two' | 'none', out, in, fund?, short?, draft, ev, cmp, hits}: a buy as
-//     exact moves of yours (his best sale that fits; else that sale with one more that frees the money, asked first:
-//     fundAsk(P, bp) "Saka needs £1.2m more · Also sell Calafiori → Bassey (−4)?"); bringIn(ctx, id, g, bp) makes it
+//     exact moves of yours (his best sale that fits; else that sale with one more that frees the money); saleBuy(ctx, id,
+//     g, out) a sale you chose made as it is, the money short or not (the owner, 2026-10-28: FPL's draft, its bank below
+//     0, memory.holdOf's debts; "Do both" and its ask went); bringIn(ctx, id, g, bp) makes it
 //     (memory.pinSell, the funding sale marked `funds`; one Undo), taking back bringInTakes(P, id, g, bp) (a later buy of
 //     him and its funding too); holdBuy(ctx, id, g, road) is the buy Add a player shows and want makes (a solve's
 //     road as its GW-g moves; B36: in both modes); buyProblem(ctx, P, id, bp) says why not (A3: "it fits in
@@ -2196,7 +2197,8 @@ export function suggestionsOf(ctx, P, g) {
  * that fits is a choice there, after its −4). → true | GW | null (they pass)
  */
 function earlyOf(ctx, P, g, ms, ev, before, d0, measure = null) {
-  if (!P.mem?.hold || extraWeek(P, g)) return null;
+  // (none in a week your plan leaves short of money: owedAt, a choice paying it back is no loss next to it)
+  if (!P.mem?.hold || extraWeek(P, g) || owedAt(P, weekOf(P, g))) return null;
   if (compare(ctx, ev, before).delta <= 0.05) return true;
   return waitsAWeek(ctx, P, g, ms, ev, before, d0, measure) ? P.gws.find((x) => x > g) : null;
 }
@@ -2527,12 +2529,15 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // Calvert-Lewin → Evanilson alone was asked)
   const pairLike = (c) => !Object.keys(c.chips).length && c.moves.filter((m) => !now.some((y) => sameMove(y, m))).length >= 2;
   const pairs = [];
-  for (const r of bundleRoads(P.b.roads)) {
+  // a week your plan leaves short of money (owedAt): Forkcast's way to pay it back (owedRoad), offered at once as the
+  // model's own is (the owner, 2026-10-28: "show it as black transfer suggested as usual")
+  const owed = owedAt(P, w) ? owedRoad(ctx, P, g, { peek, prep }) : null;
+  for (const r of [...bundleRoads(P.b.roads), ...(owed?.road ? [owed.road] : [])]) {
     const x = planOfRoad(ctx, P, r, g, d0);
     if (!x) continue;
     if (!choices.has(forkKey(x.choice, g))) {
       const e = earlyAt(x.choice);
-      if (e) late.push({ c: x.choice, e }); else if (r !== P.base && pairLike(x.choice)) pairs.push(x.choice); else add(x.choice);
+      if (e) late.push({ c: x.choice, e }); else if (r !== P.base && r !== owed?.road && pairLike(x.choice)) pairs.push(x.choice); else add(x.choice);
     }
     const s = x.plan && `${movesSig(x.plan.moves)}|${JSON.stringify(x.plan.chips)}`;
     if (!s || seen.has(s)) continue;
@@ -2769,7 +2774,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const nx = nextGw(P, g);
   if (!peek && !prep) AHEAD.at = { P, g };
   for (const [lane, f] of peek || prep ? [] : forkFlights()) {
-    if (asks.some((a) => a.ask?.key === f.key) || (f.P === P && f.gw === nx && !f.ahead) || aheadAsks(f, P, g)) continue;
+    if (asks.some((a) => a.ask?.key === f.key) || f.key === owed?.key || (f.P === P && f.gw === nx && !f.ahead) || aheadAsks(f, P, g)) continue;
     f.cancel?.();
     if (lane) FORK_FLIGHTS.delete(lane); else PAIR.flight = null;
     letGo = true;
@@ -3239,9 +3244,13 @@ export function litOf(P, w, M, D, toks = []) {
   return at;
 }
 /** Whether choice pl beats rolling as litOf counts it: checked, and past 0.05 while the week has no transfer, chip or
- *  Roll of yours (`fresh`), else past the noise against your plan (plPays). → (pl) → bool */
+ *  Roll of yours (`fresh`), else past the noise against your plan (plPays); in a week your plan leaves short of money
+ *  (owedAt) one that pays it back, keeping your transfers (paysBack). → (pl) → bool */
 const litCan = (P, w, M) => {
   const g = w.gw;
+  // a week your plan leaves short of money (owedAt): a choice that keeps your transfers and pays it back, whatever its
+  // number (FPL confirms no team short of money: the owner, 2026-10-28, "show it as black transfer suggested as usual")
+  if (owedAt(P, w)) return (pl) => pl?.state === 'ready' && paysBack(w, pl);
   const fresh = !w.moves.length && !M.sq && !P.pins.some((p) => p.id === `roll:${g}`);
   return (pl) => pl?.state === 'ready' && (fresh ? pl.cmp.delta > 0.05 : plPays(pl));
 };
@@ -4031,6 +4040,29 @@ function watchPage(ctx) {
  *  hit, losers too. In a week Forkcast re-picks (repicks) only your transfers count: its own there give
  *  way to another of yours (addYours; the checker, 2026-10-09: GW8 on "FT only" counted Forkcast's three as yours, and
  *  the tap took no hit and swapped one of them out). */
+/** GW w a week your plan leaves short of money (the owner, 2026-10-28: "make it to add player even with negative itb like
+ *  official fpl allow"): under the hold your transfers there take its bank below 0 (memory.holdOf's debts: a draft, as
+ *  FPL holds one until it is confirmed). plansOf offers Forkcast's way to pay it back (owedRoad), and the week's best is
+ *  a choice that does (litCan: paysBack). Pure. */
+export const owedAt = (P, w) => !!P?.mem?.hold && !!w?.moves?.length && w.bank != null && w.bank < -1e-9;
+/** Choice pl keeps your every transfer of GW w and leaves its bank at 0 or more (owedAt's week): its solve's bank, else
+ *  its plan's as measured. Pure. */
+const paysBack = (w, pl) => {
+  const g = w.gw;
+  const keeps = w.moves.every((m) => pl.choice.moves.some((x) => x.gw === g && x.out === m.out && x.in === m.in));
+  const bank = num((pl.road?.weeks || []).find((x) => Number(x.gw) === g)?.bank) ?? pl.ev?.gws.find((s) => s.gw === g)?.bank;
+  return keeps && bank != null && bank >= -1e-9;
+};
+/** owedAt's GW g: your plan solved with that week the planner's (a hits rule there lifts the hold, memory.holdOf: it
+ *  keeps your transfers and pays for them, its bank never below 0), asked as a fork is (forkAsk; read only when `peek`)
+ *  → {key, road: its road once solved, else null}. Its moves on top of yours are the week's choices (plansOf). */
+function owedRoad(ctx, P, g, { peek = false, prep = false } = {}) {
+  const values = valuesFor(ctx, [pinHits(hitCap(P.b?.meta) ?? 2, g)]);
+  const key = valuesKey(P, values);
+  const got = peek ? forkRead(key) : forkAsk(ctx, P, { key, values, gw: g, ...(prep ? { prep } : {}) });
+  return { key, road: got?.weeks ? got : null };
+}
+
 export function extraWeek(P, g) {
   const w = weekOf(P, g);
   if (!w || squadWeek(w)) return false;
@@ -4800,9 +4832,20 @@ function findBuy(ctx, P, id, g, fixed) {
   return two ?? { kind: 'none', short, problem: { code: 'budget', gw: g, short } };
 }
 
-/** A1: a buy's ask in words (the row's in-place question before "Do both"): "Saka needs £1.2m more · Also sell
- *  Calafiori → Bassey (−4)?". bp: a buyPlan 'two'. */
-export const fundAsk = (P, bp, { fixed = false } = {}) => COPY.fundAsk(P.L.name(bp.in), bp.short, P.L.name(bp.fund.out), P.L.name(bp.fund.in), bp.hits, fixed ? null : P.L.name(bp.out));
+/** A sale chip's bring-in (Bring in…'s Sells; the owner, 2026-10-28: "make it to add player even with negative itb like
+ *  official fpl allow"): him for exactly that sale from GW g, as buyPlan's 'one' even where the bank can't pay for it
+ *  (`short`: what it lacks; the plan then shows the bank below 0, memory.holdOf's debts, and Forkcast's way to pay it back
+ *  on the pitch: plansOf, owedRoad); one the club limit stops, or none his place has, is buyPlan's answer. */
+export function saleBuy(ctx, id, g, out) {
+  const bp = buyPlan(ctx, id, g, { out });
+  if (bp.kind === 'one' || (bp.kind === 'none' && bp.problem?.code !== 'budget')) return bp;
+  const P = plan(ctx);
+  const t = saleTries(ctx, P, Number(id), Number(g), Number(out))[0];
+  if (!t || problemsOf(ctx, t.r.ev, g).some((p) => p.code !== 'budget')) return bp;
+  const ev0 = planBaseline(ctx, P, g);
+  const hitsAt = (ev) => ev.gws.find((s) => s.gw === g)?.hits ?? 0;
+  return { kind: 'one', out: Number(out), in: Number(id), draft: t.r.draft, ev: t.r.ev, cmp: compare(ctx, t.r.ev, ev0), hits: Math.max(0, hitsAt(t.r.ev) - hitsAt(ev0)), short: t.r.problem?.short ?? 0 };
+}
 
 /**
  * A1: player `id` in from GW g as buyPlan found him (bp, 'one' or an asked 'two'): his sale, and with 'two' the sale that
@@ -6474,7 +6517,9 @@ export function mount(el, ctx) {
    *  than the plan counted). */
   const driftRoom = (P, w) => P.weeks.filter((x) => x.gw <= w.gw).flatMap((x) => x.moves.map((m) => m.out))
     .reduce((s, p) => s + Math.max(0, (P.L.priceT(p) ?? 0) - (P.L.sellT(p) ?? P.L.priceT(p) ?? 0)), 0) / 10;
-  const priceDrift = (P, w) => w.gw > P.A && !ap0(P, w.gw) && w.bank != null && w.bank < -1e-9 && -w.bank <= driftRoom(P, w) + 1e-9;
+  // (never a week your transfers leave short of money: the hold's debts, memory.holdOf)
+  const owes = (P, g) => P.pins.some((p) => p.id === 'hold' && (p.debts || []).includes(g));
+  const priceDrift = (P, w) => w.gw > P.A && !ap0(P, w.gw) && w.bank != null && w.bank < -1e-9 && -w.bank <= driftRoom(P, w) + 1e-9 && !owes(P, w.gw);
 
   // ---------------------------------------------------------------- the week line, the choices on the pitch and the Week sheet
 

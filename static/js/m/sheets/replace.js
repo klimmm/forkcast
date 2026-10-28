@@ -14,16 +14,17 @@
 // Scott → Groß", M6); a player your rules keep out (a veto, Never) is blocked as "your rule" (UX-1).
 // The fix pass (2026-10-08): A1 Forkcast's pick was the best row as it is, made as your transfer (a week handed to the
 // planner could add a sale and a hit of its own: under the hold the week now takes the one buy only, memory.holdOf; hits
-// stay within You → Plan). A3 a row he can't afford asks in place for the sale that frees the money ("Saka needs £1.2m
-// more · Also sell Calafiori → Bassey (−4)? [Do both · +1.2] [Cancel]", ahead.buyPlan / bringIn), never "Try GW7" unless GW7
-// fits. A8 the hit is said once over the list (the rows' numbers count it), and a buy who wouldn't start that week says
-// "bench in GW6" in grey.
+// stay within You → Plan). A row he can't afford is made as it is (the owner, 2026-10-28: "make it to add player even
+// with negative itb like official fpl allow"; it asked for the sale that frees the money before, A3): the plan short of
+// money as FPL's draft is (ahead.saleBuy → bringIn, memory.holdOf's debts), Forkcast's way to pay it back the pitch's
+// best (ahead.plansOf, owedRoad). A8 the hit is said once over the list (the rows' numbers count it), and a buy who
+// wouldn't start that week says "bench in GW6" in grey.
 
 import { h, fmt, fill, toast, norm, posName, icon, xpGain } from '../../ui.js';
 import * as E from '../../plan/engine.js';
 import { COPY } from '../calls.js';
-import { plan, squadBefore, inTeamAt, addMove, draftOf, planBaseline, takenBy, sellOut, problemText, problemShort, barred, barringRules, removeRule, openRules, baseOf, weekOf, buyPlan, bringIn, sayBuyProblem, presolveTaps } from '../ahead.js';
-import { weekPills, sortTabs, sortName, sorter, barTop, bars, who, found, askBoth, sameAsk } from './buylist.js';
+import { plan, squadBefore, inTeamAt, addMove, draftOf, planBaseline, takenBy, sellOut, problemText, problemShort, barred, barringRules, removeRule, openRules, baseOf, weekOf, saleBuy, bringIn, sayBuyProblem, presolveTaps } from '../ahead.js';
+import { weekPills, sortTabs, sortName, sorter, barTop, bars, who, found } from './buylist.js';
 
 const CAP = 30;
 /** Hits the estimate takes from GW g on. */
@@ -36,7 +37,7 @@ export function open(ctx, rawOut, rawGw) {
   if (!P0) return null;
   const valid = P0.gws.filter((g) => squadBefore(P0, g).includes(out));
   if (!valid.length) { toast(`${P0.L.name(out)} isn't in your plan's squad in ${COPY.span(P0.gws)}.`, 'info'); return null; }
-  const st = { g: valid.includes(Number(rawGw)) ? Number(rawGw) : valid[0], sort: 'plan', q: '', busy: false, ask: null };
+  const st = { g: valid.includes(Number(rawGw)) ? Number(rawGw) : valid[0], sort: 'plan', q: '', busy: false };
   const cache = new Map();
   const pos = P0.L.pos(out);
   const word = POS_WORD[pos] || 'player';
@@ -128,7 +129,8 @@ export function open(ctx, rawOut, rawGw) {
         const top = barTop(L, shown, P.gws);
         fill(list, shown.length ? shown.map((o) => {
           const rowEl = h('button.ah-lrow', {
-            type: 'button', role: 'listitem', class: { blocked: !!o.blocked }, disabled: !o.blocked && !plan(ctx)?.editable,
+            // (one the bank can't pay for is made as it is: pick, never greyed)
+            type: 'button', role: 'listitem', class: { blocked: !!o.blocked && o.code !== 'budget' }, disabled: (!o.blocked || o.code === 'budget') && !plan(ctx)?.editable,
             'aria-label': o.blocked ? (o.code === 'budget' ? `${o.row.name}: ${o.blocked}` : null)
               : `Sell ${L.name(out)} for ${o.row.name} from GW${st.g}: ${COPY.listTotalSaid(o.delta, true)}${o.bench ? `, on the bench in GW${st.g}` : ''}`,
             onClick: () => pick(o),
@@ -140,7 +142,7 @@ export function open(ctx, rawOut, rawGw) {
           h('span.rt.m-num', null, o.blocked
             ? h('small', { class: { 'g-loss': o.code === 'budget' } }, o.blocked)
             : [xpGain(o.delta, 'span', null, true, '≈ '), h('small', null, COPY.listTotal)]));
-          return st.ask?.id === o.id && st.ask.g === st.g ? [rowEl, askEl(o)] : rowEl;
+          return rowEl;
         }) : h('p.ah-empty', null, COPY.noneCalled(word, st.q.trim())));
         // "Let Forkcast choose" (both modes, the user 2026-10-13): the sale alone your rule, the full plan picks who comes
         // in (sell(null): ahead.sellAny), the best row's ≈ its number (autoGuess), no name promised (B32: a named pick the
@@ -158,19 +160,24 @@ export function open(ctx, rawOut, rawGw) {
         // its taps solved ahead while it is open (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and
         // done without no cost"): Let Forkcast choose, then the rows the list ranks first that can be made
         const g = st.g;
-        if (P.editable) presolveTaps(ctx, [...(best ? [null] : []), ...shown.filter((o) => !o.blocked).map((o) => o.id)].map((inn) => ({ kind: 'sell', gw: g, run: () => sellOut(ctx, g, out, inn) })), { gw: g, sig: `${g}|${st.sort}|${q}`, owner: sheet });
+        if (P.editable) {
+          presolveTaps(ctx, [
+            ...[...(best ? [null] : []), ...shown.filter((o) => !o.blocked).map((o) => o.id)].map((inn) => ({ kind: 'sell', gw: g, run: () => sellOut(ctx, g, out, inn) })),
+            ...shown.filter((o) => o.code === 'budget').map((o) => ({ kind: 'bring', gw: g, run: () => { const bp = saleBuy(ctx, o.id, g, out); return bp.kind === 'one' && bringIn(ctx, o.id, g, bp); } })),
+          ], { gw: g, sig: `${g}|${st.sort}|${q}`, owner: sheet });
+        }
       }
 
       function pick(o) {
         if (o.blocked && o.code === 'budget') {
-          // A3: the sale that frees the money, asked in place (never "Try GW7" unless GW7 fits him)
-          const P = plan(ctx);
-          const bp = buyPlan(ctx, o.id, st.g, { out });
-          // B36: in both modes (the sale that frees the money made as yours, as under the hold)
-          if (bp.kind === 'two') { st.ask = { id: o.id, g: st.g, bp }; draw(); return; }
-          // one that can't be made says why, and the later week he fits in with its action (B74)
-          if (bp.kind === 'none') sayBuyProblem(ctx, P, o.id, bp, 'info');
-          else toast(problemText(ctx, o.problem, o.row.name), 'info');
+          // the sale made as it is, the bank short as FPL's draft is (ahead.saleBuy; B36: in both modes); one the club
+          // limit stops says why, and the later week he fits in with its action (B74)
+          const P = plan(ctx), g = st.g;
+          const bp = saleBuy(ctx, o.id, g, out);
+          if (bp.kind !== 'one') { sayBuyProblem(ctx, P, o.id, bp, 'info'); return; }
+          if (!bringIn(ctx, o.id, g, bp)) return;
+          sheet.close();
+          ctx.navigate('ahead', { gw: g }, { replace: true, top: true });  // B45: no new entry; H1: the top
           return;
         }
         // B89 (podmajersky P2 §13: "Remove the rule on Ahead" sent you away to do it): the one rule of yours that keeps
@@ -192,28 +199,6 @@ export function open(ctx, rawOut, rawGw) {
           return;
         }
         sell(o.id);
-      }
-
-      /** A3: the row's own question: "Saka needs £1.2m more · Also sell Calafiori → Bassey (−4)? [Do both · +1.2]
-       *  [Cancel]": the button carries what doing both gives over the window (the reviews, 2026-10-11: the ask had money
-       *  and a hit, no points; B145: the number last). */
-      function askEl(o) {
-        const a = st.ask;
-        return askBoth(plan(ctx), a.bp, {
-          fixed: true,
-          // Do both on the plan as it is now: the way that still says what was asked (buylist.sameAsk), else asked again,
-          // made alone when his sale now fits, or why not
-          onDo: () => {
-            const P = plan(ctx), bp = buyPlan(ctx, o.id, a.g, { out });
-            if (bp.kind === 'two' && !sameAsk(P, bp, a.bp, { fixed: true })) { st.ask = { ...a, bp }; draw(); return; }
-            if (bp.kind === 'none') { st.ask = null; sayBuyProblem(ctx, P, o.id, bp, 'info'); draw(); return; }
-            if (!bringIn(ctx, o.id, a.g, bp)) return;
-            st.ask = null;
-            sheet.close();
-            ctx.navigate('ahead', { gw: a.g }, { replace: true, top: true });  // B45: no new entry; H1: the top
-          },
-          onCancel: () => { st.ask = null; draw(); },
-        });
       }
 
       /** F15c: a row tapped is the plan at once (ahead.sellOut: a rule of yours it takes back goes too, named; the

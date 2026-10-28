@@ -9,10 +9,11 @@
 // open(ctx, preId?, {gw}?) — a row's + and the Player sheet's "Bring him in…" (preId) work a week out the
 // same way (the user, 2026-10-09: "why 'bring him in', 'find funds' and '+' all do different things"; "Add Groß in GW6"
 // added him at once from a GW's week line and opened the weeks from a card): + and "Bring him in…" open his week pills.
-// A tap on a pill SELECTS that week, never makes it: the line under the pills names its moves and the week's transfers
-// and hit (ahead.inWords), then the verdict (B73: the points are the pill's, never repeated), and "Forkcast picks" under
-// the pills makes exactly those in one tap (a named sale chip that sale: sells), the verdict toast with Undo; closing the
-// sheet is "not now". Opened
+// A tap on a pill SELECTS that week, never makes it; a sale chip under the pills makes that sale (sells), the verdict
+// toast with Undo; closing the sheet is "not now". "Forkcast picks" went (the owner, 2026-10-28: "make it to add player
+// even with negative itb like official fpl allow and instead of 'forkcast picks' show it as black transfer suggested as
+// usual"): a sale the bank can't pay for is made as it is, the plan short of money as FPL's draft is (ahead.saleBuy,
+// memory.holdOf's debts), and Forkcast's way to pay it back is the pitch's best (ahead.plansOf, owedRoad). Opened
 // from a GW's week line (its Bring in… door, {gw}) or a card (its GW, B77: solved first) that week is selected
 // first, else the best week so far (said "Best:" only when it beats the next by more than the noise, "GW6 or GW7: a
 // negligible gap" when it doesn't: bestMark; its pill green (and a chip week's button filled) only for a gain beyond the noise:
@@ -40,20 +41,18 @@
 // card as his shirt does (sell, sub…).
 // No plan estimate and no hit here: his + shows each week's.
 // His sale (the user, 2026-10-10: "when i click sell player - it let me choose to whom with option to let model choose. but
-// when i bring player in - it not let me choose"): under the week pills, Replace's mirror, "Sells: Forkcast picks · Scott
-// +7.8 · Tavernier +3.9 · Rogers £0.4m short" (ahead.saleOptions, the same engine step buyPlan picks from). Forkcast picks is
-// the week's own way (its pill, the line under the chips its moves); a sale is buyPlan's with it (one more sale named when
-// the money needs it). Each chip is the bring-in itself, one tap (the user, 2026-10-13: "why instead of just clicking on
-// player or on forcast chooseing button i need to click twice … this button redundand"): ahead.bringIn / ahead.want, the
-// sheet closed, the verdict toast with Undo; one the money can't pay alone asks first, in the line's place, for its
-// second sale (and a hit): Do both / Cancel (buylist.askBoth; review 6, the user, 2026-10-13: "Ask first"); a sale the
-// money or the club limit can't make says why under the chips instead. A Wildcard or Free Hit week has no sale to choose: its one button brings him into the chip's squad.
+// when i bring player in - it not let me choose"): under the week pills, Replace's mirror, "Sells: Scott +7.8 · Tavernier
+// +3.9 · Rogers · needs £0.4m more" (ahead.saleOptions), the week's own sale (its solve's, or the one sale that pays) marked.
+// Each chip is the bring-in itself, one tap (the user, 2026-10-13: "why instead of just clicking on player or on forcast
+// chooseing button i need to click twice … this button redundand"): exactly that sale (ahead.saleBuy → bringIn), the money
+// short or not, the sheet closed, the verdict toast with Undo; a sale the club limit can't make says why under the chips
+// instead. A Wildcard or Free Hit week has no sale to choose: its one button brings him into the chip's squad.
 
 import * as E from '../../plan/engine.js';
 import { h, fmt, fill, norm, icon, roving, xpNum } from '../../ui.js';
 import { COPY } from '../calls.js';
-import { plan, weekOf, squadBefore, squadWeek, addMove, draftOf, estimate, wishSolve, want, reroute, editable, barred, barringRule, ruleOf, clearGain, inkAt, buyPlan, holdBuy, bringIn, bringInTakes, removesText, inWords, weekWith, saleOptions, waitedText, solvesRound, problemText, presolveTaps } from '../ahead.js';
-import { weekPills, tabs, barTop, bars, shirt, found, askBoth, sameAsk } from './buylist.js';
+import { plan, weekOf, squadBefore, squadWeek, addMove, draftOf, estimate, wishSolve, want, reroute, editable, barred, barringRule, ruleOf, clearGain, inkAt, buyPlan, saleBuy, holdBuy, bringIn, bringInTakes, removesText, inWords, weekWith, saleOptions, waitedText, solvesRound, problemText, presolveTaps } from '../ahead.js';
+import { weekPills, tabs, barTop, bars, shirt, found } from './buylist.js';
 
 const plusGlyph = () => {
   const ns = 'http://www.w3.org/2000/svg';
@@ -92,9 +91,8 @@ export const pillWords = (o) => (o.delta == null ? { shown: '…', said: 'checki
   : { shown: `${o.kind === 'est' ? '≈' : ''}${fmt.signed(o.delta)}`, said: COPY.listTotalSaid(o.delta, o.kind === 'est'), unit: COPY.listTotal });
 /** A sale chip's tail for player `id` in GW g (x: a saleOptions row), shown and said: its points, named as the week pill
  *  over it names the same measure, your total's move (`unit`; the review of the first-use proposals, 2026-10-21); one the money can't
- *  pay alone, the money short, not in the loss colour, as one more sale may free it (B30: the funding search, dozens of
- *  evaluations a sale, runs as the chip is tapped: sale's buyPlan, which says why when none frees it, and asks before
- *  making the second sale: askBoth, review 6); one the club
+ *  pay alone, the money short, not in the loss colour, its tap the sale all the same (ahead.saleBuy: the plan short of
+ *  money as FPL's draft is, the pitch then offering what pays it back); one the club
  *  limit stops, its reason as a week pill says it ("3 from ARS": cantFit), never a bare "can't". → {tail, loss, said, off, unit?} */
 export function saleWords(ctx, id, g, x) {
   if (x.cmp) return { tail: fmt.signed(x.cmp.delta), loss: false, said: COPY.listTotalSaid(x.cmp.delta), off: false, unit: COPY.listTotal };
@@ -105,8 +103,8 @@ export function saleWords(ctx, id, g, x) {
 }
 /** A week pill whose moves are known: one sale pays for him (buy) or the solve came back (road). */
 const works = (o) => o?.kind === 'buy' || o?.kind === 'road';
-/** A known week as ahead.weekWith / inWords take it: the buy "Forkcast picks" makes (bp: a week one sale pays for, or a
- *  solved road's GW-g moves, ahead.holdBuy). */
+/** A known week as ahead.weekWith / inWords take it: the week's own buy (bp: a week one sale pays for, or a solved
+ *  road's GW-g moves, ahead.holdBuy), what its pill counts. */
 const how = (o) => ({ bp: o.bp });
 
 export function open(ctx, preId = null, { gw = null, pos = null, out = null } = {}) {
@@ -116,11 +114,11 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
   const G = gw != null && P0.gws.includes(Number(gw)) ? Number(gw) : null;
   // sel: the week the line speaks for; own: you tapped it (a solve landing later never moves it); g: the list's week
   const live = (g) => !inkAt(ctx, P0, g);  // a week an arrival can still reach (B7: not frozen, not GW A under way)
-  // out: the sale you chose for a player's selected week ({g, out}; none: Forkcast picks); need: the weeks his reach sent to
+  // out: the sale you chose for a player's selected week ({g, out}) that can't be made; need: the weeks his reach sent to
   // a solve, in its order; wait: the solve out ({g, i, n, t0}, B87b), its line's clock ticking (tick)
   // (pos: the position its list opens on, a player's place's "Other…": ahead.drawPlace; else all; place: that player,
   // whose sale the Sells row leads with: sells)
-  const st = { q: '', open: null, res: {}, sel: {}, own: {}, out: {}, ask: null, need: {}, wait: null, tick: null, req: null, run: 0, g: G ?? P0.gws.find(live) ?? P0.A, pos: POSITIONS.includes(pos) ? pos : 'all', place: out != null ? Number(out) : null, sort: 'pts', flip: false };
+  const st = { q: '', open: null, res: {}, sel: {}, own: {}, out: {}, need: {}, wait: null, tick: null, req: null, run: 0, g: G ?? P0.gws.find(live) ?? P0.A, pos: POSITIONS.includes(pos) ? pos : 'all', place: out != null ? Number(out) : null, sort: 'pts', flip: false };
   const no = barred(P0, P0.A);
 
   const stop = () => { st.run++; st.req?.cancel?.(); st.req = null; clearInterval(st.tick); st.wait = null; presolveTaps(ctx, null, { owner: st }); };
@@ -180,7 +178,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
             // its first letter alone lowered: "in your GW8 plan", never "gw8" (review 5, 2026-10-12)
             mine ? h('button.ws-add.ws-mine', { type: 'button', 'aria-label': `${name}, ${yours[0].toLowerCase()}${yours.slice(1)}: his card`, onClick: () => ctx.openSheet('player', id, { gw: st.g }) }, '⋯')
               // open: a × in the +'s place closes his row (the columns stay put)
-              : open ? h('button.ws-add.ws-mine', { type: 'button', 'aria-label': `Close ${name}`, onClick: () => { stop(); st.open = null; st.ask = null; draw(); } }, '×') : h('button.ws-add', {
+              : open ? h('button.ws-add.ws-mine', { type: 'button', 'aria-label': `Close ${name}`, onClick: () => { stop(); st.open = null; draw(); } }, '×') : h('button.ws-add', {
               type: 'button', disabled: !P.editable, 'aria-label': `Bring in ${name}: pick a week`, onClick: () => reach(id),
             }, plusGlyph())),
           open ? pills(id) : null);
@@ -192,10 +190,10 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         const sel = st.sel[id];
         // a Wildcard or Free Hit week has no sale to choose: the chip remakes the squad around him
         const chip = sel != null ? squadWeek(weekOf(P, sel)) : null;
-        // a sale tapped that can't be made (sale: buyPlan found no way): its reason the line's while that week is selected
+        // a sale tapped that can't be made (sale: saleBuy found no way): its reason the line's while that week is selected
         // and it still can't be made, until another chip or a new player
         const mine = st.out[id]?.g === sel && !chip ? st.out[id].out : null;
-        const tried = mine != null ? buyPlan(ctx, id, sel, { out: mine }) : null;
+        const tried = mine != null ? saleBuy(ctx, id, sel, mine) : null;
         const failed = tried?.kind === 'none' ? tried : null;
         const pill = (g) => {
           const o = res[g];
@@ -213,7 +211,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           return h('button.ah-ap', {
             type: 'button', class: { sel: sel === g, 'm-shimmer': solving, fill: !solving }, disabled: o.delta == null, 'aria-pressed': String(sel === g),
             'aria-label': `GW${g}: ${pw.said}${hit ? `, ${hit}` : ''}`,
-            onClick: () => { st.sel[id] = g; st.own[id] = true; st.ask = null; draw(); },
+            onClick: () => { st.sel[id] = g; st.own[id] = true; draw(); },
           }, h('span.g', null, `GW${g}`, hit ? ` ${hit}` : ''),
           // (its number forecast points, blue with "xP" whatever it pays, its sign its direction: ui.js xpNum; the user,
           // 2026-10-22, after v1.3.68: no green number)
@@ -226,8 +224,10 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         const sales = sel != null && !chip && o0 && !['owned', 'bad'].includes(o0.kind) ? sells(id, sel, o0) : null;
         let fund, go = null;
         if (works(o)) {
-          // the selected week's every move, its transfers and hit in all (ahead.inWords), his points and verdict
-          const words = inWords(P, sel, how(o));
+          // its every move, its transfers and hit in all (ahead.inWords) where one tap makes them: a chip week's button, a
+          // week one sale pays for (its marked chip); a solved road's are no tap's ("Forkcast picks" went: the owner,
+          // 2026-10-28), its marked chip its sale alone
+          const words = chip || o.kind === 'buy' ? inWords(P, sel, how(o)) : null;
           const best = bestMark(id, sel, done);
           // the rules of yours this arrival takes back (a veto of him from then on; a buy's, a later buy of him and its
           // funding too: ahead.bringInTakes): the chip or button takes them back (its verdict names them)
@@ -241,22 +241,14 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         } else if (o?.kind === 'none') {
           const p = o.bp.problem;
           // the club limit with its reason (review 5, 2026-10-12: was a bare "can't be made"; ahead.problemText)
-          // the buy for the sale, as the ask names them (ahead.fundAsk: "Groß for Rogers needs £0.4m more")
+          // the buy for the sale ("Groß for Rogers can't be made: …")
           const pair = `${P.L.name(id)} for ${P.L.name(mine)}`;
-          fund = p?.code === 'budget' ? `${pair} needs ${fmt.money(p.short)} more in GW${sel}, and no other sale frees it.`
-            : p?.code === 'club' ? `${pair} can't be made: ${problemText(ctx, p)}` : `${pair} can't be made in GW${sel}.`;
+          fund = p?.code === 'club' ? `${pair} can't be made: ${problemText(ctx, p)}` : `${pair} can't be made in GW${sel}.`;
         } else fund = done ? noneWorks(id) : st.wait ? [COPY.checkingWeek(st.wait.g, st.wait.i, st.wait.n), h('span.ws-clock', { 'aria-hidden': 'true' }, waited())] : '';
-        // a sale chip the money can't pay alone, tapped: its second sale asked in the line's place (askBoth); Do both is
-        // that chip again with the way it asked (sale)
-        const a = st.ask?.id === id && st.ask.g === sel ? st.ask : null;
-        const ask = a ? askBoth(P, a.bp, {
-          onDo: () => sale(a.id, a.g, a.out, null, a.bp),
-          onCancel: () => { st.ask = null; pickBest(id); draw(); },
-        }) : null;
         return h('div.ws-x', null,
           h('div.ah-apills', null, P.gws.map(pill)),
           sales,
-          ask ?? h('p.ws-fund', { 'aria-live': 'polite' }, fund),
+          h('p.ws-fund', { 'aria-live': 'polite' }, fund),
           go,
           // a plan you can't edit (offline): its chips, button and every + are off, the reason under them, as the player card says it
           P.editable ? null : h('p.ps-off', null, P.why));
@@ -272,30 +264,29 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         return COPY.noWeekWorks;
       }
 
-      /** "Sells:" for player `id` in GW g, each chip the bring-in itself (one tap): Forkcast picks (the week's own way,
-       *  `o0`: its moves the line's; off until they are known), then each sale of his position with him in its place
-       *  against your plan, best first ("Scott +7.8"; one the money can't pay alone "Rogers £0.4m short", buyPlan finding one
-       *  more sale to free it when tapped, asked before it is made (askBoth: "Do both"); one the club limit stops greyed, "Rice 3 from ARS": saleWords). A sale
-       *  buyPlan can't make says why on the line instead (st.out). */
+      /** "Sells:" for player `id` in GW g, each chip the bring-in itself (one tap): each sale of his position with him in
+       *  its place against your plan, best first ("Scott +7.8"; one the money can't pay alone "Rogers · needs £0.4m more",
+       *  made as it is: saleBuy; one the club limit stops greyed, "Rice 3 from ARS": saleWords), the week's own sale (`o0`:
+       *  its solve's, or the one sale that pays) marked. A sale saleBuy can't make says why on the line instead (st.out). */
       function sells(id, g, o0) {
         const P = plan(ctx), nm = P.L.name;
-        const act = (out) => sale(id, g, out, o0);
+        const act = (out) => sale(id, g, out);
         const chip = (label, aria, onClick, cls = '', off = false) => h(`button${cls}`, { type: 'button', disabled: off || !editable(ctx), 'aria-label': aria, onClick }, label);
         const opts = saleOptions(ctx, id, g);
-        // opened from a player's place ("Other…": st.place), the sale is his: his chip first and the row's own action,
-        // Forkcast's pick after it (the owner, 2026-10-28: Haaland chosen in João Pedro's place came in for Isak)
+        // opened from a player's place ("Other…": st.place), the sale is his: his chip first and marked (the owner,
+        // 2026-10-28: Haaland chosen in João Pedro's place came in for Isak); else the week's own sale marked, where known
         const his = opts.find((x) => x.out === st.place && !saleWords(ctx, id, g, x).off) ?? null;
+        const own = works(o0) ? Number(o0.bp?.out) : null;
+        const rec = his ?? opts.find((x) => x.out === own && !saleWords(ctx, id, g, x).off) ?? null;
         const saleChip = (x) => {
           const w = saleWords(ctx, id, g, x);
           // (a sale's number blue with "xP", as the week pill's: xpNum; words, the money it needs, in the chip's ink)
           return chip([nm(x.out), ' ', x.cmp ? xpNum(w.tail, 'span.m-num') : h('span.m-num', { class: { 'g-loss': w.loss } }, w.tail), w.unit ? h('small.u', null, ` ${w.unit}`) : null],
-            `${COPY.bringIn(nm(id), g)} for ${nm(x.out)}: ${w.said}`, () => act(x.out), w.off ? '.off' : x === his ? '.rec' : '');
+            `${COPY.bringIn(nm(id), g)} for ${nm(x.out)}: ${w.said}`, () => act(x.out), w.off ? '.off' : x === rec ? '.rec' : '');
         };
         return h('div.ws-sells', { role: 'group', 'aria-label': `Bring in ${nm(id)} from GW${g}, selling` },
           h('span.ws-sl', { 'aria-hidden': 'true' }, 'Sells'),
           his ? saleChip(his) : null,
-          // (an outlined + action, never a filled pill: it read as a toggle already on; the user, 2026-10-22)
-          chip([icon('plus', { size: 14 }), 'Forkcast picks'], `${COPY.bringIn(nm(id), g)}: Forkcast picks the sale`, () => act(null), his ? '' : '.rec', !works(o0)),
           opts.filter((x) => x !== his).map(saleChip));
       }
 
@@ -345,15 +336,16 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           !q && later.length ? h('div.m-sec', null, h('h3', null, 'Your plan buys later'),
             later.map(({ id, gw: at }) => row(id, `arrives GW${at} · bring him in earlier`))) : null);
         // the open player's taps solved ahead (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and done
-        // without no cost"): the week his line speaks for first, each week as its button makes it (take), then that week's
-        // sale chips one sale pays for (sale: buyPlan with that sale)
+        // without no cost"): a Wildcard or Free Hit week's button (take), then the selected week's sale chips (sale:
+        // saleBuy with that sale, the money short or not)
         const id = st.open, res = id != null ? st.res[id] || {} : {}, sel = id != null ? st.sel[id] : null;
-        const weeks = id == null ? [] : [sel, ...P.gws.filter((x) => x !== sel)].filter((x) => x != null && works(res[x]));
-        const sales = sel != null && weeks.includes(sel) && !squadWeek(weekOf(P, sel)) ? saleOptions(ctx, id, sel).filter((x) => x.cmp) : [];
-        if (P.editable && weeks.length) {
+        const weeks = id == null ? [] : [sel, ...P.gws.filter((x) => x !== sel)].filter((x) => x != null && works(res[x]) && squadWeek(weekOf(P, x)));
+        const sales = sel != null && !squadWeek(weekOf(P, sel)) && res[sel] && !['owned', 'bad'].includes(res[sel].kind)
+          ? saleOptions(ctx, id, sel).filter((x) => !saleWords(ctx, id, sel, x).off) : [];
+        if (P.editable && (weeks.length || sales.length)) {
           presolveTaps(ctx, [
             ...weeks.map((x) => ({ kind: 'bring', gw: x, run: () => (res[x].kind === 'buy' ? bringIn(ctx, id, x, res[x].bp) : want(ctx, id, x, res[x].road)) })),
-            ...sales.map((x) => ({ kind: 'bring', gw: sel, run: () => { const bp = buyPlan(ctx, id, sel, { out: x.out }); return bp.kind === 'one' && bringIn(ctx, id, sel, bp); } })),
+            ...sales.map((x) => ({ kind: 'bring', gw: sel, run: () => { const bp = saleBuy(ctx, id, sel, x.out); return bp.kind === 'one' && bringIn(ctx, id, sel, bp); } })),
           ], { gw: sel ?? g, sig: `${id}|${weeks.join()}|${sales.map((x) => x.out).join()}`, owner: st });
         }
       }
@@ -371,7 +363,6 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         st.res[id] = {};
         st.sel[id] = null;
         st.own[id] = false;
-        st.ask = null;
         st.out[id] = null;
         const P = plan(ctx);
         const d0 = draftOf(ctx);
@@ -465,38 +456,30 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         const clear = E.verdictLabel(top[1].delta - (next ? next[1].delta : 0), noise) !== 'coin';
         return tops[0] === sel && clear && clearGain(top[1].cmp) ? (done ? 'Best: ' : 'Best so far: ') : '';
       }
-      /** The week the line speaks for: the one you tapped while it can still work (or while it asks you about a sale:
-       *  st.ask, whatever its solve then says), else the list's week (opened on the plan's GW) while it can, else the best
-       *  so far. */
+      /** The week the line speaks for: the one you tapped while it can still work, else the list's week (opened on the
+       *  plan's GW) while it can, else the best so far. */
       function pickBest(id) {
         const r = st.res[id];
         const live2 = (o) => works(o) || o?.kind === 'est';
-        if (st.own[id] && (live2(r[st.sel[id]]) || (st.ask?.id === id && st.ask.g === st.sel[id]))) return;
+        if (st.own[id] && live2(r[st.sel[id]])) return;
         st.own[id] = false;
         st.sel[id] = live2(r[st.g]) ? st.g : bestWeek(id);
       }
 
-      /** A Sells chip for player `id` in GW g tapped (`out`: a sale of his; null: Forkcast picks, the week's own way `o0`),
-       *  or its ask's Do both (`asked`: the way it asked). The chip before it goes (its ask, its reason: st.ask, st.out)
-       *  and the week stays the one you tapped in (st.own, pickBest). A sale is buyPlan's on the plan as it is now: one
-       *  the money can't pay alone is asked first, as Replace asks (askBoth: its second sale and a hit). Its Do both makes
-       *  the way that still says what was asked (buylist.sameAsk); on a plan that changed it, asked again if it still needs
-       *  a second sale, made if his sale now fits alone, else why not. */
-      function sale(id, g, out, o0, asked = null) {
-        st.ask = null;
+      /** A Sells chip for player `id` in GW g tapped (`out`: a sale of his): exactly that sale on the plan as it is now
+       *  (ahead.saleBuy: the money short or not, as FPL makes a draft), the week the one you tapped in (st.own, pickBest);
+       *  one the club limit stops says why on the line instead (st.out). */
+      function sale(id, g, out) {
         st.out[id] = null;
         st.own[id] = true;
-        if (out == null) { if (works(o0)) take(id, g, o0); return; }
-        const bp = buyPlan(ctx, id, g, { out });
+        const bp = saleBuy(ctx, id, g, out);
         if (bp.kind === 'none') { st.out[id] = { g, out }; draw(); return; }
-        if (bp.kind === 'two' && !sameAsk(plan(ctx), bp, asked)) { st.ask = { id, g, out, bp }; draw(); return; }
         take(id, g, { kind: 'buy', bp });
       }
-      /** A sale chip's, an ask's or a chip week's button's bring-in: exactly the moves it names (a week one sale pays for,
-       *  or with its second sale: bringIn; a solved road: ahead.want, its GW-g moves as your transfers in both modes, B36),
-       *  a rule of yours it takes back named in its verdict (A6); then Ahead on that week, the verdict toast with Undo.
-       *  Refused (offline, GW A under way: the toast says why), the sheet is drawn again, its week picked afresh (pickBest:
-       *  an ask's week is held no longer). */
+      /** A sale chip's or a chip week's button's bring-in: exactly the moves it names (a sale: bringIn; a Wildcard or Free
+       *  Hit week's solved road: ahead.want, its GW-g moves as your transfers in both modes, B36), a rule of yours it takes
+       *  back named in its verdict (A6); then Ahead on that week, the verdict toast with Undo. Refused (offline, GW A under
+       *  way: the toast says why), the sheet is drawn again, its week picked afresh (pickBest). */
       function take(id, g, o) {
         if (!(o.kind === 'buy' ? bringIn(ctx, id, g, o.bp) : want(ctx, id, g, o.road))) { pickBest(id); draw(); return; }
         leave(g);
