@@ -48,10 +48,10 @@
 .ws .ws-add:active:not(:disabled) { background: var(--track); }
 /* Add a player's sorts (wish.js): one row of chips scrolling sideways inside the sheet, the chosen one filled with its
    arrow (a second tap turns it round) */
-.ws .ws-sorts { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-.ws .ws-sorts::-webkit-scrollbar { display: none; }
-.ws .ws-sorts button { flex: none; height: 32px; padding: 0 12px; border: 0; border-radius: 16px; background: var(--soft-2); color: var(--text-2); font: 600 var(--t-sub)/1.3 var(--f-round); white-space: nowrap; }
-.ws .ws-sorts button[aria-checked="true"] { background: var(--accent); color: var(--accent-ink); }
+:is(.ws, .rs) .ws-sorts { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+:is(.ws, .rs) .ws-sorts::-webkit-scrollbar { display: none; }
+:is(.ws, .rs) .ws-sorts button { flex: none; height: 32px; padding: 0 12px; border: 0; border-radius: 16px; background: var(--soft-2); color: var(--text-2); font: 600 var(--t-sub)/1.3 var(--f-round); white-space: nowrap; }
+:is(.ws, .rs) .ws-sorts button[aria-checked="true"] { background: var(--accent); color: var(--accent-ink); }
 /* a player's sales under his week pills: "Sells" then Forkcast picks and each sale, chips that wrap; the chosen filled */
 .ws .ws-sells { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
 .ws .ws-sells .ws-sl { font: 600 var(--t-cap)/1.3 var(--f-text); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }

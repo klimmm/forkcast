@@ -52,10 +52,10 @@
 // (swapIn; the owner, 2026-10-28: "why mids not block when i replacing def", "why isak not added to pitch").
 
 import * as E from '../../plan/engine.js';
-import { h, fmt, fill, norm, icon, roving, xpNum } from '../../ui.js';
+import { h, fmt, fill, norm, icon, xpNum } from '../../ui.js';
 import { COPY } from '../calls.js';
 import { plan, weekOf, squadBefore, squadWeek, addMove, draftOf, estimate, wishSolve, want, reroute, editable, barred, barringRule, ruleOf, clearGain, inkAt, buyPlan, saleBuy, sayBuyProblem, holdBuy, bringIn, bringInTakes, removesText, inWords, weekWith, saleOptions, waitedText, solvesRound, problemText, presolveTaps } from '../ahead.js';
-import { weekPills, tabs, barTop, bars, shirt, found } from './buylist.js';
+import { weekPills, tabs, barTop, bars, shirt, found, SORTS, sortsOf, orderOf, sortChips } from './buylist.js';
 
 const plusGlyph = () => {
   const ns = 'http://www.w3.org/2000/svg';
@@ -68,20 +68,6 @@ const plusGlyph = () => {
 };
 
 const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
-const after = (P, g) => P.gws.filter((x) => x >= g);
-const two = (v) => Number(v).toFixed(2);
-/** Add a player's sorts: key, the chip's name, his value (P, row, g), the row's number and its small line, low values
- *  first (xGC: fewer conceded is better; Price: the cheapest, as before), the bundle field it needs. */
-const SORTS = [
-  { key: 'pts', xp: true, name: (P, g) => `Predicted ${COPY.span(after(P, g))}`, val: (P, r, g) => after(P, g).reduce((t, x) => t + (P.L.xp(Number(r.id), x) ?? 0), 0), num: (v) => fmt.num(v), unit: (P, g) => `pts ${COPY.span(after(P, g))}` },
-  { key: 'week', xp: true, name: (P, g) => `GW${g}`, val: (P, r, g) => P.L.xp(Number(r.id), g) ?? 0, num: (v) => fmt.num(v), unit: (P, g) => `pts GW${g}` },
-  { key: 'price', name: () => 'Price', val: (P, r) => r.price, num: (v) => fmt.money(v), unit: () => 'price', low: true },
-  { key: 'own', name: () => 'Owned', field: 'sel_pct', val: (P, r) => r.sel_pct, num: (v) => fmt.pct(v), unit: () => 'owned' },
-  { key: 'form', name: () => 'Form', field: 'form', val: (P, r) => r.form, num: (v) => fmt.num(v), unit: () => 'form' },
-  { key: 'xgi', name: () => 'xGI', field: 'xgi90', val: (P, r) => r.xgi90, num: two, unit: () => 'xGI per 90' },
-  { key: 'xgc', name: () => 'xGC', field: 'xgc90', val: (P, r) => r.xgc90, num: two, unit: () => 'xGC per 90', low: true },
-  { key: 'dc', name: () => 'DefCon', field: 'dc90', val: (P, r) => r.dc90, num: (v) => fmt.num(v), unit: () => 'DefCon per 90' },
-];
 /** A week pill no buy fits (a buyPlan 'none'), in its few words: the club limit as Replace's row says it ("3 from
  *  ARS", B30), one the plan already buys by then "in plan" (review 5, 2026-10-12: it read "can't fit"), else "can't fit". */
 const cantFit = (bp) => (bp.problem?.code === 'club' ? COPY.clubFull(bp.problem.club) : bp.problem?.code === 'owned' ? 'in plan' : "can't fit");
@@ -139,19 +125,9 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
       const sortEl = h('div.ws-sorts', { role: 'radiogroup', 'aria-label': 'Sort by' });
       body.append(h('label.ah-search', null, icon('search', { size: 16 }), input), pillsEl, posEl, sortEl, main);
       input.addEventListener('input', () => { st.q = input.value; draw(); });
-      /** The sorts this bundle can back: a field it carries with a value for someone (a past GW's has no per-90 rates). */
-      const sorts = () => SORTS.filter((x) => !x.field || (ctx.bundle?.players?.fields?.includes(x.field) && ctx.data.rows.some((r) => r[x.field] != null)));
+      /** The sorts this bundle can back (buylist.sortsOf), the one chosen. */
+      const sorts = () => sortsOf(ctx);
       const sortOf = () => sorts().find((x) => x.key === st.sort) ?? SORTS[0];
-      /** The chosen sort's order: its values (those without one last), low first where it says so, a second tap reversed;
-       *  ties by the window's forecast. */
-      function order(P, g) {
-        const x = sortOf(), pts = SORTS[0];
-        const dir = (x.low ? 1 : -1) * (st.flip ? -1 : 1);
-        return (a, b) => {
-          const va = x.val(P, a, g), vb = x.val(P, b, g);
-          return (va == null) - (vb == null) || (va != null && vb != null ? dir * (va - vb) : 0) || pts.val(P, b, g) - pts.val(P, a, g);
-        };
-      }
 
       /** A player's row: shirt, his name (his card, on the list's week), club and price, his forecast bars and the sort's
        *  number ("24.8" over "pts GW6–9", "38.2%" over "owned"…), his +. One of your squad then (`mine`): greyed, "In your
@@ -313,7 +289,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         // (opened from a player's place, st.lock: of his position, found or not)
         const at = (r) => (!q || found(r, q)) && ((q && !st.lock) || st.pos === 'all' || P.L.pos(Number(r.id)) === st.pos);
         const ok = (r) => mine(r) || (r.buyable && (q || !ruled.has(Number(r.id))));
-        return ctx.data.rows.filter((r) => at(r) && ok(r)).sort(order(P, g)).map((r) => ({ row: r, mine: mine(r) }));
+        return ctx.data.rows.filter((r) => at(r) && ok(r)).sort(orderOf(sortOf(), st.flip, P, g)).map((r) => ({ row: r, mine: mine(r) }));
       }
 
       function draw() {
@@ -323,18 +299,8 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         weekPills(pillsEl, P.gws, g, live, (x) => { st.g = x; draw(); });
         tabs(posEl, [['all', 'All'], ...POSITIONS.map((x) => [x, x])], st.pos, (k) => { st.pos = k; draw(); }, (k) => st.lock && k !== st.pos);
         posEl.hidden = !!q;
-        // the sorts as chips in one sideways row: a tap chooses one, a second tap turns it round (its arrow says which way);
-        // a radio group (no panels of their own: B113), the arrow keys picking as a tap does (ui.roving)
-        const cur = sortOf();
-        fill(sortEl, sorts().map((x) => {
-          const on = x === cur, down = !x.low !== st.flip;
-          return h('button', {
-            type: 'button', role: 'radio', 'aria-checked': String(on),
-            'aria-label': `Sort by ${x.name(P, g)}${on ? (down ? ', highest first' : ', lowest first') : ''}`,
-            onClick: () => { if (on) st.flip = !st.flip; else { st.sort = x.key; st.flip = false; } draw(); },
-          }, x.name(P, g), on ? h('span.ws-dir', { 'aria-hidden': 'true' }, down ? ' ↓' : ' ↑') : null);
-        }));
-        roving(sortEl, { pick: (b) => b.click() });
+        // the sorts as chips in one sideways row (buylist.sortChips)
+        sortChips(sortEl, sorts(), st, P, g, draw);
         const items = players(P).map((o) => ({ ...o, id: Number(o.row.id) }));
         const ids = items.map((o) => o.id);
         const top = barTop(L, items, P.gws);

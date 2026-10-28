@@ -24,12 +24,15 @@ import { h, fmt, fill, toast, norm, posName, icon, xpGain } from '../../ui.js';
 import * as E from '../../plan/engine.js';
 import { COPY } from '../calls.js';
 import { plan, squadBefore, inTeamAt, addMove, draftOf, planBaseline, takenBy, sellOut, problemText, problemShort, barred, barringRules, removeRule, openRules, baseOf, weekOf, saleBuy, bringIn, sayBuyProblem, presolveTaps } from '../ahead.js';
-import { weekPills, sortTabs, sortName, sorter, barTop, bars, who, found } from './buylist.js';
+import { weekPills, sortsOf, orderOf, sortChips, barTop, bars, who, found } from './buylist.js';
 
 const CAP = 30;
 /** Hits the estimate takes from GW g on. */
 const hitsFrom = (ev, g) => ev.gws.filter((s) => s.gw >= g).reduce((n, s) => n + (s.hits || 0), 0);
 const POS_WORD = { GK: 'goalkeeper', DEF: 'defender', MID: 'midfielder', FWD: 'forward' };
+/** Replace's own sort, first among the lists' chips (buylist.sortsOf): the swap's estimate over the window, each row's
+ *  number (B88b: named by its weeks, "Best GW6–9"). */
+const BEST = { key: 'plan', name: (P) => `Best ${COPY.span(P.gws)}`, val: (P, r, g, o) => o.delta ?? null };
 
 export function open(ctx, rawOut, rawGw) {
   const out = Number(rawOut);
@@ -37,7 +40,7 @@ export function open(ctx, rawOut, rawGw) {
   if (!P0) return null;
   const valid = P0.gws.filter((g) => squadBefore(P0, g).includes(out));
   if (!valid.length) { toast(`${P0.L.name(out)} isn't in your plan's squad in ${COPY.span(P0.gws)}.`, 'info'); return null; }
-  const st = { g: valid.includes(Number(rawGw)) ? Number(rawGw) : valid[0], sort: 'plan', q: '', busy: false };
+  const st = { g: valid.includes(Number(rawGw)) ? Number(rawGw) : valid[0], sort: 'plan', flip: false, q: '', busy: false };
   const cache = new Map();
   const pos = P0.L.pos(out);
   const word = POS_WORD[pos] || 'player';
@@ -85,11 +88,11 @@ export function open(ctx, rawOut, rawGw) {
       const pills = h('div.ah-pills', { role: 'group', 'aria-label': 'From gameweek' });
       // B93: the names FPL writes are mostly surnames (a first name finds no one)
       const input = h('input', { type: 'search', placeholder: `Search ${word}s by surname`, 'aria-label': `Search ${word}s by surname`, autocomplete: 'off', spellcheck: 'false', enterkeyhint: 'search' });
-      const seg = h('div.m-seg.small', { role: 'radiogroup', 'aria-label': 'Sort' });
+      const sortEl = h('div.ws-sorts', { role: 'radiogroup', 'aria-label': 'Sort by' });
       const list = h('div.ah-list', { role: 'list' });
       const foot = h('p.m-foot.rs-foot');
       const hitNote = h('p.rs-hitnote', { hidden: true });
-      body.append(subEl, pills, h('label.ah-search', null, icon('search', { size: 16 }), input), seg, hitNote, list, foot);
+      body.append(subEl, pills, h('label.ah-search', null, icon('search', { size: 16 }), input), sortEl, hitNote, list, foot);
       input.addEventListener('input', () => { st.q = input.value; draw(); });
       const title = sheet.el.querySelector('.m-sh h2');
 
@@ -121,9 +124,15 @@ export function open(ctx, rawOut, rawGw) {
         fill(hitNote, anyHit ? COPY.replaceHit(st.g, others || null) : null);
         hitNote.hidden = !anyHit;
         weekPills(pills, P.gws, st.g, (g) => valid.includes(g), (g) => { st.g = g; draw(); });
-        sortTabs(seg, st.sort, st.g, (k) => { st.sort = k; draw(); }, P.gws);
+        // the lists' sort chips, its own first (the owner, 2026-10-28: "why sorting by price, ownership etc. is missing";
+        // buylist.sortChips): each row's number stays the swap's ≈, the chosen stat said after his club and price where
+        // nothing else shows it (owned, form, xGI…; a forecast's his bars, the price his own)
+        const sorts = sortsOf(ctx, [BEST]), x = sorts.find((y) => y.key === st.sort) ?? BEST;
+        sortChips(sortEl, sorts, st, P, st.g, draw);
+        const statOf = x === BEST || x.xp || x.key === 'price' ? () => null
+          : (o) => { const v = x.val(P, o.row, st.g); return v == null ? null : h('span.rs-stat', null, ` · ${x.num(v)} ${x.unit(P, st.g)}`); };
         const q = norm(st.q.trim());
-        const by = sorter(L, st.sort, st.g);
+        const by = orderOf(x, st.flip, P, st.g, (o) => o.row);
         const shown = all.filter((o) => !q || found(o.row, q))
           .sort((a, b) => (!!a.blocked - !!b.blocked) || by(a, b)).filter((o, i) => i < CAP);
         const top = barTop(L, shown, P.gws);
@@ -135,7 +144,7 @@ export function open(ctx, rawOut, rawGw) {
               : `Sell ${L.name(out)} for ${o.row.name} from GW${st.g}: ${COPY.listTotalSaid(o.delta, true)}${o.bench ? `, on the bench in GW${st.g}` : ''}`,
             onClick: () => pick(o),
           },
-          who(L, o.row, [o.bench ? h('span.rs-bench', null, ` · bench in GW${st.g}`) : null]),
+          who(L, o.row, [statOf(o), o.bench ? h('span.rs-bench', null, ` · bench in GW${st.g}`) : null]),
           bars(L, o.id, P.gws, st.g, top, st.sort),
           // its ≈ over what it counts, your total (the user, 2026-10-21: fix all (first-use proposal #1)); forecast points,
           // blue with "xP" (ui.js xpGain; the user, 2026-10-22, after v1.3.68)
@@ -156,7 +165,7 @@ export function open(ctx, rawOut, rawGw) {
         h('span.mk.rs-automk', { 'aria-hidden': 'true' }, pos),
         h('span.nm', null, h('b', null, 'Let Forkcast choose'), h('span', null, best ? COPY.autoBuy : 'No buy fits')),
         h('span.rt.m-num', null, best ? [xpGain(best.delta, 'span', null, true, '≈ '), h('small', null, COPY.listTotal)] : h('small', null, '—'))));
-        fill(foot, `"${sortName('plan', P.gws, st.g)}" is an estimate over ${COPY.span(P.gws)} (best XI each week but a lineup you saved); Forkcast confirms it.`);
+        fill(foot, `"${BEST.name(P)}" is an estimate over ${COPY.span(P.gws)} (best XI each week but a lineup you saved); Forkcast confirms it.`);
         // its taps solved ahead while it is open (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and
         // done without no cost"): Let Forkcast choose, then the rows the list ranks first that can be made
         const g = st.g;
@@ -164,7 +173,7 @@ export function open(ctx, rawOut, rawGw) {
           presolveTaps(ctx, [
             ...[...(best ? [null] : []), ...shown.filter((o) => !o.blocked).map((o) => o.id)].map((inn) => ({ kind: 'sell', gw: g, run: () => sellOut(ctx, g, out, inn) })),
             ...shown.filter((o) => o.code === 'budget').map((o) => ({ kind: 'bring', gw: g, run: () => { const bp = saleBuy(ctx, o.id, g, out); return bp.kind === 'one' && bringIn(ctx, o.id, g, bp); } })),
-          ], { gw: g, sig: `${g}|${st.sort}|${q}`, owner: sheet });
+          ], { gw: g, sig: `${g}|${st.sort}|${st.flip}|${q}`, owner: sheet });
         }
       }
 
