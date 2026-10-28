@@ -183,7 +183,7 @@ import {
   COPY, planInputs, compare as compareIn, counted as countedIn, captainGap, subGap, changeText, transfersOf, hitsOf, plannerOf,
   rulesCost, sentence, withForced, forcedNew,
   hitBook, priceWatch, priceMorning, pricePlate, hitCap, gwFlags, statusText, liveCheck, planEta, planShare, steadyEta, clockText,
-  waitedText, horizonFeature, waitFact, waitLines, stepShare, leftText,
+  waitedText, horizonFeature, waitFact, waitFacts, waitLines, stepShare, leftText,
 } from './calls.js';
 export { clockText, waitedText, stepShare };  // the sheets' clocks and wait lines (wish.js, chips.js) read them here
 import {
@@ -1019,8 +1019,9 @@ let CHEERED = { local: null, said: null };
  *  .ah-cheer; a toast lay over the header: the owner, 2026-10-27, "display always when there is waiting time and
  *  planning at load but not overlap status bar"): for as long as it waits (`planning`: a bake, a new forecast's, the
  *  forecast updating, and on a first load the checks of its moves after it: the owner, 2026-10-27, "that cheer-up note
- *  not dissappear when it goes from planning to checking") the wait's line for its act (calls.waitFact in app.js
- *  factPanel, `act` 0 while it plans: your rank's move; 1 while it checks: this line; design study 1027a, B-facts), and
+ *  not dissappear when it goes from planning to checking") the wait's lines, both where they fit the panel (app.js
+ *  factPanel; the owner, 2026-10-29), else the one for its act (calls.waitFact, `act` 0 while it plans: your rank's move;
+ *  1 while it checks: this line; design study 1027a, B-facts), and
  *  otherwise this line alone once a GW and team on this browser (CHEER_KEY, written as it shows; one said while
  *  planning counts) for CHEER_MS, while no sheet is open (else the next draw asks again). Only from a live bundle (a
  *  warm start's saved one may be a GW past: the review, 2026-10-21), never offline. Mount's renderWeek, every draw,
@@ -1029,7 +1030,8 @@ export function sayCheer(ctx, P, el, planning = false, act = 0, { linger = false
   const c = P?.b?.rank?.cheer, local = ctx.api?.local, cs = ctx.store.get('conn');
   const show = (on) => {
     clearTimeout(el._cheerT);
-    return !!ctx.factPanel?.(el, !on ? null : planning ? waitFact(P.b, act) : COPY.factRank(c));
+    // (both lines where they fit, else the act's: app.js factPanel; outside a wait the GW's line, the second)
+    return !!ctx.factPanel?.(el, on ? waitFacts(P.b) : null, on ? waitFact(P.b, planning ? act : 1) : null);
   };
   if (!el) return false;
   if (!c || !local || cs?.snapshot || cs?.state === 'offline') return show(false);

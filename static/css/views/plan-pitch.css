@@ -257,8 +257,10 @@ button.pp-player:focus-visible .pp-kit {
      enough that the shirt is FPL's 0.741 of the card */
   --pm-fit: var(--pm-card);  /* the card size the shirt and the marks are drawn for (a height-capped host narrows it, never the plates) */
   --pm-shirt-w: calc(var(--pm-fit) * .741 * 220 / 193);
-  /* C / V and the flag: FPL's are 0.15 of the card, never under 12 px, never smaller than their letter (B7) */
-  --pm-mark: max(clamp(12px, calc(var(--pm-fit) * .15), 15px), calc(var(--t-cap, 11px) * 1.3));
+  /* C / V: FPL's are 0.15 of the card, 10–15 px, their letter scaled with them (.pm-badge.c below), so they shrink with the
+     card as FPL's do (the owner, 2026-10-29: "why are they so huge and not scaling": the text size's floor, 11 × 1.3,
+     held them at 14.3 px on every card, 72 px or 56: 0.20–0.26 of it) */
+  --pm-mark: clamp(10px, calc(var(--pm-fit) * .15), 15px);
   /* the app's ink on both plates and the bench labels (B4: one ink, not FPL's aubergine); white chalk at .8, 2 px wide
      (design 1028c P1: opaque chalk was the plates' own white, 3.34:1, so the halfway line ran into the MID plates as one
      edge, J2; at .8 the plates stay the field's only pure white, 1.26:1 over the chalk, the stripes' own step, while the
@@ -342,7 +344,7 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
   position: absolute; top: 3px; left: 3px; right: auto; z-index: 3;
   width: var(--pm-mark); height: var(--pm-mark); border-radius: 50%; box-shadow: none;
   display: grid; place-items: center;
-  background: var(--plate-ink); color: #FFFFFF; font: 600 var(--pm-t)/1 var(--f-text);
+  background: var(--plate-ink); color: #FFFFFF; font: 600 calc(var(--pm-mark) * .7)/1 var(--f-text);
 }
 /* …each held off the green by a white 1.5 px keyline (design 1028c P2-states: the ink alone 3.24:1 on the tile, 5.45 with
    it), both solid ink with a white letter as FPL draws them: the letter tells them apart (the owner, 2026-10-28, after

@@ -1164,17 +1164,21 @@ const SLOW_MS = 12000;
 const FIRST_RETRY_MS = 3000;  // a first load's server error asked again once after this (firstLoad's fetchFirst)
 const SLOW_COPY = 'Still loading: a slow connection can take a minute or two.';
 
-/** A wait's line (calls.waitFact; design study 1027a, B-facts) in `el` (.m-facts: Connect's under its bar, Ahead's cheer
- *  slot for the whole wait), in the page's paper and ink, not a toast's (Johnson: a box that looks like the last toast is
- *  the most ignorable thing on screen), faded in as it changes (the wait's next act). null hides it. → whether a line
- *  shows */
-function factPanel(el, line) {
-  el.hidden = !line;
-  if (!line) return false;
-  const [pre, num, post] = line;
-  if (el.textContent !== pre + num + post) {
-    fill(el, h('p', null, pre, h('b', null, num), post));
-    if (!ui.reduceMotion()) el.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease-out' });
+/** A wait's lines (calls.waitFacts; design study 1027a, B-facts) in `el` (.m-facts: Connect's under its bar, Ahead's
+ *  cheer slot for the whole wait), in the page's paper and ink, not a toast's (Johnson: a box that looks like the last
+ *  toast is the most ignorable thing on screen): all of them in one paragraph where they fit the panel's two lines (the
+ *  owner, 2026-10-29: "there is enough space to display both sentences ... in parallel"), else `one` alone (calls.waitFact:
+ *  the act's), faded in as it changes. No lines hides it. → whether a line shows */
+function factPanel(el, lines, one = lines?.at(-1)) {
+  el.hidden = !lines?.length;
+  if (!lines?.length) return false;
+  const para = (ls) => h('p', null, ls.flatMap(([pre, num, post], i) => [i ? ' ' : '', pre, h('b', null, num), post]));
+  const was = el.textContent, key = `${lines.map((l) => l.join('')).join(' ')}|${one?.join('')}|${el.clientWidth}`;
+  if (el._facts !== key) {
+    el._facts = key;
+    fill(el, para(lines));
+    if (lines.length > 1 && one && el.firstChild.getBoundingClientRect().height > el.clientHeight + 0.5) fill(el, para([one]));
+    if (el.textContent !== was && !ui.reduceMotion()) el.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease-out' });
   }
   return true;
 }
@@ -1203,7 +1207,7 @@ async function firstLoad(entry) {
     fill(prog, h('p.m-prog-t.m-num', null, b ? planning(b?.meta ? horizonOf(b.meta) : null, b?.bake) : `Finding team ${entry}…`),
       etaBar('div.m-bar', b?.bake, !!b?.roads?.base),
       b?.state === 'updating' && !b.roads?.base ? h('p.m-prog-t.warn', null, calls.COPY.updating) : null, facts);
-    factPanel(facts, calls.waitFact(b));
+    factPanel(facts, calls.waitFacts(b), calls.waitFact(b));
   };
   const back = (e) => {
     if (my !== loading) return;
