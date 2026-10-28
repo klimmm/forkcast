@@ -3630,10 +3630,12 @@ const forkKey = (p, g) => (SQUAD_CHIPS.has(p.chips?.[g]) ? p.chips[g]
  *  {gw: chip} (your Wildcard and Free Hit weeks after g), draft} | null} | null (r's weeks before g aren't yours: it was
  *  solved from another squad) */
 export function planOfRoad(ctx, P, r, g, d0) {
-  const rd = roadDraft(ctx, r), mine = flatMoves(d0), theirs = flatMoves(rd);
+  // (a road solved to its own week only, a choice's: forkValues `to`, is your plan after it: your moves and chips)
+  const last = roadLast(r);
+  const rd = roadDraft(ctx, r), mine = flatMoves(d0), theirs = [...flatMoves(rd).filter((m) => m.gw <= last), ...mine.filter((m) => m.gw > last)];
   const at = (ms, x) => ms.filter((m) => m.gw === x).map((m) => `${m.out}>${m.in}`).sort().join(',');
   if (P.gws.some((x) => x < g && at(theirs, x) !== at(mine, x))) return null;
-  const chipAt = (d, x) => d.chips?.[x] ?? null;
+  const chipAt = (d, x) => (d === rd && x > last ? d0 : d).chips?.[x] ?? null;
   const sq = SQUAD_CHIPS.has(chipAt(rd, g));
   const choice = { moves: sq ? [] : theirs.filter((m) => m.gw === g), chips: sq ? { [g]: chipAt(rd, g) } : {} };
   const later = P.gws.filter((x) => x > g);
@@ -3654,6 +3656,9 @@ export function planOfRoad(ctx, P, r, g, d0) {
   return { choice, plan: { moves, chips: choice.chips, yours, draft } };
 }
 
+/** A road's last committed week: its values' `to` (a choice's own week, forkValues), else its last week; past it a
+ *  plan is your plan's (planOfRoad). */
+const roadLast = (r) => num(r?.values?.to) ?? Math.max(...(r?.weeks || []).map((w) => Number(w.gw)), -Infinity);
 /** Draft d played as taking a plan makes it, from GW `from` on (decision 3: a plan's number is what taking it gives;
  *  the reviews, 2026-10-11, High: after a sub the row said +4.65 and the take gave +3.55, its buy in the benched
  *  player's slot): the engine's best XI in each week, your saved lineup (repaired onto the week's squad as the plan view
@@ -3744,7 +3749,12 @@ export function forkValues(ctx, P, g, c) {
   // for the roll it counts against, `held`: like with like, plansOf)
   const follow = !(P.mem?.hold && (c.chips?.[g] === 'wc' || c.held));
   if (follow) for (const x of P.gws.filter((y) => y > g && !SQUAD_CHIPS.has(c.chips?.[y]) && !squadWeek(weekOf(P, y)) && !ruled(y))) extra.push(pinHits(cap, x));
-  return valuesFor(ctx, extra, drop);
+  // a transfer choice's solve commits its own week only (`to`; the owner, 2026-10-28, "Choices: own week only"): its
+  // number is the solver's count over GW g's window (calls.counted), which the later weeks' windows never change, and
+  // its later weeks are your plan's (planOfRoad); a chip's solve and a roll's stay whole (a Free Hit's number is
+  // counted on the roll plan's later weeks, chipOn; Chips… counts a chip's)
+  const v = valuesFor(ctx, extra, drop);
+  return Object.keys(c.chips || {}).length || !c.moves?.length ? v : { ...v, to: g };
 }
 
 // (the newest FORK_ROADS_MAX by their last use, keepNewest: a week drawn before an edit asked its solves first, and an
@@ -5935,11 +5945,12 @@ export const headScale = (need, room, px) => (need <= room + 0.5 ? 1 : Math.max(
 /** A plate's own trims, each never hiding who comes in (the owner, 2026-10-25, "Best keeps its name": "Each plate fits on
  *  its own. Cramped quiet plates turn into ⇄ handles first, so the black best always shows its full name. A name still
  *  too long is shortened like the cards do. No shirts."; the handles since the number alone, .only: the owner,
- *  2026-10-25, after v1.3.79, "or just points if space tough"): its "xP", then a smaller type (m-ahead.css .ah-sp.noxp
- *  .tight; fitNum, renderDecks). The best's "both" / "all 3" went with its Swap (the same day: "no need green 'swap'
+ *  2026-10-25, after v1.3.79, "or just points if space tough"): its "xP", then its chip and −4 marks (its place keeps
+ *  them; a loss's number alone with its −4 ran past a 320 px screen at a 28 px text size, QA fit, 2026-10-28), then a
+ *  smaller type (m-ahead.css .ah-sp.noxp .nomark .tight; fitNum, renderDecks). The best's "both" / "all 3" went with its Swap (the same day: "no need green 'swap'
  *  in preview"). Its "xP" the pitch's: off on one plate or token beside the goal, off on all (the owner, 2026-10-26: "why
  *  it sometimes write xp sometimes not write fix"; renderDecks' oneXp). */
-const PLATE_TRIMS = ['noxp', 'tight'];
+const PLATE_TRIMS = ['noxp', 'nomark', 'tight'];
 /** The week's status's trims beside the goal (renderDecks fits): its own spacing first (.snug), then a token's. */
 const ST_TRIMS = ['snug', 'noxp', 'nomark', 'tight'];
 /** The least of a buy's name a shortened plate shows (m-ahead.css .ah-sp.cut: a few letters and "…", as the cards'

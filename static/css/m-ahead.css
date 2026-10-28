@@ -565,7 +565,9 @@ button.ah-tok { cursor: pointer; }
 /* its number never cut (ahead.js fitNum, one look per place: drawPlace): its "xP" first, then the marks, then a smaller
    size, then its spacing (ahead.js HEAD_TRIMS: "−0.4 Swap" at 320 wide) */
 .ah-phead.noxp .xp-u { display: none; }
-.ah-phead.nomark :is(.ah-dchip, .ah-dhit) { display: none; }
+/* a place's header, and a plate where nothing else fits (PLATE_TRIMS: a loss's number alone with its −4 at a large text size
+   ran past a 320 px screen, QA fit, 2026-10-28): its chip and −4 marks go, its place and label keep them */
+:is(.ah-phead, .ah-sp).nomark :is(.ah-dchip, .ah-dhit) { display: none; }
 .ah-phead.tight .ah-pv { font-size: .85em; }
 .ah-phead.snug { gap: 1px; padding-left: 1px; }  /* its right 2 px kept: the take's target reaches 2 px past it (.ah-pgo::after) */
 .ah-phead.snug .ah-pgo { padding: 0 2px; }
