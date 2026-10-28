@@ -2883,6 +2883,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // v1.3.111: your stored plan, of the roads before, carried no window)
   const mineRoad = P.comparable ? P.road : null;
   const countRoad = (x) => x?.road ?? (x?.self ? x.counts ?? mineRoad : null);
+  // (your plan's: your choice's own solve this week, else your plan's road)
+  const yourRoad = ours ? countRoad(ours) : mineRoad;
   const vsRef = (x) => {
     if (followed || x.state !== 'ready') return x;
     const r = refOf(x.choice);
@@ -2894,7 +2896,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // or Free Hit week, your picks in it; a Wildcard row; your transfers' plan failed)
     // (each the solver's own count over GW g's window where both sides are solved roads carrying it: ownCount; the owner,
     // 2026-10-28, "Solver's own count, own window"; your plan's own road where the row is set against your plan)
-    const vsMine = chipMine || (now.length && (heldOf(x.choice) || !yoursToo)) ? ownCount(ctx, x.alone, x.road, ours ? countRoad(ours) : mineRoad, g)
+    const vsMine = chipMine || (now.length && (heldOf(x.choice) || !yoursToo)) ? ownCount(ctx, x.alone, x.road, yourRoad, g)
       : yoursToo ? ownCount(ctx, compare(ctx, x.fullEv, yoursToo.ev), x.road, countRoad(yoursToo), g) : null;
     // decision K (the owner, 2026-10-25, GW9 after João Pedro → Evanilson +1.8, Cherki's place "+1.6 Swap Tavernier":
     // "shouldnt it compare + poitns not to rolling now but to transfer made … it seems that cherking to tavrnier is
@@ -2903,7 +2905,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // stands (a choice in place of your transfer −0.2 there, a 2nd transfer what it adds to yours); a week with none of
     // yours, your plan the roll, as before. There the rows count against your plan, not the roll: the roll that takes
     // yours back is a choice as any, its number yours turned round (no reference row: `refRow` only with none of yours)
-    return { ...x, cmp: vsMine ?? ownCount(ctx, compare(ctx, x.fullEv, r.ev), x.road, countRoad(r), g), refEv: r.ev, vsRoll: true, refRow: !vsMine && forkKey(x.choice, g) === rollK, ...(vsMine ? { vsMine } : {}) };
+    return { ...x, cmp: vsMine ?? ownCount(ctx, compare(ctx, x.fullEv, r.ev), x.road, countRoad(r), g), refEv: r.ev, refRoad: countRoad(r), vsRoll: true, refRow: !vsMine && forkKey(x.choice, g) === rollK, ...(vsMine ? { vsMine } : {}) };
   };
   const rolls = (x) => rollOffered && !x.choice.moves.length && !Object.keys(x.choice.chips).length;
   // B129: a choice whose + makes again only what you took off GW g this session (every move of it your plan doesn't make
@@ -2935,7 +2937,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // (one it doesn't clear first, else the narrowest by the gap its label reads: compare's `ref`)
   const against = (x) => {
     const cs = [top && { vsBest: ownCount(ctx, compare(ctx, x.fullEv, top.fullEv), countRoad(x), top.road, g), best: top, bestFrom: x.fullEv },
-      topHeld && { vsBest: compare(ctx, topHeld.refEv, topHeld.fullEv), best: topHeld, bestFrom: topHeld.refEv }].filter(Boolean);
+      topHeld && { vsBest: ownCount(ctx, compare(ctx, topHeld.refEv, topHeld.fullEv), topHeld.refRoad, topHeld.road, g), best: topHeld, bestFrom: topHeld.refEv }].filter(Boolean);
     return cs.find((c) => !clearGain(c.vsBest)) ?? cs.sort((a, b) => (a.vsBest.ref ?? a.vsBest.delta) - (b.vsBest.ref ?? b.vsBest.delta))[0] ?? {};
   };
   const ranked = [...done.map((x) => (x.refRow ? { ...x, ...against(x) } : x)).sort(byGain),
@@ -2946,6 +2948,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // the two plans your week's transfer row sets side by side (rollOf): the roll's and your own choice's, each with
   // Forkcast's later moves; `pending` while either still solves (the row says so, never the week alone in its place)
   if (ref?.state === 'ready') Object.assign(list, { ref, mine: ours });
+  // (the roads weekRollOf counts these two by, as the rows are: ownCount)
+  Object.assign(list, { mineRoad: yourRoad, countRoad });
   // …in your Wildcard or Free Hit week your chip's plan against its own roll (refOf: a Wildcard's keeps your later weeks
   // as its row's did, `held`), as the pitch's token set that chip's (weekRollOf's `mineRef`). Its week is your plan's
   // own, the squad its tap landed and the pitch draws, as Chips… and its toast counted it before the tap: QA chipweek N7
@@ -2990,10 +2994,11 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // later moves on both sides), a Wildcard's, or either in your chip week, by what its + gives (`alone`)
     if (now.length && !chipMine && own?.state === 'solving') return { wait: true };
     if (chipMine || now.length) {
-      const v = chip === 'fh' && !chipMine && yoursToo ? compare(ctx, m.ev, yoursToo.ev) : alone({ ...m, state: 'ready', choice: { moves: [], chips: { [g]: chip } } }).alone;
+      const v = chip === 'fh' && !chipMine && yoursToo ? ownCount(ctx, compare(ctx, m.ev, yoursToo.ev), road, countRoad(yoursToo), g)
+        : ownCount(ctx, alone({ ...m, state: 'ready', choice: { moves: [], chips: { [g]: chip } } }).alone, road, yourRoad, g);
       return v ? { cmp: v, vs: COPY.planVs(true) } : null;
     }
-    return { cmp: vsRollOf(ctx, m, r), vs: COPY.planVsRoll };
+    return { cmp: vsRollOf(ctx, m, r, g, road, countRoad(r)), vs: COPY.planVsRoll };
   };
   list.chipOf = (chip, road) => {
     if (followed || !road || !SQUAD_CHIPS.has(chip)) return null;
@@ -3108,15 +3113,18 @@ const approxAt = (P, g) => (P.mark ?? P.approx).has(g);
 function weekRollOf(ctx, P, w, listed = (g) => plansOf(ctx, P, g)) {
   const sq = !!squadWeek(w);
   if ((!sq && !w.moves.length) || approxAt(P, w.gw)) return null;
-  const { ref: r0, mineRef, mine } = listed(w.gw) ?? {};
-  const ref = sq ? mineRef : r0;
-  return ref && mine ? vsRollOf(ctx, mine, ref) : null;
+  const L = listed(w.gw) ?? {};
+  const ref = sq ? L.mineRef : L.ref;
+  return ref && L.mine ? vsRollOf(ctx, L.mine, ref, w.gw, L.mineRoad, L.countRoad?.(ref)) : null;
 }
 /** Plan `mine` against roll plan `ref` ({ev, road}), the same later weeks on both sides: the one measure of a week's
  *  number against rolling (weekRollOf: your transfers', your Wildcard's or Free Hit's week line; plansOf's chipOf: that
  *  chip in a week your plan doesn't play it, Chips… and its toast; the owner's Free Hit, 2026-10-22: "+1.1" there, "+5.3"
- *  on the week line, for one chip in one week). → compare's {…, road, ev (the roll's), mine} */
-const vsRollOf = (ctx, mine, ref) => ({ ...compare(ctx, mine.ev, ref.ev), road: ref.road, ev: ref.ev, mine: mine.ev });
+ *  on the week line, for one chip in one week), counted as every choice is (ownCount: the solver's own count over GW g's
+ *  window where roads `a`, mine's, and `b`, the roll's, carry it; the owner, 2026-10-29, "fix all": a chip's number and
+ *  a week line's were still the points, so a chip's could change once tapped). → compare's {…, road, ev (the roll's),
+ *  mine} */
+const vsRollOf = (ctx, mine, ref, g, a, b) => ({ ...ownCount(ctx, compare(ctx, mine.ev, ref.ev), a, b, g), road: ref.road, ev: ref.ev, mine: mine.ev });
 /** How far a week's listed choices (plansOf's rows) are checked, counted as Add a player counts its weeks (COPY.checkingWeek,
  *  B87b; the first-use run, 2026-10-21, #2: "checking…" rows with no progress): the one now checked, the rows ready or
  *  failed + 1, of them all; null once none waits. Pure. → {i, n} | null */
