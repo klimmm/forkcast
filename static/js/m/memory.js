@@ -1539,12 +1539,15 @@ export const madeOn = (acc) => acc?.roads_version ?? acc?.data_version ?? null;
 export const solvedKey = (version, values) => `${version}|${JSON.stringify(Object.keys(values).sort().map((k) => [k, values[k]]))}`;
 const sigOf = (c) => `${c.must_have}|${c.exclude}|${JSON.stringify(c.hits)}|${JSON.stringify(c.chips)}|${c.cash}${c.rolls.length ? `|roll:${c.rolls.join(',')}` : ''}${Object.keys(c.caps ?? {}).length ? `|cap:${JSON.stringify(c.caps)}` : ''}`;
 /** A road as the stored plan: its weeks, the values it was solved for, its objective (the planner's own count of
- *  it: calls.plannerOf compares it with another road of the same data), the scale by horizon that objective is on
- *  (k_h, api/scale.py road: engine.objectiveOf atAnchor puts it back on GW A's scale with it) and its planner's own
- *  hits per GW (the plan service's road.planner: calls.hitBook). */
+ *  it: calls.plannerOf compares it with another road of the same data) and its weeks' own windows (calls.windowGap: a
+ *  choice's number where the roll is your plan, the owner 2026-10-28 "Solver's own count, own window"; dropped here,
+ *  GW11's Trafford still read +1.0 on the points after v1.3.111), the scale by horizon those are on (k_h, api/scale.py
+ *  road: engine.objectiveOf atAnchor puts it back on GW A's scale with it) and its planner's own hits per GW (the plan
+ *  service's road.planner: calls.hitBook). */
 const planOfRoad = (road, version, sig = null) => (road ? {
   key: road.key ?? null, item: road.item ?? null, version: version ?? null, sig, values: road.values ?? null, weeks: clone(road.weeks),
-  objective: road.objective ? clone(road.objective) : null, ...(road.planner ? { planner: clone(road.planner) } : {}),
+  objective: road.objective ? clone(road.objective) : null, ...(road.windows ? { windows: clone(road.windows) } : {}),
+  ...(road.planner ? { planner: clone(road.planner) } : {}),
   ...(Array.isArray(road.k_h) ? { k_h: [...road.k_h] } : {}),
 } : null);
 

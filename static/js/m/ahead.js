@@ -2751,7 +2751,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   if (!followed && !chipMine && (!choices.has(fhK) || landOf(choices.get(fhK))) && chipsAvail(P, g).includes('fh') && plannedAt(P, 'fh', g) == null && chipsAsked(ctx).includes(g) && fitsAt(ctx, P, g, fhRow, d0)) apart.push([fhLater, fhRow]);
   const ready = (list, c) => ({ ...list.sort(byGain)[0], state: 'ready', choice: c });
   // a reference whose solve makes no move your plan doesn't is your plan itself (never a row: L1)
-  const self = (c) => ({ state: 'ready', choice: c, self: true, moves: [], chips: c.chips, draft: d0, ev: asIs, cmp: compare(ctx, asIs, asIs), hits: {}, road: null, model: false });
+  // (`counts`: its own solve's road, where it was solved, for the solver's own count against it: countRoad)
+  const self = (c, counts = null) => ({ state: 'ready', choice: c, self: true, moves: [], chips: c.chips, draft: d0, ev: asIs, cmp: compare(ctx, asIs, asIs), hits: {}, road: null, model: false, ...(counts ? { counts } : {}) });
   // each choice's solve, unless a road solved it exactly; L5 (the plans review, 2026-10-11: new rows waited behind a fork
   // from before an edit or another week): a fork in flight that this view no longer asks is let go
   // (a choice that splits none: splitOf)
@@ -2803,7 +2804,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
       const x = planOfRoad(ctx, P, got, g, d0);
       let p = x?.plan && forkKey(x.plan, g) === forkKey(c, g) ? x.plan : null;
       // its solve made no move after the choice your plan doesn't: the choice is your plan, or a road's
-      if (p && !chipMine && movesSig(p.moves) === mineFrom && !Object.keys(p.chips).length) return roads.length ? ready(roads, c) : refs.has(k) ? self(c) : null;
+      if (p && !chipMine && movesSig(p.moves) === mineFrom && !Object.keys(p.chips).length) return roads.length ? ready(roads, c) : refs.has(k) ? self(c, got) : null;
       // a Free Hit row of its preparation: its week on its own solve's later weeks, as chipApart counts it (the roll
       // plan's where that failed)
       if (p && land?.chip === 'fh') {
@@ -2851,6 +2852,12 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // a row's own roll (refKeyOf), the plain one where its own failed
   const refOf = (c) => { const r = solved.get(refKeyOf(c)); return r && r.state !== 'failed' ? r : ref; };
   const own = refs.has(yours) && yours !== rollK && !chipMine ? solved.get(yours) : null;  // your own transfers' plan (a week of yours)
+  // the road a row is counted against (ownCount: the solver's own count over GW g's window; the owner, 2026-10-28,
+  // "Solver's own count, own window"): its own, else, where it is your plan, its own solve's (a reference solved this
+  // view, `counts`), else your plan's road where it is of these data (GW11's Trafford read +1.0 on the points after
+  // v1.3.111: your stored plan, of the roads before, carried no window)
+  const mineRoad = P.comparable ? P.road : null;
+  const countRoad = (x) => x?.road ?? (x?.self ? x.counts ?? mineRoad : null);
   const vsRef = (x) => {
     if (followed || x.state !== 'ready') return x;
     const r = refOf(x.choice);
@@ -2862,9 +2869,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // or Free Hit week, your picks in it; a Wildcard row; your transfers' plan failed)
     // (each the solver's own count over GW g's window where both sides are solved roads carrying it: ownCount; the owner,
     // 2026-10-28, "Solver's own count, own window"; your plan's own road where the row is set against your plan)
-    const mineRoad = P.comparable ? P.road : null;
-    const vsMine = chipMine || (now.length && (heldOf(x.choice) || !yoursToo)) ? ownCount(ctx, x.alone, x.road, mineRoad, g)
-      : yoursToo ? ownCount(ctx, compare(ctx, x.fullEv, yoursToo.ev), x.road, yoursToo.road ?? mineRoad, g) : null;
+    const vsMine = chipMine || (now.length && (heldOf(x.choice) || !yoursToo)) ? ownCount(ctx, x.alone, x.road, ours ? countRoad(ours) : mineRoad, g)
+      : yoursToo ? ownCount(ctx, compare(ctx, x.fullEv, yoursToo.ev), x.road, countRoad(yoursToo), g) : null;
     // decision K (the owner, 2026-10-25, GW9 after João Pedro → Evanilson +1.8, Cherki's place "+1.6 Swap Tavernier":
     // "shouldnt it compare + poitns not to rolling now but to transfer made … it seems that cherking to tavrnier is
     // better by 1.6 poitns than jp to evanilson wichj is not it actually worse"): in a week of yours the number shown
@@ -2872,7 +2878,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // stands (a choice in place of your transfer −0.2 there, a 2nd transfer what it adds to yours); a week with none of
     // yours, your plan the roll, as before. There the rows count against your plan, not the roll: the roll that takes
     // yours back is a choice as any, its number yours turned round (no reference row: `refRow` only with none of yours)
-    return { ...x, cmp: vsMine ?? ownCount(ctx, compare(ctx, x.fullEv, r.ev), x.road, r.road ?? (r.self ? mineRoad : null), g), refEv: r.ev, vsRoll: true, refRow: !vsMine && forkKey(x.choice, g) === rollK, ...(vsMine ? { vsMine } : {}) };
+    return { ...x, cmp: vsMine ?? ownCount(ctx, compare(ctx, x.fullEv, r.ev), x.road, countRoad(r), g), refEv: r.ev, vsRoll: true, refRow: !vsMine && forkKey(x.choice, g) === rollK, ...(vsMine ? { vsMine } : {}) };
   };
   const rolls = (x) => rollOffered && !x.choice.moves.length && !Object.keys(x.choice.chips).length;
   // B129: a choice whose + makes again only what you took off GW g this session (every move of it your plan doesn't make
@@ -2903,7 +2909,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const topHeld = done.filter((x) => x.vsRoll && heldOf(x.choice)).sort(byGain)[0] ?? null;
   // (one it doesn't clear first, else the narrowest by the gap its label reads: compare's `ref`)
   const against = (x) => {
-    const cs = [top && { vsBest: ownCount(ctx, compare(ctx, x.fullEv, top.fullEv), x.road ?? (x.self && P.comparable ? P.road : null), top.road, g), best: top, bestFrom: x.fullEv },
+    const cs = [top && { vsBest: ownCount(ctx, compare(ctx, x.fullEv, top.fullEv), countRoad(x), top.road, g), best: top, bestFrom: x.fullEv },
       topHeld && { vsBest: compare(ctx, topHeld.refEv, topHeld.fullEv), best: topHeld, bestFrom: topHeld.refEv }].filter(Boolean);
     return cs.find((c) => !clearGain(c.vsBest)) ?? cs.sort((a, b) => (a.vsBest.ref ?? a.vsBest.delta) - (b.vsBest.ref ?? b.vsBest.delta))[0] ?? {};
   };
