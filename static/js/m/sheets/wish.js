@@ -47,11 +47,14 @@
 // chooseing button i need to click twice … this button redundand"): exactly that sale (ahead.saleBuy → bringIn), the money
 // short or not, the sheet closed, the verdict toast with Undo; a sale the club limit can't make says why under the chips
 // instead. A Wildcard or Free Hit week has no sale to choose: its one button brings him into the chip's squad.
+// From a player's place ("Other…", {pos, out}: ahead.drawPlace) the sale is chosen already, as FPL's list after Remove:
+// the list his position's alone (the other tabs off, the search too), and a + makes that swap in the list's week at once
+// (swapIn; the owner, 2026-10-28: "why mids not block when i replacing def", "why isak not added to pitch").
 
 import * as E from '../../plan/engine.js';
 import { h, fmt, fill, norm, icon, roving, xpNum } from '../../ui.js';
 import { COPY } from '../calls.js';
-import { plan, weekOf, squadBefore, squadWeek, addMove, draftOf, estimate, wishSolve, want, reroute, editable, barred, barringRule, ruleOf, clearGain, inkAt, buyPlan, saleBuy, holdBuy, bringIn, bringInTakes, removesText, inWords, weekWith, saleOptions, waitedText, solvesRound, problemText, presolveTaps } from '../ahead.js';
+import { plan, weekOf, squadBefore, squadWeek, addMove, draftOf, estimate, wishSolve, want, reroute, editable, barred, barringRule, ruleOf, clearGain, inkAt, buyPlan, saleBuy, sayBuyProblem, holdBuy, bringIn, bringInTakes, removesText, inWords, weekWith, saleOptions, waitedText, solvesRound, problemText, presolveTaps } from '../ahead.js';
 import { weekPills, tabs, barTop, bars, shirt, found } from './buylist.js';
 
 const plusGlyph = () => {
@@ -117,8 +120,9 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
   // out: the sale you chose for a player's selected week ({g, out}) that can't be made; need: the weeks his reach sent to
   // a solve, in its order; wait: the solve out ({g, i, n, t0}, B87b), its line's clock ticking (tick)
   // (pos: the position its list opens on, a player's place's "Other…": ahead.drawPlace; else all; place: that player,
-  // whose sale the Sells row leads with: sells)
-  const st = { q: '', open: null, res: {}, sel: {}, own: {}, out: {}, need: {}, wait: null, tick: null, req: null, run: 0, g: G ?? P0.gws.find(live) ?? P0.A, pos: POSITIONS.includes(pos) ? pos : 'all', place: out != null ? Number(out) : null, sort: 'pts', flip: false };
+  // whose sale the Sells row leads with: sells; lock: opened from his place, the list his position's alone, the other
+  // tabs off and the search finding only his position, the owner, 2026-10-28: "why mids not block when i replacing def")
+  const st = { q: '', open: null, res: {}, sel: {}, own: {}, out: {}, need: {}, wait: null, tick: null, req: null, run: 0, g: G ?? P0.gws.find(live) ?? P0.A, pos: POSITIONS.includes(pos) ? pos : 'all', place: out != null ? Number(out) : null, lock: out != null && POSITIONS.includes(pos), sort: 'pts', flip: false };
   const no = barred(P0, P0.A);
 
   const stop = () => { st.run++; st.req?.cancel?.(); st.req = null; clearInterval(st.tick); st.wait = null; presolveTaps(ctx, null, { owner: st }); };
@@ -174,12 +178,15 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
             // (a forecast sort's number in the forecast's blue, its unit under it naming the weeks: ui.js xpNum; the user,
             // 2026-10-22)
             sub2 ? null : h('span.rt.m-num', null, v == null ? '—' : x.xp ? xpNum(x.num(v), 'span', null, false) : x.num(v), h('small', null, x.unit(P, st.g))),
-            // his week pills, as "Bring him in…" opens them (the list's week selected first): never a buy at once
+            // his week pills, as "Bring him in…" opens them (the list's week selected first): never a buy at once; opened
+            // from a player's place (st.lock), him in that place at once (swapIn)
             // its first letter alone lowered: "in your GW8 plan", never "gw8" (review 5, 2026-10-12)
             mine ? h('button.ws-add.ws-mine', { type: 'button', 'aria-label': `${name}, ${yours[0].toLowerCase()}${yours.slice(1)}: his card`, onClick: () => ctx.openSheet('player', id, { gw: st.g }) }, '⋯')
               // open: a × in the +'s place closes his row (the columns stay put)
               : open ? h('button.ws-add.ws-mine', { type: 'button', 'aria-label': `Close ${name}`, onClick: () => { stop(); st.open = null; draw(); } }, '×') : h('button.ws-add', {
-              type: 'button', disabled: !P.editable, 'aria-label': `Bring in ${name}: pick a week`, onClick: () => reach(id),
+              type: 'button', disabled: !P.editable,
+              'aria-label': st.lock ? `${COPY.bringIn(name, st.g)} for ${P.L.name(st.place)}` : `Bring in ${name}: pick a week`,
+              onClick: () => (st.lock ? swapIn(id) : reach(id)),
             }, plusGlyph())),
           open ? pills(id) : null);
       }
@@ -234,7 +241,9 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           const off = bringInTakes(P, id, sel, o.bp);
           // B73 (the recorded no-repeat rule): no points where the selected pill or sale shows them (the selected pill shows
           // the sale you chose too, a funded one's whole number)
-          fund = [`${best}GW${sel}${words ? ` · ${words}` : ''}.`, off.length ? ` ${removesText(P, off)}` : ''];
+          // (no words and no claim: no line, never a bare "GW9.")
+          const head = words || best ? `${best}GW${sel}${words ? ` · ${words}` : ''}.` : null;
+          fund = [head, off.length ? `${head ? ' ' : ''}${removesText(P, off)}` : ''];
           // a Wildcard or Free Hit week's one button (no sale chips there), filled only for a gain beyond the noise (B28: a
           // loss or a toss-up is the plain button)
           go = chip ? h('div.ah-btnrow', null, h('button', { type: 'button', class: { acc: clearGain(o.cmp) }, disabled: !editable(ctx), onClick: () => take(id, sel, o) }, COPY.bringInChip(P.L.name(id), sel, chip))) : null;
@@ -301,7 +310,8 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         const squad = new Set(weekOf(P, g)?.squad ?? squadBefore(P, g));
         const mine = (r) => squad.has(Number(r.id));
         const ruled = barred(P, g);
-        const at = (r) => (q ? found(r, q) : st.pos === 'all' || P.L.pos(Number(r.id)) === st.pos);
+        // (opened from a player's place, st.lock: of his position, found or not)
+        const at = (r) => (!q || found(r, q)) && ((q && !st.lock) || st.pos === 'all' || P.L.pos(Number(r.id)) === st.pos);
         const ok = (r) => mine(r) || (r.buyable && (q || !ruled.has(Number(r.id))));
         return ctx.data.rows.filter((r) => at(r) && ok(r)).sort(order(P, g)).map((r) => ({ row: r, mine: mine(r) }));
       }
@@ -311,7 +321,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         if (!P) return;
         const L = P.L, g = st.g, q = norm(st.q.trim());
         weekPills(pillsEl, P.gws, g, live, (x) => { st.g = x; draw(); });
-        tabs(posEl, [['all', 'All'], ...POSITIONS.map((x) => [x, x])], st.pos, (k) => { st.pos = k; draw(); });
+        tabs(posEl, [['all', 'All'], ...POSITIONS.map((x) => [x, x])], st.pos, (k) => { st.pos = k; draw(); }, (k) => st.lock && k !== st.pos);
         posEl.hidden = !!q;
         // the sorts as chips in one sideways row: a tap chooses one, a second tap turns it round (its arrow says which way);
         // a radio group (no panels of their own: B113), the arrow keys picking as a tap does (ui.roving)
@@ -328,7 +338,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         const items = players(P).map((o) => ({ ...o, id: Number(o.row.id) }));
         const ids = items.map((o) => o.id);
         const top = barTop(L, items, P.gws);
-        const later = P.weeks.filter((w) => w.gw > g).flatMap((w) => w.in.map((id) => ({ id, gw: w.gw })));
+        const later = P.weeks.filter((w) => w.gw > g).flatMap((w) => w.in.map((id) => ({ id, gw: w.gw }))).filter((x) => !st.lock || L.pos(x.id) === st.pos);
         const extra = st.open != null && !ids.includes(st.open) && !later.some((x) => x.id === st.open) ? row(st.open, null, top) : null;
         // a plan you can't edit (offline): every + is off, the reason once above them (an open row says it under its button)
         fill(main, P.editable || st.open != null ? null : h('p.ps-off', null, P.why), extra,
@@ -474,6 +484,15 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         st.own[id] = true;
         const bp = saleBuy(ctx, id, g, out);
         if (bp.kind === 'none') { st.out[id] = { g, out }; draw(); return; }
+        take(id, g, { kind: 'buy', bp });
+      }
+      /** Opened from a player's place ("Other…": st.lock), a +: `id` in that place from the list's week at once, as FPL's
+       *  list after Remove and Replace's rows make it (the owner, 2026-10-28: "why isak not added to pitch: i click other
+       *  then '+' next to isak"): exactly that sale, the money short or not (ahead.saleBuy); one the club limit stops says
+       *  why (sayBuyProblem), the later week he fits in with its action. */
+      function swapIn(id) {
+        const g = st.g, bp = saleBuy(ctx, id, g, st.place);
+        if (bp.kind !== 'one') { sayBuyProblem(ctx, plan(ctx), id, bp, 'info'); return; }
         take(id, g, { kind: 'buy', bp });
       }
       /** A sale chip's or a chip week's button's bring-in: exactly the moves it names (a sale: bringIn; a Wildcard or Free

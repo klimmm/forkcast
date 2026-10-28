@@ -316,6 +316,7 @@ p { margin: 0; }
 .m-seg.small { min-height: 32px; }
 .m-seg > button { position: relative; z-index: 1; min-width: 0; border: 0; background: none; padding: 0 6px; color: var(--ink-2); font: 400 var(--t-sub)/1.3 var(--f-text); letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color var(--dur) var(--ease); }
 .m-seg > button:is([aria-selected="true"], [aria-checked="true"]) { color: var(--acc); font-weight: 600; }
+.m-seg > button:disabled { color: var(--muted); cursor: default; }  /* a tab that can't be picked (buylist.tabs' off) */
 .m-seg-thumb {
   position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / var(--n)); border-radius: 6px;
   background: var(--surface); box-shadow: 0 0 0 1px var(--hair);

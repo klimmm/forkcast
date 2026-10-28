@@ -3230,12 +3230,11 @@ export function litOf(P, w, M, D, toks = []) {
   at.chip = best && toks.includes(best) ? best : null;
   // (the best move, a chip's token aside: weekBest of the moves alone)
   const move = at.move = at.chip ? weekBest(P, w, M, D) : best;
-  const placed = (pl) => D.filter((d) => d.entries.some((e) => e.pl === pl && !e.back));
-  if (move) for (const d of placed(move)) at.set(d.a, { e: d.entries.find((x) => x.pl === move && !x.back), best: true });
+  if (move) for (const d of placesOf(D, move)) at.set(d.a, { e: d.entries.find((x) => x.pl === move), best: true });
   if (!M.settled) return at;
   for (const d of D) {
-    // (your own buys none of litOf's: their plate is their take-back's, placeFirst, the owner, 2026-10-26; never ink,
-    // weekBest never picking a take-back of yours, litEdges)
+    // (your own buys none of litOf's quiet plates: their plate is their take-back's, placeFirst, the owner, 2026-10-26;
+    // ink where it is the week's best, weekBest)
     if (at.has(d.a) || d.mine) continue;
     // (a place's entries in the week's order, best first: heldOrder)
     const e = d.entries.find((x) => singleMove(x) && !x.pl.early && !x.pl.refRow && can(x.pl));
@@ -3254,19 +3253,23 @@ const litCan = (P, w, M) => {
   const fresh = !w.moves.length && !M.sq && !P.pins.some((p) => p.id === `roll:${g}`);
   return (pl) => pl?.state === 'ready' && (fresh ? pl.cmp.delta > 0.05 : plPays(pl));
 };
+/** The places choice pl is drawn at (decksOf): behind each player it replaces; a take-back of a transfer of yours behind
+ *  your buy. → [deck] */
+const placesOf = (D, pl) => D.filter((d) => d.entries.some((e) => e.pl === pl));
 /** The week's one best (the user, 2026-10-23: "i cant see which transfer best"; design_marks/design.md: one ink plate):
  *  the choice that beats rolling with the highest number, single moves and plans of several together (a plan only where
- *  its number is higher: the user, 2026-10-22, "combinations of two if they higher"), never one whose take would also
- *  take back a buy of yours elsewhere (litEdges: its Swap would change more than the plate shows; the next best is the
- *  best then, that one a quiet plate whose place says "instead of …"); a Wildcard or Free Hit beside the goal (`toks`)
- *  where its number is higher still. None until the week settles. Pure. → pl | null */
+ *  its number is higher: the user, 2026-10-22, "combinations of two if they higher"), the take-back of a transfer of yours
+ *  too, its plate over your buy naming the player you sold (the owner, 2026-10-28, of "Gabriel +4.8" over Hill: "why it
+ *  not suggest in black to keep gabriel here instead of using -4 on him to hill"), never one whose take would also take
+ *  back a buy of yours elsewhere (litEdges: its Swap would change more than the plate shows; the next best is the best
+ *  then, that one a quiet plate whose place says "instead of …"); a Wildcard or Free Hit beside the goal (`toks`) where
+ *  its number is higher still. None until the week settles. Pure. → pl | null */
 export function weekBest(P, w, M, D, toks = []) {
   const g = w.gw;
   if (!M.settled) return null;
   const can = litCan(P, w, M);
   const ok = (pl) => !pl.refRow && !pl.early && can(pl);
-  const placed = (pl) => D.filter((d) => d.entries.some((e) => e.pl === pl && !e.back));
-  const moves = M.plans.filter((pl) => ok(pl) && placed(pl).length && !placed(pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl && !e.back))));
+  const moves = M.plans.filter((pl) => ok(pl) && placesOf(D, pl).length && !placesOf(D, pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl))));
   const chips = toks.filter((pl) => ok(pl) && !rollOnly(pl) && !!pl.choice.chips?.[g]);
   return [...moves, ...chips].reduce((m, pl) => (!m || pl.cmp.delta > m.cmp.delta ? pl : m), null);
 }
@@ -5887,6 +5890,8 @@ export const headScale = (need, room, px) => (need <= room + 0.5 ? 1 : Math.max(
  *  in preview"). Its "xP" the pitch's: off on one plate or token beside the goal, off on all (the owner, 2026-10-26: "why
  *  it sometimes write xp sometimes not write fix"; renderDecks' oneXp). */
 const PLATE_TRIMS = ['noxp', 'tight'];
+/** The week's status's trims beside the goal (renderDecks fits): its own spacing first (.snug), then a token's. */
+const ST_TRIMS = ['snug', 'noxp', 'nomark', 'tight'];
 /** The least of a buy's name a shortened plate shows (m-ahead.css .ah-sp.cut: a few letters and "…", as the cards'
  *  "Calvert-L..."), in its type's ems; under it the best shows its number alone, ink (.only: renderDecks). */
 const NAME_LEAST = 3;
@@ -7020,12 +7025,23 @@ export function mount(el, ctx) {
     // .ah-tok::before) clear the cards; else it is the Week sheet's, as one that meets a card. Its name too (the owner,
     // 2026-10-25: GW12's "Fre… +4.6 xP Play" at 393×702; "A name still too long is shortened like the cards do" is the
     // plates', never a chip's): its words' line (.ah-tbody's first span, ellipsed by m-ahead.css) whole
+    // (a status's words too, "Wildcard · yours", and its body whole, its number: the QA review, 2026-10-25)
+    const wordsOf = (t) => [...t.querySelectorAll('.ah-tw, .ah-tbody > span:first-child, :scope > .ah-tl, .ah-tbody, .ah-tn')];
+    // (a status's number wrapped under its words, the room it lacks there: "2 transfers −4 −3.3 xP" over "Set in FPL: 2
+    // changes" is two lines, not three, where a trim gives it room; the owner, 2026-10-28, "why this pill takes 3 lines
+    // instead of two fix")
+    const wrapOf = (t) => {
+      const words = t.querySelector(':scope > .ah-tl'), num = t.querySelector(':scope > .ah-tnum');
+      return words && num && num.offsetTop >= words.offsetTop + words.offsetHeight - 1 ? num.offsetWidth + (parseFloat(getComputedStyle(t).columnGap) || 0) : 0;
+    };
+    const overOf = (t, tw = wordsOf(t)) => () => tw.some((x) => x.scrollWidth > x.clientWidth + 0.5) || wrapOf(t) > 0;
+    // (a status's own spacing first, m-ahead.css .ah-tok.st.snug: no word or number changes for it)
+    const trimsOf = (t) => (t.matches('.st') ? ST_TRIMS : undefined);
     const fits = (t) => {
-      // (a status's words too, "Wildcard · yours", and its body whole, its number: the QA review, 2026-10-25)
-      const tw = [...t.querySelectorAll('.ah-tw, .ah-tbody > span:first-child, :scope > .ah-tl, .ah-tbody, .ah-tn')];
-      if (fitNum(t, tw)) return true;
-      t.style.maxWidth = `${t.offsetWidth + Math.ceil(Math.max(...tw.map((x) => x.scrollWidth - x.clientWidth)))}px`;
-      if (fitNum(t, tw) && !meetsCard(t, 9, 6)) return true;
+      const tw = wordsOf(t);
+      if (fitNum(t, overOf(t, tw), trimsOf(t))) return true;
+      t.style.maxWidth = `${t.offsetWidth + Math.ceil(Math.max(wrapOf(t), ...tw.map((x) => x.scrollWidth - x.clientWidth)))}px`;
+      if (fitNum(t, overOf(t, tw), trimsOf(t)) && !meetsCard(t, 9, 6)) return true;
       // the best move's token (.mv) then its name shortened as the plates' are (m-ahead.css .ah-tok.mv.cut), never its
       // number, in the room it has (its CSS max-width), each name NAME_LEAST at least, before anything else
       // in the stack gives way (the owner, 2026-10-26, "Ink token, top of stack"); else it gives way as the others
@@ -7044,9 +7060,10 @@ export function mount(el, ctx) {
     let top = 6;
     for (const t of tk) {
       t.style.top = `${top}px`;
-      // (the status where it can't fit wider: in its own room, its words wrapping, never over the keeper's card)
+      // (the status where it can't fit wider: in its own room, trimmed as there, its words wrapping, never over the
+      // keeper's card; its trims kept only where they fit it, so its "xP" goes from no plate for nothing: oneLook)
       if (fits(t)) top += t.offsetHeight + 8;
-      else if (t === st) { t.style.removeProperty('max-width'); top += t.offsetHeight + 8; }
+      else if (t === st) { t.style.removeProperty('max-width'); if (!fitNum(t, overOf(t), ST_TRIMS)) t.classList.remove(...ST_TRIMS); top += t.offsetHeight + 8; }
       else t.remove();
     }
     for (;;) {
@@ -7344,7 +7361,7 @@ export function mount(el, ctx) {
     const ready = !!pl && pl.state === 'ready' && (!first || !!S.M?.settled);
     const v = ready ? numParts(g, pl) : !pl ? (S.M?.settled ? null : COPY.pairChecking) : pl.state === 'failed' ? failedWords(P, pl).head : COPY.pairChecking;
     // (your own buy's: his take-back, naming the player you sold, the owner, 2026-10-26: "i bough justin but where is no tab
-    // on his head so i can keep prebious player"; never ink: weekBest never picks a take-back of yours, litEdges)
+    // on his head so i can keep prebious player"; ink where it is the week's best, weekBest: the owner, 2026-10-28)
     const back = d.mine && takesBack(e);
     // a quiet plate whose number gains nothing as shown (a loss, or 0.0: shownGain, the sign its number is drawn with) its
     // number alone, a small chip, whatever its room, so the shape tells it from a gain's named plate (the owner,
@@ -7355,7 +7372,7 @@ export function mount(el, ctx) {
     // and what (`said`)
     const loss = !best && o.tag == null && !back && ready && !shownGain(pl.cmp.delta);
     const num = ready ? plNumSaid(P, pl) : v, places = COPY.placeSaid(nm(d.a), d.entries.length, null);
-    const moves = sellers.map((a, i) => COPY.moveSaid(nm(a), nm(buys[i])));
+    const moves = back ? [COPY.keepSoldSaid(nm(e.inId), nm(d.a))] : sellers.map((a, i) => COPY.moveSaid(nm(a), nm(buys[i])));
     // (beside a chip's token, the week's best: "Best move this week", litOf `chip`)
     const move = !!S.M?.lit?.chip;
     // (a first choice: what his place holds as the handle said it, "none better than rolling" (in a week of yours "than
@@ -7364,7 +7381,7 @@ export function mount(el, ctx) {
     const none = !!first && !back && ready && !d.entries.some((x) => x.pl?.state === 'ready' && (plPays(x.pl) || x.pl.cmp.delta > 0.05));
     const why = first && ready ? [earlyWords(pl), pl.removed ? COPY.removedByYou : null].filter(Boolean).map((x) => `, ${x}`).join('') : '';
     const said = o.tag != null ? `${COPY.partSaid(moves[0], e.adds.filter((m) => Number(m.in) !== e.inId).map((m) => COPY.moveSaid(nm(m.out), nm(m.in))), move)}. ${places}`
-      : back ? `${COPY.keepSoldSaid(nm(e.inId), nm(d.a))}${v == null ? '' : `, ${num}`}${why}. ${places}`
+      : back && !best ? `${moves[0]}${v == null ? '' : `, ${num}`}${why}. ${places}`
       : best ? `${COPY.bestSaid(moves, num, move)}. ${o.line ? COPY.showsWhy : places}`
         : `${moves.join('; ')}, ${num}${why}. ${!first ? places : !ready ? placeLabel(P, d) : none ? COPY.placeNoneSaid(nm(d.a), d.entries.length, plansVs(P, g)) : places}`;
     const body = h('button.ah-spb', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': `${said}${o.line?.back ? `, ${o.line.back}` : ''}`, onClick: open },
@@ -7454,7 +7471,8 @@ export function mount(el, ctx) {
     const mv = lit.move, top = mv && lead?.[0]?.L.e.pl === mv && !multiMove(lead[0].L.e, lead[0].d.a) ? lead : null;
     if (top) {
       const nm = P.L.name, e = top[0].L.e;
-      const moves = e.adds.map((m) => COPY.moveSaid(nm(m.out), nm(m.in)));
+      // (the take-back of a transfer of yours "Keep Gabriel, not Hill": weekBest)
+      const moves = takesBack(e) ? [COPY.keepSoldSaid(nm(e.inId), nm(top[0].d.a))] : e.adds.map((m) => COPY.moveSaid(nm(m.out), nm(m.in)));
       const swap = mv.state === 'ready' && !frozenAt(P, g);
       out.push(h('button.ah-tok.mv', { type: 'button', 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:best:${g}`, deck: top[0].d.a, best: planKey(g, mv), ...(swap ? { add: `plan:${planKey(g, mv)}` } : {}) },
         'aria-label': `${COPY.bestSaid(moves, plNumSaid(P, mv), true)}, ${swap ? COPY.bestSwaps : COPY.showsChoices}`,

@@ -496,6 +496,7 @@ button.ah-tok { cursor: pointer; }
 .ah-tok.st { flex-wrap: wrap; row-gap: 0; height: auto; min-height: 26px; padding-top: 3px; padding-bottom: 3px; white-space: normal; }
 .ah-tok.st > .ah-tl { text-align: left; }
 .ah-tok.st > .ah-tw { flex-basis: 100%; text-align: left; }  /* the lineup notice under its words and number (statusTok) */
+.ah-tok.st.snug { padding-left: 6px; padding-right: 6px; column-gap: 4px; }  /* its number on its words' line: ahead.js ST_TRIMS */
 .ah-tok .ah-tnum > .ah-bg:first-child { margin-left: 0; }
 .ah-tok.two { padding: 0; }
 .ah-tok.two::before { content: none; }

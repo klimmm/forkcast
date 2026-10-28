@@ -19,12 +19,13 @@ export function weekPills(host, gws, sel, ok, onPick) {
 }
 
 /** Tabs into `seg` (an .m-seg.small radio group: they choose the list's order or filter, they have no panels of their
- *  own, B113): items [[key, label]], `sel` checked; the arrow keys pick as a tap does (ui.roving). */
-export function tabs(seg, items, sel, onPick) {
+ *  own, B113): items [[key, label]], `sel` checked, `off(key)` those that can't be picked (greyed, skipped by the arrow
+ *  keys); the arrow keys pick as a tap does (ui.roving). */
+export function tabs(seg, items, sel, onPick, off = () => false) {
   seg.style.setProperty('--n', items.length);
   seg.style.setProperty('--i', items.findIndex(([k]) => k === sel));
   fill(seg, h('span.m-seg-thumb'), items.map(([k, l]) => h('button', {
-    type: 'button', role: 'radio', 'aria-checked': String(sel === k), onClick: () => onPick(k),
+    type: 'button', role: 'radio', 'aria-checked': String(sel === k), disabled: off(k), onClick: () => onPick(k),
   }, l)));
   roving(seg, { pick: (b) => b.click() });
 }
