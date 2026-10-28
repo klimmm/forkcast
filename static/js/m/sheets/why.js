@@ -55,10 +55,16 @@ export function open(ctx, spec = {}) {
       // second tap's answer; ahead.openPlanWhy)
       if (spec.reason) body.append(h('p.wy-reason', null, spec.reason));
       if (spec.acts?.length) {
-        body.append(h('div.ah-btnrow.wy-acts', null, spec.acts.map((a) => h('button', {
+        // (design 1028d K2: one filled green, the act the plan advises; a take-back's words red (`danger`); a way to another
+        // view (`link`: his place) a green row with ›, under the acts, never one of their boxes: H5, M4, R12, T1)
+        const btn = (a, cls) => h(cls, {
           // `said`: its spoken label where the shown one is short ("Take it": the title names the move)
-          type: 'button', class: { acc: !!a.fill }, disabled: !!a.disabled, 'aria-label': a.said ?? null, onClick: () => { if (a.act() !== false) sheet.close(); },
-        }, a.label))));
+          // (a take, a.swap: the one mark, .m-swap, as its row's and its place's: design 1028d K1)
+          type: 'button', class: a.swap ? { 'm-swap': true, best: a.swap === 'best', quiet: a.swap === 'quiet' } : { acc: !!a.fill, 'm-danger': !!a.danger && !a.fill }, disabled: !!a.disabled, 'aria-label': a.said ?? null, onClick: () => { if (a.act() !== false) sheet.close(); },
+        }, a.label);
+        const acts = spec.acts.filter((a) => !a.link), links = spec.acts.filter((a) => a.link);
+        if (acts.length) body.append(h('div.ah-btnrow.wy-acts', null, acts.map((a) => btn(a, 'button'))));
+        for (const a of links) body.append(btn(a, 'button.m-nav'));
       }
       const g = spec.gw ?? P.A, gws = P.gws.filter((x) => x >= g);
       // under the tables, once, what the stats are against the forecast (COPY.statsPast; the user, 2026-10-21: fix all
@@ -143,7 +149,8 @@ function pairTable(ctx, P, pr, g, gws, onStats) {
   // the opponent's code its venue, "COV" at home, "cov" away (the user, 2026-10-16), spoken in words; a double GW's
   // one a line ("LEE +" over "mun"), so its slot holds at 320
   const fxs = (row, x) => ctx.pitch?.fixturesAt?.(row, x, d.xpGws) || [];
-  const opp = (row, x) => { const t = fxs(row, x).map(oppText); return t.length ? t.map((o, j) => h('span', null, j < t.length - 1 ? `${o} +` : o)) : DASH; };
+  // (each in its FDR tint and mark, the Player data legend's chip: plan-pitch.css .ah-fdrc; design 1028d K4 B16)
+  const opp = (row, x) => { const f = fxs(row, x); return f.length ? f.map((o, j) => h('span', { class: o.fdr ? `ah-fdrc fdr-${o.fdr}` : null }, j < f.length - 1 ? `${oppText(o)} +` : oppText(o))) : DASH; };
   const oppSaid = (row, x) => fxs(row, x).map((f) => `${String(f.opp).toUpperCase()} ${f.home ? 'home' : 'away'}`).join(' and ') || 'no match';
   const xpAt = (row, x) => num(ctx.pitch?.xpAt?.(row, x, d.xpGws));
   const money = (x) => (num(x) == null ? DASH : fmt.money(x));

@@ -10,6 +10,10 @@
    Text      --ink · --ink-2 · --muted
    Accent    --acc green text and links · --acc-bg green fills (primary, selected segment, Planned, GW bar marker) ·
              --acc-ink text on --acc-bg. The ONE accent; never a verdict
+   Selected  --sel-bg --sel-edge --sel-tint: ONE look for "this one is chosen" (design 1028d K5-rec; the owner, 2026-10-28
+             "same meaning, same look"): in a track (segments, the GW tiles, a sheet's week tabs and week pills) a white
+             thumb in a 1.5px green ring, its words green 600; a filter chip (the sorts, Show runs) outlined, the chosen
+             one --sel-tint in that ring, its ↓/↑ the sign. Never the filled green: that is "do it" (M2, H2, H21)
    Meaning   --xp --xp-l --xp-d forecast points, a signed gain's too (ui.js xpNum, xpGain: blue text and "xP", its sign its
              direction; the user, 2026-10-22, after v1.3.68: no green or red number, worth doing the solid + alone) ·
              --gain / --loss a status's and money's words (a short bank's coral) · --warn flag fill (doubtful) ·
@@ -30,8 +34,12 @@
              "Calvert-Lewin" and "re-plans" (the system font's tnum covers U+002D: "Calvert - Lewin")
    Greys     two for text: --ink and --muted (--ink-2 only for a control's label). Green: --acc for links and the
              selection (--gain is the same colour; never a number's since 2026-10-22: --xp)
-   Buttons   primary: filled green (.m-primary, rare) · secondary: outlined, 1px --border-2, radius 12, 600 --t-body,
-             44 pt (.m-secondary, .m-chipbtn, the sheets' button grids) · tertiary: green text (.m-link, .ah-lnk)
+   Buttons   primary: filled green (.m-primary, a grid's .acc), one per view at most, the act the plan advises, rare ·
+             secondary: outlined, 1px --border-2, radius 12, 600 --t-body, 44 pt (.m-secondary, .m-chipbtn, the sheets'
+             button grids) · take-back (Remove, Not …, Reset plan, Sign out): the secondary with its words --loss
+             (.m-danger), after the safe act beside it, never filled red · tertiary: green text (.m-link, .ah-lnk) · a way
+             to another view: a green row with › (.m-nav), never a button box (the owner, 2026-10-28, design 1028d K2:
+             H5, M2-M4, N2, R1, R3, R4, T1)
    Shape     4-based · --gutter 16 · --r-sm 5 (small buttons) · --r-ctl 8 (buttons, inputs, cards, strip) · --r-sheet
              12 · no pills, no shadows, no gradients, no blur
    Safe area --safe-top / --safe-bot (env insets, floors for desktop)
@@ -72,6 +80,14 @@
   --acc-bg:    light-dark(#08552E, #187A44);
   --acc-ink:   #FFFFFF;
   --gain:      var(--acc);  /* one green (B6): gains, links and the selection share it */
+  /* the selected one (design 1028d K5-rec, B10; the owner, 2026-10-28: Bring in showed three selected looks at once, and
+     a filled-green sort read as the sheet's main act, the look of Take it and Find my team: M2, H21): the GW tiles'
+     thumb (white on --track in a ring, the johnson review's fix, 2026-10-09) everywhere, its ring the one green: a mark
+     7.5:1 on --track, 8.9:1 on white (W3; the segments' white thumb alone was 1.19:1); the words green 600 (W1: colour,
+     weight and the ring) */
+  --sel-bg:    var(--surface);
+  --sel-edge:  var(--acc-bg);
+  --sel-tint:  color-mix(in oklab, var(--acc-bg) 10%, var(--surface));  /* a chosen chip: --acc on it 7.6:1 */
   --loss:      light-dark(#C0281E, #FF6E61);
   /* forecast points (the user, 2026-10-22, after v1.3.68: "is points coloring not too much, and why + still goes with
      other colors and no xp": no chip, blue text and an "xP" by it, everywhere, the signed gains too, the sign their
@@ -84,6 +100,9 @@
   --xp-l:      #2B5BB8;
   --xp:        light-dark(var(--xp-l), #8AB0F5);
   --xp-d:      light-dark(#CFE0FF, #9CC0FF);
+  /* a hit's red on the pitch's dark green and ink (.m-hit's --hit-c there; 4.6:1 on #0A6A3F, 12.1:1 on the ink; --loss
+     is 2.2:1 on #0A6A3F): design 1028d K4, the owner 2026-10-28 ("same stats … consistent across app") */
+  --loss-d:    #FFC9C2;
   --warn:      #F2B200;
   /* amber as a MARK on a light surface (a status dot, a stale bar; 1028c P4-keep): FPL-like #F2B200 is 1.88:1 on white,
      1.59:1 on --track (W7, W9: a pale yellow mark on white fails), so a dot or bar takes Apple's increased-contrast yellow
@@ -218,6 +237,15 @@ p { margin: 0; }
    blue by --xp-c (the plate's, the pitch's dark green's: m.css --xp-l, --xp-d) */
 .m-app .xp { color: var(--xp-c, var(--xp)); font-variant-numeric: tabular-nums; }
 .m-app .xp-u { margin-left: .2em; font-size: .7em; font-weight: 700; letter-spacing: .02em; color: var(--xp-c, var(--xp)); white-space: nowrap; }
+/* a gain or loss vs rolling (ui.js xpGain: "+1.6 xP"): ONE look on every surface, its sign, its figures at 600 in its
+   ground's blue (--xp-c: --xp-l on a light plate, --xp-d on the dark green and the ink), its "xP" as every forecast's;
+   was 400 in the Week sheet's rows and the Why sheet's line, 700 in a place's headers (design 1028d K4, B7; the owner,
+   2026-10-28; T5, N2, W 3.2.4 consistent identification; T type: weights 400 and 600) */
+.m-app .xp-g { font-weight: 600; }
+/* a hit, "−4" (ahead.js hitTag, numParts; wish.js's pill): ONE look, its sign, 600, the losses' red (--hit-c: --loss-d on
+   the pitch's dark grounds), at its line's size: on a plate it was .82em of 11 px, 8.3 px, under the type scale's 11
+   px floor (design 1028d K4, B15; T type, J3: small and pale is the hardest to tell apart; W1: the sign says it too) */
+.m-app .m-hit { font-weight: 600; color: var(--hit-c, var(--loss)); }
 /* …on a card's plate (pitch.js secondPlate; plates are light in both themes): the light surface's blue; "xP" gone where
    the line is short (pitch.js fitFixtures: .nomark) */
 .m-app .pm .pm-pf { --xp-c: var(--xp-l); }
@@ -286,6 +314,21 @@ p { margin: 0; }
 .m-banner .m-banner-bar i.m-eta, .m-bar i.m-eta { transition: width 1s linear; }
 .m-banner .m-banner-bar i.m-eta.sweep, .m-bar i.m-eta.sweep { width: 30%; border-radius: 2px; animation: m-sweep 1.4s linear infinite; }
 @keyframes m-sweep { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+/* the wait line (ahead.js waitView; design 1028d W2-line, the owner, 2026-10-28: "user just can miss it needs to wait"):
+   ONE look for every wait (M10, M12, R22), the strip's (m-ahead.css), Chips…'s and Bring in's: its verb in ink 600, then
+   what, how far, the clock in ink 400 (W2: 17.6:1 on --surface), one line whose words shorten whole, never cut (B3);
+   its bar 4 px (M3's linear track) on its container's edge, --acc-bg on --track (fill 8.9:1 on --surface, 7.5:1 on --track: W3 3:1; the track 1.2:1 only a ground, its fill never under 3 px: M14), by
+   the share while one is known (H9, M13; eased over the second it is drawn in, so it glides: J13, H10), else three
+   sweeps of 1.6 s (N7; W6: under 5 s) and then the whole track at rest, pale, while the clock goes on (no endless loop
+   beside the usable pitch: W7) */
+.m-wl { display: block; min-width: 0; overflow: hidden; white-space: nowrap; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--ink); font-variant-numeric: tabular-nums; }
+.m-wl > b { font-weight: 600; }
+.m-wlb { display: block; height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.m-wlb > i { display: block; height: 100%; width: 0; min-width: 3px; border-radius: 2px; background: var(--acc-bg); transition: width 1s linear; }
+.m-wlb > i.sweep { width: 30%; transition: none; animation: m-wsweep 1.6s linear 3, m-wrest 0s 4.8s forwards; }
+@keyframes m-wsweep { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+@keyframes m-wrest { to { transform: none; width: 100%; opacity: .3; } }
+.m-wait { display: grid; gap: 5px; margin: 0 0 10px; }  /* a sheet's: its words over its bar */
 .m-banner button { flex: none; height: 28px; padding: 0 10px; border: 1px solid var(--border-2); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); font: 600 var(--t-sub)/1.3 var(--f-text); }
 
 /* ------------------------------------------------------------------ type helpers */
@@ -317,6 +360,22 @@ p { margin: 0; }
 /* the secondary style at its content's width (Remove, Change team…, Copy address) */
 .m-chipbtn { flex: none; height: 44px; padding: 0 16px; border: 1px solid var(--border-2); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); font: 600 var(--t-body)/1.3 var(--f-text); }
 .m-chipbtn.ghost { border-color: transparent; background: var(--track); color: var(--ink-2); }
+/* a take-back (design 1028d K2, the owner 2026-10-28: "same action, same look"): the secondary's box with red words,
+   on every surface (the Why sheet's Remove and Not …, a rule's Remove, the card's Remove, You's Reset plan and Sign out);
+   red words 5.9:1 on white (W2), the word says it too (W1); never the one fill (H5, N4, R3, R4). .m-sheet: over the grids'
+   own ink */
+.m-danger, .m-sheet .m-danger { color: var(--loss); }
+.m-chipbtn:disabled, .m-secondary:disabled { opacity: .45; }
+/* a way to another view (About Forkcast, Help, his place's choices, the Studio): a 44pt green row between hairlines,
+   its › after the words (spoken words without it); tertiary, never a button's box (M4, R8, R12, W4) */
+.m-nav {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; margin: 0;
+  padding: 0 2px; border: 0; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); background: none;
+  font: 600 var(--t-body)/1.3 var(--f-text); color: var(--acc); text-align: left; text-decoration: none;
+}
+.m-nav + .m-nav { border-top: 0; }
+.m-nav::after { content: "›" / ""; flex: none; font-size: var(--t-title); line-height: 1; }  /* on the type scale */
+.m-nav:active { background: var(--track); }
 .m-xbtn { position: relative; flex: none; width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--track); color: var(--ink-2); font: 600 var(--t-body)/1.3 var(--f-text); display: grid; place-items: center; }
 .m-xbtn::before { content: ""; position: absolute; inset: -7px; }  /* a 44pt target */
 /* 44pt hit boxes for small controls, without changing how they look (UX-10, Birman #16): a ::before reaching past the
@@ -336,7 +395,8 @@ p { margin: 0; }
 .ps .ps-keep .m-seg > button { margin-block: -4px; }  /* 36 → 44 */
 
 /* segmented control: <div class="m-seg" style="--n:3; --i:1"><span class="m-seg-thumb"></span><button aria-checked>
-   (a radio group, ui.roving; aria-selected where one is a tab list). The selected segment is a white thumb with green text */
+   (a radio group, ui.roving; aria-selected where one is a tab list). The selected segment is the selected look (--sel-*):
+   a white thumb in the green ring, green 600 text */
 .m-seg {
   --n: 2; --i: 0;
   position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; min-height: 36px; padding: 2px; margin-top: 10px;
@@ -348,7 +408,7 @@ p { margin: 0; }
 .m-seg > button:disabled { color: var(--muted); cursor: default; }  /* a tab that can't be picked (buylist.tabs' off) */
 .m-seg-thumb {
   position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / var(--n)); border-radius: 6px;
-  background: var(--surface); box-shadow: 0 0 0 1px var(--hair);
+  background: var(--sel-bg); box-shadow: 0 0 0 1.5px var(--sel-edge);
   transform: translateX(calc(var(--i) * 100%)); transition: transform var(--dur) var(--ease);
 }
 
@@ -418,30 +478,34 @@ p { margin: 0; }
 /* shared: search field, GW buttons, list rows, button rows */
 .m-sheet .ah-search { min-height: 40px; margin-top: 10px; padding: 0 12px; border-radius: var(--r-ctl); background: var(--track); color: var(--muted); }
 .m-sheet .ah-search .icon { flex: none; }
-.m-sheet .ah-pills { gap: 6px; margin-top: 4px; }
-.m-sheet .ah-pills button { min-height: 32px; border: 1px solid var(--border-2); border-radius: var(--r-sm); background: var(--surface); color: var(--ink-2); font: 600 var(--t-sub)/1.3 var(--f-text); }
-.m-sheet .ah-pills button[aria-pressed="true"] { border-color: var(--acc-bg); background: var(--acc-bg); color: var(--acc-ink); }
+/* a sheet's week tabs (Bring in, Replace: one GW of the plan's, buylist.weekPills): a segmented control's track, the
+   chosen one the selected look, no more a filled green button beside outlined ones (design 1028d K5-rec, B10: filled
+   green is "do it", M2, H21; one control, one look, W4, N2) */
+.m-sheet .ah-pills { gap: 0; margin-top: 4px; padding: 2px; border-radius: var(--r-ctl); background: var(--track); }
+.m-sheet .ah-pills button { min-height: 32px; border: 0; border-radius: 6px; background: none; color: var(--ink-2); font: 400 var(--t-sub)/1.3 var(--f-text); }
+.m-sheet .ah-pills button[aria-pressed="true"] { background: var(--sel-bg); box-shadow: 0 0 0 1.5px var(--sel-edge); color: var(--acc); font-weight: 600; }
+.m-sheet .ah-pills button:disabled { opacity: 1; color: var(--muted); }  /* as a segment's (.m-seg > button:disabled) */
 .m-sheet .ah-lrow { min-height: 56px; padding: 0; border-bottom: 1px solid var(--hair); }
 .m-sheet .ah-lrow .nm b { font-weight: 400; }
 .m-sheet .ah-lrow .nm span { font-size: var(--t-sub); }
 .m-sheet .ah-lrow .rt { font: 600 var(--t-body)/1.3 var(--f-text); font-variant-numeric: tabular-nums; }
 .m-sheet .ah-lrow .rt small { font: 400 var(--t-sub)/1.3 var(--f-text); }
 .m-sheet .ah-micro i { border-radius: 1px; background: var(--xp); }
-.m-sheet .ah-btnrow button { min-height: 44px; padding: 6px 10px; border: 1px solid var(--border-2); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); font: 600 var(--t-body)/1.3 var(--f-text); }
-.m-sheet .ah-btnrow button.acc { border-color: var(--acc-bg); background: var(--acc-bg); color: var(--acc-ink); }
 /* height grows with large text (the When line's and Add a player's tiles: at AX sizes a fixed 52px cut the GW and its gain;
-   the review of the first-use fixes, 2026-10-21) */
-.m-sheet .ah-ap { height: auto; min-height: 52px; padding: 4px 2px; border-radius: var(--r-ctl); background: var(--track); }
+   the review of the first-use fixes, 2026-10-21). The tiles in one track as the header's GW tiles, the chosen one the
+   selected look (design 1028d K5-rec, B10: it was a white tile in a ring among grey tiles, the same idea apart) */
+.m-sheet .ah-apills { gap: 2px; padding: 2px; border-radius: var(--r-ctl); background: var(--track); }
+.m-sheet .ah-ap { height: auto; min-height: 52px; padding: 4px 2px; border-radius: 6px; background: none; }
 .m-sheet .ah-ap .g { font: 600 var(--t-cap)/1.3 var(--f-text); }
 .m-sheet .ah-ap .v { font: 600 var(--t-body)/1.3 var(--f-text); font-variant-numeric: tabular-nums; }
 .m-sheet .ah-ap.sk::after { content: none; }
-.m-sheet .ah-ap.sel { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--acc-bg); }
+.m-sheet .ah-ap.sel { background: var(--sel-bg); box-shadow: 0 0 0 1.5px var(--sel-edge); }
+.m-sheet .ah-ap.sel .g { color: var(--acc); }
 .m-sheet .ah-ap.fill { animation: none; }
 
 /* Player */
 .ps .ps-sub { color: var(--muted); }
 .ps .ps-grid button { min-height: 44px; height: auto; padding: 4px 10px; border: 1px solid var(--border-2); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); }
-.ps .ps-grid button.acc { border-color: var(--acc-bg); background: var(--surface); color: var(--acc); }
 .ps .ps-keep .m-seg { height: 36px; }
 .ps .ps-grid .ps-keep .m-seg > button { min-height: 0; padding: 0 4px; border: 0; background: none; }
 .ps .ps-grid .ps-tog.on { border-color: var(--acc-bg); background: var(--surface); color: var(--ink); }
@@ -484,7 +548,6 @@ p { margin: 0; }
 :is(.rs .rs-auto, .cs) .rs-automk { display: grid; place-items: center; border-radius: var(--r-sm); background: var(--track); color: var(--ink-2); font: 600 var(--t-cap)/1.3 var(--f-text); }
 .cs .rs-automk.on { background: var(--token); color: var(--token-ink); }
 .cs .ah-lrow .nm span { white-space: normal; }  /* its fact whole ("Best week: GW10 +5.1" wraps, never cut) */
-.cs .ah-lrow .nm .cs-clock { display: inline; }  /* its checks' clock on the fact's line ("… 2 of 4 weeks · 1:12") */
 .cs .ah-lrow:disabled { opacity: 1; }  /* played this half: legible, its name grey */
 .cs .ah-lrow:disabled .nm b { color: var(--muted); }
 .ws .ws-item { border-bottom: 1px solid var(--hair); }
@@ -495,7 +558,7 @@ p { margin: 0; }
 .wy-sheet .wy-swarm text { font-family: var(--f-text); }
 .wy-sheet .wy-swarm .dot { animation: none; }
 .wy-sheet .wy-tgl { border-radius: var(--r-sm); background: var(--track); color: var(--ink-2); }
-.wy-sheet .wy-tgl.on { background: var(--acc-bg); color: var(--acc-ink); }
+.wy-sheet .wy-tgl.on { background: var(--sel-tint); box-shadow: inset 0 0 0 1.5px var(--sel-edge); color: var(--acc); }  /* a chip on: the sorts' chosen look (K5-rec) */
 
 /* Price watch (calls.priceWatch, ahead.watchView): a GW-A move's FPL prediction under its prices (the transfer row's
    details), then the foot: the call to act (amber when waiting puts a move out of reach; what waiting only costs or
@@ -831,4 +894,6 @@ button.pm-pl:focus-visible { outline: 2px solid #fff; outline-offset: 2px; borde
   #toasts .toast { animation: m-fade-in .15s ease !important; }
   .m-shimmer.once { animation: none !important; }
   i.m-eta.sweep { animation: none !important; width: 100%; opacity: .45; }  /* no sweep: the bar dimmed, whole */
+  .m-wlb > i { transition: none !important; }  /* the wait line's bar steps by its count, never glides (ahead.js waitNow) */
+  .m-wlb > i.sweep { animation: none !important; width: 100%; opacity: .3; }  /* no sweep: its rest at once */
 }

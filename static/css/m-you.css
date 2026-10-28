@@ -4,9 +4,9 @@
    .y-team .y-avatar .y-name .y-sub    team header (56pt initials avatar)
    .y-stats .y-rate .y-cheer           rank / points tiles, the points-to-places line, the line every GW
    .y-label .y-kvbtn .y-center         small labels, a kv row with a button
-   .y-studio                           Open Studio (Dev mode), a local page only
+   .y-studio                           Open Studio (Dev mode), a local page only (a row: m.css .m-nav)
    .y-share .y-qr .y-url               Open on iPhone: the QR and the address
-   .y-lead .y-help .y-why              Help: its lead, About Forkcast's row, a task section each (a button head) with its recording
+   .y-lead .y-help                     Help: its lead (About Forkcast's row: m.css .m-nav), a task section each (a button head) with its recording
 */
 
 /* ------------------------------------------------------------------ team */
@@ -37,8 +37,6 @@
 .y-kvbtn { align-items: center; padding: 6px 0; }
 .y-kvbtn > span { color: var(--ink); font-variant-numeric: tabular-nums; }
 .y-center { text-align: center; margin-top: 8px; }
-a.m-secondary { text-decoration: none; }
-.y-studio { color: var(--ink); }  /* a secondary button: ink, as every other (B6) */
 
 /* ------------------------------------------------------------------ Open on iPhone */
 
@@ -70,13 +68,8 @@ a.m-secondary { text-decoration: none; }
 .y-help > .wf-clip { margin: 0 0 12px; }  /* the recording of what its steps do, over them (sheets/about.js clip) */
 .y-help > ul { margin: 0 0 12px; padding: 0 0 0 20px; }
 .y-help li { margin: 0 0 6px; font: 400 var(--t-body)/1.4 var(--f-text); color: var(--ink); }
-.y-why {
-  display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; margin: 0 0 8px;
-  padding: 0 2px; border: 0; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); background: none;
-  font: 600 var(--t-body)/1.3 var(--f-text); color: var(--acc); text-align: left;
-}
-.y-why > span { font-size: var(--t-title); line-height: 1; }  /* the ›, on the type scale (it follows the text size) */
 
 /* Switch team (the shared picker, picker.js) and Sign out (F6b: destructive, the toast has Undo) */
 .y-switch .m-primary { margin-top: 14px; }
-.y-signout { margin-top: 28px; color: var(--loss); }  /* Birman #17: well apart from Refresh, never hit for it */
+.y-signout { margin-top: 28px; }  /* Birman #17: well apart from Reset plan, never hit for it; its red words: .m-danger */
+.y-lead + .m-nav { margin-bottom: 8px; }  /* Help's About Forkcast row, over the first task's hairline */

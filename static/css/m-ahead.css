@@ -88,42 +88,15 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
    keepGwLine): the change's "xP" makes room for them (.ah-nomark), then the window's label (.ah-tight), then the change
    goes, then the total (.ah-nototal); .ah-bare is the line without them, as fitPitch measures it */
 .ah-gwline.ah-bare .ah-tdelta, .ah-gwline.ah-tight .ah-tot .k, .ah-gwline.ah-nomark .ah-tdelta .xp-u { display: none; }
-/* a re-plan under way: how far it is in place of the deadline, in its muted ink, on one line (ahead.js
-   paintPlanStatus: shorter words first, then an ellipsis on the words; then the total's parts, as above, where the
-   countdown would be cut: keepGwLine). Within 24 h of the deadline the countdown follows the words (B37) and is never cut */
-.ah-gwline.ah-planning .ah-dlpart { display: flex; flex: 0 1 auto; overflow: hidden; white-space: nowrap; color: var(--muted); }
-.ah-gwline.ah-planning .ah-plw { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.ah-gwline.ah-planning .ah-dl { flex: none; white-space: pre; }
-/* the first plan's wait told as one story (ahead.js tellStory, design 1027a A-stages): the line its words alone, the
-   window's total (dashed while it plans) back with the deadline */
-.ah-gwline.ah-story .ah-tot { display: none; }
-/* …and its one bar, the banner's place and look, over it while the story runs (ahead.js paintStoryBar) */
-.m-screen.ah .ah-storybar { position: absolute; z-index: 2; top: 1px; left: 8px; right: 8px; width: auto; height: 3px; margin: 0; }
-.m-screen.ah .ah-storybar[hidden] { display: none; }
-.m-screen.ah .ah-storybar i.m-eta { transition: width 1s linear; }
-.m-screen.ah .ah-storybar i.m-eta.sweep { width: 30%; border-radius: 2px; animation: m-sweep 1.4s linear infinite; }
+/* (a re-plan's progress no longer takes the GW line: the strip's wait line says it, the deadline stays: design 1028d W2-line, R25) */
 
 /* the shell's state banner (app.js, in the slot under the header): a re-plan under way (baking; stale, a new
-   forecast's; updating) is a thin line under the header with no row of its own (the user, 2026-10-08): its bar the
-   bake's progress (a sweep before it is counted), its words for assistive tech only (role=status, aria-live: still
-   read) and on the GW line. One that needs you (offline, with Retry) keeps its row; fitPitch counts it */
+   forecast's; updating) has no row and no bar of its own on Ahead (the user, 2026-10-08: no row; design 1028d W2-line:
+   the strip's wait line tells it, one bar for every wait, M12, H13), its words for assistive tech only (role=status,
+   aria-live: still read). One that needs you (offline, with Retry) keeps its row; fitPitch counts it */
 .m-screen.ah [data-banner-slot] { position: relative; }
 .m-screen.ah .m-banner:is(.baking, .stale, .updating) {
-  position: absolute; z-index: 1; top: 1px; left: 8px; right: 8px; height: 3px; margin: 0; padding: 0; border: 0;
-  border-radius: 2px; background: var(--track); overflow: hidden;
-}
-.m-screen.ah .m-banner:is(.baking, .stale, .updating) > :not(.m-banner-bar) {
-  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
-}
-.m-screen.ah .m-banner:is(.baking, .stale, .updating) .m-banner-bar { position: absolute; inset: 0; width: auto; height: auto; border-radius: 0; background: none; }
-.m-screen.ah .m-banner:is(.baking, .stale, .updating):not(:has(.m-banner-bar))::after {
-  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 30%; border-radius: 2px; background: var(--acc-bg);
-  animation: m-sweep 1.4s linear infinite;
-}
-/* stale and updating in the avatar dot's amber */
-.m-screen.ah .m-banner:is(.stale, .updating) .m-banner-bar i, .m-screen.ah .m-banner:is(.stale, .updating):not(:has(.m-banner-bar))::after { background: var(--warn-mark); }  /* 3.9:1 on --track (was 1.6:1) */
-@media (prefers-reduced-motion: reduce) {
-  .m-screen.ah .m-banner:is(.baking, .stale, .updating)::after { animation: none; width: 100%; opacity: .45; }
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }
 
 /* ------------------------------------------------------------------ drift and compare bars, the re-forecast row */
@@ -163,8 +136,9 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
 .ah-rail::before { content: ""; position: absolute; inset: -3px 0; }  /* a tap takes its x; ≥ 44pt tall (Birman #16) */
 .ah-tick:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--acc-bg); }  /* the switcher's one Tab stop, the viewed tile (ui.roving) */
 /* the viewed week's thumb: a dark ring on the off-white track (the johnson review, 2026-10-09: white on off-white with a
-   hairline, the viewed week was hard to see) */
-.ah-thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / var(--n)); border-radius: 6px; background: var(--surface); box-shadow: 0 0 0 1.5px var(--ink-2); transform: translateX(calc(var(--i) * 100%)); transition: transform var(--dur) var(--ease); }
+   hairline, the viewed week was hard to see); the ring the one green since design 1028d K5-rec, the selected look of
+   every segment, week tab and week pill (m.css --sel-*: one meaning, one look, W4, N2; as dark, 7.5:1 on --track) */
+.ah-thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / var(--n)); border-radius: 6px; background: var(--sel-bg); box-shadow: 0 0 0 1.5px var(--sel-edge); transform: translateX(calc(var(--i) * 100%)); transition: transform var(--dur) var(--ease); }
 .ah-ticks { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); min-height: 34px; }  /* grows with the text size (B7) */
 .ah-tick { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 2px; border: 0; border-radius: 6px; background: none; color: var(--ink); -webkit-touch-callout: none; transition: background var(--dur) var(--ease), opacity var(--dur) var(--ease); }
 .ah-tick .g { max-width: 100%; font: 600 var(--t-cap)/1.3 var(--f-text); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -250,7 +224,7 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-bn b { font-weight: 600; }
 /* a row's gain never ellipsises: the names do first; 600 only for a green gain (the type rule below; B1: a negligible
    gap or a loss is grey at 400) */
-.ah-bg { flex: none; margin-left: 6px; font-weight: 400; }
+.ah-bg { flex: none; margin-left: 6px; font-weight: 400; }  /* its gain 600: m.css .xp-g */
 .ah-bg small, .ah-bt > .ah-bk { margin-left: 4px; font: 400 var(--t-body)/1.3 var(--f-text); color: var(--muted); }  /* a line's quiet words at its size (the type audit, 2026-10-13) */
 .ah-bt > .ah-bk { flex: none; }  /* B33: "by Forkcast" after a move Forkcast made, quiet as the gain's own word */
 .ah-bs { grid-column: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
@@ -326,6 +300,30 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
    itb missing"), whole, quiet beside an amber notice */
 .ah-pbt .ah-bs .ah-blead { white-space: nowrap; }
 .ah-pbt .ah-bs.warn .ah-blead { color: var(--muted); font-weight: 400; }
+/* the wait line on the strip (ahead.js paintWait; design 1028d W2-line, the owner, 2026-10-28: "user just can miss it
+   needs to wait"): every wait the pitch has, in the line's place while it lasts (its words back after it), its doors
+   kept (H16); its bar (m.css .m-wlb) on the strip's lower edge, inside its rounded corners (M12: a linear indicator on
+   its container's edge), right over the pitch where the eye is, moving as it goes (J13: a still muted line at the edge
+   went unseen) */
+.ah-blockhost > .ah-block.ah-waiting { position: relative; }
+.ah-block.ah-waiting:not(.ah-wkeep) .ah-pbt > :not(.m-wl) { display: none; }
+.ah-block.ah-waiting > .m-wlb { position: absolute; left: 11px; right: 11px; bottom: 1px; pointer-events: none; }  /* never over the line's or doors' 44 px reach */
+/* …a money short or an amber notice keeps the line's words over the wait's (ahead.js paintWait .ah-wkeep: a problem is
+   never hidden behind a wait), the wait's bar, the dim and the plates' "checking…" saying it waits (design 1028d W12-dimline) */
+.ah-block.ah-waiting.ah-wkeep .ah-pbt > .m-wl { display: none; }
+/* the pitch while the wait line shows (ahead.js paintDim, after 1 s of it: no flash, N7, N17; design 1028d W12-dimline,
+   the owner, 2026-10-28: "maybe it must to blur pitch or similar while it's not ready"): a DIM, never a blur (m.css T2;
+   T3; HIG H19; a blur hides what is still read, H16, N14). Only the turf and its chalk change, by their tokens (the
+   stripes, the bench's foot and the markings follow): FPL's green to a greyed green a step lighter than W1-dim's slate,
+   the chalk .9 → .5. The shirts keep their colours (W1-dim's grey shirts read as disabled: the owner's judge), the name
+   plates, their xP and the choices' plates their own, so everything stays read (W2) and every tap does what it did
+   (H16, R19). Static while it waits, however long (no pulse, no loop: W 2.2.2, N15); its end, the green back with the
+   choices landing, the signal (J13, J14, R24); its words on the strip's wait line (colour never alone: W1). White on it
+   5.0 / 5.7:1 (plates' keylines, the C ring; FPL green 3.3:1). Dark values follow the dark turf's (light theme only) */
+.ah-pitch.ah-wait .pm {
+  --turf-1: light-dark(#5B7565, #33423A); --turf-2: light-dark(#536C5D, #2E3C34);
+  --chalk: light-dark(rgb(255 255 255 / .5), rgb(255 255 255 / .4));
+}
 /* the reference line fitPitch measures (never seen), and the 1rem square that tells it the text size changed */
 .ah-fitprobe, .ah-remprobe { position: absolute; top: 0; left: 0; visibility: hidden; pointer-events: none; }
 .ah-remprobe { width: 1rem; height: 1rem; }
@@ -345,6 +343,9 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-bplan .ah-bt, .ah-bplan .ah-bn { white-space: normal; }
 .ah-bplan .ah-bn { overflow: visible; }
 .ah-bplan .ah-pmv { white-space: nowrap; }
+/* …its gain under its moves where the row's "Swap" (wider than the + was) leaves them no room beside it, never over a
+   name (320 px: "Evanilson+1.6"; design 1028d K1) */
+.ah-bplan .ah-bt { flex-wrap: wrap; }
 /* a one-line row: its trailing control sits on its line */
 :is(.ah-brow, .ah-fg.ah-btgt):not(:has(> .ah-bs)) > :is(.ah-x, .ah-add) { grid-row: 1; }
 .ah-bq .ah-bt { color: var(--muted); }
@@ -507,6 +508,13 @@ button.ah-tok { cursor: pointer; }
 .ah-tok.st > .ah-tl { text-align: left; }
 .ah-tok.st > .ah-tw { flex-basis: 100%; text-align: left; }  /* the lineup notice under its words and number (statusTok) */
 .ah-tok.st.snug { padding-left: 6px; padding-right: 6px; column-gap: 4px; }  /* its number on its words' line: ahead.js ST_TRIMS */
+/* …a label with a door, not a button (design 1028d K3; the owner, 2026-10-28, "same meaning, same look"): flat, a
+   hairline, a small corner (--r-sm, T2), a muted "›" at its right as every row that opens a sheet (M7, M8: a status is
+   not a control; N2, W4): the raised round pill is the pitch's controls' (Player data, the resets, the ink best) */
+.ah-tok.st { padding-right: 18px; border-radius: var(--r-sm); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .16); }
+.ah-tok.st.snug { padding-right: 16px; }
+.ah-tok.st::after { content: "\203A" / ""; position: absolute; right: 7px; top: 50%; transform: translateY(-54%); color: var(--muted); font: 400 17px/1 var(--f-text); pointer-events: none; }
+.ah-tok.st .ah-tbody:focus-visible, .ah-tok.st:focus-visible { border-radius: var(--r-sm); }
 .ah-tok .ah-tnum > .ah-bg:first-child { margin-left: 0; }
 .ah-tok.two { padding: 0; }
 .ah-tok.two::before { content: none; }
@@ -523,6 +531,8 @@ button.ah-tok { cursor: pointer; }
    its plate, its plate's first buy and number, "Evanilson +1.6" (a plan's too: "yes do both"); fitted as the other
    tokens (its "xP", a smaller number), then its name shortened as the plates' (.cut), never its number */
 .ah-tok.mv, .ah-tok.st.best { background: var(--sp-ink); color: #FFFFFF; box-shadow: 0 1px 2px rgb(0 0 0 / .3), var(--sp-edge); --xp-c: var(--xp-d); }
+.ah-tok.st.best { box-shadow: var(--sp-edge); }  /* "Rolling is best" ink but a status: flat, its door's "›" light (K3) */
+.ah-tok.st.best::after { color: rgb(255 255 255 / .75); }
 /* "Rolling is best" ink as the week's best move (ahead.js statusTok; the owner, 2026-10-27, "Make it black"), the lineup
    notice under it light on the ink */
 .ah-tok.st.best .ah-tw { color: rgb(255 255 255 / .75); }
@@ -531,6 +541,11 @@ button.ah-tok { cursor: pointer; }
 .ah-tok.mv .ah-tnum { flex: none; color: var(--xp-d); }
 .ah-tok.mv.cut .ah-tn { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ah-tok.mv:focus-visible { outline: 2px solid #FFFFFF; outline-offset: -2px; }
+/* …its take's word, "Swap", the place's best header's mint chip at its end (ahead.js tokensOf; design 1028d K1, the
+   owner, 2026-10-28: one act, one look); off before its name is cut (.nogo: ahead.js renderDecks' fit) */
+.ah-tok .ah-tgo { flex: none; display: inline-flex; align-items: center; height: 18px; padding: 0 5px; font-size: calc(var(--t-sub) * .85); }
+.ah-tok.nogo .ah-tgo { display: none; }
+.ah-tok.mv:not(.nogo):has(> .ah-tgo) { padding-right: 4px; }  /* the chip 4 px in from its end, as a place header's take */
 .ah-tok .ah-tbody:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; border-radius: 10px; }
 /* a solving token fades its words, never its clock (the only sign it is working: findings #2) */
 .ah-tok :disabled { cursor: default; }
@@ -583,18 +598,20 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 /* "Yours +12.5 xP" over his own card fitted as a number (fitNum), in the light pill's ink */
 .ah-phead.now .ah-pv { flex: 0 1 auto; color: inherit; }
 .ah-pv.wait { font-weight: 500; font-style: italic; text-overflow: ellipsis; }  /* given way at its end, as a plate's (ahead.js HEAD_NUM) */
-.ah-dhit { margin-right: 2px; font-size: .82em; font-weight: 700; color: #FFC9C2; }  /* the −4 before a number on the pitch */
+/* the −4 before a number on the pitch at the number's own size (11 px on a plate; was .82em, 8.3 px), its look m.css
+   .m-hit's: --loss-d on the dark green and the ink, --loss on a light header (#FFC9C2 there was 1.5:1; design 1028d K4) */
+.ah-dhit { margin-right: 3px; }
+.ah-pitch :is(.ah-sp, .ah-tok.mv, .ah-phead, .ah-pnote) { --hit-c: var(--loss-d); }
+.ah-pitch .ah-phead:is(.now, .pays), .ah-pitch .ah-phead.pays + .ah-pnote { --hit-c: var(--loss); }
 .ah-dchip { margin-right: 2px; font-size: .82em; font-weight: 700; color: #FFE7A3; }  /* a Bench Boost / Triple Captain its tap plays too */
 /* the take, worded (design.md §3: "Swap" where the ⊕ was; the same handler, ahead.js takeFrom), its target up into the
    shade over the header and over the number beside it (its card's tap is its Why) */
 .ah-pgo { position: relative; flex: none; height: calc(100% - 4px); box-sizing: border-box; padding: 0 3px; border: 0; border-radius: calc(var(--pm-tile-r) - 2.5px);
-  background: var(--acc-bg); color: #FFFFFF; font: 700 calc(var(--pm-tab) * .56 * var(--ph-k, 1))/1 var(--f-text); cursor: pointer; }
+  font: 700 calc(var(--pm-tab) * .56 * var(--ph-k, 1))/1 var(--f-text); cursor: pointer; }  /* its look the one take's, .m-swap (design 1028d K1) */
 .ah-pgo::after { content: ""; position: absolute; inset: -14px -2px -4px -10px; }
 /* …never down over its block's band (ahead.js drawPlace): its line's take, or its words, his card's Why (one take would
    steal the other's taps; design study 1026 found it on main, the bench's note over its header) */
 .ah-phead:has(+ .ah-pnote) .ah-pgo::after { bottom: 0; }
-.ah-phead.best .ah-pgo { background: var(--sp-go); color: var(--sp-go-ink); }
-.ah-phead.lo .ah-pgo { background: none; color: #FFFFFF; box-shadow: inset 0 0 0 1.25px rgb(255 255 255 / .8); }
 .ah-pgo:disabled { opacity: .35; cursor: default; }
 .ah-pgo:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
 /* a dealt card's note and line (ahead.js drawPlace, fitBlocks): one block with its header, read down, flush under it
@@ -649,12 +666,16 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
    lines between its moves, never a name cut */
 .ah-sp.two .ah-spb { flex-wrap: wrap; justify-content: center; align-content: center; row-gap: 0; line-height: 1.15; }
 .ah-sp.two .ah-spn { white-space: nowrap; }
-.ah-walk .ah-plgo { position: relative; flex: none; min-width: 0; height: 30px; padding: 0 10px; border-radius: 8px; background: var(--acc-bg); color: #FFFFFF; font: 700 var(--t-cap)/1 var(--f-text); }
+.ah-walk .ah-plgo { position: relative; flex: none; min-width: 0; height: 30px; padding: 0 10px; font: 700 var(--t-cap)/1 var(--f-text); }  /* its look .m-swap's */
 .ah-walk .ah-plgo::after { content: ""; position: absolute; inset: -7px -8px; }
-.ah-pline.best .ah-plgo { background: var(--sp-ink); }
 .ah-walk .ah-plgo:disabled { opacity: .35; color: #FFFFFF; }
-.ah-walk button { flex: none; min-width: 44px; height: 44px; padding: 0 8px; border: 0; background: none; color: var(--acc); font: inherit; cursor: pointer; }
+.ah-walk button:not(.m-swap) { flex: none; min-width: 44px; height: 44px; padding: 0 8px; border: 0; background: none; color: var(--acc); font: inherit; cursor: pointer; }
 .ah-walk button:disabled { color: var(--muted); cursor: default; }
+/* its close the sheets' ✕ (app.js .m-xbtn: the grey 30 px circle in a 44 pt target), no more a green × beside All N
+   (design 1028d K5-rec, B11: one act, one look, W4, N2; green words here are the bar's moves). button.m-xbtn: as specific
+   as .ah-walk button:not(.m-swap) above and after it, so the bar's green words never reach it (REC-K) */
+.ah-walk button.m-xbtn { min-width: 30px; width: 30px; height: 30px; margin: 0 7px; padding: 0; border-radius: 50%; background: var(--track); color: var(--ink-2); font: 600 var(--t-body)/1.3 var(--f-text); }
+.ah-walk button.m-xbtn:active:not(:disabled) { background: var(--press); }
 .ah-wl { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; white-space: nowrap; }
 .ah-wl > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .ah-wl2 { font-weight: 400; font-size: var(--t-cap); color: var(--muted); }
@@ -755,10 +776,15 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 /* Reset lineup 2 px under Player data (a DEF row at its ROW_TOP share, 320 × 568 at a 23 px text size, clears it), and
    Reset plan (.ah-rpbtn, the user 2026-10-21: "maybe place it small on pitch") 2 px under the one shown over it, drawn only
    where it fits (ahead.js placePills); each pill's target its own half of the gap */
-.ah-pitch .pm > :is(.ah-lubtn, .ah-rpbtn) { top: 34px; right: 6px; padding: 0 10px; }
-.ah-pitch .pm:has(> .ah-lubtn:not([hidden])) > .ah-rpbtn { top: 62px; }
-.ah-pitch .pm > :is(.ah-lubtn, .ah-rpbtn)::before { top: -1px; bottom: calc(-1 * var(--down, 9px)); }  /* never onto the card under it: ahead.js placePills */
-.ah-pitch .pm:has(> :is(.ah-lubtn, .ah-rpbtn):not([hidden])) > .ah-pdbtn::before,
+/* …the resets apart from Player data (8 px, not 2: a picker and an act that wipes are two kinds; design 1028d K3, H5,
+   N4 a slip), each other's 2 px (one kind), in the destructive role's red words with its "↺" (H5: the system red; W1: a
+   sign as well as the colour; never filled, never the prominent one: R3, R4; Undo in its toast keeps it a quiet act) */
+.ah-pitch .pm > :is(.ah-lubtn, .ah-rpbtn) { top: 40px; right: 6px; padding: 0 10px; color: var(--loss); }
+.ah-pitch .pm:has(> .ah-lubtn:not([hidden])) > .ah-rpbtn { top: 68px; }
+.ah-pitch .pm > :is(.ah-lubtn, .ah-rpbtn) > .ah-pdl::before { content: "\21BA" / ""; margin-right: 4px; font-weight: 400; }
+.ah-pitch .pm > :is(.ah-lubtn, .ah-rpbtn)::before { top: -4px; bottom: calc(-1 * var(--down, 9px)); }  /* never onto the card under it: ahead.js placePills */
+.ah-pitch .pm:has(> .ah-lubtn:not([hidden])) > .ah-rpbtn::before { top: -1px; }
+.ah-pitch .pm:has(> :is(.ah-lubtn, .ah-rpbtn):not([hidden])) > .ah-pdbtn::before { bottom: -4px; }
 .ah-pitch .pm:has(> .ah-rpbtn:not([hidden])) > .ah-lubtn::before { bottom: -1px; }
 .ah-pp::before { content: ""; position: absolute; inset: -9px -6px; }
 .ah-pp:active { background: var(--plate-2); }
@@ -769,11 +795,11 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
    short lines each; no tap (the turf under them does), never over a card (placeHint hides one where it would be: a
    narrow screen, a large text size, a front three) */
 .ah-pitch .ah-ph {
-  position: absolute; top: 34px; right: 6px; z-index: 2; display: flex; flex-direction: column; align-items: flex-end;
+  position: absolute; top: 40px; right: 6px; z-index: 2; display: flex; flex-direction: column; align-items: flex-end;
   max-width: calc(50% - var(--pm-card) / 2 - 8px); padding: 4px 7px; border-radius: 8px; pointer-events: none;
   background: var(--plate); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .3); font: 400 var(--t-sub)/1.3 var(--f-text);
 }
-.ah-pitch .pm:has(> .ah-rpbtn:not([hidden])) > .ah-ph { top: 62px; }  /* the shirt's under Reset plan while that shows */
+.ah-pitch .pm:has(> .ah-rpbtn:not([hidden])) > .ah-ph { top: 68px; }  /* the shirt's under Reset plan while that shows */
 .ah-pitch .ah-ph.chips { top: auto; right: auto; bottom: calc(6px + var(--ph-lift, 0px)); left: 6px; align-items: flex-start; }  /* --ph-lift: placeHint, over a sub's card behind */
 .ah-pitch .ah-ph > span { white-space: nowrap; }  /* each line whole: too wide for the room, placeHint hides it */
 .ah-pitch .ah-ph[hidden] { display: none; }
@@ -863,10 +889,10 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .ah-rrow + .ah-rrow { border-top: 1px solid var(--hair); }
 .ah-rule { flex: 1; min-width: 0; padding: 12px 0; border: 0; background: none; color: var(--ink); text-align: left; font: 400 var(--t-body)/1.3 var(--f-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ah-rule.lock { color: var(--ink-2); }
-.ah-rmv { flex: none; padding: 12px 0; border: 0; background: none; color: var(--loss); font: 400 var(--t-body)/1.3 var(--f-text); }
+.ah-rmv { height: 36px; padding: 0 12px; }  /* a rule's Remove, Remove all: the take-back (m.css .m-chipbtn.m-danger) in a 44pt row */
+.ah-rmv::before { content: ""; position: absolute; inset: -4px 0; }  /* 36 → 44 */
 .ah-rrow.all { justify-content: flex-end; }
-.ah-rule.all { flex: none; color: var(--muted); font-size: var(--t-body); }
-.ah-rule:disabled, .ah-rmv:disabled { opacity: .45; }
+.ah-rule:disabled { opacity: .45; }
 .ah-rules-err { margin: 0; padding: 10px 16px; border-top: 1px solid var(--hair); font: 600 var(--t-sub)/1.3 var(--f-text); color: var(--loss); }
 .ah-rules-note { padding: 10px 16px; border-top: 1px solid var(--hair); }  /* why a Remove is off (GW A under way: B7), quiet (.m-foot) */
 /* your lineup edits: a row of their own, never a rule's cost (QA) */
@@ -925,8 +951,27 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .ah-btnrow.wy-acts > :first-child:nth-last-child(odd) { grid-column: 1 / -1; }
 .ah-btnrow button { flex: 1; min-height: 44px; padding: 6px 10px; border: 1px solid var(--border-2); border-radius: var(--r-btn); font: 600 var(--t-body)/1.3 var(--f-text); background: var(--surface); color: var(--ink); }
 .ah-btnrow button.acc { border-color: var(--acc-bg); background: var(--acc-bg); color: var(--acc-ink); }
-.ah-btnrow button.danger { background: var(--loss); color: light-dark(#FFFFFF, #2a0b10); }  /* white 5.9:1 (the old coral's #2a0b10 was 3.1:1: R2, the six-book review) */
+.wy-sheet .wy-acts + .m-nav { margin-top: 12px; }  /* "What could go there instead": his place, a row under the acts (K2) */
 .ah-btnrow button:disabled { opacity: .4; }
+/* Swap, the one take (design 1028d K1; the owner, 2026-10-28: "'swap' action exist on pitch and on pop up cards
+   somewhere also - do they have same styling so user know this is same action"): ONE mark, .m-swap, worded (ahead.js
+   COPY.takeWord: "Swap", "Swap both", a Roll's "Roll") on every take: a place's header (.ah-pgo) and line (.ah-plgo),
+   the best move's ink token (.ah-tgo), the Week sheet's row (.ah-add, its + till then), the Why sheet's button ("Take it"
+   till then), a place's Other… list (.ws-add, it swaps at once). Its size its place's (H3: style, not size, tells the
+   preferred one), its look its verdict, as the plates': .best the week's one (ink; mint on an ink plate), green where it
+   beats rolling, .quiet outlined where it doesn't (N2, N3, W4/W5 3.2.4, R7; H2, M2: one filled per view). White on
+   green 8.9:1, white on ink 17.6:1, #05341C on mint 10.2:1, --ink-2 on white 9.2:1 */
+.m-swap { border: 0; border-radius: var(--r-sm); background: var(--acc-bg); color: var(--acc-ink); font-weight: 700; white-space: nowrap; cursor: pointer; }
+.m-swap.best { background: #17191A; color: #FFFFFF; }
+.m-swap.quiet { background: var(--surface); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--border-2); }
+:is(.ah-tok.mv, .ah-phead.best) .m-swap { background: #8EF2B3; color: #05341C; }  /* on an ink plate: the --sp-go mint */
+.ah-phead.lo .m-swap.quiet { background: none; color: #FFFFFF; box-shadow: inset 0 0 0 1.25px rgb(255 255 255 / .8); }  /* on the dark */
+/* …a row's (the Week sheet's, a place's Other… list): 28 px to see, 44 to hit, in the +'s place */
+.m-sheet .m-swap:is(.ah-add, .ws-add) { width: auto; min-width: 48px; height: 28px; padding: 0 10px; border: 0; border-radius: var(--r-sm); font: 700 var(--t-sub)/1 var(--f-text); }
+/* …the Why sheet's button, 44 px as the others beside it (H3) */
+.ah-btnrow button.m-swap { border-color: transparent; background: var(--acc-bg); color: var(--acc-ink); }
+.ah-btnrow button.m-swap.best { background: #17191A; color: #FFFFFF; }
+.ah-btnrow button.m-swap.quiet { border-color: var(--border-2); background: var(--surface); color: var(--ink); box-shadow: none; }
 .ah-search { display: flex; align-items: center; gap: 8px; height: 40px; margin-top: 10px; padding: 0 12px; border-radius: 12px; background: var(--soft-2); color: var(--muted); }
 .ah-search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; color: var(--text); font: 400 var(--t-body)/1.3 var(--f-text); -webkit-appearance: none; appearance: none; }
 .ah-search input::placeholder { color: var(--muted); }
@@ -1005,6 +1050,9 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .wy-cmp .c > .v { grid-area: 1 / 1 / 2 / -1; justify-self: end; min-width: 0; overflow-wrap: break-word; }  /* a status of two words ("● Not available") wraps between them, its dot on the first */
 .wy-cmp .c > .a { grid-area: 1 / 1; justify-self: end; min-width: 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
 .wy-cmp .c > .a > span { display: block; white-space: nowrap; }  /* a double GW's opponents one a line: the slot holds */
+/* …each in its FDR tint and mark as on the pitch and the card (m-a.css .ah-fdrc, plan-pitch.css; design 1028d K4, B16),
+   tight to its words, on the right edge of its slot */
+.wy-cmp .c > .a > .ah-fdrc { width: fit-content; margin-left: auto; padding: 0 3px; }
 .wy-cmp .c > .a.on { color: var(--ink); }  /* a stats row's better rank (no bold: the totals stay the only 600 figures) */
 .wy-cmp .c > .o { grid-area: 2 / 1 / 3 / -1; justify-self: end; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
 .wy-cmp .tot > * { font-weight: 600; }
@@ -1071,7 +1119,6 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .ps-acts > .ps-place { display: block; min-height: 44px; margin-top: 4px; }  /* "3 choices for his place ›": his place on the pitch */
 .ps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0; }
 .ps-grid button { min-width: 0; height: auto; min-height: 44px; border: 0; border-radius: var(--r-btn); background: var(--soft-2); color: var(--text); font: 600 var(--t-body)/1.3 var(--f-text); }
-.ps-grid button.acc { background: var(--accent-soft); color: var(--accent); }
 /* why a button or an option can't act, under it (B1, B7): a state, never greyed out to nothing */
 .ps-off { margin: 8px 2px 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
 .ps-grid > .ps-off { grid-column: span 2; margin-top: 0; }  /* B7: Keep him / Sell / Ruled out's Off held by GW A under way, why */
@@ -1156,7 +1203,7 @@ button.ah-brow:active:not(:disabled), .ah-fg.ah-btgt:active:not(:has(button:acti
 .ah-rrow:has(> .ah-rule:not(.all):active:not(:disabled)),
 .ps .ps-grid > button:active:not(:disabled),
 .ah-btnrow button:active:not(:disabled), .m-sheet .ah-btnrow button:active:not(:disabled),
-.m-sheet .ah-pills button:active:not(:disabled), .ws .ws-reach:active:not(:disabled),
+.ws .ws-reach:active:not(:disabled),
 .m-banner button:active, .m-err button:active { background: var(--track); }
 .ws .ws-item:has(.ws-name:active) { background: var(--track); }
 /* a sheet's rows sit in its gutters: the grey runs across them, edge to edge, as an iOS list row's */
@@ -1169,11 +1216,9 @@ button.ah-brow:active:not(:disabled), .ah-fg.ah-btgt:active:not(:has(button:acti
 .m-sheet .ah-ap:active:not(:disabled), .ah-ap:active:not(:disabled), .wy-sheet .wy-tgl:active:not(:disabled), .m-xbtn:active,
 .m-chipbtn.ghost:active, .ah-avatar:active, .ah-add:active:not(:disabled), .ah-x:active:not(:disabled), .ah-rail:not(.dragging) .ah-tick:not(.sel):active { background: var(--press); }
 
-/* green (or red) filled: dim as Find my team does */
-.ah-btnrow button:is(.acc, .danger):active:not(:disabled), .m-sheet .ah-btnrow button.acc:active:not(:disabled),
-.m-sheet .ah-pills button[aria-pressed="true"]:active:not(:disabled),
-.wy-sheet .wy-tgl.on:active:not(:disabled) { background: var(--acc-bg); opacity: .85; }
-.ah-btnrow button.danger:active:not(:disabled) { background: var(--loss); }
+/* green filled: dim as Find my team does */
+.ah-btnrow button.acc:active:not(:disabled), .m-sheet .ah-btnrow button.acc:active:not(:disabled) { background: var(--acc-bg); opacity: .85; }
+.m-sheet .ah-ap.sel:active:not(:disabled) { background: var(--sel-bg); opacity: .85; }  /* K5-rec: no green fill is selected */
 
 /* the turf: a shirt card (the starting XI and the bench) */
 .m-app button.pm-card:active:not(:disabled) { opacity: .7; transition-duration: 0s; }

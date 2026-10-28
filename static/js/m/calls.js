@@ -239,7 +239,7 @@ export const COPY = Object.freeze({
   /** B79: a week you can choose (a tap selects it; the button under the line moves it there: whenMove). */
   whenWeek: (gw, delta) => (delta == null ? `GW${gw}` : `GW${gw}: ${pts(delta)} pts`),
   /** B63: the Why table's forecast group (sheets/why.js pairTable). */
-  gridUnit: 'Forecast pts',
+  gridUnit: 'Forecast xP',  // a forecast's unit is "xP" everywhere (design 1028d K4, B8)
   /** The stats' head, the Why table's and the player card's: their rounds, and in the Why table whom its ranks are among
    *  (Dana, the first-use findings #15, 2026-10-21: "xG 18th vs 2nd" said among whom nowhere; the user, 2026-10-21: fix
    *  all (first-use proposal #6)): "Stats · GW1–7 · ranks among 84 midfielders", `n` his position's ranked players (api/
@@ -305,7 +305,7 @@ export const COPY = Object.freeze({
    *  2026-10-22: Bring in…'s "Groß £5.2m short" read as Groß short of money): "Groß · needs £5.2m more". */
   moneyNeeds: (x) => `needs ${fmt.money(x)} more`,
   /** A Sell list row's ≈ and a Bring in week pill's number (replace.js, wish.js pillWords): what your total moves by when
-   *  it is made, its word under it as a list row's unit is ("pts GW8–11"), said with it (the user, 2026-10-21: fix all
+   *  it is made, its word under it as a list row's unit is ("xP GW8–11"), said with it (the user, 2026-10-21: fix all
    *  (first-use proposal #1): Priya's "≈ +3.3" then "−1.2" against rolling, "Is Vuskovic good or bad?"). */
   listTotal: 'total',
   listTotalSaid: (delta, about = false) => `${about ? 'about ' : ''}${pts(delta)} points to your total`,
@@ -848,7 +848,8 @@ export const COPY = Object.freeze({
    *  design review, 2026-10-13: the foot's whole sentence, cut to one line, could read "costs nothing" in amber): the call
    *  to act, what waiting costs, or what it gains. */
   watchShort: (x) => (x.verdict === 'thisMove' || x.verdict === 'laterMove' ? `Make ${x.n > 1 ? 'them' : 'it'} before ${x.ref}`
-    : x.w > EPS ? `Waiting past ${x.ref} costs ${fmt.money(x.w)}` : `No rush: waiting gains ${fmt.money(-x.w)}`),
+    // (its price first, never "Waiting": cut on the strip it read "Waiting …", the app's own wait; design 1028d B3)
+    : x.w > EPS ? `${x.ref[0].toUpperCase()}${x.ref.slice(1)} costs ${fmt.money(x.w)}` : `No rush: waiting gains ${fmt.money(-x.w)}`),
   /** …no night costs: waiting gains money (a sale that rises, a buy that drops), or changes nothing a move costs. */
   watchGain: (w, ref) => `No rush: waiting past ${ref} gains ${fmt.money(w)}.`,
   watchFree: (n) => `No cost to wait: the price changes leave ${n > 1 ? 'these transfers' : 'this transfer'} as it is.`,
@@ -944,6 +945,12 @@ export const COPY = Object.freeze({
   partSaid: (mine, others, move = false) => `Part of the best ${move ? 'move ' : ''}this week: ${mine}${others.length ? `, with ${others.join('; ')}` : ''}`,
   placeNoneSaid: (name, n, vs = null) => `${name}: ${plural(n, 'choice')} for his place, none better than ${vs ?? 'rolling'}. Shows ${n === 1 ? 'it' : 'them'}`,
   placeSwap: 'Swap',
+  /** A take's one word wherever it is drawn (design 1028d K1, the owner, 2026-10-28: "'swap' action exist on pitch and on
+   *  pop up cards somewhere also - do they have same styling so user know this is same action"; N2, W4/W5 3.2.4, R7):
+   *  "Swap" ("Swap both", "Swap all 3") for its transfers, "Roll" for a Roll, "Take" for a chip alone; on the place's
+   *  header and line, the best move's ink token, the Week sheet's row (its + till then) and the Why sheet's button
+   *  ("Take it" till then). */
+  takeWord: (n, chip = false) => (n ? COPY.swapGo(n) : chip ? 'Take' : 'Roll'),
   /** The week's best move as a token beside the goal, first in its stack (ahead.tokensOf; the owner, 2026-10-26: "Ink
    *  token, top of stack"): "Evanilson +1.6" (no "Best:" since "yes do both"), said "Best move this week: …, shows his
    *  choices". */
@@ -959,7 +966,7 @@ export const COPY = Object.freeze({
    *  glyph): "also Semenyo → Palmer, Cunha → Rice". */
   placeAlso: (moves) => `also ${moves.join(', ')}`,
   placeChoices: (n) => `${plural(n, 'choice')} for his place ›`,
-  placeInstead: 'What could go there instead ›',
+  placeInstead: 'What could go there instead',  // a row to his place, its › drawn (.m-nav: design 1028d K2)
   placeSaid: (name, n, best) => `${name}: ${plural(n, 'choice')} for his place${best ? `, best ${best}` : ''}. Shows them`,
   placeNow: 'Now',
   placeYours: 'Yours',
@@ -983,7 +990,7 @@ export const COPY = Object.freeze({
    *  line after what it lacks alone, ahead.problemShort's "£1.2m short"). */
   needsSale: (names) => `needs ${andList(names.map((n) => `${n}'s`))} ${names.length > 1 ? 'sales' : 'sale'}`,
   placeNth: (n) => `a ${n}${['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 > 3 ? 0 : n % 10]} transfer`,
-  placeMore: (n) => `⋯ ${n} more`,
+  placeMore: (n) => `${n} more ›`,  // "⋯" is a row's menu (Bring in's, his card); a next page reads as the bar's › (design 1028d K5-rec, B11)
   /** A place's last slot (ahead.drawPlace; the owner, 2026-10-27: "one slot be left for 'other'"): Bring in… at his
    *  position, for a player its cards don't offer. */
   placeOther: 'Other…',
@@ -1748,6 +1755,23 @@ export function storyLines({ gws = null, e = null, g = null, n = 0, so = null })
   const c = n ? `${n} checked` : '';
   return [join(`Checking GW${g}'s moves`, t, c), join(`Checking GW${g}`, t, c), join(t, c)];
 }
+/** The wait line's words after its verb (design 1028d W2-line; the owner, 2026-10-28: "user just can miss it needs to
+ *  wait"), longest first, for ahead.paintWait to show the longest that fits whole (never an ellipsis: B3, the owner's
+ *  "Checking ·… · 0:11"): what it works on (`long` "GW10's moves", `scope` "GW10"), how far (`prog` "2 of 6", "~10 s
+ *  left"), the clock (`so` seconds; past 10 s kept before what it works on); the bar under it says how far in any case
+ *  (N8, N9, N12, R15, R17). The verb itself never goes (R22: one word for the wait). Pure. → [string] */
+export function waitLines({ scope = null, long = null, prog = null, so = null }) {
+  const t = so == null ? null : clockText(so);
+  const one = (s, ...xs) => `${s ? ` ${s}` : ''}${xs.filter(Boolean).map((x) => ` · ${x}`).join('')}`;
+  // (past 10 s the clock before what it works on: N12, "feedback indicating when the computer expects to be done"; the
+  // clock alone before the GW alone, the GW tile above saying the week: H10, a moving clock says it goes on)
+  const mid = so != null && so >= 10 ? [one(null, prog, t), one(scope, prog)] : [one(scope, prog), one(null, prog, t)];
+  return [...new Set([long && one(long, prog, t), one(scope, prog, t), ...mid, one(scope, t), one(null, prog), one(null, t), one(scope), ''].filter((x) => typeof x === 'string'))];
+}
+/** A determinate share for a count of steps (design 1028d W2-line; M13, M14, H9, H10): `done` of `n` in, the step under
+ *  way creeping towards 80 % of its share as the steps so far took (`tau` ms each, `since` ms into it), so a 1-of-1
+ *  check moves without a jump to full and stops short of the next step's mark until it lands. Pure. → 0..1 */
+export const stepShare = (done, n, since = 0, tau = 4000) => (n > 0 ? Math.min(1, (done + 0.8 * (1 - Math.exp(-Math.max(0, since) / Math.max(1000, tau)))) / n) : 0);
 /** A bake's progress as a share of its time, for a bar (the user, 2026-10-13: "not show 0/6 since users not familiar with
  *  back end but rather show a progress bar instead (smooth progress bar based on eta)"): so far ÷ (so far + left), from
  *  planEta; never back (a landing that lengthens the estimate holds the bar where it was: the most shown for this bake)

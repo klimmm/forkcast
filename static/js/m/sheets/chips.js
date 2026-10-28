@@ -13,7 +13,7 @@
 // paint, reads the preparations (ahead.chipSource) and redraws as they land.
 // Sheet module contract: static/js/m/app.js (open(ctx, {gw}) → sheet, opened with ctx.openSheet('chips', …)).
 
-import { h, fill, fmt, chipName, xpGain } from '../../ui.js';
+import { h, fill, fmt, chipName, xpGain, reduceMotion } from '../../ui.js';
 import { COPY } from '../calls.js';
 import * as AH from '../ahead.js';
 
@@ -32,7 +32,11 @@ export function open(ctx, { gw } = {}) {
       const sub = h('p.rs-sub', null, COPY.chipsSub(P0.gws.filter((x) => x >= g)));
       const list = h('div.ah-list', { role: 'group', 'aria-label': COPY.chipsIn(g) });
       const foot = h('p.m-foot', { hidden: true });
-      body.append(sub, list, foot);
+      // the sheet's checks told once over its rows, the wait line's look (AH.waitView; design 1028d W2-line: M10, M12,
+      // M13 one indicator for the group, not a clock on each row): "Checking chips · 2 of 3 · 0:04", its bar by the count
+      const wv = AH.waitView(), wbox = h('div.m-wait', { hidden: true }, wv.t, wv.bar), opened = Date.now(), seen = new Set();
+      let step = { done: -1, at: opened, max: 0 };
+      body.append(sub, wbox, list, foot);
       let drawn = null;  // [plan view, source, its rows' clocks (clocksOf)] last drawn with numbers
 
       /** A row's baseline (the user, 2026-10-22: "vs rolling everywhere", each row naming its own): a Wildcard's or Free
@@ -62,8 +66,20 @@ export function open(ctx, { gw } = {}) {
       /** B87b: the checks' clock after the fact (ahead.waitedText, Add a player's), put in place each second by the
        *  sheet's tick, never a whole draw; not read out (the row's label has the fact). */
       const t0Of = (r) => (r.state === 'free' && !r.best && !r.final ? r.wait?.t0 ?? null : null);
-      const clockOf = (r) => (t0Of(r) != null
-        ? h('span.cs-clock', { 'aria-hidden': 'true', dataset: { t0: t0Of(r) } }, AH.waitedText(t0Of(r))) : null);
+      // (the clock the sheet's wait line's now, one for the group: design 1028d W2-line)
+      const clockOf = () => null;
+      /** The wait line over the rows while any row checks (its solve, or its weeks: t0Of), counted over the rows that
+       *  checked since the sheet opened, on the earliest row's clock. */
+      const paintWait = (rows) => {
+        const waiting = rows.filter((r) => r.solving || t0Of(r) != null), now = Date.now();
+        for (const r of waiting) seen.add(r.chip);
+        wbox.hidden = !waiting.length;
+        if (!waiting.length) { wv.key = null; return; }
+        const n = seen.size, done = n - waiting.length, t0 = Math.min(...waiting.map((r) => t0Of(r) ?? opened));
+        if (step.done !== done) step = { done, at: now, max: step.max };
+        const p = step.max = Math.max(step.max, AH.stepShare(done, n, reduceMotion() ? 0 : now - step.at, done ? (step.at - t0) / done : 4000));
+        AH.paintWaitView(wv, { key: 'chips', word: 'Checking', scope: 'chips', long: `GW${g}'s chips`, prog: `${done + 1} of ${n}`, so: (now - t0) / 1000, p });
+      };
       /** Which rows run a clock from when: a check asked by a timer (ahead prepAgain) changes neither the plan view nor
        *  the source, and its row had no clock until that check landed (the phone check of the first-use fixes,
        *  2026-10-21: Bench Boost's first week ran a second with none). */
@@ -103,6 +119,7 @@ export function open(ctx, { gw } = {}) {
           h('span.rt.m-num', null, numberOf(r)));
         }));
         if (focused) list.querySelector(`[data-chip="${focused}"]`)?.focus();
+        paintWait(rows);
         // its rows' taps solved ahead (AH.presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and done without
         // no cost"): a chip taken off, and one to play whose preparation isn't in (one that is lands at once on it: useChip)
         if (can && src) {
@@ -126,8 +143,9 @@ export function open(ctx, { gw } = {}) {
       tick = setInterval(() => {
         const P = AH.plan(ctx);
         const src = P ? AH.chipSource(ctx, P) : null;
-        if (P && (!drawn || drawn[0] !== P || drawn[1] !== src || drawn[2] !== clocksOf(AH.chipStates(ctx, P, g, src)))) draw(true);
-        else for (const el of list.querySelectorAll('.cs-clock')) el.textContent = AH.waitedText(Number(el.dataset.t0));
+        const rows = P ? AH.chipStates(ctx, P, g, src) : null;
+        if (P && (!drawn || drawn[0] !== P || drawn[1] !== src || drawn[2] !== clocksOf(rows))) draw(true);
+        else if (rows) paintWait(rows);
       }, 1000);
     },
   });

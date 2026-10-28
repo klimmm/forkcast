@@ -39,19 +39,25 @@
 .ah-steps > li::before { content: "· "; color: var(--muted); }
 
 /* the −4 on the extra transfer's row, before its gain (its gain counts it) */
-.ah-hit { flex: none; margin-left: 6px; font: 400 var(--t-body)/1.3 var(--f-text); color: var(--loss); }
+.ah-hit { flex: none; margin-left: 6px; font-size: var(--t-body); line-height: 1.3; }  /* its look m.css .m-hit's */
 
-/* Add a player: the small circular + of a choice's (28 px visual, a 44 px target) */
-.ws .ws-add { position: relative; flex: none; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1.5px solid var(--acc-bg); border-radius: 50%; background: var(--surface); color: var(--acc); }
+/* Add a player: a row's small round disclosure (28 px visual, a 44 px target), a chevron that opens his week pills under
+   it, grey: never the take's look, which makes a transfer at once (design 1028d K1, the owner, 2026-10-28: its + was the
+   Week sheet's take's; R9, R12, W4/W5). From a player's place (Other…) it swaps him in at once: "Swap", .m-swap
+   (m-ahead.css). --ink-2 on white 9.2:1, its ring --border-2 as a secondary button's (T1) */
+.ws .ws-add { position: relative; flex: none; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 50%; }
+.ws .ws-add:not(.m-swap) { border: 1.5px solid var(--border-2); background: var(--surface); color: var(--ink-2); }
 .ws .ws-add::before { content: ""; position: absolute; inset: -8px; }
 .ws .ws-add:disabled { opacity: .45; }
 .ws .ws-add:active:not(:disabled) { background: var(--track); }
-/* Add a player's sorts (wish.js): one row of chips scrolling sideways inside the sheet, the chosen one filled with its
-   arrow (a second tap turns it round) */
+/* Add a player's sorts (wish.js) and Replace's: one row of filter chips scrolling sideways inside the sheet (M8: they
+   order a list; M7: chips aren't buttons), outlined 8 px (M8, M9; T2 no pills), the chosen one the selected look's tint
+   in its green ring, 600, with its arrow (a second tap turns it round); never the filled green, "do it" (design 1028d
+   K5-rec, B10: a filled sort read as the sheet's main act; M2, H2, H21) */
 :is(.ws, .rs) .ws-sorts { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 :is(.ws, .rs) .ws-sorts::-webkit-scrollbar { display: none; }
-:is(.ws, .rs) .ws-sorts button { flex: none; height: 32px; padding: 0 12px; border: 0; border-radius: 16px; background: var(--soft-2); color: var(--text-2); font: 600 var(--t-sub)/1.3 var(--f-round); white-space: nowrap; }
-:is(.ws, .rs) .ws-sorts button[aria-checked="true"] { background: var(--accent); color: var(--accent-ink); }
+:is(.ws, .rs) .ws-sorts button { flex: none; height: 32px; padding: 0 12px; border: 1px solid var(--border-2); border-radius: var(--r-ctl); background: var(--surface); color: var(--ink-2); font: 400 var(--t-sub)/1.3 var(--f-text); white-space: nowrap; }
+:is(.ws, .rs) .ws-sorts button[aria-checked="true"] { border-color: var(--sel-edge); box-shadow: inset 0 0 0 .5px var(--sel-edge); background: var(--sel-tint); color: var(--acc); font-weight: 600; }
 /* a player's sales under his week pills: "Sells" then Forkcast picks and each sale, chips that wrap; the chosen filled */
 .ws .ws-sells { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
 .ws .ws-sells .ws-sl { font: 600 var(--t-cap)/1.3 var(--f-text); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }

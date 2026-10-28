@@ -1161,6 +1161,7 @@ async function reloadIfReleased() {
 let pendingReveal = false;
 let loading = 0;
 const SLOW_MS = 12000;
+const FIRST_RETRY_MS = 3000;  // a first load's server error asked again once after this (firstLoad's fetchFirst)
 const SLOW_COPY = 'Still loading: a slow connection can take a minute or two.';
 
 /** A wait's line (calls.waitFact; design study 1027a, B-facts) in `el` (.m-facts: Connect's under its bar, Ahead's cheer
@@ -1218,9 +1219,19 @@ async function firstLoad(entry) {
   show(null);
   // a slow tunnel's first bundle (api.FIRST_BUNDLE_TIMEOUT_MS) is on its way, not busy: said under the line after SLOW_MS
   const slow = setTimeout(() => { if (my === loading && $('.m-prog-t', prog)) prog.append(h('p.m-prog-t.m-prog-slow', null, SLOW_COPY)); }, SLOW_MS);
+  // a server's error or the service away is asked once more by itself, FIRST_RETRY_MS on, before Connect says so with
+  // its Retry (the owner, 2026-10-28, "Retry first load once": one 502 from the forwarder during a deploy's switch left
+  // a new team on Connect's error); null where another load took over meanwhile
+  const fetchFirst = async (opts) => {
+    try { return await fetchBundle(entry, opts); } catch (e) {
+      if (!(api.isDown(e) || e.status >= 500)) throw e;
+      await wait(FIRST_RETRY_MS);
+      return my === loading ? fetchBundle(entry, opts) : null;
+    }
+  };
   let b;
   try {
-    b = await fetchBundle(entry);
+    b = await fetchFirst();
   } catch (e) { return back(e); } finally { clearTimeout(slow); }
   if (my !== loading) return;
   if (b.state === 'offline-data' || !b.entry) return enter(entry, b);  // no next GW: nothing to plan
@@ -1230,7 +1241,7 @@ async function firstLoad(entry) {
     show(b);
     await wait(POLL_MS.updating);
     if (my !== loading) return;
-    try { b = await fetchBundle(entry, { prev: b }); } catch (err) { return back(err); }
+    try { b = await fetchFirst({ prev: b }); } catch (err) { return back(err); }
     if (my !== loading) return;
   }
   return enter(entry, b, { reveal: true });

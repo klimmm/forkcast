@@ -15,8 +15,8 @@ const two = (v) => Number(v).toFixed(2);
  *  its number and its small line, low values first (xGC: fewer conceded is better; Price: the cheapest), the bundle field
  *  it needs. */
 export const SORTS = [
-  { key: 'pts', xp: true, name: (P, g) => `Predicted ${COPY.span(after(P, g))}`, val: (P, r, g) => after(P, g).reduce((t, x) => t + (P.L.xp(Number(r.id), x) ?? 0), 0), num: (v) => fmt.num(v), unit: (P, g) => `pts ${COPY.span(after(P, g))}` },
-  { key: 'week', xp: true, name: (P, g) => `GW${g}`, val: (P, r, g) => P.L.xp(Number(r.id), g) ?? 0, num: (v) => fmt.num(v), unit: (P, g) => `pts GW${g}` },
+  { key: 'pts', xp: true, name: (P, g) => `Predicted ${COPY.span(after(P, g))}`, val: (P, r, g) => after(P, g).reduce((t, x) => t + (P.L.xp(Number(r.id), x) ?? 0), 0), num: (v) => fmt.num(v), unit: (P, g) => `xP ${COPY.span(after(P, g))}` },
+  { key: 'week', xp: true, name: (P, g) => `GW${g}`, val: (P, r, g) => P.L.xp(Number(r.id), g) ?? 0, num: (v) => fmt.num(v), unit: (P, g) => `xP GW${g}` },
   { key: 'price', name: () => 'Price', val: (P, r) => r.price, num: (v) => fmt.money(v), unit: () => 'price', low: true },
   { key: 'own', name: () => 'Owned', field: 'sel_pct', val: (P, r) => r.sel_pct, num: (v) => fmt.pct(v), unit: () => 'owned' },
   { key: 'form', name: () => 'Form', field: 'form', val: (P, r) => r.form, num: (v) => fmt.num(v), unit: () => 'form' },

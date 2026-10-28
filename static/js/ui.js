@@ -100,8 +100,9 @@ export function svg(tag, attrs, ...children) {
 export const xpNum = (text, tag = 'span', attrs = null, mark = true) => [h(`${tag}.xp`, attrs, text), mark ? xpMark() : null];
 /** A signed forecast difference (a gain or a loss, `d` points) as xpNum draws it, "+2.3 xP", "−0.4 xP": blue as every
  *  forecast number, its sign its direction, never green or red (the user, 2026-10-22: worth doing is the solid + alone);
- *  `pre` before the sign inside the number ("≈" while it checks). */
-export const xpGain = (d, tag = 'span', attrs = null, mark = true, pre = '') => xpNum(`${pre}${fmt.signed(d)}`, tag, attrs, mark);
+ *  `pre` before the sign inside the number ("≈" while it checks). One class on every surface, .xp-g (m.css: 600, the
+ *  ground's blue; design 1028d K4, the owner 2026-10-28: "same stats … consistent across app"). */
+export const xpGain = (d, tag = 'span', attrs = null, mark = true, pre = '') => xpNum(`${pre}${fmt.signed(d)}`, `${tag}.xp-g`, attrs, mark);
 /** Whether difference `d` reads as a gain where it is shown: its sign as fmt.signed (xpGain) draws it, so "+0.1" (a
  *  0.05) is a gain and "0.0" or "−0.1" is not (a quiet plate that gains nothing, its number alone: ahead.js swapPlate
  *  .loss; the owner, 2026-10-26, "mabe negatice plates not need names in them"). */

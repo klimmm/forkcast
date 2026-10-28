@@ -147,9 +147,10 @@ export function open(ctx, what = null) {
           // the front end's release (the user, 2026-10-13: "is version shown anywhere"; the server's --static release
           // folder: api.access), "dev" for the tree's own; none until the server has said
           acc ? h('div.m-kv', null, h('span', null, 'Version'), h('span.m-num', null, acc.release ?? 'dev')) : null,
-          h('button.m-secondary', { type: 'button', onClick: () => helpSheet(ctx) }, COPY.helpShort),
+          // (rows to their sheets, green with ›, not buttons: design 1028d K2)
+          h('button.m-nav', { type: 'button', onClick: () => helpSheet(ctx) }, COPY.helpShort),
           // the pitch of the app, from inside it too (the user, 2026-10-14: Why Forkcast "lost behind the help")
-          h('button.m-secondary', { type: 'button', onClick: () => ctx.openSheet('about') }, COPY.whyTitle));
+          h('button.m-nav', { type: 'button', onClick: () => ctx.openSheet('about') }, COPY.whyTitle));
         paintDev();
       }
 
@@ -175,7 +176,7 @@ export function open(ctx, what = null) {
           h('button.m-secondary.y-change', { type: 'button', onClick: () => switchTeam(ctx) }, 'Change team…'),
           refresh,
           // your choices off at once, as for a new team (the model's solves stay); the toast has Undo
-          h('button.m-secondary', { type: 'button', onClick: () => { ctx.sheets.closeAll(); if (resetPlan(ctx)) ctx.navigate('ahead', {}, { replace: true, top: true }); } }, 'Reset plan'),
+          h('button.m-secondary.m-danger', { type: 'button', onClick: () => { ctx.sheets.closeAll(); if (resetPlan(ctx)) ctx.navigate('ahead', {}, { replace: true, top: true }); } }, 'Reset plan'),
           signOutButton(ctx));
       }
 
@@ -194,8 +195,8 @@ export function open(ctx, what = null) {
           bake?.total ? h('div.m-kv', null, h('span', null, 'Bake'), h('span', null, `${bake.done} of ${bake.total} options solved`)) : null,
           Number.isFinite(noise) ? h('div.m-kv', null, h('span', null, COPY.chargeName), h('span', null, COPY.noiseValue(noise, b.meta.gw))) : null,
           b?.meta?.scale ? h('p.m-foot.y-scale', null, COPY.realScale(b.meta.scale)) : null,
-          acc.share.length ? h('button.m-secondary', { type: 'button', onClick: () => shareSheet(ctx, acc) }, 'Open on iPhone') : null,
-          h('a.m-secondary.y-studio', { href: '/studio/', target: '_blank', rel: 'noopener' }, 'Open Studio (Dev mode)'),
+          acc.share.length ? h('button.m-nav', { type: 'button', onClick: () => shareSheet(ctx, acc) }, 'Open on iPhone') : null,
+          h('a.m-nav.y-studio', { href: '/studio/', target: '_blank', rel: 'noopener' }, 'Open Studio (Dev mode)'),
           h('p.m-foot.y-center', null, 'Every solver setting, the runs and the data jobs live in the Studio.'));
       }
       ctx.api.access().then((a) => { acc = a; paintEngine(); });
@@ -225,7 +226,7 @@ function helpSheet(ctx) {
     title: COPY.helpShort, detent: 'large',
     build(body) {
       body.append(h('p.y-lead', null, COPY.helpLead),
-        h('button.y-why', { type: 'button', onClick: () => ctx.openSheet('about') }, COPY.whyTitle, h('span', { 'aria-hidden': 'true' }, '›')),
+        h('button.m-nav.y-why', { type: 'button', onClick: () => ctx.openSheet('about') }, COPY.whyTitle),
         ...COPY.help(I?.noise ?? null, I?.A).map(([head, items, key], i) => helpFold(h, uid, head,
           [key ? clip(key, head) : null, h('ul', null, items.map((t) => h('li', null, t)))], i === 0)),
         h('button.m-secondary', { type: 'button', onClick: () => { showTipsAgain(ctx); ctx.sheets.closeAll(); } }, COPY.tipsAgain));
@@ -260,7 +261,7 @@ const teamName = (ctx) => ctx.bundle?.entry?.team_name || ctx.api.recent.list().
  *  chips keep it for a one-tap return, as a fresh plan (app.js signOut, memory forget). */
 function signOutButton(ctx) {
   const { h } = ctx.ui;
-  return h('button.m-secondary.y-signout', { type: 'button', onClick: () => ctx.signOut() }, `Sign out of ${teamName(ctx)}`);
+  return h('button.m-secondary.m-danger.y-signout', { type: 'button', onClick: () => ctx.signOut() }, `Sign out of ${teamName(ctx)}`);
 }
 
 /** Switch team (a second sheet): the shared team picker (./picker.js: a name with live search, the ID or a pasted

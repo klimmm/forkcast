@@ -26,7 +26,7 @@
 // once (ahead.buyPlan 'one'; ahead.bringIn), else the solver's road for him from that week (the money found, whatever it
 // takes) made as exact transfers (ahead.want → holdBuy), its pill and line that
 // buy's; no week is handed to the planner and no hits rule is set.
-// A13: no instruction subtitle; "ARS · £9.6m · 22.2 pts GW6–9"; a small circular + like a choice's.
+// A13: no instruction subtitle; "ARS · £9.6m · 22.2 xP GW6–9"; a small circular + like a choice's.
 // The list (the user, 2026-10-10: "when i replace a player it shows graphics … with tabs … why when i click add player it
 // shows just a few players"): Replace's rows (buylist.js), the week pills (the arrival week, the opened GW first), All /
 // GK / DEF / MID / FWD, each player's forecast bars, and one row of sorts (the user, 2026-10-10: "sorting by 'best for
@@ -52,17 +52,19 @@
 // (swapIn; the owner, 2026-10-28: "why mids not block when i replacing def", "why isak not added to pitch").
 
 import * as E from '../../plan/engine.js';
-import { h, fmt, fill, norm, icon, xpNum } from '../../ui.js';
+import { h, fmt, fill, norm, icon, xpNum, reduceMotion } from '../../ui.js';
 import { COPY } from '../calls.js';
-import { plan, weekOf, squadBefore, squadWeek, addMove, draftOf, estimate, wishSolve, want, reroute, editable, barred, barringRule, ruleOf, clearGain, inkAt, buyPlan, saleBuy, sayBuyProblem, holdBuy, bringIn, bringInTakes, removesText, inWords, weekWith, saleOptions, waitedText, solvesRound, problemText, presolveTaps } from '../ahead.js';
+import { plan, weekOf, squadBefore, squadWeek, addMove, draftOf, estimate, wishSolve, want, reroute, editable, barred, barringRule, ruleOf, clearGain, inkAt, buyPlan, saleBuy, sayBuyProblem, holdBuy, bringIn, bringInTakes, removesText, inWords, weekWith, saleOptions, solvesRound, problemText, presolveTaps, waitView, paintWaitView, stepShare } from '../ahead.js';
 import { weekPills, tabs, barTop, bars, shirt, found, SORTS, sortsOf, orderOf, sortChips } from './buylist.js';
 
-const plusGlyph = () => {
+/** A row's disclosure: its week pills open under it (down), shut (up). Never a +: a + read as the Week sheet's take, which
+ *  makes the transfer at once (design 1028d K1, the owner, 2026-10-28; R9, R12: rows alike answer a tap alike). */
+const chevGlyph = (up = false) => {
   const ns = 'http://www.w3.org/2000/svg';
   const s = document.createElementNS(ns, 'svg');
   s.setAttribute('viewBox', '0 0 12 12'); s.setAttribute('width', '12'); s.setAttribute('height', '12'); s.setAttribute('aria-hidden', 'true');
   const p = document.createElementNS(ns, 'path');
-  p.setAttribute('d', 'M6 1.5v9M1.5 6h9'); p.setAttribute('stroke', 'currentColor'); p.setAttribute('stroke-width', '1.6'); p.setAttribute('stroke-linecap', 'round'); p.setAttribute('fill', 'none');
+  p.setAttribute('d', up ? 'M2 8l4-4 4 4' : 'M2 4l4 4 4-4'); p.setAttribute('stroke', 'currentColor'); p.setAttribute('stroke-width', '1.6'); p.setAttribute('stroke-linecap', 'round'); p.setAttribute('fill', 'none');
   s.append(p);
   return s;
 };
@@ -130,7 +132,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
       const sortOf = () => sorts().find((x) => x.key === st.sort) ?? SORTS[0];
 
       /** A player's row: shirt, his name (his card, on the list's week), club and price, his forecast bars and the sort's
-       *  number ("24.8" over "pts GW6–9", "38.2%" over "owned"…), his +. One of your squad then (`mine`): greyed, "In your
+       *  number ("24.8" over "xP GW6–9", "38.2%" over "owned"…), his +. One of your squad then (`mine`): greyed, "In your
        *  team" (one only the plan buys by then "In your GW8 plan": COPY.inYours), a ⋯ in the +'s place opening his card as his shirt does. One your rules keep out: the rule that does, as
        *  its chip says it ("Not Groß · all weeks": B90b, one name for one rule). `sub2`: a line in place of club and price
        *  ("arrives GW8"), no number. */
@@ -158,12 +160,13 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
             // from a player's place (st.lock), him in that place at once (swapIn)
             // its first letter alone lowered: "in your GW8 plan", never "gw8" (review 5, 2026-10-12)
             mine ? h('button.ws-add.ws-mine', { type: 'button', 'aria-label': `${name}, ${yours[0].toLowerCase()}${yours.slice(1)}: his card`, onClick: () => ctx.openSheet('player', id, { gw: st.g }) }, '⋯')
-              // open: a × in the +'s place closes his row (the columns stay put)
-              : open ? h('button.ws-add.ws-mine', { type: 'button', 'aria-label': `Close ${name}`, onClick: () => { stop(); st.open = null; draw(); } }, '×') : h('button.ws-add', {
-              type: 'button', disabled: !P.editable,
-              'aria-label': st.lock ? `${COPY.bringIn(name, st.g)} for ${P.L.name(st.place)}` : `Bring in ${name}: pick a week`,
-              onClick: () => (st.lock ? swapIn(id) : reach(id)),
-            }, plusGlyph())),
+              // open: its chevron up in its place shuts his row (the columns stay put)
+              : open ? h('button.ws-add.ws-mine', { type: 'button', 'aria-expanded': 'true', 'aria-label': `Close ${name}`, onClick: () => { stop(); st.open = null; draw(); } }, chevGlyph(true))
+                // from a player's place (st.lock) its tap swaps him in at once: the take's one mark, "Swap", outlined (no verdict
+                // on it: H2, one filled per view; design 1028d K1);
+                // else it opens his weeks, a chevron (never the take's look)
+                : st.lock ? h('button.ws-add.m-swap.quiet', { type: 'button', disabled: !P.editable, 'aria-label': `${COPY.bringIn(name, st.g)} for ${P.L.name(st.place)}`, onClick: () => swapIn(id) }, COPY.placeSwap)
+                  : h('button.ws-add', { type: 'button', disabled: !P.editable, 'aria-expanded': 'false', 'aria-label': `Bring in ${name}: pick a week`, onClick: () => reach(id) }, chevGlyph())),
           open ? pills(id) : null);
       }
 
@@ -189,16 +192,16 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           // to says what the week then pays in all, the line's own figure (M18; the checker, 2026-10-09: "with −4" over a
           // line reading "3 transfers, −8")
           const all = o.hits ? weekWith(P, g, how(o))?.hits : 0;
-          const hit = all ? `with −${E.HIT_COST * all}` : '';
+          const hit = all ? `−${E.HIT_COST * all}` : '';
           const pw = pillWords(o);
           return h('button.ah-ap', {
             type: 'button', class: { sel: sel === g, 'm-shimmer': solving, fill: !solving }, disabled: o.delta == null, 'aria-pressed': String(sel === g),
-            'aria-label': `GW${g}: ${pw.said}${hit ? `, ${hit}` : ''}`,
+            'aria-label': `GW${g}: ${pw.said}${hit ? `, with ${hit}` : ''}`,
             onClick: () => { st.sel[id] = g; st.own[id] = true; draw(); },
-          }, h('span.g', null, `GW${g}`, hit ? ` ${hit}` : ''),
+          }, h('span.g', null, `GW${g}`, hit ? [' with ', h('span.m-hit', null, hit)] : ''),
           // (its number forecast points, blue with "xP" whatever it pays, its sign its direction: ui.js xpNum; the user,
           // 2026-10-22, after v1.3.68: no green number)
-          h('span.v.m-num', null, o.delta == null ? pw.shown : xpNum(pw.shown)),
+          h('span.v.m-num', null, o.delta == null ? pw.shown : xpNum(pw.shown, 'span.xp-g')),
           pw.unit ? h('span.u', null, pw.unit) : null);
         };
         const o0 = sel != null ? res[sel] : null;
@@ -229,8 +232,12 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           // the buy for the sale ("Groß for Rogers can't be made: …")
           const pair = `${P.L.name(id)} for ${P.L.name(mine)}`;
           fund = p?.code === 'club' ? `${pair} can't be made: ${problemText(ctx, p)}` : `${pair} can't be made in GW${sel}.`;
-        } else fund = done ? noneWorks(id) : st.wait ? [COPY.checkingWeek(st.wait.g, st.wait.i, st.wait.n), h('span.ws-clock', { 'aria-hidden': 'true' }, waited())] : '';
+        } else fund = done ? noneWorks(id) : '';
+        // his weeks' checks over his pills, the wait line's look (waitView; design 1028d W2-line: M10, M12, R22), whatever
+        // week is selected (the line under them went with a selection: the film of 2026-10-28, 17 s of "…" pills alone)
+        if (st.wait) queueMicrotask(tickWait);
         return h('div.ws-x', null,
+          st.wait ? h('div.m-wait', null, wv.t, wv.bar) : null,
           h('div.ah-apills', null, P.gws.map(pill)),
           sales,
           h('p.ws-fund', { 'aria-live': 'polite' }, fund),
@@ -266,7 +273,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         const saleChip = (x) => {
           const w = saleWords(ctx, id, g, x);
           // (a sale's number blue with "xP", as the week pill's: xpNum; words, the money it needs, in the chip's ink)
-          return chip([nm(x.out), ' ', x.cmp ? xpNum(w.tail, 'span.m-num') : h('span.m-num', { class: { 'g-loss': w.loss } }, w.tail), w.unit ? h('small.u', null, ` ${w.unit}`) : null],
+          return chip([nm(x.out), ' ', x.cmp ? xpNum(w.tail, 'span.m-num.xp-g') : h('span.m-num', { class: { 'g-loss': w.loss } }, w.tail), w.unit ? h('small.u', null, ` ${w.unit}`) : null],
             `${COPY.bringIn(nm(id), g)} for ${nm(x.out)}: ${w.said}`, () => act(x.out), w.off ? '.off' : x === rec ? '.rec' : '');
         };
         return h('div.ws-sells', { role: 'group', 'aria-label': `Bring in ${nm(id)} from GW${g}, selling` },
@@ -326,10 +333,18 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         }
       }
 
-      /** B87b: the time since the first solve went out (ahead.waitedText, the bake's clock), after the line's " · ": drawn
-       *  with the line and put in place each second (tickWait), never a whole draw; not read out each second. */
-      const waited = () => waitedText(st.wait.t0);
-      const tickWait = () => { const el = main.querySelector('.ws-clock'); if (el && st.wait) el.textContent = waited(); };
+      /** B87b: the time since the first solve went out, the bake's clock, on the wait line over his pills (design 1028d
+       *  W2-line), put in place each second (tickWait), never a whole draw; not read out each second. Its bar by the weeks
+       *  in, the week out creeping on (ahead.stepShare). */
+      const wv = waitView();
+      let step = { done: -1, at: 0, max: 0 };
+      const tickWait = () => {
+        const w = st.wait, now = Date.now();
+        if (!w || !wv.t.isConnected) return;
+        if (step.done !== w.i - 1 || step.t0 !== w.t0) step = { done: w.i - 1, at: now, t0: w.t0, max: step.t0 === w.t0 ? step.max : 0 };
+        const p = step.max = Math.max(step.max, stepShare(w.i - 1, w.n, reduceMotion() ? 0 : now - step.at, w.i > 1 ? (step.at - w.t0) / (w.i - 1) : 4000));
+        paintWaitView(wv, { key: `bring@${w.t0}`, word: 'Checking', scope: `GW${w.g}`, prog: `${w.i} of ${w.n}`, so: (now - w.t0) / 1000, p });
+      };
 
       /** The pills for `id`: the phone's ≈ for every week at once, then the server's solve, one week at a time. */
       async function reach(id) {

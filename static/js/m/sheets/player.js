@@ -220,7 +220,7 @@ export function open(ctx, rawId, { gw, place = null } = {}) {
           : ruleOf(P, pin).text;
         const undo = 'Remove';
         return h('div.ps-ask', null, h('span', null, word),
-          h('button.m-chipbtn', { type: 'button', disabled: !P.editable || AH.liftsLive(ctx, P, pin), onClick: () => removeRule(ctx, pin.id) }, undo),
+          h('button.m-chipbtn.m-danger', { type: 'button', disabled: !P.editable || AH.liftsLive(ctx, P, pin), onClick: () => removeRule(ctx, pin.id) }, undo),
           P.editable ? liveWhy(P, pin) : h('p.ps-off.m-foot', null, P.why));
       }
       /** F11 / B1 / B130: a rule of his of `kinds` as the shown GW has it, Off / GW6 / all weeks (`opts`: [key, label,
@@ -309,7 +309,8 @@ export function open(ctx, rawId, { gw, place = null } = {}) {
             // the week you chose him in, preselected (the user, 2026-10-09: "it must bring to week where in which week i
             // choose him"): the same as the block's + opened from that week. B44 (review3 Part 5 §4: opened from Add a
             // player, it stacked a twin under it): every sheet closes first, so his is the one up
-            b('Bring him in…', () => { ctx.sheets.closeAll(); ctx.openSheet('wish', id, { gw: g }); }, 'acc wide'),
+            // a secondary as every other (design 1028d K2: its green outline was the app's only one, R1, T1)
+            b('Bring him in…', () => { ctx.sheets.closeAll(); ctx.openSheet('wish', id, { gw: g }); }, 'wide'),
             ruledSeg(P),
           ];
         }

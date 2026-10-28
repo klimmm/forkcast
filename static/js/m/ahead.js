@@ -182,10 +182,10 @@ import { fplMarks, subOrder, fitFixtures } from '../plan/pitch.js';
 import {
   COPY, planInputs, compare as compareIn, counted as countedIn, captainGap, subGap, changeText, transfersOf, hitsOf, plannerOf,
   rulesCost, sentence, withForced, forcedNew,
-  hitBook, priceWatch, priceMorning, pricePlate, hitCap, gwFlags, statusText, liveCheck, planEta, planShare, steadyEta, planLines, storyLines, clockText,
-  waitedText, horizonFeature, waitFact,
+  hitBook, priceWatch, priceMorning, pricePlate, hitCap, gwFlags, statusText, liveCheck, planEta, planShare, steadyEta, clockText,
+  waitedText, horizonFeature, waitFact, waitLines, stepShare, leftText,
 } from './calls.js';
-export { clockText, waitedText };  // the sheets' clocks (wish.js, chips.js) read it here
+export { clockText, waitedText, stepShare };  // the sheets' clocks and wait lines (wish.js, chips.js) read them here
 import {
   attach, makePin, pinSell, pinVeto, pinNever, pinKeep, pinChip, pinHits, pinRoll, squadInto, isRoll, isExact, exactAt, composePins, pinConflicts, pinsDir,
   findRoad, optionsRoad, optionsValues, barredAt, ruleText, scopeOf, rulesBroken, brokenCells, parseSpans, withBank, forcedHits, solveKept, bundleRoads,
@@ -209,6 +209,29 @@ const num = (v) => (v === null || v === undefined || v === '' || !Number.isFinit
 const ids = (xs) => (Array.isArray(xs) ? xs.map(Number).filter(Number.isFinite) : []);
 const sum = (xs) => xs.reduce((s, x) => s + x, 0);
 const span = (gws) => COPY.span(gws);
+/**
+ * The wait line (design 1028d W2-line; the owner, 2026-10-28, of GW10 after his GW9 change: "user just can miss it needs
+ * to wait for something because this checking line is not that obvious"): every wait of the phone told the same way in
+ * one place (M10, M12, H13, R22): its verb in ink at 600 ("Checking", "Planning"), then what, how far and the clock, the
+ * longest that fits whole, never an ellipsis (calls.waitLines; B3); and a bar on its container's edge (M12): determinate
+ * where a count or a time left is known (H9, H11, M13, N8), a few sweeps where not, never an endless loop (N7, W6, W7);
+ * Reduce Motion: no sweep, no glide (H19, W8; m.css). The pitch's waits on the strip (Ahead paintWait), Chips…'s and Bring
+ * in's at the top of what they check (sheets/chips.js, sheets/wish.js). → {t: the words, bar}
+ */
+export function waitView() {
+  return { t: h('span.m-wl', { 'aria-hidden': 'true' }, h('b'), h('span')), bar: h('span.m-wlb', { 'aria-hidden': 'true' }, h('i')), key: null };
+}
+/** The wait line `v` (waitView) drawn for wait W {key, word, scope, long, prog, so, p: 0..1 | null}: its longest words that
+ *  fit whole (laid out: a hidden one shows its shortest until drawn again, each second), its bar's share, else (p null) a
+ *  sweep that starts once per wait (W.key) and ends after three (m.css). */
+export function paintWaitView(v, W) {
+  const [b, r] = v.t.children, i = v.bar.firstChild;
+  if (b.textContent !== W.word) b.textContent = W.word;
+  for (const x of waitLines(W)) { r.textContent = x; if (v.t.scrollWidth <= v.t.clientWidth + 0.5) break; }
+  if (W.p != null) { i.classList.remove('sweep'); i.style.width = `${(100 * Math.min(1, W.p)).toFixed(1)}%`; }
+  else if (v.key !== W.key) { i.classList.remove('sweep'); i.style.width = ''; void i.offsetWidth; i.classList.add('sweep'); }
+  v.key = W.key;
+}
 const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
 const clone = (x) => (x == null ? x : JSON.parse(JSON.stringify(x)));
 /** "instead of Palmer" → "Instead of Palmer": words that lead their line. */
@@ -2774,11 +2797,11 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const tier = (k) => (early.has(k) || (early.has(pairOf.get(k)) && !split.has(pairOf.get(k))) ? 2 : 0) + (pairOf.has(k) && !split.has(pairOf.get(k)) ? 1 : 0);
   asks.sort((x, y) => tier(x.k) - tier(y.k) || rankOf(y.k) - rankOf(x.k));
   let letGo = false;
-  // (the next week's flights of this plan view stay: its preparation, prepNext, or its own draw's before you came back)
-  const nx = nextGw(P, g);
+  // (the later weeks' flights of this plan view stay: their preparation, prepNext, or their own draw's before you came
+  // back; every later week since the owner, 2026-10-28, "Pre-solve GW10-12")
   if (!peek && !prep) AHEAD.at = { P, g };
   for (const [lane, f] of peek || prep ? [] : forkFlights()) {
-    if (asks.some((a) => a.ask?.key === f.key) || f.key === owed?.key || (f.P === P && f.gw === nx && !f.ahead) || aheadAsks(f, P, g)) continue;
+    if (asks.some((a) => a.ask?.key === f.key) || f.key === owed?.key || (f.P === P && f.gw > g && !f.ahead) || aheadAsks(f, P, g)) continue;
     f.cancel?.();
     if (lane) FORK_FLIGHTS.delete(lane); else PAIR.flight = null;
     letGo = true;
@@ -2999,9 +3022,10 @@ const settledList = (list) => !list.pending && !list.some((x) => x.state === 'so
 /** The GW after g in the plan's window, or null at its end. */
 const nextGw = (P, g) => P.gws.reduce((m, x) => (x > g && (m === null || x < m) ? x : m), null);
 /**
- * The next week's choices solved in the background once the viewed week's have settled (the owner, 2026-10-22: "why it
- * only start checking next gameweek only when you switch to it and not does job at background so it prepared - at
- * least the next one from which you are viewing"; his call: the next week only, never every later one): plansOf in its
+ * The later weeks' choices solved in the background once the viewed week's have settled, one week at a time (the owner,
+ * 2026-10-22: "why it only start checking next gameweek only when you switch to it and not does job at background so it
+ * prepared - at least the next one from which you are viewing"; the next week only then; every later week since
+ * 2026-10-28, "Pre-solve GW10-12"): plansOf in its
  * `prep` mode, so the same choices and values a draw of GW g + 1 asks, each at the lowest priority (purpose 'pairnext':
  * the plan service's SPECULATIVE, unmetered), in the fork lanes forkPump leaves free. Order (forkPump): the viewed
  * week's forks first in every lane (one waiting takes a lane from a preparation); then chip preparations (chipPreps)
@@ -3010,8 +3034,9 @@ const nextGw = (P, g) => P.gws.reduce((m, x) => (x > g && (m === null || x < m) 
  * (FORK_ROADS) and joins the rest in flight (raised to VIEWED); another week lets them go (plansOf's L5).
  */
 function prepNext(ctx, P, g) {
-  const nx = nextGw(P, g);
-  if (nx !== null) plansOf(ctx, P, nx, { prep: true });
+  // every later week in turn, the first not settled yet (the owner, 2026-10-28, "Pre-solve GW10-12", after "the next week
+  // only" of 2026-10-22: tapping GW11 or GW12 then waited 7-39 s for its checks)
+  for (let nx = nextGw(P, g); nx !== null; nx = nextGw(P, nx)) if (!settledList(plansOf(ctx, P, nx, { prep: true }))) return;
 }
 /** GW g's choices on plan view P, never a solve asked: as plansOf last listed them (its memo), else as the solves in
  *  stand (plansOf's peek), so the same words whichever week is drawn (the review of the first-use proposals,
@@ -5979,7 +6004,6 @@ const holdFill = (x, y, ms, word = null) => {
 /** The shell's states (app.js conn) of a re-plan under way: the bake (baking; stale: a new forecast's roads while the
  *  old ones show) or the forecast updating. Ahead draws them as a thin line under the header, never a row. */
 const REPLANNING = new Set(['baking', 'stale', 'updating']);
-const COPY_UPDATING = 'Updating the forecast…';
 
 /** How far up a target over card c, `m` px wider on each side, may reach (the user's 4th answer, 2026-10-20): to 44 px
  *  over his card, only over free turf, never onto another card, a corner pill or a token (`walls`), nor above the pitch
@@ -6054,9 +6078,7 @@ export function mount(el, ctx) {
   const dlEl = h('span.ah-dlpart');
   const totLine = h('span.ah-tot.m-num', { 'aria-hidden': 'true' });
   const gwline = h('p.ah-gwline.m-num', null, dlEl, totLine);
-  // (the story's one bar over the shell's banner while it runs: paintStoryBar)
-  const storyBar = h('div.m-bar.ah-storybar', { 'aria-hidden': 'true', hidden: true }, h('i.m-eta'));
-  const slot = h('div', { dataset: { bannerSlot: '' } }, storyBar);
+  const slot = h('div', { dataset: { bannerSlot: '' } });
   // F16, FPL's Pick Team: one control row under the header (FPL's "Pitch | List"): the GW switcher, each GW with its
   // points and the viewed one selected (it was the GW bar docked at the foot: under Safari's floating toolbar there), the
   // row's whole width. Player data (FPL's "Opponent ⌄": what the second plate shows, playerDataSheet) is a small button
@@ -6072,7 +6094,10 @@ export function mount(el, ctx) {
   // the total's change as it shows (renderTotal), said politely: the line drawing it is hidden from assistive tech, and an
   // edit that lands at once says no number in its toast (B24; review 5, 2026-10-12: VoiceOver heard no result)
   const totSaid = h('span.sr-only', { 'aria-live': 'polite' });
-  const railWrap = h('nav.ah-railwrap', { 'aria-label': 'Gameweeks', dataset: { nopull: '' } }, rail, totalEl, totSaid);
+  // the wait line's start and end said politely (W9, W10: "busy" that simply vanishes reads as done to the eye alone;
+  // design 1028d W2-line, paintWait), never its every second
+  const waitSaid = h('span.sr-only', { role: 'status' }), waitV = waitView();
+  const railWrap = h('nav.ah-railwrap', { 'aria-label': 'Gameweeks', dataset: { nopull: '' } }, rail, totalEl, totSaid, waitSaid);
   const pdBtn = h('button.ah-pp.ah-pdbtn', { type: 'button', 'aria-haspopup': 'dialog', onClick: () => { playerDataSheet(); } });
   // "Reset lineup": Player data's mirror on the pitch's top-left corner, only while the viewed GW's lineup is yours (a
   // sub, a bench order, an armband: renderPitch); one tap is the plan's best lineup there again (resetLineup, Undo)
@@ -6324,46 +6349,17 @@ export function mount(el, ctx) {
     dlEl.title = info.date ? `Gameweek ${A} deadline: ${info.long}` : '';
   }
   /** A re-plan under way: a bake (baking; stale: a new forecast's) or the forecast itself updating. The shell's state
-   *  banner is then a thin line under the header with no row of its own (m-ahead.css), the window's total shimmers
-   *  (totalNum) and the GW line says how far it is (paintPlanStatus). */
+   *  banner is then its words for assistive tech alone (m-ahead.css), the window's total shimmers (totalNum) and the
+   *  strip's wait line says how far it is (paintWait). */
   const replanning = () => REPLANNING.has(ctx.store.get('conn')?.state);
-  /**
-   * While it re-plans, the GW line says how far it is in place of the deadline, in its muted ink (the user, 2026-10-08:
-   * "why doesn't it show how long it's been planning, nor how much time is left"): "Planning · 1:24 so far · ~1 min
-   * left" (planEta, planLines; again every second: tick), "Updating the forecast…" while the forecast updates. Within 24 h
-   * of GW A's deadline the countdown follows them, in its tone (B37, the user, 2026-10-10: deadlineInfo's tone is set only
-   * then; tick runs it). Always one line, never taller than the deadline's (the header is sized for that: fitHead):
-   * where it doesn't fit, "so far" goes, then "Planning", then the words ellipsise, the total's parts giving way where
-   * the countdown would be cut (keepGwLine); the countdown is never cut.
-   * → whether it shows
-   */
+  /** While it re-plans the GW line said how far it was in place of the deadline (the user, 2026-10-08); since design
+   *  1028d W2-line the strip's wait line says it (paintWait) and the GW line keeps GW A's deadline. → false (none shows) */
   function paintPlanStatus() {
-    // the first plan's wait told as one story in Connect's words (tellStory: design 1027a A-stages), the line its own (the
-    // window's total, dashed while it plans, back with the deadline): "Planning GW9–12 · 0:12 · ~10 s left", then the
-    // viewed week's moves checked on the same clock, "Checking GW9's moves · 0:24 · 7 done"
-    const conn = ctx.store.get('conn')?.state, chk = replanning() ? null : S.story?.wait;
-    const story = !!S.story && (conn === 'baking' || !!chk);
-    const on = replanning() || !!chk;
-    gwline.classList.toggle('ah-planning', on);
-    gwline.classList.toggle('ah-story', story && on);
-    if (!on) return false;
-    const e = story && !chk ? steadyEta(ctx.bundle?.bake) : null;
-    const lines = chk ? storyLines({ g: chk.g, n: chk.n, so: S.story.t0 == null ? null : (Date.now() - S.story.t0) / 1000 })
-      : e ? storyLines({ gws: ctx.data?.horizon, e, so: e.so })
-      : conn === 'updating' ? [COPY_UPDATING] : planLines(planEta(ctx.bundle?.bake));
-    const info = S.dl ? deadlineInfo(deadlineOf(ctx.bundle, S.dl.A, S.dl.g)) : null;
-    const words = h('span.ah-plw');
-    fill(dlEl, words, info?.tone ? h('span.ah-dl', { class: info.tone }, countdownParts(info)) : null);
-    // the total fitted beside them first (keepGwLine: it gives way before the countdown is cut), then the longest words
-    // that fit what is left
-    words.textContent = lines[0];
-    keepGwLine();
-    for (const t of lines) {
-      words.textContent = t;
-      if (words.scrollWidth <= words.clientWidth + 0.5) break;
-    }
-    dlEl.title = lines[0];
-    return true;
+    // (design 1028d W2-line, the owner, 2026-10-28: "user just can miss it needs to wait": every wait is told in one
+    // place, the strip's wait line (paintWait), the first plan's too; the GW line keeps the deadline all the while: R25,
+    // M10, M12, H13)
+    gwline.classList.remove('ah-planning', 'ah-story');
+    return false;
   }
   /** Every second: GW A's countdown (or a re-plan's progress), an edit's pending toast (pendingTick), the viewed week's
    *  checks' clock (waitClock), its choices drawn once their checks have stopped landing (weekSettled's bound: a solve
@@ -6495,6 +6491,9 @@ export function mount(el, ctx) {
       h('div.ah-askb', null, c.pins.map((p) => h('button.ah-askno', { type: 'button', disabled: !V.editable, onClick: () => off(p) }, `Remove ${rowName(V, p)}`)))) : null));
     fill(decks);
     S.M = null;
+    S.wl = null;
+    S.lineKeep = false;
+    paintWait();
     S.pitch = null;
     luBtn.hidden = true;
     S.planReset = false;
@@ -6533,10 +6532,10 @@ export function mount(el, ctx) {
             const r = ruleOf(P, p);
             return h('div.ah-rrow', { role: 'listitem' },
               h('button.ah-rule', { type: 'button', class: { lock: !r.removable }, 'aria-label': `${r.text}. ${r.desc}`, onClick: () => ruleSheet(p) }, r.text),
-              r.removable ? h('button.ah-rmv', { type: 'button', disabled: !P.editable || liftsLive(ctx, P, p), 'aria-label': `Remove ${r.text}`, dataset: { rule: p.id }, onClick: () => removeRule(ctx, p.id) }, 'Remove') : null);
+              r.removable ? h('button.m-chipbtn.m-danger.ah-rmv', { type: 'button', disabled: !P.editable || liftsLive(ctx, P, p), 'aria-label': `Remove ${r.text}`, dataset: { rule: p.id }, onClick: () => removeRule(ctx, p.id) }, 'Remove') : null);
           }),
           // Remove all edits from GW A (clearAll)
-          rules.length > 1 ? h('div.ah-rrow.all', { role: 'listitem' }, h('button.ah-rule.all', { type: 'button', disabled: !P.editable || live, onClick: () => clearAll() }, 'Remove all')) : null),
+          rules.length > 1 ? h('div.ah-rrow.all', { role: 'listitem' }, h('button.m-chipbtn.m-danger.ah-rmv', { type: 'button', disabled: !P.editable || live, onClick: () => clearAll() }, 'Remove all')) : null),
         offLive && gwNow(P) !== P.A ? h('p.ah-rules-note.m-foot', null, COPY.live(P.A)) : null)));
   }
 
@@ -6561,7 +6560,7 @@ export function mount(el, ctx) {
         }
         const live = liftsLive(ctx, P, p);  // B7: its Remove would re-plan GW A under way
         body.append(h('div.ah-btnrow', null,
-          h('button.danger', { type: 'button', disabled: !P.editable || live, onClick: () => { sheet.close(); removeRule(ctx, p.id); } }, 'Remove')));
+          h('button.m-danger', { type: 'button', disabled: !P.editable || live, onClick: () => { sheet.close(); removeRule(ctx, p.id); } }, 'Remove')));
         if (!P.editable || live) body.append(h('p.ah-why', null, P.editable ? COPY.live(P.A) : P.why));
       },
     });
@@ -6659,20 +6658,89 @@ export function mount(el, ctx) {
     if (!paintPlanStatus() && S.dl) paintDeadline(S.dl.A);
     paintStoryBar();
   }
-  /** The story's one bar under the header (the judges of design 1027a: the banner's stopped at the bake's end, the checks
-   *  left with no meter): the bake's share by time (calls.planShare) over its first STORY_PLAN, then the viewed week's
+  /** The story's one bar (the judges of design 1027a: the banner's stopped at the bake's end, the checks left with no
+   *  meter; on the strip's wait line since design 1028d W2-line, paintWait): the bake's share by time (calls.planShare) over its first STORY_PLAN, then the viewed week's
    *  listed checks in over the rest; never back (the most it showed: a list that grows holds it), a sweep while the bake
    *  has nothing estimated yet; gone with the story. Each second (tick) and each draw. */
   const STORY_PLAN = 0.7;
   function paintStoryBar() {
-    const st = S.story, i = storyBar.firstChild;
-    storyBar.hidden = !st || ctl.hidden;
-    if (storyBar.hidden) return;
-    const baking = ctx.store.get('conn')?.state === 'baking', share = baking ? planShare(ctx.bundle?.bake) : null;
-    const p = baking ? (share == null ? null : share * STORY_PLAN) : STORY_PLAN + (1 - STORY_PLAN) * st.f;
-    i.classList.toggle('sweep', p == null && !st.p);
-    if (p != null || st.p) i.style.width = `${(100 * (st.p = Math.max(st.p, p ?? 0))).toFixed(2)}%`;
+    // (its share kept for the strip's wait line, which draws it: design 1028d W2-line; the bar under the header gone)
+    const st = S.story;
+    if (st && !ctl.hidden) {
+      const baking = ctx.store.get('conn')?.state === 'baking', share = baking ? planShare(ctx.bundle?.bake) : null;
+      const p = baking ? (share == null ? null : share * STORY_PLAN) : STORY_PLAN + (1 - STORY_PLAN) * st.f;
+      if (p != null) st.p = Math.max(st.p, p);
+    }
+    paintWait();
   }
+  /**
+   * The wait now, as the strip's wait line says it (design 1028d W2-line; the owner, 2026-10-28, his GW10 after a GW9
+   * change: nothing on screen said it waited; R15, R18, N1, N5): one process at a time, the widest first. The forecast
+   * updating (no measure: a few sweeps); a re-plan or the first plan baking ("Planning GW9–12 · ~10 s left · 0:04":
+   * steadyEta in the story, planEta else; its share planShare's, the story's own st.p); the story's checks of the
+   * viewed week ("Checking GW9's moves · 5 checked · 0:24", the story's clock and share); else the viewed week's own
+   * checks (S.wl: renderLine), the take's, an Undo's, a later week's after a change, "Checking GW10 · 1 of 2 · 0:03" on
+   * the checks' clock (waitClock's S.wait), its share by the count with the step under way creeping on (calls.stepShare;
+   * none counted: a few sweeps). null while nothing the pitch shows waits.
+   */
+  function waitNow() {
+    if (ctl.hidden) return null;
+    const conn = ctx.store.get('conn')?.state, st = S.story, now = Date.now();
+    if (conn === 'updating') return { key: 'updating', word: 'Updating', scope: 'the forecast', p: null };
+    if (replanning()) {
+      const bake = ctx.bundle?.bake, e = st ? steadyEta(bake) : planEta(bake), gws = ctx.data?.horizon;
+      return { key: `bake@${bake?.started}`, word: 'Planning', scope: gws?.length ? span(gws) : null, prog: e.left != null ? leftText(e) : null, so: e.so, p: st ? st.p || null : planShare(bake) };
+    }
+    if (st?.wait) {
+      const g = st.wait.g;
+      return { key: `story@${g}`, word: 'Checking', scope: `GW${g}`, long: `GW${g}'s moves`, prog: st.wait.n ? `${st.wait.n} checked` : null, so: st.t0 == null ? null : (now - st.t0) / 1000, p: st.p || null };
+    }
+    const w = S.wl;
+    if (!w || !S.wait) return null;
+    const p = w.n ? (w.max = Math.max(w.max, stepShare(w.done, w.n, reduceMotion() ? 0 : now - w.at, w.tau))) : null;
+    return { key: `week@${w.key}`, word: 'Checking', scope: `GW${w.g}`, long: `GW${w.g}'s moves`, prog: w.n ? `${w.done + 1} of ${w.n}` : null, so: (now - S.wait.t0) / 1000, p };
+  }
+  /** The strip's wait line (waitView) while anything waits (waitNow), in place of the line's own words, its doors kept
+   *  (H16: Bring in… and Chips… work meanwhile), its bar on the strip's lower edge; the line's words back as they fit
+   *  (fitFacts) once it ends, which is said (waitSaid). Each draw and each second (tick, via paintStoryBar). */
+  function paintWait() {
+    const W = waitNow(), block = strip.querySelector(':scope > .ah-block:not(.ah-fitprobe)'), pbt = block?.querySelector('.ah-pbt');
+    const on = !!W && !!pbt, was = !!block?.classList.contains('ah-waiting');
+    block?.classList.toggle('ah-waiting', on);
+    // (a money short or an amber notice keeps the line's words, the wait its bar, the dim and the plates' "checking…":
+    // a problem is never hidden behind a wait, as on main before the wait line; design 1028d W12-dimline, the build
+    // judge of W: "a money-short warning yields to the wait line")
+    block?.classList.toggle('ah-wkeep', on && !!S.lineKeep);
+    paintDim(W);
+    if (on) {
+      if (waitV.t.parentNode !== pbt) pbt.append(waitV.t);
+      if (waitV.bar.parentNode !== block) block.append(waitV.bar);
+      paintWaitView(waitV, W);
+    } else { waitV.t.remove(); waitV.bar.remove(); waitV.key = null; }
+    if (was && !on) fitFacts();
+    const said = W ? `${W.word} ${W.long ?? W.scope ?? ''}`.trim() : S.waitWas ? `${S.waitWas === 'Planning' ? 'Plan ready' : 'Checked'}` : '';
+    if (W || S.waitWas) { if (waitSaid.textContent !== said) waitSaid.textContent = said; S.waitWas = W?.word ?? null; }
+  }
+
+  /**
+   * The pitch dimmed while the wait line shows (design 1028d W12-dimline: W1-dim's dim under W2-line's words; the owner,
+   * 2026-10-28: "maybe it must to blur pitch or similar while it's not ready"): the same state as the line (waitNow), so
+   * GW10 right after a GW9 change dims as its line says "Checking GW10 · 1 of 1", the first plan and a take's re-check
+   * too. A dim, never a blur (T2, T3, H19); only the turf and chalk (m-ahead.css .ah-pitch.ah-wait), the shirts, plates,
+   * names and xP as ever and every tap as ever (H16, R19); static for as long as it waits (W 2.2.2, N15), its end the
+   * green back (J13, J14, R24). Shown once a wait has run WAIT_DIM_MS without a break, so a quick take never flashes it
+   * (N7, N17, M11): its start kept across the line's kinds (a bake, its checks, the week's) and timed to the ms.
+   */
+  const WAIT_DIM_MS = 1000;
+  function paintDim(W) {
+    const now = Date.now();
+    if (!W) { S.dimT0 = null; clearTimeout(S.dimTimer); S.dimTimer = null; pitchHost.classList.remove('ah-wait'); return; }
+    S.dimT0 ??= now;
+    const left = S.dimT0 + WAIT_DIM_MS - now;
+    pitchHost.classList.toggle('ah-wait', left <= 0);
+    if (left > 0 && !S.dimTimer) S.dimTimer = setTimeout(() => { S.dimTimer = null; paintWait(); }, left + 5);
+  }
+
   /**
    * The viewed week's model, once per draw: its choices (the user, 2026-10-11, "make him to suggest plans, not just
    * players"; decision 6, every week you can change, in both modes, in your Wildcard or Free Hit week too, each taking
@@ -6834,8 +6902,15 @@ export function mount(el, ctx) {
     // notice or short bank stands; where they don't fit, "plans" goes, then the GW ("Checking · 3 of 6": the line is the
     // viewed week's; the review of the first-use proposals, 2026-10-21: cut at 375–390 px), then the words ellipsise,
     // then they go; the clock is never cut (fitFacts)
-    const checking = !problem && !short && M.wait && !S.story ? [[g, 'plan'], [g, null], [null, null]].map(([x, of]) => COPY.checkingWeek(x, M.wait.i, M.wait.n, of)) : null;
+    // (design 1028d W2-line: the checks told on the strip's wait line in its place, over a notice or a short bank too,
+    // which come back when they end: paintWait; S.wl what it counts, the step under way timed from its last landing)
+    const checking = null;
+    const wl = !M.live && S.wait ? M.wait ?? { i: 1, n: 0 } : null, was = S.wl?.key === S.wait?.key ? S.wl : null;
+    S.wl = wl ? { key: S.wait.key, g, n: wl.n, done: wl.i - 1, at: was?.done === wl.i - 1 ? was.at : Date.now(), max: was?.n === wl.n ? was.max : 0,
+      tau: wl.i > 1 ? (Date.now() - S.wait.t0) / (wl.i - 1) : 4000 } : null;
     const notice = problem ? `${problem.text}${more ? COPY.moreNotices(more) : ''}` : null;
+    // (an amber notice or a short bank keeps the line over the wait's words: paintWait, design 1028d W12-dimline)
+    S.lineKeep = !M.live && (!!problem?.warn || !!bankWarn(P, w));
     // the lineup notice in "Rolling"'s place in a week with no transfer, its facts whole on the strip (the owner,
     // 2026-10-22, of "1 FT · £0.8m ITB · Set in F…": "Set in FPL: 3 changes" over "1 FT · £0.8m ITB · 2 FT in GW9"; the
     // strip, 2026-10-26), else under the status's words, `sub` ("1 transfer +1.2" over "Set in FPL: 3 changes"; "Rolling
@@ -6878,6 +6953,7 @@ export function mount(el, ctx) {
     // what fitFacts places and sheds: the checks' words, shortest last
     S.line = chk ? { bar: strip.querySelector(':scope > .ah-block > .ah-pbar'), chk, texts: checking } : null;
     fitFacts();
+    paintWait();
   }
   /** The week line's one line fitted beside its doors (the user, 2026-10-22: "WEEK LINE AT MOST 2 LINES"; the owner's
    *  orders of 2026-10-21 and -22 together, the v1.3.75 review's group A; one line since the strip, the owner,
@@ -7103,13 +7179,16 @@ export function mount(el, ctx) {
       if (fitNum(t, overOf(t, tw), trimsOf(t))) return true;
       t.style.maxWidth = `${t.offsetWidth + Math.ceil(Math.max(wrapOf(t), ...tw.map((x) => x.scrollWidth - x.clientWidth)))}px`;
       if (fitNum(t, overOf(t, tw), trimsOf(t)) && !meetsCard(t, 9, 6)) return true;
-      // the best move's token (.mv) then its name shortened as the plates' are (m-ahead.css .ah-tok.mv.cut), never its
-      // number, in the room it has (its CSS max-width), each name NAME_LEAST at least, before anything else
+      // the best move's token (.mv) then its name shortened as the plates' are (m-ahead.css .ah-tok.mv.cut), never its number, in the room it has (its CSS max-width), each name NAME_LEAST at least, before anything else
       // in the stack gives way (the owner, 2026-10-26, "Ink token, top of stack"); else it gives way as the others
       if (!t.matches('.mv')) return false;
       t.style.removeProperty('max-width');
       const least = NAME_LEAST * parseFloat(getComputedStyle(t).fontSize), ns = [...t.querySelectorAll('.ah-tn')];
-      return fitNum(t, tw.filter((x) => !x.matches('.ah-tn')), ['noxp', 'nomark', 'tight', 'cut']) && ns.every((x) => x.scrollWidth <= x.clientWidth + 0.5 || x.clientWidth >= least) && !meetsCard(t, 9, 6);
+      // (its take's word first, its name shortened for it; where that leaves the name under NAME_LEAST, the word off and
+      // the name whole again: design 1028d K1)
+      const fitsWith = (steps) => fitNum(t, tw.filter((x) => !x.matches('.ah-tn')), steps) && ns.every((x) => x.scrollWidth <= x.clientWidth + 0.5 || x.clientWidth >= least) && !meetsCard(t, 9, 6);
+      t.classList.remove('nogo');
+      return fitsWith(['noxp', 'nomark', 'tight', 'cut']) || fitsWith(['noxp', 'nomark', 'tight', 'nogo', 'cut']);
     };
     // the week's own choices stacked beside the goal, each under the one before, only while they and their targets (9 px
     // under each: m-ahead.css .ah-tok) clear the cards (a short pitch, three of them: the rest are the Week sheet's);
@@ -7540,7 +7619,10 @@ export function mount(el, ctx) {
         onClick: (ev) => (swap ? takeFrom(ev, P, g, mv, ev.currentTarget, top[0].d.a, e.inId) : openPlace(top[0].d.a)) },
         h('span.ah-tl', { 'aria-hidden': 'true' }, h('span.ah-tn', null, nm(e.inId))),
         // (its number as its plate's, blue with "xP", as every forecast's: numParts)
-        h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, numParts(g, mv))));
+        h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, numParts(g, mv)),
+        // its take's word where its tap takes (the owner, 2026-10-28, design 1028d K1: one act, one word, one look;
+        // N2, W4/W5): "Swap" in the mint of its place's best header, a keep-back "Keep"; none where it opens his place
+        swap ? h('span.ah-tgo.m-swap.best', { 'aria-hidden': 'true' }, takesBack(e) ? COPY.placeKeep : COPY.placeSwap) : null));
     }
     // the week's status, under the best's token, in the place of "Wildcard · yours", "Rolling ✓" and the Roll's "Rolling"
     // (the owner's strip, 2026-10-26)
@@ -7576,7 +7658,7 @@ export function mount(el, ctx) {
    *  green). */
   const numParts = (g, pl) => {
     const chip = SQUAD_CHIPS.has(pl.choice.chips?.[g]) ? null : pl.choice.chips?.[g], hit = pl.hits?.[g] ?? 0;
-    return [chip ? h('small.ah-dchip', null, chip.toUpperCase()) : null, hit ? h('small.ah-dhit', null, `${MINUS}${E.HIT_COST * hit}`) : null, xpGain(pl.cmp.delta)];
+    return [chip ? h('small.ah-dchip', null, chip.toUpperCase()) : null, hit ? h('small.ah-dhit.m-hit', null, `${MINUS}${E.HIT_COST * hit}`) : null, xpGain(pl.cmp.delta)];
   };
   /** Take choice pl (or, `act`, take a transfer of yours back) from where it is drawn (`from`: its tab, or its card dealt
    *  in a place), through addOnce (one tap, 2a; ignored just after the choices re-flowed): the pitch drawn after it
@@ -7817,6 +7899,8 @@ export function mount(el, ctx) {
       // outlined Swap where it doesn't: the zero line seen without moving his card (the best move's beside a chip's ink
       // token too, as its plate: litOf `move`; the owner, 2026-10-25, "fix so chips not interfer in ths behaviour")
       const top1 = !!pl && S.M?.lit?.move === pl, pays = !top1 && !!pl && ready && plPays(pl);
+      // (its take the one mark, .m-swap, its look the header's verdict: design 1028d K1)
+      go.classList.add('m-swap', ...(top1 ? ['best'] : pays ? [] : ['quiet']));
       const head = h('div.ah-phead', { class: { best: top1, pays, lo: !top1 && !pays }, dataset: { deal: i }, style: { ...px(x, 0), top: tab() } },
         word && !(rollBack && ready) ? null : h('span.ah-pv.m-num', { 'aria-hidden': 'true', class: { wait: !ready } }, num ?? numParts(g, pl)),
         go);
@@ -7861,7 +7945,8 @@ export function mount(el, ctx) {
         h('span.ah-wl2', null, COPY.placeNumbers(plansVs(P, g), P.gws.filter((x) => x >= g))), onBench ? h('span.ah-wl2.ah-wl3', null, onBench) : null),
       h('button', { type: 'button', 'aria-label': 'Next place', dataset: { key: 'next' }, disabled: n < 2, onClick: () => stepPlace(1) }, '›'),
       h('button', { type: 'button', 'aria-haspopup': 'dialog', dataset: { key: 'all' }, onClick: () => toWeek() }, COPY.placeAll(S.M.plans.filter((x) => !x.needs).length)),
-      h('button', { type: 'button', 'aria-label': 'Close', dataset: { key: 'close' }, onClick: () => closePlace() }, glyph('x')),
+      // (the sheets' ✕, their grey circle: design 1028d K5-rec, B11)
+      h('button.m-xbtn', { type: 'button', 'aria-label': 'Close', dataset: { key: 'close' }, onClick: () => closePlace() }, '✕'),
       pline ? planLine(P, g, d, pline) : null);
     const layer = h('div.ah-place', { role: 'group', 'aria-label': `${place}, ${COPY.placeAt(i + 1, n)}` },
       // (read in the block's order, a header's Swap, its note's line, then his card: VoiceOver too)
@@ -7918,7 +8003,7 @@ export function mount(el, ctx) {
         h('span.ah-tmv.m-num', { class: { wait: !ready } }, ready ? numParts(g, pl) : pl.state === 'failed' ? COPY.placeCantCheck : COPY.pairChecking),
         // (its take given way for room, fitLine: the words open the sheet that takes it)
         h('span.ah-plm', { 'aria-hidden': 'true' }, ' ›')),
-      h('button.ah-plgo', { type: 'button', disabled: !ready || frozenAt(P, g), dataset: { add: `plan:${planKey(g, pl)}` },
+      h('button.ah-plgo.m-swap', { type: 'button', class: { best: S.M?.lit?.move === pl }, disabled: !ready || frozenAt(P, g), dataset: { add: `plan:${planKey(g, pl)}` },
         'aria-label': swaps.length ? COPY.swapSaid(swaps, ready ? plNumSaid(P, pl) : null) : `${COPY.planTake(s.head)}${ready ? `, ${plNumSaid(P, pl)}` : ''}`,
         onClick: (ev) => takeFrom(ev, P, g, pl, ev.currentTarget, d.a, e.inId) }, swaps.length ? COPY.swapGo(swaps.length) : COPY.planRoll(null)));
   }
@@ -8126,7 +8211,7 @@ export function mount(el, ctx) {
         // fitOf; its plan's row says it whole; design 1026e "line")
         ...[false, true].map((sh) => ({ sh, grp: M.plans.filter((pl) => !pl.needs && (planBack(P, g, pl).back === M.sharedBack) === sh) }))
           .filter((x) => x.grp.length).sort((x, y) => M.plans.indexOf(x.grp[0]) - M.plans.indexOf(y.grp[0])).map(({ sh, grp }) => {
-            const rows = grp.map((pl) => planRow(P, g, pl, { shared: M.sharedBack, closes: true, lit: litPays(pl, M) }));
+            const rows = grp.map((pl) => planRow(P, g, pl, { shared: M.sharedBack, closes: true, lit: litPays(pl, M), best: M.lit?.move === pl }));
             // (those under it marked, data-under="instead": the QA's chip-week-plans reads which rows it heads)
             if (sh) for (const r of rows) r.dataset.under = 'instead';
             return sh ? [h('div.ah-wh', { dataset: { at: 'instead' } }, h('p.ah-bs', null, capFirst(M.sharedBack))), rows] : rows;
@@ -8373,7 +8458,7 @@ export function mount(el, ctx) {
   /** A buy's place in GW g, from his Why sheet (the card behind: the hold's visible twin): "What could go there instead
    *  ›", the sheet closing first (and the Week sheet under it: the place is dealt on the pitch in view); none where his
    *  place isn't on the pitch drawn, nor while it draws another week. */
-  const placeAct = (id, g) => (deckOf(id, g) ? [{ label: COPY.placeInstead, act: () => { S.week?.sheet.close(); setTimeout(() => whenFree(() => openPlace(Number(id))), 0); } }] : []);
+  const placeAct = (id, g) => (deckOf(id, g) ? [{ label: COPY.placeInstead, link: true, act: () => { S.week?.sheet.close(); setTimeout(() => whenFree(() => openPlace(Number(id))), 0); } }] : []);
   /** The Why sheet's buttons (sheets/why.js), this GW's only (F11): "Keep Scott · GW6" and "Not Groß · GW6". "Not" is
    *  the row's swipe by tap, its row leaving the swipe's way (vetoFromWhy, B98b); Keep has no swipe (B19). B99 (saffer
    *  A8; the user, 2026-10-10): the row's own button too, filled only when what it does beats the noise (clearGain), so a
@@ -8396,9 +8481,10 @@ export function mount(el, ctx) {
     const mv = { out: m.out, in: m.in, gw: g };
     const mine = !!pinOfMove(P, mv);
     const off = clearGain({ delta: -c.delta, label: c.label });
+    // the safe act first, the take-backs after it (`danger`: red words; design 1028d K2, H5, N4, R4)
     return [
-      mine && P.editable ? { label: 'Remove', act: () => removeMove(ctx, mv), fill: off } : null,
       { label: `Keep ${nm(m.out)} · GW${g}`, act: () => keep(ctx, m.out, { gw: g, scope: 'gw' }), fill: !mine && off },
+      mine && P.editable ? { label: 'Remove', act: () => removeMove(ctx, mv), fill: off, danger: true } : null,
       notAct(P, g, m),
     ].filter(Boolean);
   }
@@ -8411,7 +8497,7 @@ export function mount(el, ctx) {
    *  one per GW-g buy, openPlanWhy's (B19c). */
   function notAct(P, g, m) {
     const mv = { out: m.out, in: m.in, gw: g };
-    return { label: notOf(P, mv), act: () => vetoFromWhy(mv) };
+    return { label: notOf(P, mv), act: () => vetoFromWhy(mv), danger: true };
   }
   /** The Why sheet's When line (sheets/why.js): {weeks: whenOf, pick(gw) → bool, disabled} | null. A week made goes to
    *  that GW, as a row dropped on it does (B18: the view stayed on the old week). `on`: the header's number and its
@@ -8451,7 +8537,7 @@ export function mount(el, ctx) {
    *  (choiceVs: "vs your plan" in a week of yours, decision K; none off the hold, as before). */
   const plNumSaid = (P, pl) => numSaid(false, pl.cmp, false, pl.vsRoll && choiceVs(P, pl));
   /** The −4 of n hits beside a line's words (the week line's, a transfer's, a choice's), quiet, and as its label says it. */
-  const hitTag = (n) => (n ? h('small.ah-hit.m-num', { 'aria-hidden': 'true' }, `${MINUS}${E.HIT_COST * n}`) : null);
+  const hitTag = (n) => (n ? h('small.ah-hit.m-hit.m-num', { 'aria-hidden': 'true' }, `${MINUS}${E.HIT_COST * n}`) : null);
   const hitSaid = (n) => (n ? `, a ${MINUS}${E.HIT_COST * n} hit included` : '');
   /** What GW g's suggested plans count against (the plans heading, a row, its Why sheet, a place's bar): rolling once the
    *  week's roll plan is in (plansOf `ref`), your plan then in a week of yours (yoursAt, its rows' `vsMine`: decision K;
@@ -8671,7 +8757,7 @@ export function mount(el, ctx) {
    * and no long press. Drawn under its week's own tab, the row leaves the week out (the user, 2026-10-18: "why need to
    * repeat gw8 if we already chose gw8"); its label, its + and the +'s toast keep it.
    */
-  function planRow(P, g, pl, { shared = null, closes = false, lit = null } = {}) {
+  function planRow(P, g, pl, { shared = null, closes = false, lit = null, best = null } = {}) {
     const nm = P.L.name;
     const key = planKey(g, pl);
     // `shared`: the "instead of …" every listed row's + takes back, said once on the Week sheet's plans heading
@@ -8688,8 +8774,12 @@ export function mount(el, ctx) {
     // (its moves one sentence, "Cunha → Palmer, Neto → Tavernier", as the pitch's line says it: design 1026e)
     const line = [adds.length ? adds.flatMap((m, i) => [i ? ', ' : null, h('span.ah-pmv', null, h('s', null, `${nm(m.out)} → `), nm(m.in))]) : shown,
       tail ? h('span.ah-bq2', null, tail) : null, ew ? h('span.ah-bq2', null, ' · ', ew) : null, pl.removed ? h('span.ah-bq2', null, ' · ', COPY.removedByYou) : null];
+    // its take worded as everywhere else (design 1028d K1: "Swap", "Swap both", a Roll's "Roll", a chip alone's "Take"),
+    // the one mark (.m-swap), ink for the week's best, green where it pays, outlined where it doesn't; never a + (Bring
+    // in's opened a player's weeks: R9, R12)
+    const word = COPY.takeWord(adds.length, !adds.length && !!pl.choice?.chips?.[g]);
     if (s.wait) {
-      const off = h('button.ah-add', { type: 'button', disabled: true, tabindex: '-1', 'aria-hidden': 'true' }, glyph('+'));
+      const off = h('button.ah-add.m-swap.quiet', { type: 'button', disabled: true, tabindex: '-1', 'aria-hidden': 'true' }, word);
       return h('div.ah-brow.ah-bpair.ah-bplan.solving', { role: 'status', dataset: { row: 'plan', plan: key }, 'aria-label': s.label },
         h('span.ah-bt', { 'aria-hidden': 'true' }, h('span.ah-bn', null, line, h('span.ah-bq2', null, ' · ', s.wait))), off);
     }
@@ -8700,10 +8790,11 @@ export function mount(el, ctx) {
     const pays = lit ?? litPays(pl);
     const why = () => openPlanWhy(P, g, pl, pays);
     const gain = pl.refRow ? null : gainOf(pl.cmp);
-    const add = rollOnly(pl) ? null : h('button.ah-add', {
-      type: 'button', disabled: frozenAt(P, g), dataset: { add: `plan:${key}` }, class: { quiet: !pays }, 'aria-label': COPY.planTake(s.head),
+    const top1 = best ?? S.M?.lit?.move === pl;
+    const add = rollOnly(pl) ? null : h('button.ah-add.m-swap', {
+      type: 'button', disabled: frozenAt(P, g), dataset: { add: `plan:${key}` }, class: { best: top1, quiet: !pays && !top1 }, 'aria-label': COPY.planTake(s.head),
       onClick: takePlan(P, g, pl, closes ? () => S.week?.sheet.close() : null),
-    }, glyph('+'));
+    }, word);
     // B47: the main part is the row's button (whyPart), the + a control of its own
     return h('div.ah-brow.ah-bpair.ah-bplan.ah-btgt', { dataset: { gw: g, plan: key }, onClick: why },
       h('span.ah-bt', whyPart(`${s.label}; shows why`, why, `plan:${key}`), h('span.ah-bn', null, line), hit, gain), add);
@@ -8769,6 +8860,7 @@ export function mount(el, ctx) {
     // what its + gives in GW g (pl.ev, paired as the Week sheet will pair it once taken: takenKeep), a player your Keep
     // holds there "kept: your rule"
     const sq = SQUAD_CHIPS.has(pl.chips?.[g]) ? squadChanges(P, g, pl.ev, takenKeep(P, g, pl)) : [];
+    const swapLook = S.M?.lit?.move === pl ? 'best' : lit ? 'pays' : 'quiet';
     ctx.openSheet('why', {
       a: { road: roadOfEv(ev, g), label: title },
       b: { road: roadOfEv(other, g), label: short, short },
@@ -8785,8 +8877,10 @@ export function mount(el, ctx) {
       changes: sq.length ? { head: COPY.nChanges(sq.filter((m) => !m.kept).length), rows: sq.map((m) => changeRow(P, { gw: g }, m, true)) } : null,
       // (a choice of several moves: its one take named for what it does, "Swap both", and nothing else: the sheet says
       // why, its "Not …" vetoes are each player's own sheet's; the owner's judge of design 1026e)
-      acts: frozenAt(P, g) ? null : several ? [{ label: COPY.swapGo(added.length), said: COPY.planTake(head), fill: lit, act: () => addPlan(ctx, g, pl) }]
-        : [...(rollOnly(pl) ? [] : [{ label: COPY.takeIt, said: COPY.planTake(head), fill: lit, act: () => addPlan(ctx, g, pl) }]), ...now.map((m) => notAct(P, g, m))],
+      // (its take the one mark, worded as its row's and its place's: "Swap", "Swap both", "Roll"; ink the week's best,
+      // green where it pays, outlined where not: design 1028d K1, the owner, 2026-10-28)
+      acts: frozenAt(P, g) ? null : several ? [{ label: COPY.swapGo(added.length), said: COPY.planTake(head), fill: lit, swap: swapLook, act: () => addPlan(ctx, g, pl) }]
+        : [...(rollOnly(pl) ? [] : [{ label: COPY.takeWord(now.length, !now.length && !!pl.chips?.[g]), said: COPY.planTake(head), fill: lit, swap: swapLook, act: () => addPlan(ctx, g, pl) }]), ...now.map((m) => notAct(P, g, m))],
       // (its buttons' edits, solved ahead while it is open: presolve)
       presolve: frozenAt(P, g) ? null : [...(rollOnly(pl) ? [] : [{ kind: 'take', gw: g, run: () => addPlan(ctx, g, pl) }]), ...(several ? [] : now.map((m) => ({ kind: 'veto', gw: g, run: () => veto(ctx, { ...m, gw: g }) })))],
     });
@@ -9767,6 +9861,7 @@ export function mount(el, ctx) {
       clearInterval(clock);
       clearTimeout(S.totTimer);
       clearTimeout(S.chipWake);
+      clearTimeout(S.dimTimer);
       closePlace(false);
       refitPitch?.disconnect();
       toastGone?.disconnect();
