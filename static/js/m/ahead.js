@@ -1025,7 +1025,7 @@ let CHEERED = { local: null, said: null };
  *  planning counts) for CHEER_MS, while no sheet is open (else the next draw asks again). Only from a live bundle (a
  *  warm start's saved one may be a GW past: the review, 2026-10-21), never offline. Mount's renderWeek, every draw,
  *  last. P: a plan view. → whether it shows */
-export function sayCheer(ctx, P, el, planning = false, act = 0) {
+export function sayCheer(ctx, P, el, planning = false, act = 0, { linger = false } = {}) {
   const c = P?.b?.rank?.cheer, local = ctx.api?.local, cs = ctx.store.get('conn');
   const show = (on) => {
     clearTimeout(el._cheerT);
@@ -1037,13 +1037,15 @@ export function sayCheer(ctx, P, el, planning = false, act = 0) {
   const was = local.json(k);
   const said = (was?.s === s && was.gw === c.gw) || (CHEERED.local === local && CHEERED.said === sig);
   if (!planning && (said || ctx.sheets?.depth?.())) return el.dataset.planning ? show(false) : !el.hidden;
-  el.dataset.planning = planning ? '1' : '';
+  // (`linger`: a wait's act said once its wait has ended, up for CHEER_MS as the once-a-GW line is, never taken down by
+  // the next draw: the plan's second act where its checks ended while it planned)
+  el.dataset.planning = planning && !linger ? '1' : '';
   if (!said) {
     CHEERED = { local, said: sig };
     local.set(k, JSON.stringify({ s, gw: c.gw }));
   }
   const up = show(true);
-  if (!planning) el._cheerT = setTimeout(() => show(false), CHEER_MS);
+  if (!planning || linger) el._cheerT = setTimeout(() => show(false), CHEER_MS);
   return up;
 }
 
@@ -6628,8 +6630,15 @@ export function mount(el, ctx) {
     pendingAgain(ctx, P.mem);
     // the line every GW: last, so a toast above (a reopened check's, with its Undo) never takes its place at once; on a
     // first load up through the story's checks too, in its second act (tellStory set S.story.wait this draw)
+    // (its second act up for CHEER_MS more once the wait ends, whether or not its checks outlasted the planning (when
+    // they all ended while it planned, the story went from planning straight to done, and a short checking stage showed
+    // it for a moment): the owner, 2026-10-28, "why it only showed me what my new rank but never showed the next message
+    // about last season manager place")
     const checking = !replanning() && !!S.story?.wait;
-    sayCheer(ctx, P, cheerEl, replanning() || checking, checking ? 1 : 0);
+    if (replanning() || checking) S.act2 = 'due';
+    const late = !replanning() && !checking && S.act2 === 'due';
+    if (late) S.act2 = 'said';
+    sayCheer(ctx, P, cheerEl, replanning() || checking || late, checking || late ? 1 : 0, { linger: late });
   }
   /**
    * The wait's one story (design 1027a A-stages; the owner, 2026-10-27: "Why planning happening in three places - first in
