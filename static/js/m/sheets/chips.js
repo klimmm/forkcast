@@ -52,7 +52,7 @@ export function open(ctx, { gw } = {}) {
           return COPY.chipFact(r.best.gw === g ? COPY.chipBestHere : COPY.chipBestAt(r.best.gw, r.best.delta, vs && r.best.vs === r.vs ? null : r.best.vs ?? (r.best.delta != null ? COPY.chipNoChip : null)),
             vs, r.after != null ? COPY.chipAfter(r.after) : null);
         }
-        if (!r.final) return COPY.chipFact(r.wait ? COPY.chipBestChecking(r.wait.g, r.wait.i, r.wait.n) : null, vs) || null;
+        if (!r.final) return COPY.chipFact(r.wait ? COPY.chipBestChecking(r.wait.g, r.wait.i, r.wait.n, r.wait.part) : null, vs) || null;
         // (a best week clear of the next whose own gain is inside the noise gains nothing to act on: not "too close to
         // call", which says two weeks tie; the review of round 7, 2026-10-22)
         // (a Wildcard's or Free Hit's against rolling names its weeks bare: their gains are the pre-solves', vs not playing it)

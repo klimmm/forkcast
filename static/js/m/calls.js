@@ -711,8 +711,9 @@ export const COPY = Object.freeze({
   /** A Wildcard or Free Hit choice's Why sheet: the chip it spends and when the next one comes (the second half's first
    *  GW: ahead.halfEnd, the season's chip rules), "Uses your last Free Hit" in the second half (the user, 2026-10-22). */
   chipUses: (chip, next = null) => (next != null ? `Uses your ${chip}; next one GW${next}` : `Uses your last ${chip}`),
-  /** …while its weeks are checked (ahead.chipWait, findings #2): Add a player's count (checkingWeek), its clock after it. */
-  chipBestChecking: (gw, i, n) => `Best week · ${COPY.checkingWeek(gw, i, n)}`,
+  /** …while its weeks are checked (ahead.chipWait, findings #2): Add a player's count (checkingWeek), its clock after it;
+   *  no "Best week" while a week of the span was never asked (`part`; the owner, 2026-10-28). */
+  chipBestChecking: (gw, i, n, part = false) => (part ? COPY.checkingWeek(gw, i, n) : `Best week · ${COPY.checkingWeek(gw, i, n)}`),
   /** …when the best week doesn't beat the runner-up (`next`, its gain `runner`; none in: not playing it) by more than a
    *  toss-up (ahead.chipBests' clear: engine.verdictLabel's 'coin', under VERDICT.lean × the noise), and the weeks of
    *  its half after the plan's last (`after`) never looked at (findings #13, Kenji, 2026-10-21). The noise itself is

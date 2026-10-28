@@ -58,7 +58,7 @@
 .ah-help::before { content: ""; position: absolute; inset: -14px -10px; }
 body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { visibility: hidden; }
 .ah-dot { position: absolute; right: -1px; bottom: 0; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 2px var(--bg); }
-.ah-dot.amber { background: var(--warn); }
+.ah-dot.amber { background: var(--warn-mark); }  /* 4.3:1 on --bg (was 1.8:1: 1028c P4-keep, W9) */
 .ah-dot.none { background: var(--bg); box-shadow: 0 0 0 2px var(--bg), inset 0 0 0 1.5px var(--muted); }
 
 /* GW A's deadline and the window's total on one line under the team's name, centred, in the header's small type (the
@@ -77,10 +77,13 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
 .ah-dl:empty::before { content: none; }
 .ah-gwline .k, .ah-dl { color: var(--muted); }
 .ah-gwline b { font-weight: 600; }
-/* the countdown's tones (ahead.js deadlineInfo: under 24 h amber, under 2 h coral) with the reach of the one type
-   rule's ".ah-gwline .ah-dl" (below), which muted them by coming later */
-.ah-gwline .ah-dl.soon { color: var(--warn-ink); }
-.ah-gwline .ah-dl.urgent { color: var(--loss); }
+/* the countdown's tones (ahead.js deadlineInfo: under 24 h 'soon', under 2 h 'urgent'; were amber and coral text, the
+   same lightness as the muted grey around them, R10): the one bright colour's tag (--pop, design 1028c P4-bright: a
+   status worth a glance, H6), its time 600 in ink; under 2 h an ink edge too (a second step without hue, J7, W2). Its
+   own gap in place of the " · " (the tag never takes the dot); the reach of ".ah-gwline .ah-dl" (below) kept */
+.ah-gwline .ah-dl:is(.soon, .urgent) { margin-left: .35em; padding: 0 4px; border-radius: var(--r-sm); background: var(--pop); color: var(--pop-ink); font-weight: 600; }
+.ah-gwline .ah-dl:is(.soon, .urgent)::before { content: none; }
+.ah-gwline .ah-dl.urgent { box-shadow: inset 0 0 0 1.5px var(--pop-ink); }
 /* the total's passing extras ("≈", an edit's "(+10.1)") never take the line to another row nor past its column (ahead.js
    keepGwLine): the change's "xP" makes room for them (.ah-nomark), then the window's label (.ah-tight), then the change
    goes, then the total (.ah-nototal); .ah-bare is the line without them, as fitPitch measures it */
@@ -118,7 +121,7 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
   animation: m-sweep 1.4s linear infinite;
 }
 /* stale and updating in the avatar dot's amber */
-.m-screen.ah .m-banner:is(.stale, .updating) .m-banner-bar i, .m-screen.ah .m-banner:is(.stale, .updating):not(:has(.m-banner-bar))::after { background: var(--warn); }
+.m-screen.ah .m-banner:is(.stale, .updating) .m-banner-bar i, .m-screen.ah .m-banner:is(.stale, .updating):not(:has(.m-banner-bar))::after { background: var(--warn-mark); }  /* 3.9:1 on --track (was 1.6:1) */
 @media (prefers-reduced-motion: reduce) {
   .m-screen.ah .m-banner:is(.baking, .stale, .updating)::after { animation: none; width: 100%; opacity: .45; }
 }
@@ -145,7 +148,10 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
 /* the line every GW (ahead.sayCheer) under the status bar, over the GW tiles' top, for as long as it plans the wait's
    two lines (the owner, 2026-10-27: "not overlap status bar"; his pick of three places), in the wait's panel
    (m.css .m-facts), no more the toasts' look: a tap on a tile goes through it */
-.ah-cheer { position: absolute; z-index: 3; top: 0; left: 8px; right: 8px; }
+/* (design study 1028c, P3 "less") no card: the header's third line, centred under its bar in the header's column where the
+   eye goes for the clock while it waits (Johnson ch. 6), on --bg, opaque and over the rail's full height (as the card was), so no half-hidden
+   tile shows through or beside it; the act's change fades in (app.js factPanel: motion is what the edge of view sees) */
+.ah-cheer { position: absolute; z-index: 3; top: 0; left: 8px; right: 8px; justify-content: center; padding: 0 8px; background: var(--bg); text-align: center; }
 .ah-cheer[hidden] { display: none; }
 .ah-tdelta { font-weight: 600; animation: ah-tfade var(--left, 6s) linear forwards; }
 @keyframes ah-tfade { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
@@ -172,7 +178,7 @@ body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { vis
 .ah-tick .p { flex: none; font: 600 var(--t-sub)/1.3 var(--f-text); white-space: nowrap; color: var(--ink); }
 .ah-tick.pencil .c { color: var(--muted); }
 .ah-tick.sel .c { color: var(--ink); }
-/* a chip on a tile only where your plan plays it: a filled chip, its token colour (.dots em) */
+/* a chip on a tile only where your plan plays it: a filled chip, its token colour (.dots em; --pop since 1028c, ink on it) */
 /* A10: a double or blank GW of the window, in muted ink */
 .ah-tick .dots .gwk { margin-left: 3px; font-weight: 600; color: var(--muted); }
 .ah-tick .p.g-loss { color: var(--loss); font-size: var(--t-sub); }
@@ -431,6 +437,10 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-spm { flex: none; font-weight: 400; opacity: .85; }
 .ah-spv { flex: none; font-variant-numeric: tabular-nums; }
 .ah-sp.best { background: var(--sp-ink); box-shadow: var(--sp-edge); font-size: calc(var(--pm-tab) * .64); }
+/* a quiet plate's edge a white keyline (design 1028c P2-states: its green 1.22:1 on the tile, 2.00 on the turf, so the
+   plate was only its words; M6, M10: a cluster's container 3:1; W7): white 3.34:1 on the turf, 5.45 on the tile. The
+   best stays solid ink with no edge, so quiet vs best is outlined vs solid in grayscale too, not only green vs black */
+.ah-sp:not(.best, .loss) { box-shadow: inset 0 0 0 1.5px light-dark(#FFFFFF, rgb(255 255 255 / .22)); }
 .ah-sp.best.part .ah-spb { padding: 0 7px; }
 /* "checking…" in its number's place while the week checks, as a place's header says it (.ah-pv.wait) */
 .ah-spv.wait { font-weight: 500; font-style: italic; }
@@ -913,7 +923,7 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .ah-btnrow.wy-acts > :first-child:nth-last-child(odd) { grid-column: 1 / -1; }
 .ah-btnrow button { flex: 1; min-height: 44px; padding: 6px 10px; border: 1px solid var(--border-2); border-radius: var(--r-btn); font: 600 var(--t-body)/1.3 var(--f-text); background: var(--surface); color: var(--ink); }
 .ah-btnrow button.acc { border-color: var(--acc-bg); background: var(--acc-bg); color: var(--acc-ink); }
-.ah-btnrow button.danger { background: var(--loss); color: #2a0b10; }
+.ah-btnrow button.danger { background: var(--loss); color: light-dark(#FFFFFF, #2a0b10); }  /* white 5.9:1 (the old coral's #2a0b10 was 3.1:1: R2, the six-book review) */
 .ah-btnrow button:disabled { opacity: .4; }
 .ah-search { display: flex; align-items: center; gap: 8px; height: 40px; margin-top: 10px; padding: 0 12px; border-radius: 12px; background: var(--soft-2); color: var(--muted); }
 .ah-search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; color: var(--text); font: 400 var(--t-body)/1.3 var(--f-text); -webkit-appearance: none; appearance: none; }
@@ -958,8 +968,10 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .ps-st { display: flex; align-items: center; gap: 8px; margin: 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--ink); }
 .ps-st + .ps-st { margin-top: 3px; }
 .ps-st .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--gain); }
-.ps-st.amber .dot { background: var(--warn); }
-.ps-st.red .dot { background: var(--loss); }
+.ps-st.amber .dot { background: var(--warn-mark); }
+/* red vs green is one lightness (L* 42 vs 32 at best, 1.5:1) and one olive to a deuteranope (J5, H14): the red dot is
+   a square, so "out" differs by shape too; the words beside it say it (1028c P4-keep, J10) */
+.ps-st.red .dot { background: var(--loss); border-radius: 1.5px; }
 .ps-st.ws { color: var(--muted); }
 .ps-st.grey .dot { background: var(--border-2); }
 /* the chart's head (B2): a cap label (m.css .m-sec > h3), so the player's name is the card's one 17/600; its sums and ⓘ
@@ -998,8 +1010,8 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .wy-cmp .tot > .n { color: var(--ink); }
 /* status: one line, its dot on its words (the card's tones: m-ahead.css .ps-st) */
 .wy-cmp .wy-st .dot { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; vertical-align: .08em; background: var(--gain); }
-.wy-cmp .wy-st.amber .dot { background: var(--warn); }
-.wy-cmp .wy-st.red .dot { background: var(--loss); }
+.wy-cmp .wy-st.amber .dot { background: var(--warn-mark); }
+.wy-cmp .wy-st.red .dot { background: var(--loss); border-radius: 1.5px; }  /* the square, as .ps-st.red */
 /* the heads: the column's cap label once ("In", "Yours"), the player's name under it in ink, a link to his card by its
    chevron, never the accent's button green (the names are the content's, not actions'); whole, wrapping at its hyphen
    before it is ever cut; its target 44 px tall */
@@ -1103,7 +1115,7 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .wy-swarm .zero { stroke: var(--line-strong); }
 .wy-swarm .dot { animation: wy-rain .45s var(--bounce) both; }
 .wy-swarm .dot.pos { fill: var(--clear); }
-.wy-swarm .dot.neg { fill: var(--loss); }
+.wy-swarm .dot.neg { fill: var(--surface); stroke: var(--loss); stroke-width: 1.6; }  /* hollow: a loss differs from a gain by shape, not red vs green alone (1028c P4-keep, J10, W1) */
 .wy-swarm .dot.mid { fill: var(--coin); }
 .wy-lines .ln { fill: none; stroke-width: 1.3; stroke-dasharray: 400; stroke-dashoffset: 400; animation: m-draw .4s ease forwards; }
 .wy-lines .ln.pos { stroke: color-mix(in oklab, var(--clear) 60%, transparent); }

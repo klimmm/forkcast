@@ -259,12 +259,15 @@ function arrangeRows(prev, xi, posOf) {
  *  (`tall`), so a drawn and an official shirt sit the same in the tile (plan-pitch.css .pm-face). */
 const face = (p, side) => h(`span.pm-face.${side}`, null, shirt({ club: p?.club, gk: posName(p?.pos) === 'GK', size: 64, turf: true, tall: true }));
 
-/** FPL's flag at the tile's top-right: a yellow (doubt) or red (out, ≤ 25%) warning triangle and his chance ("75%"). */
+/** FPL's flag at the tile's top-right: a yellow (doubt) warning triangle, or a red (out, ≤ 25%) no-entry disc (a shape of
+ *  its own, so out and doubt differ without colour: design 1028c P2-states, H14, J10), and his chance ("75%"). */
 const flag = (tone, words) => h('span.pm-flag', { class: tone, 'aria-hidden': 'true' },
-  svg('svg', { class: 'pm-flag-g', viewBox: '0 0 15 13' },
+  svg('svg', { class: 'pm-flag-g', viewBox: '0 0 15 13' }, ...(tone === 'red' ? [
+    svg('circle', { class: 'pm-flag-t', cx: 7.5, cy: 6.5, r: 6.1 }),
+    svg('rect', { class: 'pm-flag-i', x: 3.9, y: 5.5, width: 7.2, height: 2, rx: 0.4 })] : [
     svg('path', { class: 'pm-flag-t', d: 'M7.5 .8 14.3 12.3H.7z' }),
     svg('rect', { class: 'pm-flag-i', x: 6.8, y: 4.3, width: 1.4, height: 4.2, rx: 0.5 }),
-    svg('circle', { class: 'pm-flag-i', cx: 7.5, cy: 10.2, r: 0.85 })),
+    svg('circle', { class: 'pm-flag-i', cx: 7.5, cy: 10.2, r: 0.85 })])),
   words ? h('span.pm-flag-w', null, words) : null);
 
 /**

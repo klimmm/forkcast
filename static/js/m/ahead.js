@@ -5443,6 +5443,10 @@ export function chipPresolves(ctx) {
   return r;
 }
 
+/** A chip week's check is in: solved or failed, not still solving, and asked (a week nobody opened Chips… on reads
+ *  `unasked`: chipsAsked; the owner, 2026-10-28, "should not say which is best since others not solved"). */
+const chipSettled = (x) => x.state !== 'solving' && !x.unasked;
+
 /**
  * Each chip's best GW of `gws` by at(chip, gw) when it gains: {chip: {chip, gw, delta, label, final, clear, runner,
  * next}}.
@@ -5463,10 +5467,8 @@ export function chipBests(at, gws, noise = 0) {
     const next = ready.filter(({ g }) => g !== top.g).sort((a, b) => gap(b.x) - gap(a.x))[0] ?? null;
     const runner = next ? gap(next.x) : 0;
     const clear = E.verdictLabel(gap(top.x) - runner, noise) !== 'coin';
-    // (final: every week of `gws` solved or failed, none still solving, none whose chips nobody asked for: Chips… opened
-    // there, chipsAsked; the owner, 2026-10-28, "should not say which is best since others not solved")
     best[c] = { chip: c, gw: top.g, delta: top.x.cmp.delta, label: top.x.cmp.label, runner, next: next?.g ?? null, clear,
-      final: gws.every((g) => { const x = at(c, g); return x.state !== 'solving' && !x.unasked; }) };
+      final: gws.every((g) => chipSettled(at(c, g))) };
   }
   return best;
 }
@@ -5655,7 +5657,7 @@ export function chipStates(ctx, P, g, src = null) {
       cmp: own?.cmp ?? (near?.wait || rolled ? null : pre?.state === 'ready' ? pre.cmp : null), solving: !!near?.wait || (!own && !rolled && pre?.state === 'solving'),
       ...(rolled ? { vs: COPY.planVsRoll } : {}), ...(own ? { pays: own.pays, vs: own.vs } : {}),
       best: pick && squad ? { ...pick, delta: far?.cmp?.delta ?? (pick.gw === g ? own?.cmp.delta ?? null : null), vs: far?.vs ?? own?.vs ?? null } : pick, top: sb?.[c] ?? null,
-      final: !!s && here.every((x) => s.at(c, x).state !== 'solving') && here.some((x) => s.at(c, x).state === 'ready'),
+      final: !!s && here.every((x) => chipSettled(s.at(c, x))) && here.some((x) => s.at(c, x).state === 'ready'),
       wait: s ? chipWait(s, c, here) : null, after,
     };
   });
@@ -5670,7 +5672,9 @@ function chipWait(src, c, here) {
   const left = need.filter((x) => src.at(c, x).state === 'solving');
   if (!left.length) return null;
   const asked = need.map((x) => src.asked?.(c, x)).filter((t) => t != null);
-  return { g: left.find((x) => src.asked?.(c, x) != null) ?? left[0], i: need.length - left.length + 1, n: need.length, t0: asked.length ? Math.min(...asked) : null };
+  // (`part`: a week of the span nobody asked for, so no best week can come of these checks: chipSettled)
+  return { g: left.find((x) => src.asked?.(c, x) != null) ?? left[0], i: need.length - left.length + 1, n: need.length, t0: asked.length ? Math.min(...asked) : null,
+    ...(here.some((x) => src.at(c, x).unasked) ? { part: true } : {}) };
 }
 
 /** F14 preparations, per values key (valuesKey): the Road, or 'error' (not asked again). PREP: the plan memory they

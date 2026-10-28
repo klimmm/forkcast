@@ -259,12 +259,15 @@ button.pp-player:focus-visible .pp-kit {
   --pm-shirt-w: calc(var(--pm-fit) * .741 * 220 / 193);
   /* C / V and the flag: FPL's are 0.15 of the card, never under 12 px, never smaller than their letter (B7) */
   --pm-mark: max(clamp(12px, calc(var(--pm-fit) * .15), 15px), calc(var(--t-cap, 11px) * 1.3));
-  /* the app's ink on both plates and the bench labels (B4: one ink, not FPL's aubergine); opaque white chalk 2 px wide;
-     a lighter, bluer shirt tile (FPL's #0E794A on the light turf) */
+  /* the app's ink on both plates and the bench labels (B4: one ink, not FPL's aubergine); white chalk at .8, 2 px wide
+     (design 1028c P1: opaque chalk was the plates' own white, 3.34:1, so the halfway line ran into the MID plates as one
+     edge, J2; at .8 the plates stay the field's only pure white, 1.26:1 over the chalk, the stripes' own step, while the
+     lines keep 2.65:1 / 3.20:1 on the two stripes, 1.9:1 under a .25 veil: J6); a lighter, bluer shirt tile (FPL's
+     #0E794A on the light turf) */
   --plate-ink: var(--ink, #17191A);
   --plate-2-ink: var(--ink, #17191A);
   --bench-ink: var(--ink, #17191A);
-  --chalk: light-dark(#FFFFFF, rgb(255 255 255 / .75));
+  --chalk: light-dark(rgb(255 255 255 / .8), rgb(255 255 255 / .75));
   --tile: light-dark(#0E794A, rgb(0 0 0 / .3));
   --pm-tile-r: 6px;  /* the tile's corners (FPL's 6 pt); the plates' are 2 px less, 1 px inside it */
   --pm-tag: calc(var(--t-cap, 11px) * 1.3);  /* a tag's height (IN / OUT, the flag, bench?) */
@@ -341,6 +344,11 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
   display: grid; place-items: center;
   background: var(--plate-ink); color: #FFFFFF; font: 600 var(--pm-t)/1 var(--f-text);
 }
+/* …each held off the green by a keyline, the two told apart by fill, not only by letter (design 1028c P2-states; Johnson
+   J7: brightness, not hue; J10, H14: a shape per state; W7): C solid ink in a 1.5 px white ring (white vs the tile 5.45:1,
+   the ink alone 3.24), V the reverse, white with an ink ring and ink letter (17.6:1), as the weaker of the two */
+.pm .pm-badge.c { box-shadow: 0 0 0 1.5px #FFFFFF; }
+.pm .pm-badge.v { background: #FFFFFF; color: #17191A; box-shadow: inset 0 0 0 1.5px #17191A; }
 .pm .pm-badge.tc { width: auto; min-width: var(--pm-mark); padding: 0 2px; border-radius: calc(var(--pm-mark) / 2); letter-spacing: 0; }
 .pm .pm-badge.pm-fly { top: 0; left: 0; z-index: 50; pointer-events: none; }
 
@@ -360,6 +368,14 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
 .pm .pm-flag-i { fill: var(--warn); }
 .pm .pm-flag.red .pm-flag-t { fill: #FFFFFF; }
 .pm .pm-flag.red .pm-flag-i { fill: var(--out); }
+/* …each flag held off the green by a 1.5 px keyline, so its tag reads as a shape in grayscale, deuteranopia and glare
+   (design 1028c P2-states: amber vs the tile 2.89:1, red 1.09:1; W7, J6, J9, J11): the amber's ink (3.24:1 on the tile,
+   5.28 on the turf; 9.78 against the amber), the red's white (5.45 / 3.34; 5.62 against the red). The red's glyph is
+   its own, a no-entry disc, not the doubt's triangle (pitch.js flag: H14, J10), so out and doubt differ by shape too */
+.pm .pm-flag { box-shadow: 0 0 0 1.5px #17191A; }
+.pm .pm-flag.red { box-shadow: 0 0 0 1.5px #FFFFFF; }
+/* …on the bench's lighter tile (white 1.5–2.96:1 there) an ink line outside the white (5.95:1 on it) */
+.pm .pm-bench .pm-flag.red { box-shadow: 0 0 0 1.5px #FFFFFF, 0 0 0 2.5px #17191A; }
 
 /* sold later (F16): "OUT GW8" on the tile's bottom-right, the name plate dark unless a buy of this GW or a flag colours it */
 .pm .pm-out {
@@ -398,6 +414,14 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
 /* bought this GW (M9, `is-in`): the name plate ink, as the plates of the moves suggested over the pitch, no badge and no
    green, a buy of an earlier week ink-ringed (below; the owner, 2026-10-25: "the player transferred in must be highlited in same style as transfer suggested like with black or something not with green tab and sign 'in' in it it looks sily overall"; then "Transfer week only") */
 .pm .pm-card.is-in .pm-pn { background: var(--plate-ink); color: var(--plate); }
+/* …and an arrow in before his name, the one thing the week's best plate (the same ink over the pitch) has not: his is
+   done, the best's a suggestion (design 1028c P2-states; H4: tell states apart by a glyph, not only colour; J10). Drawn
+   in CSS (a mask in the name's colour), a sign only, no word, no green (the owner, 2026-10-25) */
+.pm .pm-card.is-in .pm-pn::before {
+  content: ""; display: inline-block; width: .78em; height: .78em; margin-right: 2px; vertical-align: -.06em; background: currentColor;
+  -webkit-mask: var(--pm-in-g) center / contain no-repeat; mask: var(--pm-in-g) center / contain no-repeat;
+}
+.pm { --pm-in-g: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M0 4h5.3L3.2 1.9 4.3.8l4.2 4.2-4.2 4.2-1.1-1.1L5.3 6H0z'/%3E%3Cpath d='M8.6 0H10v10H8.6z'/%3E%3C/svg%3E"); }
 /* bought in an earlier GW of the plan (`bought`, not `is-in`: ahead.js boughtIn, every later week he is in the plan's
    squad and not yet in your FPL team): the same ink one step quieter, a 2 px ring of the ink plate's own ink inside his
    plain name plate (an inset shadow: it follows the plate's corners), so he reads as "a buy of yours, older" beside this
@@ -409,6 +433,11 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
 .pm .pm-card.bought:not(.is-in) .pm-pn { padding: 0 2px; box-shadow: inset 0 0 0 2px var(--plate-ink); }
 .pm .pm-card.f-amber .pm-pn { background: var(--warn); color: #1B1300; }
 .pm .pm-card.f-red .pm-pn { background: var(--out); color: #FFFFFF; }
+/* …its red plate inside a white keyline (an outline, not a ring: the inset shadow is a buy's), so the red never meets the
+   tile's green (1.09:1, one grey in grayscale) and reads in grayscale as a dark plate in a white edge (design 1028c
+   P2-states; J9, J11, W7); a buy of an earlier week keeps his 2 px ink ring outside it */
+.pm .pm-card.f-red .pm-pn { padding: 0 2px; outline: 1.5px solid #FFFFFF; outline-offset: -1.5px; }
+.pm .pm-card.bought:not(.is-in).f-red .pm-pn { padding: 0 4px; outline-offset: -3.5px; }
 
 /* the bench: the turf runs 6 px under a lighter panel, then fades into the page */
 .pm .pm-benchzone { background: linear-gradient(var(--turf-1) 0, var(--turf-1) 6px, var(--bg) 100%); padding-top: 2px; }

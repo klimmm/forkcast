@@ -13,10 +13,13 @@
    Meaning   --xp --xp-l --xp-d forecast points, a signed gain's too (ui.js xpNum, xpGain: blue text and "xP", its sign its
              direction; the user, 2026-10-22, after v1.3.68: no green or red number, worth doing the solid + alone) ·
              --gain / --loss a status's and money's words (a short bank's coral) · --warn flag fill (doubtful) ·
-             --warn-ink amber text · --out flag fill (injured, suspended)
+             --warn-mark an amber dot or bar on a light surface · --warn-ink amber text · --out flag fill (injured, suspended)
    Pitch     --turf-1 --turf-2 stripes · --chalk markings · --tile shirt tile · --bench-glass --bench-tile
              --bench-ink bench panel · --boost a Bench Boost bench's ring · --plate --plate-ink name plate · --plate-2 --plate-2-ink fixture plate
-   Chrome    --token --token-ink chip tokens (BB TC FH WC) · --toast --toast-ink toasts · --scrim behind sheets
+   Pop       --pop --pop-ink the ONE bright colour (design 1028c P4-bright): a fill with ink on it, never text, never on
+             the turf, in two places only: a chip your plan plays (its token on the GW tile, its mark in Chips…) and the
+             countdown under 24 h. Its words always say it too (the chip's code, the time left; W1, J10)
+   Chrome    --token --token-ink chip tokens (BB TC FH WC: --pop since 1028c) · --toast --toast-ink toasts · --scrim behind sheets
    Type      --f-text the system stack, nothing else (no Rounded, no serif); numbers tabular everywhere. ONE scale
              (rem off -apple-system-body, Dynamic Type; px at the default size): --t-title 22/700 · --t-head 17/600 ·
              --t-body 15/400 (600 emphasis) · --t-sub 13/400 (600 emphasis) · --t-cap 11/600 (uppercase labels, chart
@@ -58,8 +61,15 @@
   --ink:       light-dark(#17191A, #ECEFED);
   --ink-2:     light-dark(#44484A, #C4C9C6);
   --muted:     light-dark(#63676A, #8C928F);  /* 4.8:1 on --track, 5.3:1 on --bg (the six-book review, 2026-10-09) */
-  --acc:       light-dark(#0B6B3A, #55C68A);
-  --acc-bg:    light-dark(#0B6B3A, #187A44);
+  /* the one green, a step darker (design 1028c P4-keep: "white and green is right; fix what it hides"; Johnson p. 62,
+     the one-green chart readable by anyone because its steps differ in LIGHTNESS): #0B6B3A sat at L* 39 with --muted
+     43, --loss 42, --xp 40 and --warn-ink 42, one grey in glare or grayscale (J6, J7, R9). #08552E is L* 32: the darkest
+     step of the app's greens (link 32 · quiet plate 39 · tile 45 · turf 58 · take 88), apart from the turf (H7), 8.9:1
+     on white, 8.3:1 on --bg, white on it 8.9:1. No text pair here can reach W2's 3:1 (ink vs --muted is 2.9:1), so
+     every green, red and amber word also carries a sign, a word, a weight or a shape: see m-ahead.css "colour never
+     alone" */
+  --acc:       light-dark(#08552E, #55C68A);
+  --acc-bg:    light-dark(#08552E, #187A44);
   --acc-ink:   #FFFFFF;
   --gain:      var(--acc);  /* one green (B6): gains, links and the selection share it */
   --loss:      light-dark(#C0281E, #FF6E61);
@@ -75,11 +85,22 @@
   --xp:        light-dark(var(--xp-l), #8AB0F5);
   --xp-d:      light-dark(#CFE0FF, #9CC0FF);
   --warn:      #F2B200;
+  /* amber as a MARK on a light surface (a status dot, a stale bar; 1028c P4-keep): FPL-like #F2B200 is 1.88:1 on white,
+     1.59:1 on --track (W7, W9: a pale yellow mark on white fails), so a dot or bar takes Apple's increased-contrast yellow
+     (HIG Color, iOS 26, #A16A00: 4.6:1 on white, 4.3:1 on --bg, 3.9:1 on --track); the pitch's flag keeps --warn (ink on it) */
+  --warn-mark: light-dark(#A16A00, #F2B200);
   --warn-ink:  light-dark(#8A5A00, #F2B200);
-  --out:       #D32F2F;
+  /* --out a step deeper on light (#D32F2F → #C62828: white words on it 4.98 → 5.62:1, W3), its edge on the pitch a white
+     keyline, never red against the green (design 1028c P2-states: red vs the tile 1.09:1, olive like the turf under
+     deuteranopia; Johnson J9/J11) */
+  --out:       light-dark(#C62828, #D32F2F);
 
+  /* the turf (design 1028c P1, the owner 2026-10-28 "if pitch must be this green"): turf-1 stays FPL's own Pick Team
+     green (#00A34F sampled; research O2, R6); turf-2 one step darker at the same OKLab hue and chroma (#009B4B → #009041,
+     L* 56 → 52), so the mown stripes read at a glance in grayscale and in glare (J6, J7: 1.09:1 → 1.24:1, 1.12 under a
+     .25 veil), far under a plate's edge (J2); every plate holds 3:1 on both (white 3.34 / 4.15, ink 5.28 / 4.26) */
   --turf-1:      light-dark(#02A24F, #0B7E41);
-  --turf-2:      light-dark(#009B4B, #08773D);
+  --turf-2:      light-dark(#009041, #08773D);
   --chalk:       light-dark(rgb(255 255 255 / .9), rgb(255 255 255 / .7));
   --tile:        light-dark(rgb(0 0 0 / .26), rgb(0 0 0 / .3));
   --bench-glass: light-dark(rgb(255 255 255 / .38), rgb(255 255 255 / .08));
@@ -90,8 +111,16 @@
   --plate-ink:   #17191A;
   --plate-2:     light-dark(#F2F4F3, #D9DEDB);
   --plate-2-ink: #2B2F2D;
-  --token:       light-dark(#2A2E2C, #D9DEDB);
-  --token-ink:   light-dark(#FFFFFF, #111312);
+  /* the one bright colour (the owner, 2026-10-28: "if its ok that everything is white and green without bright
+     colors"; design 1028c P4-bright). HIG: colour sparingly, for "status indicators or primary actions", the fill not the
+     text (H6); M3's tertiary, "a badge" (M2), always with its on- colour (M3); FPL keeps its vivid #00FF87 to small badges
+     (O). A hot pink, the one hue the app doesn't use (green acts, blue forecasts, red loses, amber doubts, cyan boosts:
+     H1), and a MID tone so it holds in glare and grayscale both ways (J6, J7, M8): ink on it 4.9:1 (text, W3), it 3.6:1
+     on --surface, 3.4:1 on --bg, 3.0:1 on --track (a mark, W7). Deutan: a mid grey-khaki, apart from the blue (2.2:1) */
+  --pop:         #F43A8C;
+  --pop-ink:     #17191A;
+  --token:       light-dark(var(--pop), #D9DEDB);  /* a played chip (BB TC FH WC): was #2A2E2C, white on it */
+  --token-ink:   light-dark(var(--pop-ink), #111312);
   --toast:       light-dark(#1F2221, #ECEFED);
   --toast-ink:   light-dark(#FFFFFF, #0F1110);
   --scrim:       light-dark(rgb(0 0 0 / .32), rgb(0 0 0 / .55));
@@ -248,7 +277,7 @@ p { margin: 0; }
 .m-banner.offline { color: var(--loss); }
 .m-banner.offline .m-banner-ic { background: transparent; box-shadow: inset 0 0 0 1.5px var(--loss); }
 .m-banner.updating, .m-banner.stale { color: var(--ink-2); }
-.m-banner.updating .m-banner-ic, .m-banner.stale .m-banner-ic { background: var(--warn); }
+.m-banner.updating .m-banner-ic, .m-banner.stale .m-banner-ic { background: var(--warn-mark); }
 .m-banner.baking .m-banner-ic { background: var(--acc-bg); }
 .m-banner .m-banner-bar { flex: none; width: 54px; height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
 .m-banner .m-banner-bar i { display: block; height: 100%; width: 0; border-radius: 2px; background: var(--acc-bg); transition: width var(--dur) var(--ease); }
@@ -604,9 +633,12 @@ p { margin: 0; }
    ui.js builds, in amber, an amber edge (coral for an error) and one nudge sideways once it has come in, out and back
    within --dur (no bounce; Reduce Motion's fade below replaces it). Info and ok toasts stay as they are */
 #toasts .toast:is(.warn, .error) { box-shadow: inset 3px 0 0 var(--warn); animation: m-toast-in var(--dur) var(--ease), m-toast-nudge var(--dur) var(--ease) var(--dur); }
-#toasts .toast.error { box-shadow: inset 3px 0 0 var(--loss); }
+/* an error's bar wider than a warning's, in a red for the dark toast (1028c P4-keep: --loss was 2.7:1 on #1F2221 and
+   the same icon, so warn vs error was the bar's hue alone, W1, J10; #FF8A7F 7.0:1) */
+#toasts .toast.error { box-shadow: inset 5px 0 0 light-dark(#FF8A7F, var(--loss)); }
 #toasts .toast.up:is(.warn, .error) { animation-name: m-toast-up, m-toast-nudge; }
 #toasts .toast:is(.warn, .error) > .icon { display: block; flex: none; color: var(--warn); }
+#toasts .toast.error > .icon { color: light-dark(#FF8A7F, var(--loss)); }
 #toasts[data-place="dock"] .toast.leaving { transform: translateY(6px); }
 
 /* ------------------------------------------------------------------ pull to refresh */
@@ -707,16 +739,20 @@ p { margin: 0; }
 .m-prog { margin-top: 24px; }
 .m-prog:empty { display: none; }
 .m-prog-t { font: 400 var(--t-body)/1.3 var(--f-text); color: var(--ink-2); }
-.m-prog-t.warn { margin-top: 8px; color: var(--warn-ink); }
+.m-prog-t.warn { margin-top: 8px; color: var(--warn-ink); font-weight: 600; }  /* amber is --muted's lightness (L* 42 vs 43): the weight carries it (R10) */
 .m-prog-t.m-prog-slow { margin-top: 8px; }
 .m-bar { height: 4px; width: 100%; margin-top: 8px; border-radius: 2px; background: var(--track); overflow: hidden; }
 .m-bar i { display: block; height: 100%; width: 0; background: var(--acc-bg); transition: width .3s var(--ease); }
 /* the wait's lines (app.js factPanel; design study 1027a, B-facts): a quiet panel in the page's paper and ink, not a
    toast's look, two lines at most, its number bold (the eye's landing), the same height whatever it says. On Connect
    under the bar, its room kept from the tap on (hidden: not drawn, the room still there) */
-.m-facts { display: flex; align-items: center; box-sizing: border-box; height: calc(2 * 1.3 * var(--t-sub) + 12px); padding: 0 12px; border: 1px solid var(--hair); border-radius: 12px; background: var(--surface); color: var(--ink); font: 400 var(--t-sub)/1.3 var(--f-text); pointer-events: none; }
+/* (design study 1028c, P3 "less": the white card was 1.07:1 on --bg, its hairline 1.21:1, a box in name only; now no
+   box: the words on the page's own ground in the header's type (.ah-gwline's 13/400 ink), the number the one weight in
+   it, 700 at --t-body, the eye's landing (Johnson ch. 6: a still, muted thing at the edge is missed; weight, not a hue,
+   since blue = forecast, green = action, red = loss: HIG, the 1028c research Q2) */
+.m-facts { display: flex; align-items: center; box-sizing: border-box; height: calc(2 * 1.3 * var(--t-sub) + 12px); padding: 0; color: var(--ink); font: 400 var(--t-sub)/1.3 var(--f-text); pointer-events: none; }
 .m-facts p { margin: 0; }
-.m-facts b { font-weight: 700; }
+.m-facts b { font-weight: 700; font-size: var(--t-body); }
 .m-facts[hidden] { display: none; }
 .m-prog .m-facts { margin-top: 16px; }
 .m-prog .m-facts[hidden] { display: flex; visibility: hidden; }
