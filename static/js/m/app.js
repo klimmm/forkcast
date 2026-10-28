@@ -558,6 +558,16 @@ const ctx = {
   weeks: () => weeksOf(store.get('entry')),
   // the plan's weeks picked: kept, and the bundle asked for that plan now (its bake when it has none yet: the banner says)
   setWeeks: (n) => { api.local.set(HORIZON_KEY(store.get('entry')), String(n)); return ctx.refresh(); },
+  // Chips… opened on GW g: its chips solved now, the server's (the bundle's cg) and your rules' (ahead.chipPreps), none
+  // before and none of a GW it was never opened on (the owner, 2026-10-28: "fix so no chips are presolved until
+  // 'chips..' button is clicked and then solve on the gw it clicked"); kept for the team until it is signed out
+  askChips: (g) => {
+    const entry = String(store.get('entry')), was = store.get('chipsAt');
+    const gws = String(was?.entry) === entry ? was.gws : [];
+    if (gws.includes(Number(g))) return;
+    store.set('chipsAt', { entry, gws: [...gws, Number(g)] });
+    loader.load().catch(() => {});
+  },
 };
 
 function status() {
@@ -769,7 +779,8 @@ async function fetchBundle(entry, { refresh = false, prev = null } = {}) {
   // a bundle held from before (a snapshot's, a loader's) brings its cards: their stamp is asked again, not the cards
   if (same && prev.cards && String(held.entry) !== String(entry)) Object.assign(held, { entry: String(entry), cards: prev.cards, v: prev.cards_v ?? null, version: prev.version ?? null, key: null, at: 0 });
   const w = weeksOf(entry, prev ?? undefined);
-  const b = await api.getBundle(entry, { refresh, have, hl, w, cl: true });
+  const asked = store.get('chipsAt');
+  const b = await api.getBundle(entry, { refresh, have, hl, w, cl: true, cg: String(asked?.entry) === String(entry) ? asked.gws : null });
   askCards(entry, b, w);
   // only cards asked after a bundle of this data version (the review, 2026-10-26: a finished GW's bundle came with the
   // GW before's cards until the new ones landed): none meanwhile, and a card opened asks GET /api/m/player

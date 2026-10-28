@@ -2544,7 +2544,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     seen.add(s);
     const m = measured(x.plan);
     const k = forkKey(x.choice, g);
-    if (m && !heldOf(x.choice)) known.set(k, [...(known.get(k) ?? []), { ...m, road: r, model: r === P.base, exact: exactRoads.has(r) && !x.plan.stripped }]);
+    if (m && !heldOf(x.choice)) known.set(k, [...(known.get(k) ?? []), { ...m, road: r, model: r === P.base, exact: exactRoads.has(r) }]);
   }
   // a Wildcard and a Free Hit this week when you have them (the user: "i must show 'play wc' and 'play fh'"; never
   // crowded out), none planned in their half (L6); add keeps it only in its best week (squadOk)
@@ -2745,7 +2745,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // Forkcast's later moves after it, the later weeks Chips…, its toast and its row count it on, as the week line does
   // once it is played: chipApart, `ours`)
   const fhK = forkKey({ moves: [], chips: { [g]: 'fh' } }, g), fhRow = { moves: [], chips: { [g]: 'fh' } }, fhLater = `${fhK}|later`;
-  if (!followed && !chipMine && (!choices.has(fhK) || landOf(choices.get(fhK))) && chipsAvail(P, g).includes('fh') && plannedAt(P, 'fh', g) == null && fitsAt(ctx, P, g, fhRow, d0)) apart.push([fhLater, fhRow]);
+  // (a Free Hit's later weeks solved only once Chips… was opened on g: chipsAsked)
+  if (!followed && !chipMine && (!choices.has(fhK) || landOf(choices.get(fhK))) && chipsAvail(P, g).includes('fh') && plannedAt(P, 'fh', g) == null && chipsAsked(ctx).includes(g) && fitsAt(ctx, P, g, fhRow, d0)) apart.push([fhLater, fhRow]);
   const ready = (list, c) => ({ ...list.sort(byGain)[0], state: 'ready', choice: c });
   // a reference whose solve makes no move your plan doesn't is your plan itself (never a row: L1)
   const self = (c) => ({ state: 'ready', choice: c, self: true, moves: [], chips: c.chips, draft: d0, ev: asIs, cmp: compare(ctx, asIs, asIs), hits: {}, road: null, model: false });
@@ -3595,13 +3596,16 @@ const forkKey = (p, g) => (SQUAD_CHIPS.has(p.chips?.[g]) ? p.chips[g]
  *  Free Hit's week that week's squad), your weeks before g as they are, and a Wildcard or Free Hit it plays in GW g.
  *  Chips are each week's own decision (the user, 2026-10-11: "Barry → Walle Egeli · Free Hit GW8": the Free Hit's points
  *  read as a GW7 sale's), so a road that plays a Wildcard or Free Hit after g that your plan doesn't, or leaves out one
- *  yours plays, a transfer of yours after g or a Roll of yours there, is no plan of yours (it was solved without your other weeks), and a Bench
- *  Boost or Triple Captain other than yours is left out of the plan (`stripped`: then it is not that road's exact plan).
- *  Its GW-g choice stands either way (M2: the model's GW-A moves are a choice when its plan plays a Free Hit later).
+ *  yours plays, a transfer of yours after g or a Roll of yours there, is no plan of yours (it was solved without your other
+ *  weeks); nor one that plays a Bench Boost or Triple Captain from g on other than yours (the owner, 2026-10-28, "find why
+ *  gw9 transfers affected after the change and fix introduced bug": Raketa's GW12 Bench Boost road, its chip left out and
+ *  its moves kept, swapped both keepers in GW12 to fill the bench, a move no solve without the chip makes, and its GW9
+ *  "Murillo → Hill" read +1.67, the week's best, over the model's Calvert-Lewin → Evanilson +1.55). Its GW-g choice
+ *  stands either way, solved on its own (M2: the model's GW-A moves are a choice when its plan plays a Free Hit later).
  *  → {choice: {moves (GW g's), chips}, plan: {moves: [{gw, out, in}] (no chip squad's), chips: {gw: chip} (GW g's), yours:
- *  {gw: chip} (your Wildcard and Free Hit weeks after g), draft, stripped} | null} | null (r's weeks before g aren't
- *  yours: it was solved from another squad) */
-function planOfRoad(ctx, P, r, g, d0) {
+ *  {gw: chip} (your Wildcard and Free Hit weeks after g), draft} | null} | null (r's weeks before g aren't yours: it was
+ *  solved from another squad) */
+export function planOfRoad(ctx, P, r, g, d0) {
   const rd = roadDraft(ctx, r), mine = flatMoves(d0), theirs = flatMoves(rd);
   const at = (ms, x) => ms.filter((m) => m.gw === x).map((m) => `${m.out}>${m.in}`).sort().join(',');
   if (P.gws.some((x) => x < g && at(theirs, x) !== at(mine, x))) return null;
@@ -3614,15 +3618,16 @@ function planOfRoad(ctx, P, r, g, d0) {
   // fork solves keep it; the plans review, 2026-10-19: the reference and road rows made GW8 moves "No transfers · GW8"
   // forbids, the fork-solved rows didn't)
   const locks = P.pins.filter((p) => (isRoll(p) || isExact(p)) && num(p.gw) > g);  // (a Roll keeping your moves there: their caps)
-  if (later.some((x) => (SQUAD_CHIPS.has(chipAt(rd, x)) || yours[x]) && chipAt(rd, x) !== (yours[x] ?? null))
+  // (a Bench Boost or Triple Captain from g on that your plan doesn't play there, or yours left out)
+  const otherBoost = [g, ...later].some((x) => !SQUAD_CHIPS.has(chipAt(rd, x)) && chipAt(rd, x) !== (SQUAD_CHIPS.has(chipAt(d0, x)) ? null : chipAt(d0, x)));
+  if (otherBoost || later.some((x) => (SQUAD_CHIPS.has(chipAt(rd, x)) || yours[x]) && chipAt(rd, x) !== (yours[x] ?? null))
     || ownAfter(P, g).some((m) => !theirs.some((y) => sameMove(y, m)))
     || (locks.some(isRoll) && rulesBroken(r, locks, { from: g + 1, to: P.end }).some(isRoll))) return { choice, plan: null };
   const moves = theirs.filter((m) => m.gw >= g && P.gws.includes(m.gw) && !(sq && m.gw === g) && !yours[m.gw]);
   let draft = withMoves(d0, [...mine.filter((m) => m.gw < g), ...theirs.filter((m) => m.gw >= g && P.gws.includes(m.gw))]);
   if (sq) draft = E.setChip(draft, g, chipAt(rd, g));
   else if (SQUAD_CHIPS.has(chipAt(d0, g))) draft = E.setChip(draft, g, null);  // your chip week, its choice no chip (chipBackOf)
-  const stripped = [g, ...later].some((x) => !SQUAD_CHIPS.has(chipAt(rd, x)) && chipAt(rd, x) !== (SQUAD_CHIPS.has(chipAt(d0, x)) ? null : chipAt(d0, x)));
-  return { choice, plan: { moves, chips: choice.chips, yours, draft, stripped } };
+  return { choice, plan: { moves, chips: choice.chips, yours, draft } };
 }
 
 /** Draft d played as taking a plan makes it, from GW `from` on (decision 3: a plan's number is what taking it gives;
@@ -5399,13 +5404,21 @@ export function weekFacts(P, w) {
  * preparations are measured: the reviews, 2026-10-11, a Triple Captain counted the model's captain, not your
  * armband). Memoised per bundle and your lineups.
  */
+/** The GWs Chips… was opened on for the team on screen (app.js askChips): only their chips are solved, the server's
+ *  pre-solves (the bundle's cg) and your rules' preparations (chipPreps) alike (the owner, 2026-10-28: "fix so no chips
+ *  are presolved until 'chips..' button is clicked and then solve on the gw it clicked"). → [gw] */
+export const chipsAsked = (ctx) => {
+  const v = ctx.store?.get('chipsAt');
+  return v && String(v.entry) === String(ctx.bundle?.entry?.id ?? ctx.store.get('entry')) ? v.gws : [];
+};
+
 const CHIPS_AT = new WeakMap();
 export function chipPresolves(ctx) {
   const b = ctx.bundle;
   if (!b?.roads?.base) return { at: () => ({ state: 'none' }), best: {} };
   // (plan memory read from the store: a background caller never attaches it)
   const gp = ctx.store.get('memory') ?? null;
-  const lu = JSON.stringify([gp?.lineup ?? null, lineups(ctx, info(ctx))]);
+  const lu = JSON.stringify([gp?.lineup ?? null, lineups(ctx, info(ctx)), chipsAsked(ctx)]);
   let r = CHIPS_AT.get(b);
   if (r?.lu === lu) return r;
   const prog = b.bake?.chips ?? null;
@@ -5416,8 +5429,12 @@ export function chipPresolves(ctx) {
     if (memo.has(k)) return memo.get(k);
     const road = b.roads.chip?.[k] ?? null;
     const it = itemOf(k);
+    // (a GW whose chips nobody asked for (chipsAsked): none, never "checking…", and `unasked`: no best week stands
+    // while it is, chipBests)
+    const asked = chipsAsked(ctx).includes(g);
     const v = road ? { state: 'ready', road, cmp: compare(ctx, asYours(ctx, road, gp), asYours(ctx, b.roads.base, gp)) }
-      : (it ? ['waiting', 'queued', 'running'].includes(it.state) : !!prog?.pending) ? { state: 'solving' } : { state: 'none', error: it?.error ?? null };
+      : (it ? ['waiting', 'queued', 'running'].includes(it.state) : !!prog?.pending && asked) ? { state: 'solving' }
+        : { state: 'none', error: it?.error ?? null, ...(it || asked ? {} : { unasked: true }) };
     memo.set(k, v);
     return v;
   };
@@ -5446,8 +5463,10 @@ export function chipBests(at, gws, noise = 0) {
     const next = ready.filter(({ g }) => g !== top.g).sort((a, b) => gap(b.x) - gap(a.x))[0] ?? null;
     const runner = next ? gap(next.x) : 0;
     const clear = E.verdictLabel(gap(top.x) - runner, noise) !== 'coin';
+    // (final: every week of `gws` solved or failed, none still solving, none whose chips nobody asked for: Chips… opened
+    // there, chipsAsked; the owner, 2026-10-28, "should not say which is best since others not solved")
     best[c] = { chip: c, gw: top.g, delta: top.x.cmp.delta, label: top.x.cmp.label, runner, next: next?.g ?? null, clear,
-      final: gws.every((g) => at(c, g).state !== 'solving') };
+      final: gws.every((g) => { const x = at(c, g); return x.state !== 'solving' && !x.unasked; }) };
   }
   return best;
 }
@@ -5743,7 +5762,8 @@ const PREP_VIEW = new WeakMap();
 export function chipPreps(ctx, P = plan(ctx)) {
   if (!P) return { at: () => ({ state: 'none' }), best: {}, items: [] };
   let r = PREP_VIEW.get(P);
-  if (r?.gen !== PREP.gen) {
+  const ak = chipsAsked(ctx).join();
+  if (r?.gen !== PREP.gen || r.ak !== ak) {
     const items = prepItems(ctx, P);
     const by = new Map(items.map((x) => [`${x.chip}@${x.gw}`, x]));
     // (never memoised: the one in flight was asked after this view was made)
@@ -5752,14 +5772,15 @@ export function chipPreps(ctx, P = plan(ctx)) {
     const at = (c, g) => {
       const k = `${c}@${g}`;
       if (!memo.has(k)) {
-        const it = by.get(k);
+        // (one of a GW whose chips nobody asked for: none, `unasked`, as the bake's: chipPresolves)
+        const asked = chipsAsked(ctx).includes(g), it = asked ? by.get(k) : null;
         const got = it ? PREPS.get(it.key) : null;
-        memo.set(k, !it ? { state: 'none' } : got?.weeks ? { state: 'ready', road: got, cmp: compare(ctx, asYours(ctx, got), { weeks: P.weeks }) }
+        memo.set(k, !it ? { state: 'none', ...(!asked && by.has(k) ? { unasked: true } : {}) } : got?.weeks ? { state: 'ready', road: got, cmp: compare(ctx, asYours(ctx, got), { weeks: P.weeks }) }
           : got ? { state: 'none', error: got } : { state: 'solving' });
       }
       return memo.get(k);
     };
-    PREP_VIEW.set(P, (r = { at, asked, best: chipBests(at, P.gws, P.noise), items, gen: PREP.gen }));
+    PREP_VIEW.set(P, (r = { at, asked, best: chipBests(at, P.gws, P.noise), items, gen: PREP.gen, ak }));
   }
   pumpPreps(ctx, P, r.items);
   return r;
@@ -5776,7 +5797,8 @@ function pumpPreps(ctx, P, items) {
   if (PREP.flight || leftBehind(ctx, P)) return;
   const viewed = Number(ctx.store.get('gw'));
   const order = (x) => (x.taken ? 2 : 0) + (x.gw === viewed ? 0 : 1);
-  const next = items.filter((x) => !PREPS.has(x.key)).sort((a, b) => order(a) - order(b) || a.gw - b.gw)[0];
+  const asked = chipsAsked(ctx);
+  const next = items.filter((x) => asked.includes(x.gw) && !PREPS.has(x.key)).sort((a, b) => order(a) - order(b) || a.gw - b.gw)[0];
   if (!next) return;
   // your plan's heal first; a Wish this browser is solving keeps the speculative slot (api.solve would
   // supersede it); a refused ask waits
@@ -8525,7 +8547,7 @@ export function mount(el, ctx) {
    *  Wish sheet). */
   const door = (P, cls, row, text, label, onClick) => h(`button.ah-lnk.ah-door${cls}`, { type: 'button', disabled: !P.editable, 'aria-haspopup': 'dialog', 'aria-label': label, dataset: { row }, onClick }, text);
   /** The Chips sheet for GW g (the week line's Chips…). */
-  const openChips = (g) => { learn('chips'); ctx.openSheet('chips', { gw: g }); };
+  const openChips = (g) => { learn('chips'); ctx.askChips?.(g); ctx.openSheet('chips', { gw: g }); };
   const chipsDoor = (P, g) => door(P, '.ah-chips', 'chips', COPY.chipsDoor, COPY.chipsSaid(g, weekOf(P, g)?.chip ?? null), () => openChips(g));
   const bringDoor = (P, g) => door(P, '.ah-bring', 'bring', COPY.bringInShort, `${COPY.bringInSheet} in GW${g}`, () => ctx.openSheet('wish', null, { gw: g }));
   /** The doors as fitBlock's probe and the first week's baking line draw them: their place, no control. */
