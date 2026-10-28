@@ -1227,6 +1227,28 @@ export function plannerOf(a, b) {
   };
 }
 
+/** Two solved roads' own count over the window the solver committed GW g from (Road.windows[g]: every term at every
+ *  round of it, api/mobile.py make_road, on the shown scale): plannerOf over those windows → its {delta, ref, terms} |
+ *  null where either has no window for g (an estimate, your plan's ≈, a road stored before). */
+export function windowGap(a, b, g) {
+  const win = (r) => (r?.windows?.[g] ? { ...r, objective: r.windows[g], weeks: [] } : null);
+  const wa = win(a), wb = win(b);
+  return wa && wb ? plannerOf(wa, wb) : null;
+}
+/**
+ * A choice's number (the owner, 2026-10-28, "Solver's own count, own window": GW12's Raya → Trafford read +1.0, GW12's
+ * points alone, while the solver, over GW12–15, rolls: points +1.0 there, its free transfer worth more kept): compare's
+ * `cmp` with its gap the solver's own count over the window it committed GW g from (windowGap: points, bench, its charge
+ * per transfer, the free transfers kept), its label that count on the anchor's scale against the noise floor, no
+ * per-run votes (the count has none); the points kept as `pts`. As it was where either road has no window for g.
+ * ctx: planInputs.
+ */
+export function counted(ctx, cmp, a, b, g) {
+  const w = cmp ? windowGap(a, b, g) : null;
+  if (!w) return cmp;
+  return { ...cmp, delta: w.delta, ref: w.ref, label: E.verdictLabel(w.ref, ctx.noise), winner: w.delta > EPS ? 'a' : w.delta < -EPS ? 'b' : null,
+    votes: null, against: null, lead: null, count: w.terms, pts: cmp };
+}
 /** What a solved road's hits cost in points (HIT_COST a hit: what compare counts) beyond what its planner's count
  *  charged for them (its objective's hit term, −hit_cost a hit: solve.py add_ft): FPL's 4 less the planner's price where
  *  it priced them (F17: the solver's own, the bundle's meta.hit_charge on the shown scale: above 4 once ×k), all 4 where

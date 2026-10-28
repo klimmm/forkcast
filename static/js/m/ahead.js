@@ -180,7 +180,7 @@ import { h, svg, fmt, fill, append, toast, toastRegion, chipName, plural, icon, 
 import { shirt, clubColor } from '../plan/kits.js';
 import { fplMarks, subOrder, fitFixtures } from '../plan/pitch.js';
 import {
-  COPY, planInputs, compare as compareIn, captainGap, subGap, changeText, transfersOf, hitsOf, plannerOf,
+  COPY, planInputs, compare as compareIn, counted as countedIn, captainGap, subGap, changeText, transfersOf, hitsOf, plannerOf,
   rulesCost, sentence, withForced, forcedNew,
   hitBook, priceWatch, priceMorning, pricePlate, hitCap, gwFlags, statusText, liveCheck, planEta, planShare, steadyEta, planLines, storyLines, clockText,
   waitedText, horizonFeature, waitFact,
@@ -664,6 +664,8 @@ export function inputsOf(ctx) {
 const inputs = inputsOf;
 /** calls.compare: the one measure. */
 export const compare = (ctx, a, b) => compareIn(inputs(ctx), a, b);
+/** calls.counted: a choice's number, the solver's own count over GW g's window where solved roads a and b carry it. */
+const ownCount = (ctx, cmp, a, b, g) => countedIn(inputs(ctx), cmp, a, b, g);
 
 /** The plan as it stands, estimated from GW `from` (memoised per plan view): what an edit is measured against. */
 const BASELINES = new WeakMap();
@@ -2858,7 +2860,11 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     if (own?.state === 'solving' && !heldOf(x.choice)) return { state: 'solving', choice: x.choice, wait: own.wait };
     // (vsMine by what its + gives, the week alone against your plan, where both keep your later weeks: in your Wildcard
     // or Free Hit week, your picks in it; a Wildcard row; your transfers' plan failed)
-    const vsMine = chipMine || (now.length && (heldOf(x.choice) || !yoursToo)) ? x.alone : yoursToo ? compare(ctx, x.fullEv, yoursToo.ev) : null;
+    // (each the solver's own count over GW g's window where both sides are solved roads carrying it: ownCount; the owner,
+    // 2026-10-28, "Solver's own count, own window"; your plan's own road where the row is set against your plan)
+    const mineRoad = P.comparable ? P.road : null;
+    const vsMine = chipMine || (now.length && (heldOf(x.choice) || !yoursToo)) ? ownCount(ctx, x.alone, x.road, mineRoad, g)
+      : yoursToo ? ownCount(ctx, compare(ctx, x.fullEv, yoursToo.ev), x.road, yoursToo.road ?? mineRoad, g) : null;
     // decision K (the owner, 2026-10-25, GW9 after João Pedro → Evanilson +1.8, Cherki's place "+1.6 Swap Tavernier":
     // "shouldnt it compare + poitns not to rolling now but to transfer made … it seems that cherking to tavrnier is
     // better by 1.6 poitns than jp to evanilson wichj is not it actually worse"): in a week of yours the number shown
@@ -2866,7 +2872,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // stands (a choice in place of your transfer −0.2 there, a 2nd transfer what it adds to yours); a week with none of
     // yours, your plan the roll, as before. There the rows count against your plan, not the roll: the roll that takes
     // yours back is a choice as any, its number yours turned round (no reference row: `refRow` only with none of yours)
-    return { ...x, cmp: vsMine ?? compare(ctx, x.fullEv, r.ev), refEv: r.ev, vsRoll: true, refRow: !vsMine && forkKey(x.choice, g) === rollK, ...(vsMine ? { vsMine } : {}) };
+    return { ...x, cmp: vsMine ?? ownCount(ctx, compare(ctx, x.fullEv, r.ev), x.road, r.road ?? (r.self ? mineRoad : null), g), refEv: r.ev, vsRoll: true, refRow: !vsMine && forkKey(x.choice, g) === rollK, ...(vsMine ? { vsMine } : {}) };
   };
   const rolls = (x) => rollOffered && !x.choice.moves.length && !Object.keys(x.choice.chips).length;
   // B129: a choice whose + makes again only what you took off GW g this session (every move of it your plan doesn't make
@@ -2882,17 +2888,22 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     return adds.length > 0 && adds.every((m) => goneOut.has(String(m.out)) && goneIn.has(String(m.in)));
   };
   const all = out.map(alone).map(vsRef).map((x) => (rolls(x) ? { ...x, rolls: true } : x)).map((x) => (yoursAgain(x) ? { ...x, removed: true } : x))
-    .map((x) => (early.has(forkKey(x.choice, g)) ? { ...x, early: early.get(forkKey(x.choice, g)) } : x))
+    // (a row numbered by the solver's own count that beats the roll is no early one: its window counts making it next week
+    // instead, so a count past the 0.05 bar says now; the owner, 2026-10-28, "Why it shows Trafford +1 and rolling the
+    // best at the same time": an early row's plate beside "Rolling is best")
+    .map((x) => (early.has(forkKey(x.choice, g)) && !(x.cmp?.count && x.cmp.delta > 0.05) ? { ...x, early: early.get(forkKey(x.choice, g)) } : x))
     .map((x) => (placed.has(forkKey(x.choice, g)) ? { ...x, placed: true } : x));
   const done = all.filter((x) => x.state === 'ready');
   // the Roll row against the hardest of: the best transfer row's plan (Forkcast's later moves on both sides) and the best
   // Wildcard row's (your later weeks kept on both: its held roll) → {vsBest, best, bestFrom (the Roll side's plan)}; never
   // one the 2026-10-18 bars keep from being the week's suggestion (`early`: waiting is what they say)
-  const top = done.filter((x) => !x.refRow && !x.early && x.vsRoll && !heldOf(x.choice)).sort((a, b) => b.full.delta - a.full.delta)[0] ?? null;
+  // (by its number where that is the solver's count, ownCount: one way to rank the rows and the roll against them)
+  const gainOf = (x) => (x.cmp?.count ? x.cmp.delta : x.full.delta);
+  const top = done.filter((x) => !x.refRow && !x.early && x.vsRoll && !heldOf(x.choice)).sort((a, b) => gainOf(b) - gainOf(a))[0] ?? null;
   const topHeld = done.filter((x) => x.vsRoll && heldOf(x.choice)).sort(byGain)[0] ?? null;
   // (one it doesn't clear first, else the narrowest by the gap its label reads: compare's `ref`)
   const against = (x) => {
-    const cs = [top && { vsBest: compare(ctx, x.fullEv, top.fullEv), best: top, bestFrom: x.fullEv },
+    const cs = [top && { vsBest: ownCount(ctx, compare(ctx, x.fullEv, top.fullEv), x.road ?? (x.self && P.comparable ? P.road : null), top.road, g), best: top, bestFrom: x.fullEv },
       topHeld && { vsBest: compare(ctx, topHeld.refEv, topHeld.fullEv), best: topHeld, bestFrom: topHeld.refEv }].filter(Boolean);
     return cs.find((c) => !clearGain(c.vsBest)) ?? cs.sort((a, b) => (a.vsBest.ref ?? a.vsBest.delta) - (b.vsBest.ref ?? b.vsBest.delta))[0] ?? {};
   };
@@ -3355,6 +3366,7 @@ export function decksOf(P, w, M) {
     const { chipNow, adds, taken, lost, gone, rolls } = planBack(P, g, pl);
     if (chipNow || (!adds.length && !taken.length)) toks.push(pl);
     else if (adds.length) {
+      if (benchOnly(g, pl, adds)) return;
       for (const m of adds) {
         const pair = adds.filter((x) => x !== m).map((x) => ({ a: anchorOf(x.out), out: Number(x.out), in: Number(x.in) }));
         put(anchorOf(m.out), { pl, inId: Number(m.in), adds, pair, taken, lost, gone, rolls }, i);
@@ -3376,6 +3388,12 @@ export function decksOf(P, w, M) {
   }
   return { decks: [...by.values()].sort((x, y) => y.mine - x.mine || x.rank - y.rank), toks };
 }
+/** Whether choice pl's GW-g buys (`adds`) all stay out of its XI in every week of its plan from g on (pl.ev, as taking it
+ *  plays them): a transfer to the bench, no plate on the pitch and no card in a place, so never the week's best (the
+ *  owner, 2026-10-28: "Why transfer to bench (petrovich) even suggested - fix": Dovin → Petrović +0.2, Raya's
+ *  understudy). Known once it is checked; the player's Replace list still offers him. Pure. */
+export const benchOnly = (g, pl, adds) => pl?.state === 'ready' && !!pl.ev?.gws && adds.length > 0
+  && adds.every((m) => pl.ev.gws.every((s) => s.gw < g || !(s.xi ?? []).some((x) => Number(x) === Number(m.in))));
 /** A place's entry that takes a transfer back (the Roll of a week with yours, Remove): dealt last (placeOrder), and
  *  dealt even where the place has room for fewer cards than it holds (drawPlace: before "⋯ N more"). */
 export const takesBack = (e) => !!(e.back || e.remove || e.pl?.refRow);
