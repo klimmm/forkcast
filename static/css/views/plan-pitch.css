@@ -344,11 +344,11 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
   display: grid; place-items: center;
   background: var(--plate-ink); color: #FFFFFF; font: 600 var(--pm-t)/1 var(--f-text);
 }
-/* …each held off the green by a keyline, the two told apart by fill, not only by letter (design 1028c P2-states; Johnson
-   J7: brightness, not hue; J10, H14: a shape per state; W7): C solid ink in a 1.5 px white ring (white vs the tile 5.45:1,
-   the ink alone 3.24), V the reverse, white with an ink ring and ink letter (17.6:1), as the weaker of the two */
-.pm .pm-badge.c { box-shadow: 0 0 0 1.5px #FFFFFF; }
-.pm .pm-badge.v { background: #FFFFFF; color: #17191A; box-shadow: inset 0 0 0 1.5px #17191A; }
+/* …each held off the green by a white 1.5 px keyline (design 1028c P2-states: the ink alone 3.24:1 on the tile, 5.45 with
+   it), both solid ink with a white letter as FPL draws them: the letter tells them apart (the owner, 2026-10-28, after
+   v1.3.114: a white V "have same design like fpl show caps and vicecaps when triple captain played - black on white
+   which confusing"; chosen: "As FPL: black like C") */
+.pm .pm-badge.c, .pm .pm-badge.v { box-shadow: 0 0 0 1.5px #FFFFFF; }
 .pm .pm-badge.tc { width: auto; min-width: var(--pm-mark); padding: 0 2px; border-radius: calc(var(--pm-mark) / 2); letter-spacing: 0; }
 .pm .pm-badge.pm-fly { top: 0; left: 0; z-index: 50; pointer-events: none; }
 

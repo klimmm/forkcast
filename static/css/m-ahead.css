@@ -323,6 +323,10 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-pitch.ah-wait .pm {
   --turf-1: light-dark(#5B7565, #33423A); --turf-2: light-dark(#536C5D, #2E3C34);
   --chalk: light-dark(rgb(255 255 255 / .5), rgb(255 255 255 / .4));
+  /* the players' tiles greyed with it, a step under the dimmed turf as FPL's tile is under its green (the owner,
+     2026-10-28, after v1.3.114: "why players still have green background why planning which not look good"); the
+     bench's are translucent and follow it already */
+  --tile: light-dark(#475D50, rgb(0 0 0 / .3));
 }
 /* the reference line fitPitch measures (never seen), and the 1rem square that tells it the text size changed */
 .ah-fitprobe, .ah-remprobe { position: absolute; top: 0; left: 0; visibility: hidden; pointer-events: none; }
