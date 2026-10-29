@@ -9,11 +9,13 @@
 // open(ctx, preId?, {gw}?) — a row's + and the Player sheet's "Bring him in…" (preId) work a week out the
 // same way (the user, 2026-10-09: "why 'bring him in', 'find funds' and '+' all do different things"; "Add Groß in GW6"
 // added him at once from a GW's week line and opened the weeks from a card): + and "Bring him in…" open his week pills.
-// A tap on a pill SELECTS that week, never makes it; a sale chip under the pills makes that sale (sells), the verdict
-// toast with Undo; closing the sheet is "not now". "Forkcast picks" went (the owner, 2026-10-28: "make it to add player
-// even with negative itb like official fpl allow and instead of 'forkcast picks' show it as black transfer suggested as
-// usual"): a sale the bank can't pay for is made as it is, the plan short of money as FPL's draft is (ahead.saleBuy,
-// memory.holdOf's debts), and Forkcast's way to pay it back is the pitch's best (ahead.plansOf, owedRoad). Opened
+// A tap on a pill SELECTS that week, never makes it; under the chips the line names the week's own way (its pill's: the
+// sale Forkcast chose for him and what frees the money) and its one button, "Bring in X from GW g", makes exactly it, no
+// sale chosen (the owner, 2026-10-29: "why can't i just choose b.fernandes to bring in without choosing the player to
+// replace and let do whats best considering b.fernandes pinned to buy gw10"); a sale chip makes that sale alone (sells),
+// one the bank can't pay for as it is, the plan short of money as FPL's draft is (the owner, 2026-10-28: ahead.saleBuy,
+// memory.holdOf's debts), Forkcast's way to pay it back then the pitch's best (ahead.plansOf, owedRoad). Either, the
+// verdict toast with Undo; closing the sheet is "not now". Opened
 // from a GW's week line (its Bring in… door, {gw}) or a card (its GW, B77: solved first) that week is selected
 // first, else the best week so far (said "Best:" only when it beats the next by more than the noise, "GW6 or GW7: a
 // negligible gap" when it doesn't: bestMark; its pill green (and a chip week's button filled) only for a gain beyond the noise:
@@ -46,7 +48,8 @@
 // Each chip is the bring-in itself, one tap (the user, 2026-10-13: "why instead of just clicking on player or on forcast
 // chooseing button i need to click twice … this button redundand"): exactly that sale (ahead.saleBuy → bringIn), the money
 // short or not, the sheet closed, the verdict toast with Undo; a sale the club limit can't make says why under the chips
-// instead. A Wildcard or Free Hit week has no sale to choose: its one button brings him into the chip's squad.
+// instead. Under them the week's one button makes its own way, no sale chosen (its line's moves; the owner, 2026-10-29); a
+// Wildcard or Free Hit week has no sale to choose: its button alone, him into the chip's squad.
 // From a player's place ("Other…", {pos, out}: ahead.drawPlace) the sale is chosen already, as FPL's list after Remove:
 // the list his position's alone (the other tabs off, the search too), and a + makes that swap in the list's week at once
 // (swapIn; the owner, 2026-10-28: "why mids not block when i replacing def", "why isak not added to pitch").
@@ -210,10 +213,8 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         const sales = sel != null && !chip && o0 && !['owned', 'bad'].includes(o0.kind) ? sells(id, sel, o0) : null;
         let fund, go = null;
         if (works(o)) {
-          // its every move, its transfers and hit in all (ahead.inWords) where one tap makes them: a chip week's button, a
-          // week one sale pays for (its marked chip); a solved road's are no tap's ("Forkcast picks" went: the owner,
-          // 2026-10-28), its marked chip its sale alone
-          const words = chip || o.kind === 'buy' ? inWords(P, sel, how(o)) : null;
+          // the week's every move, its transfers and hit in all (ahead.inWords): what its button makes
+          const words = inWords(P, sel, how(o));
           const best = bestMark(id, sel, done);
           // the rules of yours this arrival takes back (a veto of him from then on; a buy's, a later buy of him and its
           // funding too: ahead.bringInTakes): the chip or button takes them back (its verdict names them)
@@ -223,9 +224,10 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           // (no words and no claim: no line, never a bare "GW9.")
           const head = words || best ? `${best}GW${sel}${words ? ` · ${words}` : ''}.` : null;
           fund = [head, off.length ? `${head ? ' ' : ''}${removesText(P, off)}` : ''];
-          // a Wildcard or Free Hit week's one button (no sale chips there), filled only for a gain beyond the noise (B28: a
-          // loss or a toss-up is the plain button)
-          go = chip ? h('div.ah-btnrow', null, h('button', { type: 'button', class: { acc: clearGain(o.cmp) }, disabled: !editable(ctx), onClick: () => take(id, sel, o) }, COPY.bringInChip(P.L.name(id), sel, chip))) : null;
+          // the week's one button, its own way made (a Wildcard or Free Hit week's, no sale chips there: him in the chip's
+          // squad), filled only for a gain beyond the noise (B28: a loss or a toss-up is the plain button)
+          go = h('div.ah-btnrow', null, h('button', { type: 'button', class: { acc: clearGain(o.cmp) }, disabled: !editable(ctx), onClick: () => take(id, sel, o) },
+            chip ? COPY.bringInChip(P.L.name(id), sel, chip) : COPY.bringIn(P.L.name(id), sel)));
         } else if (o?.kind === 'none') {
           const p = o.bp.problem;
           // the club limit with its reason (review 5, 2026-10-12: was a bare "can't be made"; ahead.problemText)
@@ -319,10 +321,10 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           !q && later.length ? h('div.m-sec', null, h('h3', null, 'Your plan buys later'),
             later.map(({ id, gw: at }) => row(id, `arrives GW${at} · bring him in earlier`))) : null);
         // the open player's taps solved ahead (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and done
-        // without no cost"): a Wildcard or Free Hit week's button (take), then the selected week's sale chips (sale:
-        // saleBuy with that sale, the money short or not)
+        // without no cost"): each week's button (take), the selected week's first, then its sale chips (sale: saleBuy
+        // with that sale, the money short or not)
         const id = st.open, res = id != null ? st.res[id] || {} : {}, sel = id != null ? st.sel[id] : null;
-        const weeks = id == null ? [] : [sel, ...P.gws.filter((x) => x !== sel)].filter((x) => x != null && works(res[x]) && squadWeek(weekOf(P, x)));
+        const weeks = id == null ? [] : [sel, ...P.gws.filter((x) => x !== sel)].filter((x) => x != null && works(res[x]));
         const sales = sel != null && !squadWeek(weekOf(P, sel)) && res[sel] && !['owned', 'bad'].includes(res[sel].kind)
           ? saleOptions(ctx, id, sel).filter((x) => !saleWords(ctx, id, sel, x).off) : [];
         if (P.editable && (weeks.length || sales.length)) {
