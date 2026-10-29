@@ -2264,8 +2264,11 @@ function waitsAWeek(ctx, P, g, ms, ev, before, d0, measure = null) {
 }
 
 /** Every move of the bundle's roads (the model's plan, the roll, its vetoes and slides, the chips' pre-solves: whichever
- *  GW they make it in), once each: `${out}>${in}` → {out, in, model (the model's own plan makes it in GW g)}. The
- *  suggestions' source (suggestionsOf) and your transfer's other buys' (ownAltsOf). */
+ *  GW they make it in), and the solver's own moves in a later week of your plan that a wish of yours makes the planner's
+ *  (him from then: Add a player's button), the sale that pays for him among them, so an earlier week offers it too (the
+ *  owner, 2026-10-30, "fix bug", then "earlier week offers the funding": Gabriel from GW10 made his money, Mbeumo →
+ *  Rayan, beside him in GW10 though Rayan's GW9 beats Mbeumo's), once each: `${out}>${in}` → {out, in, model (the
+ *  model's own plan makes it in GW g)}. The suggestions' source (suggestionsOf) and your transfer's other buys' (ownAltsOf). */
 function modelMoves(P, g) {
   const pool = new Map();
   for (const r of bundleRoads(P.b.roads)) {
@@ -2275,6 +2278,13 @@ function modelMoves(P, g) {
         const model = r === P.base && Number(w.gw) === g;
         if (!pool.has(k) || model) pool.set(k, { out: Number(m.out), in: Number(m.in), model });
       }
+    }
+  }
+  const wished = wishWeeks(P);
+  for (const w of P.weeks.filter((x) => x.gw > g && wished.has(x.gw) && !squadWeek(x))) {
+    for (const m of w.moves.filter((x) => !pinOfMove(P, { ...x, gw: w.gw }))) {
+      const k = `${m.out}>${m.in}`;
+      if (!pool.has(k)) pool.set(k, { out: Number(m.out), in: Number(m.in), model: false });
     }
   }
   return pool;
@@ -3682,7 +3692,10 @@ const forkKey = (p, g) => (SQUAD_CHIPS.has(p.chips?.[g]) ? p.chips[g]
 export function planOfRoad(ctx, P, r, g, d0) {
   // (a road solved to its own week only, a choice's: forkValues `to`, is your plan after it: your moves and chips)
   const last = roadLast(r);
-  const rd = roadDraft(ctx, r), mine = flatMoves(d0), theirs = [...flatMoves(rd).filter((m) => m.gw <= last), ...mine.filter((m) => m.gw > last)];
+  // (a later move of your plan the road's own weeks make earlier goes from the later week: madeEarlier; GW9's Mbeumo →
+  // Rayan, the solver's money for Gabriel from GW10, sold Mbeumo twice and read "no plan fits")
+  const rd = roadDraft(ctx, r), mine = flatMoves(d0), made = flatMoves(rd).filter((m) => m.gw <= last), own = made.filter((m) => m.gw >= g);
+  const theirs = [...made, ...mine.filter((m) => m.gw > last && !madeEarlier(own, m))];
   const at = (ms, x) => ms.filter((m) => m.gw === x).map((m) => `${m.out}>${m.in}`).sort().join(',');
   if (P.gws.some((x) => x < g && at(theirs, x) !== at(mine, x))) return null;
   const chipAt = (d, x) => (d === rd && x > last ? d0 : d).chips?.[x] ?? null;
@@ -4445,15 +4458,21 @@ export function takenKeep(P, g, pl) {
  *  `now`, your plan's weeks before g, and after g only the moves the + keeps (a transfer of yours, a Wildcard's or Free
  *  Hit's squad); Forkcast's own later moves are the next solve's (the user, 2026-10-13: "Same list, both modes": a
  *  choice buying a player Forkcast buys later fits). One rule for the +'s draft (addPlan) and the list's (fitsAt). A
- *  later week your wish makes the planner's (him from then: Add a player's button) is Forkcast's too, his buy with the
- *  sale that pays for him: kept alone, its money gone, every choice before it read short (the owner, 2026-10-29: with
- *  "Gabriel from GW10" alone, 353468's GW9 listed nothing, not even its roll, each "£1.0m short" in GW10 where Kayode →
- *  Gabriel stayed and the solver's Mbeumo → Rayan went). */
+ *  later week your wish makes the planner's (him from then: Add a player's button) is kept whole as your plan has it, his
+ *  buy with the sale that pays for him (the owner, 2026-10-29: with "Gabriel from GW10" its buy alone kept, 353468's GW9
+ *  listed nothing, not even its roll, each "£1.0m short" in GW10), but a move of it the choice makes earlier (madeEarlier:
+ *  GW9's Mbeumo → Rayan, the owner, 2026-10-30, "earlier week offers the funding"). */
 function planTakeDraft(ctx, P, g, base, now) {
-  const exact = (m) => { const p = pinOfMove(P, m); return !!p && p.kind !== 'wish'; };
-  const keeps = (m) => m.gw < g || (m.gw > g && (!!squadWeek(weekOf(P, m.gw)) || exact(m)));
+  const wished = wishWeeks(P);
+  const keeps = (m) => m.gw < g || (m.gw > g && (!!squadWeek(weekOf(P, m.gw)) || ((!!pinOfMove(P, m) || wished.has(m.gw)) && !madeEarlier(now, m))));
   return withMoves(base, [...flatMoves(draftOf(ctx)).filter(keeps), ...now]);
 }
+/** Whether later move m sells or buys a player moves `ms` (a choice's, made earlier) moved already: it is one of them
+ *  made earlier, so it goes from its later week, as addMove takes it (planOfRoad, planTakeDraft; the owner, 2026-10-30,
+ *  "earlier week offers the funding": GW9's Mbeumo → Rayan, the solver's money for Gabriel from GW10). Pure. */
+const madeEarlier = (ms, m) => ms.some((y) => y.out === m.out || y.in === m.in);
+/** The GWs a wish of yours makes the planner's (him from then: Add a player's button; never a chip week's pick). */
+const wishWeeks = (P) => new Set(asksOf(P).filter((p) => p.kind === 'wish' && !isPick(p)).map((p) => Number(p.gw)));
 
 /** Draft `base` with GW g's week taken from draft `from`: its moves, its chip and its saved lineup, every other week
  *  `base`'s (a Free Hit's week alone on the roll plan's later weeks, its squad reverting after it: plansOf's chipOf).
@@ -5748,7 +5767,9 @@ const PREPS = new Map();
 const PREP_ASKED = new Map();
 const PREP = { mem: null, flight: null, timer: null, until: 0, gen: 0 };  // gen: bumped by each landing (chipPreps' views)
 const PREPS_MAX = 96;
-const PREP_AGAIN_MS = 1500;   // your plan healing, this browser's speculative slot busy, a preparation superseded
+// your plan healing, this browser's speculative slot busy, a preparation superseded (Add a player's pill dropped too:
+// sheets/wish.js askAgainWhileDropped)
+export const PREP_AGAIN_MS = 1500;
 const PREP_HOLD_MS = 30000;   // the plan service refused one (busy) or was away
 /** A preparation landed (pumpPreps; a Wildcard or Free Hit row of it, plansOf's `land`): kept, the newest PREPS_MAX,
  *  and chipPreps' views made again (a landing counts only under the rules it was made for). */

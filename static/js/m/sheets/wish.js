@@ -59,7 +59,7 @@
 import * as E from '../../plan/engine.js';
 import { h, fmt, fill, norm, icon, xpNum, reduceMotion } from '../../ui.js';
 import { COPY } from '../calls.js';
-import { plan, weekOf, squadBefore, squadWeek, addMove, draftOf, estimate, wishSolve, want, reroute, editable, barred, barringRule, ruleOf, clearGain, inkAt, buyPlan, saleBuy, sayBuyProblem, holdBuy, bringIn, bringInTakes, removesText, inWords, weekWith, saleOptions, solvesRound, problemText, presolveTaps, waitView, paintWaitView, stepShare } from '../ahead.js';
+import { plan, weekOf, squadBefore, squadWeek, addMove, draftOf, estimate, wishSolve, want, reroute, editable, barred, barringRule, ruleOf, clearGain, inkAt, buyPlan, saleBuy, sayBuyProblem, holdBuy, bringIn, bringInTakes, removesText, inWords, weekWith, saleOptions, solvesRound, problemText, presolveTaps, waitView, paintWaitView, stepShare, PREP_AGAIN_MS } from '../ahead.js';
 import { weekPills, tabs, barTop, bars, shirt, found, SORTS, sortsOf, orderOf, sortChips } from './buylist.js';
 
 /** A row's disclosure: its week pills open under it (down), shut (up). Never a +: a + read as the Week sheet's take, which
@@ -96,6 +96,21 @@ export function saleWords(ctx, id, g, x) {
   if (short == null) return { tail: cantFit(x), loss: false, said: `can't be made, ${cantFit(x)}`, off: true };
   // "Groß · needs £5.2m more" (the user, 2026-10-22: "Groß £5.2m short" read as Groß short of money)
   return { tail: `· ${COPY.moneyNeeds(short)}`, loss: false, said: COPY.moneyNeeds(short), off: false };
+}
+/** A week pill's solve (`ask` → its result), asked again while `live()` holds when the plan service dropped it from a
+ *  full queue ('cancelled': api/mobile.py _make_room drops the oldest queued speculative solves first, a Wish's among
+ *  them) or another solve took its slot ('superseded'), after `wait()`: the pill checking meanwhile, never left "≈"
+ *  for good (QA fold, 2026-10-30, ten teams on one server: Rayan's GW11 pill read "≈+0.6" while GW12's landed; every
+ *  week is solved since the owner's 2026-10-29, so more pills met it). A result of the sheet's own cancel (its run
+ *  over: `live()` false) is no answer. → the first other result, or null once `live()` fails. */
+export async function askAgainWhileDropped(ask, live, wait) {
+  for (;;) {
+    const res = await ask();
+    if (!live()) return null;
+    if (res?.state !== 'cancelled' && res?.state !== 'superseded') return res;
+    await wait();
+    if (!live()) return null;
+  }
 }
 /** A week pill whose moves are known: its solve came back (road; every week is solved since the owner's 2026-10-29). */
 const works = (o) => o?.kind === 'road';
@@ -415,11 +430,11 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
        *  the road takes in GW g more than your plan (a buy's: bp.hits), what the pill's points charge; the pill and the line
        *  print the week's in all (weekWith). */
       async function solvePill(id, g, my) {
-        const P = plan(ctx);
         try {
-          st.req = wishSolve(ctx, P, id, g, 'wish');
-          const res = await st.req;
-          if (st.run !== my) return;
+          // (dropped or superseded: asked again once the speculative slot is free and a pause has passed)
+          const again = async () => { await ctx.api.whenFree?.('spec'); await new Promise((r) => setTimeout(r, PREP_AGAIN_MS)); };
+          const res = await askAgainWhileDropped(() => (st.req = wishSolve(ctx, plan(ctx), id, g, 'wish')), () => st.run === my, again);
+          if (!res) return;
           if (res.state === 'error') { st.res[id][g] = { kind: 'bad', text: res.error?.code === 'infeasible' ? 'not possible' : "can't check" }; return; }
           if (res.state !== 'done' || !res.road) return;
           // the button lands this road with his wish pin alone (ahead.holdBuy's 'pick', as want makes it): the pill is
