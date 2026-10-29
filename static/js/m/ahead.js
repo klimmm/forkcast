@@ -2716,6 +2716,10 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // each place you opened (askPlace), its card's other buys beside the week's FORK_MAX, PLACE_ALTS of them, worse ones
   // too (ownAltsOf's `all`): your transfer's with that buy in its place, else his best single move's (suggestionsOf: the
   // move the place deals first) with another buy; none for a player no single move sells
+  // (theirs alone: its place's cards and the Week sheet's rows, never a plate, the corner or the week's best, so opening a
+  // place moves nothing else on the pitch; the owner, 2026-10-29, "why pills being shown randomly": Konsa's place opened,
+  // its Vuskovic took Thomas's plate and the corner's second token)
+  const listed = new Set(choices.keys());
   for (const a of placesAsked(P, g)) {
     const m = now.find((y) => Number(y.in) === a), x = m ? null : singles.find((y) => Number(y.out) === a && !y.removed);
     if (m) otherBuys(m, (inn) => swapIn(m, inn), ownAltsOf(ctx, P, w, m, true).slice(0, PLACE_ALTS), false);
@@ -2930,7 +2934,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     const adds = x.choice.moves.filter((m) => m.gw === g && !now.some((y) => sameMove(y, m)));
     return adds.length > 0 && adds.every((m) => goneOut.has(String(m.out)) && goneIn.has(String(m.in)));
   };
-  const all = out.map(alone).map(vsRef).map((x) => (rolls(x) ? { ...x, rolls: true } : x)).map((x) => (yoursAgain(x) ? { ...x, removed: true } : x))
+  const placeOnly = new Set([...choices.keys()].filter((k) => !listed.has(k)));
+  const all = out.map(alone).map(vsRef).map((x) => (rolls(x) ? { ...x, rolls: true } : x)).map((x) => (placeOnly.has(forkKey(x.choice, g)) ? { ...x, placeOnly: true } : x)).map((x) => (yoursAgain(x) ? { ...x, removed: true } : x))
     // (a row numbered by the solver's own count that beats the roll is no early one: its window counts making it next week
     // instead, so a count past the 0.05 bar says now; the owner, 2026-10-28, "Why it shows Trafford +1 and rolling the
     // best at the same time": an early row's plate beside "Rolling is best")
@@ -3311,7 +3316,7 @@ export function litOf(P, w, M, D, toks = []) {
     // ink where it is the week's best, weekBest)
     if (at.has(d.a) || d.mine) continue;
     // (a place's entries in the week's order, best first: heldOrder)
-    const e = d.entries.find((x) => singleMove(x) && !x.pl.early && !x.pl.refRow && can(x.pl));
+    const e = d.entries.find((x) => singleMove(x) && !x.pl.early && !x.pl.refRow && !x.pl.placeOnly && can(x.pl));
     if (e) at.set(d.a, { e, best: false });
   }
   return at;
@@ -3342,7 +3347,7 @@ export function weekBest(P, w, M, D, toks = []) {
   const g = w.gw;
   if (!M.settled) return null;
   const can = litCan(P, w, M);
-  const ok = (pl) => !pl.refRow && !pl.early && can(pl);
+  const ok = (pl) => !pl.refRow && !pl.early && !pl.placeOnly && can(pl);
   const moves = M.plans.filter((pl) => ok(pl) && placesOf(D, pl).length && !placesOf(D, pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl))));
   const chips = toks.filter((pl) => ok(pl) && !rollOnly(pl) && !!pl.choice.chips?.[g]);
   return [...moves, ...chips].reduce((m, pl) => (!m || pl.cmp.delta > m.cmp.delta ? pl : m), null);
@@ -3574,13 +3579,14 @@ const PLACE_SLOTS = 4;
  *  his head so i can keep prebious player"; H had none). Pure. → its entry | null */
 export const placeFirst = (d) => {
   if (d.mine) return d.entries[0] && takesBack(d.entries[0]) ? d.entries[0] : null;
-  const live = (e) => !takesBack(e) && (e.pl?.state === 'ready' || e.pl?.state === 'solving');
+  // (never a buy its opened place asked for: plansOf `placeOnly`, its cards' alone)
+  const live = (e) => !takesBack(e) && !e.pl?.placeOnly && (e.pl?.state === 'ready' || e.pl?.state === 'solving');
   // (his own moves alone: a plan he is part of has its one mark elsewhere, its sentence; design 1026e "line")
   const own = placeSplit(placeOrder(d.entries), d.a).singles;
   if (!own.some(live)) return null;
   // (a failed one listed before one still checking: the checking one, "checking…", never "can't check" while it may land)
   const dealt = placeDealt(own, PLACE_SLOTS);
-  return dealt.find(live) ?? dealt[0];
+  return dealt.find(live) ?? own.find(live);
 };
 /** Up to n x's for a place's dealt cards beside his card at x0, `step` apart, each a whole card (cw) inside [3, W − 3], in
  *  one direction so the rank reads outward from him (the reviews, 2026-10-22: right, left, right zig-zagged): rightwards,
