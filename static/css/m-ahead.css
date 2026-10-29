@@ -11,7 +11,7 @@
             under it) · .ah-blockhost > .ah-block the week line (its own section below; the same card in the Week
             sheet, .ah-wsheet .ah-block.ah-wk) · .ah-pitch (pitch and bench:
             one height every week, from the screen alone, ahead.js fitPitch; plan-pitch.css; .ah-pp corner pills:
-            .ah-pdbtn Player data top-right, .ah-rsbtn the one Reset top-left under the best token's room; one
+            .ah-pdbtn Player data top-right, .ah-rsbtn the one Reset top-left under the first token; one
             look per kind since design 1029b REC: the act ink with "Swap" (.ah-tok.mv), a door flat white with "›" (a chip
             token, the bar with the week's status, its doors), the view setting the white pill (.ah-pdbtn, its own now), a
             take-back red-edged; the
@@ -825,8 +825,8 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 .ah-pitch .pm > .ah-pdbtn { right: 6px; }
 /* the one "↺ Reset" (.ah-rsbtn: ahead.js rsBtn) on the pitch's top-left corner with the week's own choices, a take-back
    beside the takes (the owner, 2026-10-29, "why rec not have reset plan on the left logically where transfer suggestion
-   pill is"; 1029b T8, N2, H9: plan acts one side, the view setting the other), under the best token's room at its
-   tallest, 12 px more (ahead.js resetSlot, placePills: the same place every week, 1029b T12), "Reset lineup", "Reset
+   pill is"; 1029b T8, N2, H9: plan acts one side, the view setting the other), 12 px under the first token as drawn,
+   at the corner's top with none (ahead.js RESET_GAPS, placePills), "Reset lineup", "Reset
    plan", or "Reset ⌄" where both apply (its choice: ahead.js resetSheet); in the destructive role's red words with its
    "↺" (H5: the system red; W1: a sign as well as the colour; never filled, never the prominent one: R3, R4, HB2; Undo
    in its toast keeps it a quiet act) */
