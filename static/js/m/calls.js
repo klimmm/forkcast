@@ -883,6 +883,14 @@ export const COPY = Object.freeze({
    *  ahead.resetPlan resets (memory.reset: your document as a new team's, You → Hits with it; this browser's later
    *  lineups). */
   planResetSaid: 'Reset plan: take off every transfer, chip, rule and lineup of yours, and set Hits back to its default',
+  /** The pitch's one Reset where your viewed GW's lineup and your plan both have something to take back (the owner,
+   *  2026-10-29: its top-left corner, ahead.js rsBtn): its words "Reset ⌄", as VoiceOver names it, and its choice
+   *  (ahead.js resetSheet), each row what it takes back (planResetSaid's words for the plan). */
+  resetSaid: (g) => `Reset: your GW${g} lineup or your whole plan`,
+  resetTitle: 'Reset',
+  resetLineupName: (g) => `Reset GW${g} lineup`,
+  resetLineupWhat: (g) => `The plan's best lineup in GW${g} again; your transfers stay`,
+  resetPlanWhat: 'Every transfer, chip, rule and lineup of yours off; Hits back to its default',
   /** Back after FORGET_MS away: signed out, its choices gone (app.js signOut away). */
   awaySignedOut: (name) => `Signed out of ${name} after ${AWAY} away; its choices are cleared.`,
   /** The suggested plans' label, once (the Week sheet's plans heading and the pitch's choices' hidden one, ahead.plansHeading,

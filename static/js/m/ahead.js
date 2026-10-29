@@ -82,8 +82,8 @@
 //   row's × takes it, removeMove; else liftAsk) · captain(ctx, gw, id)
 //   · sub(ctx, gw, a, b) (subLineup(week, a, b, L): the swap with the armband as FPL moves it; subChoices(ctx, P, gw, id):
 //   a sub's list, the starters he can replace, each in its toast's words and number) · resetLineup(ctx, gws)
-//   (those GWs' lineups back to the plan's best: the pitch's Reset lineup pill) · resetPlan(ctx) (You → Reset plan, and
-//   the pitch's Reset plan pill while planHasYours(P), where it fits: resetFits(box, cards)) · chipPlan(ctx, gw,
+//   (those GWs' lineups back to the plan's best: the pitch's Reset) · resetPlan(ctx) (You → Reset plan, and the
+//   pitch's Reset while planHasYours(P), where it fits: resetFits(box, cards); both: its choice) · chipPlan(ctx, gw,
 //   chip, road) (chipEdit(P, gw, chip) → {pins, drop}: the one pin set the tap and its preparation share; chipSource(ctx)
 //   → each chip × GW's plan: chipPreps(ctx), your chips prepared with your rules in the background, or with none
 //   chipPresolves(ctx), the bake's)
@@ -6035,8 +6035,8 @@ export const TAB_MIN = 16, EDGE_MIN = 6, GAP_MAX = 8;
 export const PLATE_MIN = 14;
 /** Boxes a and b on the pitch ({x, y, w, h}) meet, b taken `down` px taller (a target under it). */
 export const boxesMeet = (a, b, down = 0) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h + down && b.y < a.y + a.h;
-/** The pitch's Reset plan pill fits at its place, box p (m-ahead.css: under Player data, or under Reset lineup while that
- *  shows), over the cards as drawn (`boxes`: mount's cardBoxes): it meets no card and leaves each card under it a card
+/** The pitch's Reset fits at its place, box p (m-ahead.css .ah-rsbtn: the top-left corner, under the best token's
+ *  room), over the cards as drawn (`boxes`: mount's cardBoxes): it meets no card and leaves each card under it a card
  *  behind's least room, a tab's over him (reachOf, TAB_MIN: one tap on a lit card behind takes it) and his edges' at
  *  their widest (GAP_MAX, EDGE_MIN). Where it doesn't (a short pitch, a large text size, both pills shown) it is not
  *  drawn: Reset plan is still the You sheet's. → bool */
@@ -6115,18 +6115,43 @@ export function mount(el, ctx) {
   const waitSaid = h('span.sr-only', { role: 'status' }), waitV = waitView();
   const railWrap = h('nav.ah-railwrap', { 'aria-label': 'Gameweeks', dataset: { nopull: '' } }, rail, totalEl, totSaid, waitSaid);
   const pdBtn = h('button.ah-pp.ah-pdbtn', { type: 'button', 'aria-haspopup': 'dialog', onClick: () => { playerDataSheet(); } });
-  // "Reset lineup": Player data's mirror on the pitch's top-left corner, only while the viewed GW's lineup is yours (a
-  // sub, a bench order, an armband: renderPitch); one tap is the plan's best lineup there again (resetLineup, Undo)
-  const luBtn = h('button.ah-pp.ah-lubtn', { type: 'button', hidden: true, onClick: () => { resetLineup(ctx, gwNow(plan(ctx))); } },
-    h('span.ah-pdl', null, 'Reset lineup'));
-  // "Reset plan" (the user, 2026-10-21: "there is no easy reset all transfers button (currently it is behind user menu) -
-  // maybe place it small on pitch"): Reset lineup's look, under Player data (under Reset lineup while that shows), only
-  // while your plan holds a transfer, chip or rule of yours (planHasYours: renderPitch) and only where it fits
-  // (placePills); one tap is You → Reset plan (resetPlan: the same toast, Undo)
-  const rpBtn = h('button.ah-pp.ah-rpbtn', { type: 'button', hidden: true, 'aria-label': COPY.planResetSaid, onClick: () => { resetPlan(ctx); } },
-    h('span.ah-pdl', null, 'Reset plan'));
+  // "↺ Reset": the pitch's one take-back, in its top-left corner with the week's own choices (one corner for acts on
+  // your plan, the other for what you see: the owner, 2026-10-29, "why rec not have reset plan on the left logically
+  // where transfer suggestion pill is"; 1029b T8, N2, H9), under the best token's room (placePills: a fixed slot, so
+  // nothing moves on a GW switch, 1029b T12), only while something of yours is there to take back (renderPitch, S.reset):
+  // the viewed GW's lineup ("Reset lineup": resetLineup), your plan's transfers, chips and rules ("Reset plan": the
+  // user, 2026-10-21, "maybe place it small on pitch"; planHasYours, resetPlan), one tap where one applies (its toast,
+  // Undo); where both do, "Reset ⌄" and its tap the choice of the two, each saying what it takes back (resetSheet: NN5,
+  // NE3, HB2 the wider wipe never the one a tap lands on)
+  const rsBtn = h('button.ah-pp.ah-rsbtn', { type: 'button', hidden: true, onClick: () => { resetTap(); } });
+  /** The Reset's one tap (S.reset: what of yours the viewed GW and the plan hold): the one reset that applies, or the
+   *  choice of both (resetSheet). */
+  function resetTap() {
+    const r = S.reset;
+    if (!r) return;
+    if (r.lu && r.plan) resetSheet(r.gw);
+    else if (r.lu) resetLineup(ctx, r.gw);
+    else if (r.plan) resetPlan(ctx);
+  }
+  /** Reset's choice where your GW g lineup and your plan both have something to take back (the captain's and a sub's
+   *  list, captainSheet / subSheet: a small sheet of rows, each its words and what it does): Reset lineup first, the
+   *  smaller take-back, then Reset plan (m.css:37-44, a wipe after the safer act), each its toast with Undo as its
+   *  one-tap pill's; the sheet's ✕ or a swipe down takes nothing back. */
+  function resetSheet(g) {
+    const title = COPY.resetTitle;
+    ctx.sheets.open({
+      title, detent: 'medium', fit: true, cls: 'cs ah-rssheet', label: title,
+      build(body, sheet) {
+        const row = (name, what, run) => h('button.ah-lrow', { type: 'button', 'aria-label': `${name}: ${what}`, onClick: () => { sheet.close(); run(); } },
+          h('span.mk', { 'aria-hidden': 'true' }, '\u21BA'), h('span.nm', null, h('b', null, name), h('span', null, what)));
+        append(body, h('div.ah-list', { role: 'group', 'aria-label': title },
+          row(COPY.resetLineupName(g), COPY.resetLineupWhat(g), () => resetLineup(ctx, g)),
+          row('Reset plan', COPY.resetPlanWhat, () => resetPlan(ctx))));
+      },
+    });
+  }
   // the pitch's first-use hints (LEARN_KEY), each two short lines on the turf (placeHint): the shirt's hold and the C's
-  // drag in Reset lineup's corner while that is hidden ('pitch'; under Reset plan while that shows, m-ahead.css), and the
+  // drag under Player data while the viewed GW's lineup is the plan's ('pitch'; m-ahead.css), and the
   // chips' holds in the field's bottom-left corner, beside the forwards and over the bench they speak of ('chips'; the
   // user, 2026-10-13: "why still no hints how to play bb of tc only caps and subs": both at once, never one after the
   // other); the help's Swipes paragraph says them in full
@@ -6512,9 +6537,8 @@ export function mount(el, ctx) {
     S.lineKeep = false;
     paintWait();
     S.pitch = null;
-    luBtn.hidden = true;
-    S.planReset = false;
-    rpBtn.hidden = true;
+    S.reset = null;
+    rsBtn.hidden = true;
     mountHere({
       ...d.lineup, players: d.byId, gw: d.gw, horizon: d.xpGws, first: true, benchRow: true, gapRows: true, second: plateOf().second,
       onPlayer: (id) => ctx.openSheet('player', id, { gw: d.gw }),
@@ -7147,20 +7171,50 @@ export function mount(el, ctx) {
   const cardIn = (root, id) => root?.querySelector(`:scope > :is(.pm-field, .pm-benchzone) .pm-card[data-id="${id}"]`) ?? null;
   /** An entry's key in its place (its held order): its choice's (planKey) and the buy it shows. */
   const entryKey = (g, e) => `${e.pl ? planKey(g, e.pl) : `rm:${e.remove.out}>${e.remove.in}`}|${e.inId}`;
-  /** The corner pills under Player data over the cards as drawn (the pitch's box b, the cards' `boxes`: cardBoxes; m-ahead.css:
-   *  Reset lineup, then Reset plan, each 2 px under the one shown over it): Reset plan while your plan holds something of
-   *  yours (S.planReset: renderPitch) only where it fits (resetFits); each one's target reaching down only to the card under
-   *  it (a defender's at a large text size). A pill hidden with the focus on it hands it to Player data. Placed by every
-   *  draw of the choices (renderDecks), before they reach up to the pills. */
+  /** The Reset's slot (rsBtn: m-ahead.css .ah-rsbtn, the pitch's top-left corner), its top on the pitch, px, `gap` px
+   *  under the first token's room at its tallest (the best token with its "Swap" on a line of its own, .ah-tok.mv.gol:
+   *  its padding, its words' line, the gap and the Swap's 20 px; or the first token as drawn where that is taller). The
+   *  same in a week with no token as in one with the best's (1029b T12: nothing on the pitch moves on a GW switch).
+   *  RESET_GAPS: 12 px (the token's target 9 px under it, the Reset's 3 px over it: the two never meet), else 3 px (a
+   *  320 px phone: the keeper's row leaves no more over the defenders' cards behind; .near: 24 px tall, each target to its
+   *  half). */
+  const RESET_GAPS = [12, 3];
+  const resetSlot = (first, gap = RESET_GAPS[0]) => 6 + Math.max(Math.ceil(cssPx(decks, 'calc(var(--t-sub) * 1.3 + 31px)')[0]), first?.offsetHeight ?? 0) + gap;
+  /** The Reset (rsBtn) over the cards as drawn (the pitch's box b, the cards' `boxes`: cardBoxes), shown while something
+   *  of yours is there to take back (S.reset: renderPitch): at its slot (resetSlot: 12 px under the token's room, else
+   *  3 px) where it meets no card and takes no card behind's room (resetFits); else (a large text size, whose token
+   *  has room the slot doesn't count on) 3 px under the first token as drawn, at the top with none; else at the top,
+   *  the tokens given way (their plates still on the pitch); else not drawn (the You sheet's Reset plan). Its target reaching down only to the card or token
+   *  under it. Hidden with the focus on it, it hands it to Player data. Placed by every draw of the choices
+   *  (renderDecks), before they reach up to it. */
   function placePills(b, boxes) {
-    rpBtn.hidden = !S.planReset;
-    if (!rpBtn.hidden && !resetFits(boxOf(rpBtn, b), boxes)) rpBtn.hidden = true;
-    for (const n of [luBtn, rpBtn]) {
-      if (n.hidden) { if (n === document.activeElement) pdBtn.focus({ preventScroll: true }); continue; }
-      const p = boxOf(n, b);
-      const under = Math.min(Infinity, ...boxes.filter((c) => c.x < p.x + p.w && p.x < c.x + c.w && c.y >= p.y).map((c) => c.y - p.y - p.h));
-      n.style.setProperty('--down', `${Math.max(-1, Math.min(9, under - 1))}px`);
+    rsBtn.hidden = !S.reset;
+    rsBtn.classList.remove('near');
+    if (!rsBtn.hidden) {
+      const first = [...decks.querySelectorAll(':scope > .ah-tok')].find((t) => t.isConnected) ?? null;
+      const at = [[resetSlot(first), false], [resetSlot(first, RESET_GAPS[1]), true], [first ? first.offsetTop + first.offsetHeight + RESET_GAPS[1] : 6, !!first]]
+        .find(([y, near]) => { rsBtn.style.top = `${y}px`; rsBtn.classList.toggle('near', near); return resetFits(boxOf(rsBtn, b), boxes); });
+      // (none: a 320 px phone at a large text size, a token in the corner: the Reset at the top and the tokens under it
+      // given way, the best's plate still on its player (data-mv-out) and every choice the Week sheet's, so your take-back
+      // is never lost while the same act stays on the pitch; a status is never given way)
+      const toks = [...decks.querySelectorAll(':scope > .ah-tok')];
+      if (at == null && toks.length && !toks.some((t) => t.matches('.st'))) {
+        rsBtn.style.top = '6px'; rsBtn.classList.remove('near');
+        if (resetFits(boxOf(rsBtn, b), boxes)) {
+          for (const t of toks) t.remove();
+          if (toks.some((t) => t.matches('.mv'))) decks.toggleAttribute('data-mv-out', true);
+          const gone = [decks.dataset.tokOut, ...toks.map((t) => t.dataset.plan).filter(Boolean)].filter(Boolean).join(' ');
+          if (gone) decks.dataset.tokOut = gone;
+        } else rsBtn.hidden = true;
+      } else if (at == null) { rsBtn.hidden = true; rsBtn.classList.remove('near'); }
+      for (const t of decks.querySelectorAll(':scope > .ah-tok')) t.classList.toggle('ah-over', t === first && rsBtn.matches('.near'));
     }
+    if (rsBtn.hidden) { if (rsBtn === document.activeElement) pdBtn.focus({ preventScroll: true }); return; }
+    const p = boxOf(rsBtn, b);
+    const toks = [...decks.querySelectorAll(':scope > .ah-tok')].map((t) => boxOf(t, b));
+    const under = Math.min(Infinity, ...boxes.filter((c) => c.x < p.x + p.w && p.x < c.x + c.w && c.y >= p.y).map((c) => c.y - p.y - p.h),
+      ...toks.filter((c) => c.y > p.y).map((c) => (c.y - p.y - p.h) / 2));
+    rsBtn.style.setProperty('--down', `${Math.max(-1, Math.min(9, Math.floor(under - 1)))}px`);
   }
   /**
    * The choices on the pitch as drawn (decksOf, litOf; S.M: the week's model renderWeek drew), placed from the mounted
@@ -7261,9 +7315,13 @@ export function mount(el, ctx) {
     // screen): the best move's token shortens first (fits), then the tokens under the status give way, then the best's
     // over it, the status then first in the stack, kept there whether or not it clears the cards
     const st = tk.find((t) => t.matches('.st'));
-    const stack = () => { let top = 6; for (const t of tk) if (t.isConnected) { t.style.top = `${top}px`; top += t.offsetHeight + 8; } };
-    let top = 6;
+    // (the Reset's slot under the first token's room, the tokens after it under the Reset: resetSlot, placePills)
+    rsBtn.hidden = !S.reset;
+    const slot = resetSlot(tk[0]), past = (top, i) => (i === 1 && !rsBtn.hidden ? Math.max(top, slot + rsBtn.offsetHeight + 8) : top);
+    const stack = () => { let top = 6, i = 0; for (const t of tk) if (t.isConnected) { top = past(top, i++); t.style.top = `${top}px`; top += t.offsetHeight + 8; } };
+    let top = 6, ti = 0;
     for (const t of tk) {
+      top = past(top, ti++);
       t.style.top = `${top}px`;
       // (the status where it can't fit wider: in its own room, trimmed as there, its words wrapping, never over the
       // keeper's card; its trims kept only where they fit it, so its "xP" goes from no plate for nothing: oneLook)
@@ -7290,7 +7348,7 @@ export function mount(el, ctx) {
     const gone = tk.filter((t) => !t.isConnected && t.dataset.plan).map((t) => t.dataset.plan).join(' ');
     if (gone) decks.dataset.tokOut = gone;
     else delete decks.dataset.tokOut;
-    // Reset lineup and Reset plan under Player data, before the choices reach up to them (placePills)
+    // the Reset at its slot under the first token's room, before the choices reach up to it (placePills)
     placePills(b, boxes);
     const walls = [...boxes, ...labelWalls(root, b), ...[...root.querySelectorAll(':scope > .ah-pp:not([hidden]), .ah-tok')].map((x) => boxOf(x, b))];
     // a plate's height (m-ahead.css --pm-tab: the text size's), in whole px
@@ -9013,13 +9071,21 @@ export function mount(el, ctx) {
   }
   function renderPitch(P, w) {
     const d = ctx.data;
-    luBtn.hidden = !w.lineup;
-    luBtn.disabled = !P.editable;
-    luBtn.setAttribute('aria-label', `Reset GW${w.gw} lineup to the plan's best`);
-    // (where it fits: placePills, once the pitch is drawn)
-    S.planReset = planHasYours(P);
-    rpBtn.hidden = !S.planReset;
-    rpBtn.disabled = !P.editable;
+    // the one Reset (rsBtn): what of yours it takes back here, its words and name for that (where it fits: placePills,
+    // once the pitch is drawn)
+    const lu = !!w.lineup, mine = planHasYours(P);
+    S.reset = lu || mine ? { lu, plan: mine, gw: w.gw } : null;
+    rsBtn.hidden = !S.reset;
+    rsBtn.disabled = !P.editable;
+    rsBtn.classList.toggle('lu', lu);
+    rsBtn.classList.toggle('rp', mine);
+    if (S.reset) {
+      const both = lu && mine;
+      fill(rsBtn, h('span.ah-pdl', null, both ? 'Reset' : lu ? 'Reset lineup' : 'Reset plan'), both ? h('span.ah-chev', { 'aria-hidden': 'true' }) : null);
+      rsBtn.setAttribute('aria-label', both ? COPY.resetSaid(w.gw) : lu ? `Reset GW${w.gw} lineup to the plan's best` : COPY.planResetSaid);
+      if (both) rsBtn.setAttribute('aria-haspopup', 'dialog');
+      else rsBtn.removeAttribute('aria-haspopup');
+    }
     const plate = plateOf();
     const props = pitchProps(P, w, plate);
     // the same pitch as drawn (a re-draw for a chip, a rule or the week line): nothing to mount again (QA-7 #2); the same
@@ -9035,7 +9101,7 @@ export function mount(el, ctx) {
    *  its top-right corner, beside the goal, then the layer the choices are drawn in: renderDecks; read before the eleven).
    *  An open place closes: its cards were the pitch's. */
   function mountHere(props) {
-    const pill = [luBtn, rpBtn, pdBtn].find((b) => b === document.activeElement);
+    const pill = [rsBtn, pdBtn].find((b) => b === document.activeElement);
     // a place open with the focus in it: on his card once the pitch is mounted anew (a keyboard's, VoiceOver's)
     const inPlace = S.place && pitchHost.querySelector(':scope > .pm > .ah-place')?.contains(document.activeElement) ? S.place.a : null;
     closePlace(false);
@@ -9044,7 +9110,7 @@ export function mount(el, ctx) {
     S.snap = old ? new Map(cardBoxes(old).map((c) => [c.id, { rect: c.n.getBoundingClientRect(), node: c.n.cloneNode(true) }])) : null;
     ctx.pitch.mountPitch(pitchHost, props);
     if (inPlace) cardIn(pitchHost.querySelector(':scope > .pm'), inPlace)?.focus({ preventScroll: true });
-    pitchHost.querySelector(':scope > .pm')?.prepend(pdBtn, luBtn, rpBtn, decks, pitchHint);
+    pitchHost.querySelector(':scope > .pm')?.prepend(pdBtn, rsBtn, decks, pitchHint);
     if (pill) (pill.hidden ? pdBtn : pill).focus({ preventScroll: true });  // a corner pill keeps focus over a pitch drawn anew
     pitchHost.querySelector(':scope > .pm > .pm-field')?.append(chipsHint);
     // a swipe's new week comes in from the side the finger went (pitchEnd: S.slide, where it starts)
@@ -9052,8 +9118,8 @@ export function mount(el, ctx) {
   }
 
   /** The pitch's hints (HINTS) while each is still to learn on a plan you can change (P, w: the drawn plan view and
-   *  week; none: as last drawn, a resize): the shirt's while Reset lineup's corner is free (under Reset plan while that
-   *  shows: placePills, before it), the chips' while the week can
+   *  week; none: as last drawn, a resize): the shirt's while the viewed GW's lineup is the plan's (under Player data: the Reset is the
+   *  other corner's since design 1029c), the chips' while the week can
    *  still play a Bench Boost or a Triple Captain; each only where it covers no card and no corner pill (a narrow screen,
    *  a large text size, a front three: not drawn). */
   function placeHint(P = S.hintAt?.P, w = S.hintAt?.w) {
