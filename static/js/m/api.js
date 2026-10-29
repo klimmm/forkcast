@@ -190,7 +190,7 @@ export const getMeta = () => get('/api/meta');
  * have = the data version already held → the reply leaves players and seeds null (they only change with it); its
  * prices block (FPL's price projections read since the snapshot, calls.withPrices) comes every time. hl = the live
  * block's stamp held (live_v) → its live block (the newest capture's display fields, calls.shownPlayers) comes back
- * null while unchanged. w = the plan's weeks (You → Plan ahead, calls.planWeeks; none: the server's longest). cg = the
+ * null while unchanged. w = the plan's weeks (Settings → Plan ahead, calls.planWeeks; none: the server's longest). cg = the
  * GWs Chips… was opened on ([9, 10]): the server pre-solves their chips, none of another GW's (ahead.chipsAsked).
  */
 export const getBundle = (entry, { refresh, have, hc, hl, w, cl, cg, signal } = {}) =>

@@ -406,7 +406,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
       }
 
       /** One arrival week: the solve with your pins plus him from g (F17: under the solver's own default hits, so a
-       *  hit he needs is the solver's call where it pays, and You → Hits holds where you set it: memory's derived
+       *  hit he needs is the solver's call where it pays, and Settings → Hits holds where you set it: memory's derived
        *  'hits' pin, in every solve's values: withHits; the relief
        *  ladder charges its own rules.py relief_hit_cost for a hit it forces, rolling.py _solve_relief). `hits`: the hits
        *  the road takes in GW g more than your plan (a buy's: bp.hits), what the pill's points charge; the pill and the line

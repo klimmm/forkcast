@@ -583,8 +583,9 @@ p { margin: 0; }
    (the action button) takes one, and its ✕ is gone (it leaves by itself), so a row or a chip under its body stays
    tappable.
    One place for every toast (app.js placeToasts): the top of the screen, over the header's row (Ahead's team name, at
-   the screen's safe top: m-ahead.css .m-screen.ah), from the column's 8 px gutter to the avatar's 44 pt column (10 px
-   in from the edge), which stays clear and tappable (the left column's "Help" hides under it: m-ahead.css .ah-help); one compact line in --t-sub (36 px: the 44 pt header holds it,
+   the screen's safe top: m-ahead.css .m-screen.ah), between the header's two 44 pt columns, the Settings gear's on the left and
+   the avatar's on the right (10 px in from each edge), both clear and tappable (the owner, 2026-10-29: a locked week's
+   toast says "tap the settings icon at the top left"; the gear hid under toasts until then); one compact line in --t-sub (36 px: the 44 pt header holds it,
    over its team's name and GW line), two when the words need them (42 px, over the GW switcher's margin; three, the
    most, reach into the GW tiles' top, each still taking a tap under it: m-ahead.css .ah-head): a chip's verdict, "Bench Boost: +6.2 pts over GW6–9 vs not
    playing it · 1.2 less than GW8", is two at 375 wide; in --t-body it took three). The review of 2026-10-08: placed at the foot and nudged up until its Undo
@@ -598,7 +599,7 @@ p { margin: 0; }
 #toasts {
   --toast-col: min(100vw, var(--col-w));
   position: fixed; top: calc(var(--toast-top, 0px) + env(safe-area-inset-top, 0px) + 4px); bottom: auto; z-index: 400;
-  left: calc(50% - var(--toast-col) / 2 + 8px); right: auto; width: calc(var(--toast-col) - 8px - 54px); transform: none;
+  left: calc(50% - var(--toast-col) / 2 + 54px); right: auto; width: calc(var(--toast-col) - 2 * 54px); transform: none;
   display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none;
 }
 #toasts[data-place="dock"] { top: auto; bottom: calc(100lvh - 100svh + var(--safe-bot) + 8px); left: calc(50% - var(--toast-col) / 2 + 12px); width: calc(var(--toast-col) - 24px); flex-direction: column-reverse; }

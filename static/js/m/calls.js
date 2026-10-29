@@ -136,10 +136,10 @@ const hitsWords = (n) => (n > 1 ? `${WORDS[n] ?? n} hits (${MINUS}${E.HIT_COST *
  *  what a GW with no hits rule of yours allows; null before the plan service has one. */
 export const hitCap = (meta) => num(meta?.hit_cap);
 /** A plan length's feature, as the server names it when it locks it (the bundle's meta.locked; api/mobile.py
- *  horizon_feature): "horizon:2", the 2-week plan of You → Plan ahead. */
+ *  horizon_feature): "horizon:2", the 2-week plan of Settings → Plan ahead. */
 export const horizonFeature = (n) => `horizon:${n}`;
 /**
- * The plan's weeks this browser asks for (You → Plan ahead; the user, 2026-10-14): `choice`, its stored pick (1..most;
+ * The plan's weeks this browser asks for (Settings → Plan ahead; the user, 2026-10-14): `choice`, its stored pick (1..most;
  * none or out of range: most, the longest), or, when that length is locked (`locked`: the bundle's meta.locked), the
  * longest one that is not (one week never is), as the server falls back (api/mobile.py plan_weeks). most: the plan's
  * reach (meta.reach's length); with neither a choice nor a reach (no bundle yet) null: the server's own, its longest.
@@ -341,6 +341,11 @@ export const COPY = Object.freeze({
    *  against the code on 2026-10-13: a plan's + freezes its week (a Roll in Your rules), the card's Keep / Force out, the
    *  pitch's drags and holds, Chips… and Bring in… on the week line, the sign-out after FORGET_MS away. */
   helpShort: 'Help',
+  /** Settings (Ahead's header gear in Help's old place, the owner, 2026-10-29: "instead of help on top left settings
+   *  displayed (setting icon …) and have there following setting for the start"): its sheet's title and the gear's name. */
+  settingsTitle: 'Settings',
+  /** …and the way to it, in Help's lines and a locked week's toast (where "tap your initials" said the You sheet's). */
+  settingsDoor: 'tap the settings icon at the top left',
   /** The first-use hints, each one line until its action is done once (ahead LEARN_KEY), in Help's words: the Week
    *  sheet's first transfer row's (its swipe; the veto's own words, "Not Groß", B19; no hold since the rows left the
    *  screen: a transfer moves through its Why sheet's When line, the user's 5b, 2026-10-19), the pitch's two lines (a shirt's
@@ -404,8 +409,8 @@ export const COPY = Object.freeze({
       'Your rules, at the end of that list, shows what you set. Tap one, then Remove.',
     ], 'rules'],
     ['Settings', [
-      `Hits: tap your initials, then set ${COPY.hitsHead}.`,
-      `How many GWs it plans: tap your initials, then set ${COPY.aheadHead}.`,
+      `Hits: ${COPY.settingsDoor}, then ${COPY.hitsHead}.`,
+      `How many GWs it plans: ${COPY.settingsDoor}, then ${COPY.aheadHead}.`,
     ]],
     ['Play a chip', [
       `Tap ${COPY.chipsDoor} (above the pitch, beside ${COPY.bringInShort}), then a chip. Each shows its best week.`,
@@ -580,7 +585,7 @@ export const COPY = Object.freeze({
    *  3rd"; n counts the subs after the keeper). */
   benchOrder: (subs) => `Bench order: ${subs.map(([name, n]) => `${name} ${ORD(n)}`).join(', ')}`,
   /** F9 / F13 / F17: a per-GW Roll or hits rule in words (ahead.autoRuleName's chip toasts, memory.ruleText), as the
-   *  per-GW Auto-plan control named its choices until it went (2026-10-12: the hits Forkcast may take are You → Hits;
+   *  per-GW Auto-plan control named its choices until it went (2026-10-12: the hits Forkcast may take are Settings → Hits;
    *  memory.normalizeAccepted drops a stored hits rule on load; a Roll is a suggested plan's + since 2026-10-13,
    *  COPY.rollRule): every one is that GW's. A hits rule restricts
    *  the solver's own default (n hits a GW: hitCap), and the default is no rule at all. AUTO-PLAN (the user, 2026-10-08:
@@ -603,7 +608,7 @@ export const COPY = Object.freeze({
    *  a hits rule of 0 (freeOnly, gwNote, memory.ruleText); segUpTo has no caller. */
   segFreeOnly: 'FT only',
   segUpTo: (n) => `Up to ${MINUS}${E.HIT_COST * n}`,
-  /** You → Hits (the user, 2026-10-12: "auto plan allowed hits must be somewhere in settings"; ahead.hitsChoices): the
+  /** Settings → Hits (the user, 2026-10-12: "auto plan allowed hits must be somewhere in settings"; ahead.hitsChoices): the
    *  hits Forkcast may take a week, every week, one setting: its heading, its segments ("None", "−4", "−8": n hits), the
    *  line under it, its toast's subject and the rule it is (memory's derived 'hits' pin). */
   // (podmajersky r7 §12: "a week" read as a duration, "Its … take no more" pointed two phrases back)
@@ -611,7 +616,7 @@ export const COPY = Object.freeze({
   hitsSeg: (n) => (n === 0 ? 'None' : `${MINUS}${E.HIT_COST * n}`),
   hitsNote: 'Forkcast\'s suggestions and the transfers it adds stay within this.',
   hitsMax: (n) => (n === 0 ? 'Hits: none in any week' : `Hits: up to ${MINUS}${E.HIT_COST * n} a week`),
-  /** You → Plan ahead (the user, 2026-10-14: "to the setting where hit cost are set also add forecast horizon"): how
+  /** Settings → Plan ahead (the user, 2026-10-14: "to the setting where hit cost are set also add forecast horizon"): how
    *  many GWs Forkcast plans from the next deadline (planWeeks): its heading, its segments, the line under it, and the
    *  one line why the options with a lock can't be picked (meta.locked). */
   aheadHead: 'Plan ahead',
@@ -620,7 +625,7 @@ export const COPY = Object.freeze({
   aheadLocked: 'Options with a lock aren\'t available on this Forkcast.',
   /** A GW past your plan, tapped on the GW switcher (ahead.js edgeTicks): how to plan it, or that its length is
    *  locked. */
-  weekOff: (gw, n) => `Your plan covers ${COPY.aheadSeg(n)}. To plan GW${gw}, tap your initials, then ${COPY.aheadHead}.`,
+  weekOff: (gw, n) => `Your plan covers ${COPY.aheadSeg(n)}. To plan GW${gw}, ${COPY.settingsDoor}, then ${COPY.aheadHead}.`,
   weekLocked: (gw) => `GW${gw} is past your plan, and longer plans aren't available on this Forkcast.`,
   hitsUpTo: (n, gw) => `Up to ${MINUS}${E.HIT_COST * n} in GW${gw}`,
   defaultHits: (n, gw) => (num(n) === null ? `When hits pay in GW${gw}` : `Up to ${MINUS}${E.HIT_COST * n} in GW${gw} (default)`),
@@ -880,7 +885,7 @@ export const COPY = Object.freeze({
   /** You → Reset plan (ahead.resetPlan): the toast, with Undo. */
   planReset: 'Plan reset: your team as it is, no rules or transfers of yours.',
   /** The pitch's Reset plan pill (the user, 2026-10-21: "maybe place it small on pitch"), as VoiceOver names it: what
-   *  ahead.resetPlan resets (memory.reset: your document as a new team's, You → Hits with it; this browser's later
+   *  ahead.resetPlan resets (memory.reset: your document as a new team's, Settings → Hits with it; this browser's later
    *  lineups). */
   planResetSaid: 'Reset plan: take off every transfer, chip, rule and lineup of yours, and set Hits back to its default',
   /** The pitch's one Reset where your viewed GW's lineup and your plan both have something to take back (the owner,

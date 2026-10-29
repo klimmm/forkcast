@@ -15,9 +15,9 @@
 // Week sheet transfer's × and left swipe, Bring in a player…, the chips (the Bench Boost held on the bench, the Triple
 // Captain on the C, any chip from Chips…: useChip, the user 2026-10-13), "Your rules" (RULES_V2: every veto, keep and
 // cash rule you ask for stays a visible, removable row). A new plan is your team with no transfers (memory's hold). The hits Forkcast may take are one
-// setting for every week, You → Plan → "Hits Forkcast may take a week": None · −4 · −8 up to the solver's own cap
+// setting for every week, Settings → Plan → "Hits Forkcast may take a week": None · −4 · −8 up to the solver's own cap
 // (sheets/you.js, hitsChoices / setHitsMaxWithUndo, memory's derived 'hits' pin; the user, 2026-10-12, when Freeze and
-// each week's Auto-plan went). The plan covers You → Plan → "Plan ahead"'s weeks (1-4, the bundle's meta.horizon; the
+// each week's Auto-plan went). The plan covers Settings → Plan → "Plan ahead"'s weeks (1-4, the bundle's meta.horizon; the
 // user, 2026-10-14), the switcher showing the longest plan's GWs past it locked (edgeTicks). A Wildcard or Free Hit
 // week says over its squad what the chip does there (COPY.chipWeek). The first half of this file is the PLAN VIEW the
 // sheets (sheets/player.js, replace.js, wish.js) share; the second half is the screen. "Roll" is only ever the FPL word for making no transfer (a Why sheet's "Roll GW6", a week's "GW7 roll"
@@ -88,8 +88,8 @@
 //   → each chip × GW's plan: chipPreps(ctx), your chips prepared with your rules in the background, or with none
 //   chipPresolves(ctx), the bake's)
 //   · chipOff(ctx, gw) · adoptModel(ctx, {drop}) (Compare: the model's plan, or `drop` = the blockers'
-//   pin ids off) · gwMode(P, gw) → 'roll' | 'free' | 'h<n>' (at most n hits, below the default: You → Hits) | 'auto'
-//   (the solver's own default cap, F17) · hitsChoices(P) / setHitsMaxWithUndo(ctx, n) (You → Hits: the hits Forkcast may
+//   pin ids off) · gwMode(P, gw) → 'roll' | 'free' | 'h<n>' (at most n hits, below the default: Settings → Hits) | 'auto'
+//   (the solver's own default cap, F17) · hitsChoices(P) / setHitsMaxWithUndo(ctx, n) (Settings → Hits: the hits Forkcast may
 //   take a week, one setting for every week; the user, 2026-10-12) ·
 //   chipWeek(P, gw) → 'wc' | 'fh' | null (a week whose plan plays one: its options say so, COPY.chipWeek) ·
 //   reroute(gw)
@@ -245,17 +245,17 @@ function info(ctx) {
   if (!b?.entry || !d?.base) return null;
   const gws = d.horizon;
   return {
-    // reach: the GWs the longest plan reaches, those past gws shown locked on the GW switcher (You → Plan ahead)
+    // reach: the GWs the longest plan reaches, those past gws shown locked on the GW switcher (Settings → Plan ahead)
     b, d, A: d.gw, gws, reach: d.reach ?? gws, end: gws[gws.length - 1], L: E.playerLookup({ base: d.base, players: d.players }),
     seeds: d.seeds, noise: d.noise ?? 0, base: b.roads?.base ?? null, entry: String(b.entry.id),
     owned: ids(d.base.squad.map((s) => s.id)), season: d.base.season,
   };
 }
 export const editable = (ctx) => ctx.store.get('conn')?.state !== 'offline' && !!info(ctx)?.base;
-/** Every plan of n weeks or more is locked for this browser (the bundle's meta.locked; You → Plan ahead): the reach's
+/** Every plan of n weeks or more is locked for this browser (the bundle's meta.locked; Settings → Plan ahead): the reach's
  *  n-th GW can't be planned here. I: info(ctx) or a plan view. */
 const lockedFrom = (I, n) => I.reach.slice(n - 1).every((_, i) => (I.b.meta?.locked || []).includes(horizonFeature(n + i)));
-/** You → Plan ahead now asks another length than the plan on screen plans (ctx.weeks, kept at the tap; its bundle still
+/** Settings → Plan ahead now asks another length than the plan on screen plans (ctx.weeks, kept at the tap; its bundle still
  *  on its way: app.js setWeeks): no background solve is asked for it (a suggested plan's fork or the next week's
  *  preparation: forkPump; a chip preparation: pumpPreps; the options road: optionsRef), the new plan's draw asks its
  *  own. A landing meanwhile asked the old length again (the horizon QA, "every solve sent since is one week": a 4-week
@@ -1051,14 +1051,14 @@ export function sayCheer(ctx, P, el, planning = false, act = 0, { linger = false
   return up;
 }
 
-/** The state an edit can be undone to: memory's pins and plan, You → Hits (hitsMax), GW A's lineup, the later GWs' lineups and the moves you removed (B129). */
+/** The state an edit can be undone to: memory's pins and plan, Settings → Hits (hitsMax), GW A's lineup, the later GWs' lineups and the moves you removed (B129). */
 function snapshot(ctx) {
   const I = info(ctx), gp = memPlan(ctx);
   // (its road only where it is the plan solved for these rules: none while one is solved or after a failure, so an Undo
   // never stamps an older plan as theirs; reviewer 1 of solversquad, 2026-10-26)
   return { pins: clone(gp?.pins || []), road: gp?.source === 'yours' && !gp.pending && !gp.error ? clone(gp.road) : null, hitsMax: gp?.hitsMax ?? null, lineup: clone(gp?.lineup ?? null), lus: clone(lineups(ctx, I)), removed: clone(removedBy(I)) };
 }
-/** Memory's derived pins (the hold's, You → Hits'): never removed or added by an Undo, made again from the rest. */
+/** Memory's derived pins (the hold's, Settings → Hits'): never removed or added by an Undo, made again from the rest. */
 const derivedPin = (p) => p.id === 'hold' || p.id === 'hits';
 
 // (a Roll's caps too: the Undo of a move taken under "No transfers · GW8" brings that back, never its "Only your
@@ -1348,7 +1348,7 @@ function edit(ctx, { pins = [], drop = [], road = null, from, text = null, what 
   // a road solved for these pins (a chip prepared with your rules, a Wish pill, a solved choice) is the plan at once when
   // it fits them
   if (road) mem.offer(road);
-  // its rules changed as one (memory.batch: planned once, never for the rules half changed), You → Hits with them
+  // its rules changed as one (memory.batch: planned once, never for the rules half changed), Settings → Hits with them
   mem.batch(() => {
     if (hitsMax !== undefined) mem.setHitsMax(hitsMax);
     for (const id of drop) if (mem.getPlan().pins.some((p) => p.id === id)) mem.removePin(id);
@@ -2417,7 +2417,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     const sold = p.moves.map((m) => m.out);
     return new Set(sold).size === sold.length && !p.moves.some((m) => isFrozen(P, m.gw) || barred(P, m.gw).has(m.in) || keptFrom(P, m.gw).has(m.out));
   };
-  // You → Hits (P.mem.hitsMax): no week of a plan takes more hits than it allows or your plan takes there already (a
+  // Settings → Hits (P.mem.hitsMax): no week of a plan takes more hits than it allows or your plan takes there already (a
   // bake road was solved at the solver's own cap; a fork's own solve under the setting: memory's derived 'hits' pin)
   const most = P.mem?.hitsMax ?? null;
   const hitsAt = (e, x) => e.gws.find((s) => s.gw === x)?.hits ?? 0;
@@ -3755,7 +3755,7 @@ function measurePlan(ctx, P, g, p, before, held = true) {
  *  g held to your plan's squad (M3: a Wildcard's, a Free Hit's and a week Forkcast plans under a hits rule of yours
  *  too, so the solve's weeks before g are yours and planOfRoad keeps it); your GW-g transfers (and a hits rule there:
  *  the week makes exactly the choice's moves) giving way to c's moves as your exact transfers (memory.pinSell) or its
- *  chip (chipEdit); each week after g the planner's up to the bake's cap (You → Hits below it bounds it:
+ *  chip (chipEdit); each week after g the planner's up to the bake's cap (Settings → Hits below it bounds it:
  *  memory's derived 'hits' pin, composed last), or an older plan's hits rule's there (a hits rule lifts the hold there:
  *  memory.holdOf), your exact transfers there kept (their rules stay: composePins' B36), as the suggested plan plans.
  *  A transfer of yours that bought a player its GW-g moves sell (or `c.ends`'s: the roll a row that sells him counts
@@ -3925,7 +3925,7 @@ export function resetForks() {
  * 2.5 s): "fix speed so all pre solved and done without no cost". A tap that changes your plan lands at once on the
  * solver's plan for its rules, because that solve was asked before the tap: its edit made dry (dryEdit: the very edit
  * function the tap calls, edit recording the rules it would make, nothing changed, nothing said), the values its heal
- * would send (memory.values with the edit's own order and You → Hits), asked in the fork lanes the view leaves free at
+ * would send (memory.values with the edit's own order and Settings → Hits), asked in the fork lanes the view leaves free at
  * the lowest priority (forkPump's `prep` way, purpose 'presolve': the plan service's SPECULATIVE, unmetered, pre-empted
  * by any solve someone waits on, joined by the tap's heal while in flight), its answer offered to memory for exactly those
  * values (memory.offer `values`): the tap's heal finds it (memory.replan) and lands it with no wait, the same request's
@@ -3936,7 +3936,7 @@ export function resetForks() {
  *    are settled, the takes of the week's best and the next lit plate (those that pay, by their number);
  *  · 'sheet', when a sheet opens and as it re-draws (presolveTaps: a Why sheet's Take, Remove, Keep, Not and Move to
  *    GWn; a player's Keep, Not, Never and Off; the Sell list's Let Forkcast choose and first rows; Bring in's weeks;
- *    Chips…'s play and off; You → Hits and Reset plan; the Week sheet's other takes and Removes), until it closes.
+ *    Chips…'s play and off; Settings → Hits and Reset plan; the Week sheet's other takes and Removes), until it closes.
  * An Undo needs none: memory offers the plan it replaces (replan) and the snapshot keeps it (restore).
  * Never asked while your plan heals or the bundle is behind; a source is made again for each plan view (a view for the
  * same rules asks the same solves: its flights go on), and a flight no source asks is let go (plansOf's L5: the rules
@@ -3962,7 +3962,7 @@ function dryEdit(run) {
 }
 
 /** Tap t ({kind, gw, run} | {kind: 'reset'}) as the solve its heal would ask on plan view P: {key, values, version, gw,
- *  kind, src, prep, ahead} | null. Reset plan is no edit: your rules all off and You → Hits back to the solver's own
+ *  kind, src, prep, ahead} | null. Reset plan is no edit: your rules all off and Settings → Hits back to the solver's own
  *  (memory.reset). */
 function askOf(ctx, P, t, src) {
   const a = t.kind === 'reset' ? { pins: [], drop: P.pins.filter((p) => !derivedPin(p)).map((p) => p.id), hitsMax: null } : dryEdit(t.run);
@@ -5165,14 +5165,14 @@ export function resetPlan(ctx) {
   say(ctx, COPY.planReset, undoOf(ctx, subjectOf(COPY.planReset), () => { if (!r.undo()) return false; setLineups(ctx, I, lus); REMOVED.by = gone; }));
   return true;
 }
-/** Plan view P holds a transfer, chip or rule of yours (any pin but the derived ones, the hold's and You → Hits': your
+/** Plan view P holds a transfer, chip or rule of yours (any pin but the derived ones, the hold's and Settings → Hits': your
  *  asks, asksOf, and a call's road pin), or a move you took off this session (B129: "removed by you"), which Reset plan
  *  takes off: the pitch's Reset plan pill shows (the user, 2026-10-21: "there is no easy reset all transfers button";
  *  the owner, 2026-10-26: "find why reset button also hid if something was preventing raya from suggestions": it
  *  counted your pins alone); a lineup of yours alone is Reset lineup's. → bool */
 export const planHasYours = (P) => (P?.pins || []).some((p) => !derivedPin(p)) || Object.values(removedBy(P)).some((x) => x.length > 0);
 
-/** You → Hits (the user, 2026-10-12: "auto plan allowed hits must be somewhere in settings, in here only chips"): the
+/** Settings → Hits (the user, 2026-10-12: "auto plan allowed hits must be somewhere in settings, in here only chips"): the
  *  hits Forkcast may take a week, one setting for every week, its choices [[n, label]]: None, then each cap up to the
  *  solver's own (meta.hit_cap: "−4", "−8"), and the one in force (`at`: memory's Plan.hitsMax, else the solver's own cap;
  *  none known, None and −4). */
@@ -5182,7 +5182,7 @@ export function hitsChoices(P) {
   const at = P?.mem?.hitsMax ?? top;
   return { at: Math.min(at, top), choices: Array.from({ length: top + 1 }, (_, n) => [n, COPY.hitsSeg(n)]) };
 }
-/** Set You → Hits to n (an edit: its toast, its verdict against the plan before, Undo; the solver's own cap is no
+/** Set Settings → Hits to n (an edit: its toast, its verdict against the plan before, Undo; the solver's own cap is no
  *  setting). → bool */
 export function setHitsMaxWithUndo(ctx, n) {
   const P = plan(ctx);
@@ -5202,7 +5202,7 @@ export function chipWeek(P, g) {
 
 /** F9 / F13 / F17: GW g's transfer mode (no control of its own since 2026-10-12):
  *  'roll' (Forkcast adds no transfer that GW: the hold's, or a Roll rule, memory.pinRoll: a suggested plan's +), 'free'
- *  (no hits: a cap of 0, You → Hits' None or an older plan's pinHits 0), 'h<n>' (at most n hits, below the default),
+ *  (no hits: a cap of 0, Settings → Hits' None or an older plan's pinHits 0), 'h<n>' (at most n hits, below the default),
  *  else 'auto' (no cap: the solver's own default, meta.hit_cap). */
 export function gwMode(P, g) {
   // a Roll of yours, or the hold's (no transfer unless you add one: memory.holdOf)
@@ -6082,10 +6082,11 @@ export function mount(el, ctx) {
   const head = h('header.ah-head', { 'aria-label': 'Forkcast' });
   const pageName = (team) => h('h1.sr-only', null, team ? `${team} · Forkcast` : 'Forkcast');
   const avatar = h('button.ah-avatar', { type: 'button', onClick: () => ctx.openSheet('you') });
-  // the header's left column, the avatar's mirror: "Help", the Help sheet at once (the user, 2026-10-13: help on the
-  // main screen, not only avatar → You → Help; Podmajersky: how-to findable). Hidden while a toast
-  // lies over it (m-ahead.css), so a tap on the toast never opens it
-  const helpBtn = h('button.ah-help', { type: 'button', 'aria-haspopup': 'dialog', onClick: () => ctx.openSheet('you', 'help') }, COPY.helpShort);
+  // the header's left column, the avatar's mirror: the Settings gear, the plan's settings at once (the owner,
+  // 2026-10-29: "instead of help on top left settings displayed (setting icon …) and have there following setting for
+  // the start"; Help, there since 2026-10-13, is the You sheet's row again). A toast stops short of it, as of the
+  // avatar (m.css #toasts)
+  const setBtn = h('button.ah-set', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.settingsTitle, onClick: () => ctx.openSheet('you', 'settings') }, icon('settings', { size: 22 }));
   // the header's second line, under the team's name (the user, 2026-10-22: "DEADLINE INTO THE HEADER", its row of its
   // own gone), two facts on one line: GW A's deadline, whatever GW is viewed ("Deadline Sat 13:00 · 4d 17h": N10, one
   // fact, one place; tick() runs the countdown), and the window's total where it fits (keepGwLine; renderTotal: "GW6–9
@@ -6191,7 +6192,7 @@ export function mount(el, ctx) {
     const P = plan(ctx);
     if (!P) return;
     if (!P.gws.includes(g)) {
-      // a GW past your plan (You → Plan ahead): how to plan it, or that every plan reaching it is locked (edgeTicks)
+      // a GW past your plan (Settings → Plan ahead): how to plan it, or that every plan reaching it is locked (edgeTicks)
       const n = P.reach.indexOf(g) + 1;
       if (n > 0 && g > P.end) toast(lockedFrom(P, n) ? COPY.weekLocked(g) : COPY.weekOff(g, P.gws.length), 'info');
       else if (g > P.end) toast(`${COPY.forecastEdge(g)} Plans cover ${span(P.gws)}.`, 'info');
@@ -6369,7 +6370,7 @@ export function mount(el, ctx) {
   function renderHead() {
     const team = ctx.bundle?.entry?.team_name ?? '';
     if (globalThis.document) document.title = team ? `${team} · Forkcast` : 'Forkcast';
-    fill(head, pageName(team), helpBtn, h('div.ah-hmid', null, h('div.ah-team', null, team), gwline), avatar);
+    fill(head, pageName(team), setBtn, h('div.ah-hmid', null, h('div.ah-team', null, team), gwline), avatar);
   }
   /** "Gameweek 6 • Deadline: Sat 10 Oct at 13:00 (4d 17h)": always GW A, the week you act on (N10), whatever GW g is
    *  viewed; data-gw is the GW the screen last drew (the harness waits on it). While it re-plans, how far it is
@@ -8623,7 +8624,7 @@ export function mount(el, ctx) {
     // weeks' were this move's alone against keeping its seller, the per-move share the user ordered out, 2026-10-22; the
     // review of the many-FT fixes the same day)
     const weeks = whenOnBase(whenOf(ctx, P, { gw: g, out: m.out, in: m.in }), on?.head)?.map((x) => (bare ? { ...x, delta: null, label: null } : x));
-    if (!weeks || weeks.length < 2) return null;  // a 1-week plan (You → Plan ahead): no other week to move it to
+    if (!weeks || weeks.length < 2) return null;  // a 1-week plan (Settings → Plan ahead): no other week to move it to
     const pick = (x) => {
       const ok = moveTo(ctx, { gw: g, out: m.out, in: m.in }, x);
       if (ok) setGw(x);
@@ -9233,7 +9234,7 @@ export function mount(el, ctx) {
     oneLook(marked, ['close', 'noxp', 'nowas']);
   }
   /** The GW switcher's GWs past the plan (the user, 2026-10-14: "in main tab gw 8-10 also locked depending on horizons
-   *  chosen"): the longest plan's GWs (reach) the plan doesn't cover (You → Plan ahead), each a tile with a lock and no
+   *  chosen"): the longest plan's GWs (reach) the plan doesn't cover (Settings → Plan ahead), each a tile with a lock and no
    *  points (.edge: none of the plan's); a tap, a scrub's end or a key says how to plan it, or that it is locked
    *  (setGw). I: info(ctx), a plan view, or {reach, gws} while the first week is planned (renderBaking). */
   const edgeTicks = (I) => I.reach.filter((x) => !I.gws.includes(x)).map((x) => h('button.ah-tick.edge.pencil', {

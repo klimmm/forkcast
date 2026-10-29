@@ -54,12 +54,11 @@
 .ah-team { min-width: 0; text-align: center; font: 700 var(--t-title)/1.2 var(--f-text); letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ah-avatar { position: relative; justify-self: end; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--track); color: var(--ink-2); font: 600 var(--t-sub)/1.3 var(--f-text); }
 .ah-avatar::before { content: ""; position: absolute; inset: -6px; }  /* a 44pt target */
-/* "Help" (ahead helpBtn; the user, 2026-10-13): the avatar's mirror in the left column, a link's words (.ah-lnk's colour
-   and weight at the avatar's size), its target 44 pt; hidden while a page toast lies over it (m.css #toasts covers the
-   row but the avatar's column), so a tap there never opens it */
-.ah-help { position: relative; justify-self: start; padding: 0; border: 0; background: none; color: var(--acc); font: 600 var(--t-sub)/1.3 var(--f-text); white-space: nowrap; }
-.ah-help::before { content: ""; position: absolute; inset: -14px -10px; }
-body:has(#toasts:not([data-place="dock"]) > .toast:not(.leaving)) .ah-help { visibility: hidden; }
+/* the Settings gear (ahead setBtn; the owner, 2026-10-29, in Help's place since 2026-10-13): the avatar's mirror in the
+   left column, a hexagon round a hole in a link's colour (.ah-lnk's), its target 44 pt or more; a page toast stops short of it, as of the avatar (m.css
+   #toasts), so it is in sight and takes a tap while one is up */
+.ah-set { position: relative; justify-self: start; display: flex; padding: 0; border: 0; background: none; color: var(--acc); font: 600 var(--t-sub)/1.3 var(--f-text); white-space: nowrap; }
+.ah-set::before { content: ""; position: absolute; inset: -14px -12px; }
 .ah-dot { position: absolute; right: -1px; bottom: 0; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 2px var(--bg); }
 .ah-dot.amber { background: var(--warn-mark); }  /* 4.3:1 on --bg (was 1.8:1: 1028c P4-keep, W9) */
 .ah-dot.none { background: var(--bg); box-shadow: 0 0 0 2px var(--bg), inset 0 0 0 1.5px var(--muted); }

@@ -1,20 +1,22 @@
 // Forkcast's You sheet (IPHONE_DESIGN §5.10, DESIGN_V2 §6 copy): your team, rank and the points-to-places rate, the
 // plan's status (forecast runs, when the plan was solved, the connection; no History: the user, 2026-10-08, a list of
 // every pick and lock, repeats and undone ones too, was noise), Help (B76: a sheet opened only when asked, no
-// first-visit tour; also straight from Ahead's header "Help", open(ctx, 'help'), the user 2026-10-13; rewritten task
+// first-visit tour; its own sheet, open(ctx, 'help'), on Ahead's header from 2026-10-13 to 10-29 (the gear since); rewritten task
 // first the same day, "rewrite help so it readable", with Why Forkcast behind its last row: sheets/about.js), Switch
 // team (the shared picker: name search or ID, ./picker.js), Sign out of the team on this device
 // (F6b), Refresh, Reset plan (ahead.resetPlan: this GW's plan as a new team's, its toast with Undo). Only on a local page (the server's verdict, api.access;
 // ACCESS_V2) a Dev mode section: Open Studio (Dev mode), and Open on iPhone (the address as text and a QR)
 // when the server runs with --lan or --public. A remote page shows nothing dev-related.
-// Plan: the hits Forkcast may take a week (the user, 2026-10-12: "auto plan allowed hits must be somewhere in settings"),
-// one setting for every week (ahead.setHitsMaxWithUndo: an edit, its toast with Undo); Plan ahead, how many GWs Forkcast
-// plans, 1 week to 4 (the user, 2026-10-14; ctx.weeks / setWeeks, kept per team in this browser; a length the server
-// locks, meta.locked, shows a lock and can't be picked).
+// Settings, open(ctx, 'settings') from Ahead's header gear (the owner, 2026-10-29: "instead of help on top left settings
+// displayed (setting icon …) and have there following setting for the start"): Plan, the hits Forkcast may take a week
+// (the user, 2026-10-12: "auto plan allowed hits must be somewhere in settings"), one setting for every week
+// (ahead.setHitsMaxWithUndo: an edit, its toast with Undo); Plan ahead, how many GWs Forkcast plans, 1 week to 4 (the
+// user, 2026-10-14; ctx.weeks / setWeeks, kept per team in this browser; a length the server locks, meta.locked, shows a
+// lock and can't be picked). The You sheet had them until then.
 // The line every GW (COPY.cheerLine; the user, 2026-10-21): while the bundle's rank.cheer is there, one quiet line under
 // the rank, text only.
 // Sheet module contract: static/js/m/app.js (open(ctx) → sheet, opened with ctx.openSheet('you'); ctx.openSheet('you', 'help')
-// the help sheet alone).
+// the help sheet alone, ctx.openSheet('you', 'settings') the Settings sheet).
 
 import { COPY, horizonFeature } from '../calls.js';
 import { initials, resetPlan, inputsOf, plan, hitsChoices, setHitsMaxWithUndo, showTipsAgain, presolveTaps, planHasYours } from '../ahead.js';
@@ -43,9 +45,10 @@ function bakedAt(bake) {
   return best;
 }
 
-/** The You sheet; `what` 'help': Help alone (Ahead's header "Help", the user 2026-10-13). */
+/** The You sheet; `what` 'help': Help alone (its row here); 'settings': the Settings sheet (Ahead's header gear). */
 export function open(ctx, what = null) {
   if (what === 'help') return helpSheet(ctx);
+  if (what === 'settings') return settingsSheet(ctx);
   const { h, fmt, fill } = ctx.ui;
   const offs = [];
 
@@ -55,54 +58,14 @@ export function open(ctx, what = null) {
     build(body) {
       const team = h('div');
       const engine = h('div.m-sec');
-      const planSec = h('div.m-sec');
       const dev = h('div.m-sec', { hidden: true });
-      body.append(team, engine, planSec, settings(), dev);
+      body.append(team, engine, settings(), dev);
 
-      // ---------------------------------------------------------------- the plan's settings: the hits a week
-      function paintPlan() {
+      // Reset plan's tap solved ahead while this is open (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved
+      // and done without no cost"), where it takes something off
+      function presolveReset() {
         const P = plan(ctx);
-        // no plan of the length picked (none baked yet: under a data job, or after a deadline): Plan ahead stays, the way
-        // back to one that has (the review, 2026-10-14: the section went, and the pick with it)
-        const reach = P?.reach ?? ctx.data?.reach;
-        if (!P) { fill(planSec, ...(reach?.length ? [h('h3', null, 'Plan'), ...weeksCtl(reach, true)] : [])); return; }
-        const { at, choices } = hitsChoices(P);
-        const i = choices.findIndex(([n]) => n === at);
-        fill(planSec, h('h3', null, 'Plan'),
-          h('div.ah-optl', { id: 'y-hits-l' }, COPY.hitsHead),
-          ctx.ui.roving(h('div.m-seg.y-hits', { role: 'radiogroup', 'aria-labelledby': 'y-hits-l', style: { '--n': choices.length, '--i': i } },
-            h('span.m-seg-thumb'),
-            choices.map(([n, l]) => h('button', {
-              type: 'button', role: 'radio', 'aria-checked': String(n === at), dataset: { hits: n }, disabled: !P.editable,
-              onClick: () => setHitsMaxWithUndo(ctx, n),
-            }, l))), { pick: (b) => b.click() }),
-          h('p.m-foot', null, COPY.hitsNote),
-          ...weeksCtl(reach, P.editable));
-        // its taps solved ahead while it is open (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and done
-        // without no cost"): Reset plan where it takes something off, and each other Hits choice
-        if (P.editable) {
-          presolveTaps(ctx, [...(planHasYours(P) ? [{ kind: 'reset' }] : []), ...choices.filter(([n]) => n !== at).map(([n]) => ({ kind: 'hits', run: () => setHitsMaxWithUndo(ctx, n) }))],
-            { sig: `${at}|${planHasYours(P)}`, owner: offs });
-        }
-      }
-      /** Plan ahead (the user, 2026-10-14: "to the setting where hit cost are set also add forecast horizon"): 1 week to the
-       *  longest plan's (the bundle's reach), the one asked for checked (ctx.weeks: a locked pick falls back to the longest
-       *  unlocked), a locked length (meta.locked) off with the lock and one line why under them. A pick re-plans at once
-       *  (ctx.setWeeks: the bundle of that plan). `reach`: the longest plan's GWs. */
-      function weeksCtl(reach, editable) {
-        const locked = ctx.bundle?.meta?.locked || [];
-        const ns = reach.map((_, k) => k + 1), at = ctx.weeks();
-        const off = (n) => n > 1 && locked.includes(horizonFeature(n));
-        return [h('div.ah-optl', { id: 'y-weeks-l' }, COPY.aheadHead),
-          ctx.ui.roving(h('div.m-seg.y-weeks', { role: 'radiogroup', 'aria-labelledby': 'y-weeks-l', style: { '--n': ns.length, '--i': Math.max(0, ns.indexOf(at)) } },
-            h('span.m-seg-thumb'),
-            ns.map((n) => h('button', {
-              type: 'button', role: 'radio', 'aria-checked': String(n === at), dataset: { weeks: n }, disabled: !editable || off(n),
-              'aria-label': off(n) ? `${COPY.aheadSeg(n)}, locked` : null,
-              onClick: () => { if (n !== at) { ctx.setWeeks(n); paintPlan(); } },
-            }, off(n) ? ctx.ui.icon('lock', { size: 12 }) : null, COPY.aheadSeg(n)))), { pick: (b) => b.click() }),
-          ns.some(off) ? h('p.m-foot.y-weeks-lock', null, COPY.aheadLocked) : null,
-          h('p.m-foot', null, COPY.aheadNote)];
+        if (P?.editable && planHasYours(P)) presolveTaps(ctx, [{ kind: 'reset' }], { sig: 'reset', owner: offs });
       }
 
       // ---------------------------------------------------------------- team, rank, points to places
@@ -201,13 +164,81 @@ export function open(ctx, what = null) {
       }
       ctx.api.access().then((a) => { acc = a; paintEngine(); });
 
-      paintTeam(); paintEngine(); paintPlan();
+      paintTeam(); paintEngine(); presolveReset();
       offs.push(
         ctx.store.on('conn', paintEngine),
-        ctx.store.on('data', () => { paintTeam(); paintEngine(); paintPlan(); }),
-        // the setting as plan memory has it (an Undo of its toast puts it back)
-        ctx.store.on('memory', paintPlan),
+        ctx.store.on('data', () => { paintTeam(); paintEngine(); presolveReset(); }),
+        ctx.store.on('memory', presolveReset),
       );
+    },
+  });
+}
+
+/** The plan's settings into `planSec` (the Settings sheet's; the You sheet's until 2026-10-29): Most hits per GW and Plan
+ *  ahead, its other Hits choices solved ahead while it shows (owner `offs`). → paintPlan, to paint it again */
+function planSettings(ctx, planSec, offs) {
+  const { h, fill } = ctx.ui;
+  function paintPlan() {
+    const P = plan(ctx);
+    // no plan of the length picked (none baked yet: under a data job, or after a deadline): Plan ahead stays, the way
+    // back to one that has (the review, 2026-10-14: the section went, and the pick with it)
+    const reach = P?.reach ?? ctx.data?.reach;
+    if (!P) { fill(planSec, ...(reach?.length ? [h('h3', null, 'Plan'), ...weeksCtl(reach, true)] : [])); return; }
+    const { at, choices } = hitsChoices(P);
+    const i = choices.findIndex(([n]) => n === at);
+    fill(planSec, h('h3', null, 'Plan'),
+      h('div.ah-optl', { id: 'y-hits-l' }, COPY.hitsHead),
+      ctx.ui.roving(h('div.m-seg.y-hits', { role: 'radiogroup', 'aria-labelledby': 'y-hits-l', style: { '--n': choices.length, '--i': i } },
+        h('span.m-seg-thumb'),
+        choices.map(([n, l]) => h('button', {
+          type: 'button', role: 'radio', 'aria-checked': String(n === at), dataset: { hits: n }, disabled: !P.editable,
+          onClick: () => setHitsMaxWithUndo(ctx, n),
+        }, l))), { pick: (b) => b.click() }),
+      h('p.m-foot', null, COPY.hitsNote),
+      ...weeksCtl(reach, P.editable));
+    // its taps solved ahead while it is open (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and done
+    // without no cost"): each other Hits choice
+    if (P.editable) {
+      presolveTaps(ctx, choices.filter(([n]) => n !== at).map(([n]) => ({ kind: 'hits', run: () => setHitsMaxWithUndo(ctx, n) })),
+        { sig: `${at}`, owner: offs });
+    }
+  }
+  /** Plan ahead (the user, 2026-10-14: "to the setting where hit cost are set also add forecast horizon"): 1 week to the
+   *  longest plan's (the bundle's reach), the one asked for checked (ctx.weeks: a locked pick falls back to the longest
+   *  unlocked), a locked length (meta.locked) off with the lock and one line why under them. A pick re-plans at once
+   *  (ctx.setWeeks: the bundle of that plan). `reach`: the longest plan's GWs. */
+  function weeksCtl(reach, editable) {
+    const locked = ctx.bundle?.meta?.locked || [];
+    const ns = reach.map((_, k) => k + 1), at = ctx.weeks();
+    const off = (n) => n > 1 && locked.includes(horizonFeature(n));
+    return [h('div.ah-optl', { id: 'y-weeks-l' }, COPY.aheadHead),
+      ctx.ui.roving(h('div.m-seg.y-weeks', { role: 'radiogroup', 'aria-labelledby': 'y-weeks-l', style: { '--n': ns.length, '--i': Math.max(0, ns.indexOf(at)) } },
+        h('span.m-seg-thumb'),
+        ns.map((n) => h('button', {
+          type: 'button', role: 'radio', 'aria-checked': String(n === at), dataset: { weeks: n }, disabled: !editable || off(n),
+          'aria-label': off(n) ? `${COPY.aheadSeg(n)}, locked` : null,
+          onClick: () => { if (n !== at) { ctx.setWeeks(n); paintPlan(); } },
+        }, off(n) ? ctx.ui.icon('lock', { size: 12 }) : null, COPY.aheadSeg(n)))), { pick: (b) => b.click() }),
+      ns.some(off) ? h('p.m-foot.y-weeks-lock', null, COPY.aheadLocked) : null,
+      h('p.m-foot', null, COPY.aheadNote)];
+  }
+  return paintPlan;
+}
+
+/** Settings (Ahead's header gear; the owner, 2026-10-29, "instead of help on top left settings displayed (setting icon …)
+ *  and have there following setting for the start"): the plan's settings (planSettings), painted again as the plan and
+ *  its memory change (an Undo of a Hits toast puts its choice back). */
+function settingsSheet(ctx) {
+  const offs = [];
+  return ctx.sheets.open({
+    title: COPY.settingsTitle, detent: 'large', label: COPY.settingsTitle,
+    onClose: () => { offs.forEach((f) => f()); presolveTaps(ctx, null, { owner: offs }); },
+    build(body) {
+      const planSec = ctx.ui.h('div.m-sec');
+      body.append(planSec);
+      const paintPlan = planSettings(ctx, planSec, offs);
+      paintPlan();
+      offs.push(ctx.store.on('data', paintPlan), ctx.store.on('memory', paintPlan));
     },
   });
 }

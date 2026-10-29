@@ -36,7 +36,7 @@
 //                                           solver's own default cap (meta.hit_cap), which a GW with no rule takes; 0 is
 //                                           no hit. Made now by splitRoad (a road's own caps) and Ahead's forkValues
 //                                           (a suggested plan's later weeks), no longer by a week's Auto-plan (gone 2026-10-12: the hits
-//                                           Forkcast may take are You → Hits, the derived pin 'hits': withHits). No hits
+//                                           Forkcast may take are Settings → Hits, the derived pin 'hits': withHits). No hits
 //                                           or Roll rule stands in a Wildcard or Free Hit week
 //                                           (composePins skips them, chipEdit and normalizeAccepted take them off)
 //   'chip:<gw>'   pinChip(gw, chip)  'cash'  pinCash(tenths)   plan options as pins
@@ -111,7 +111,7 @@
 //   setLineup({xi, bench, captain, vice}) → {undo}: GW A's lineup (F7); setPlan(road, {why}) → {undo} (a road
 //     you chose: Adopt); values({extra: [Pin], drop: [id]}) → engine.solveValues values for your pins as an edit
 //     that drops `drop` and adds `extra` would leave them (pinsAfter; the edit not made)
-//   setHitsMax(n) → {undo}: the hits Forkcast may take a week, every week (You → Hits; the user, 2026-10-12: "auto plan
+//   setHitsMax(n) → {undo}: the hits Forkcast may take a week, every week (Settings → Hits; the user, 2026-10-12: "auto plan
 //     allowed hits must be somewhere in settings"): 0 none, 1 up to −4, null the solver's own cap (Plan.hitsMax;
 //     accepted.hits_max), sent by planValues as every solve's cap
 //   offer(road): a road this page solved for some pins (a chip prepared with your rules, F14; a Wish pill): a re-plan
@@ -1690,7 +1690,7 @@ export function createMemory(ctx) {
     const { pin } = holdOf(mine, { A: S.A, end: endNow(), owned: ownedNow() });
     return pin ? [pin, ...mine] : mine;
   };
-  /** You → Hits below the solver's own cap (accepted.hits_max; setHitsMax): a derived pin 'hits' (never stored, as the
+  /** Settings → Hits below the solver's own cap (accepted.hits_max; setHitsMax): a derived pin 'hits' (never stored, as the
    *  hold's), every GW of the window at most that many hits, composed last so it bounds every per-week cap a solve's own
    *  pins set (ahead.forkValues' later weeks at the bake's cap); after the hold is derived, so it lifts no week of it. */
   const withHits = (list, most = num(accNow()?.hits_max)) => {
@@ -1722,7 +1722,7 @@ export function createMemory(ctx) {
     // The phone's evaluation of your exact moves (holdRoad)
     // went (the owner, 2026-10-26: its GW9 drew four Arsenal players after a Remove, "fix so every squad is solver
     // squad, no hardcoded logic whatsoever so shit like this not happens")
-    // (and while a change that clears the stored plan is solved, You → Hits, a drift's "Use it", Reset plan: the last plan
+    // (and while a change that clears the stored plan is solved, Settings → Hits, a drift's "Use it", Reset plan: the last plan
     // the solver returned on this page, lastNow, never none or another's; reviewer 1 of solversquad, 2026-10-26)
     if (acc?.plan?.weeks?.length) S.last = { entry: S.entry, A: S.A, plan: acc.plan };
     const last = lastNow() ?? baseNow();
@@ -2098,7 +2098,7 @@ export function createMemory(ctx) {
 
   /** The solve values of your pins after an edit that drops `drop` (ids) and adds `extra` (pinsAfter: exactly the
    *  pins the edit makes, so its heal asks for the same values), the edit not made. `order`: the edit's own reorder of
-   *  your rules after it (ahead.js edit's inPlace); `hitsMax`: You → Hits as the edit leaves it (null: the solver's own
+   *  your rules after it (ahead.js edit's inPlace); `hitsMax`: Settings → Hits as the edit leaves it (null: the solver's own
    *  cap; Reset plan's), else as it is. */
   function values({ extra = [], drop = [], order = null, hitsMax } = {}) {
     const after = pinsAfter(storedNow(), { add: extra, drop }, S.A, ownedNow());
@@ -2579,7 +2579,7 @@ export function createMemory(ctx) {
     try { docs = await loadAll(); } catch { return; }
     if (S.entry !== entry || S.A !== A || S.doc) return;
     const prev = docs[String(A - 1)];
-    // to the longest plan's end (meta.reach), not this plan's: a shorter one (You → Plan ahead) carries your rules for
+    // to the longest plan's end (meta.reach), not this plan's: a shorter one (Settings → Plan ahead) carries your rules for
     // the weeks past it too, as it keeps them while they are past its weeks (planValues sends its weeks' alone)
     const end = ids(ctx.bundle?.meta?.reach).at(-1) ?? endNow();
     const carried = carryPins(prev, A, end);

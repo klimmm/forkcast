@@ -14,7 +14,7 @@
 // Scott → Groß", M6); a player your rules keep out (a veto, Never) is blocked as "your rule" (UX-1).
 // The fix pass (2026-10-08): A1 Forkcast's pick was the best row as it is, made as your transfer (a week handed to the
 // planner could add a sale and a hit of its own: under the hold the week now takes the one buy only, memory.holdOf; hits
-// stay within You → Plan). A row he can't afford is made as it is (the owner, 2026-10-28: "make it to add player even
+// stay within Settings → Plan). A row he can't afford is made as it is (the owner, 2026-10-28: "make it to add player even
 // with negative itb like official fpl allow"; it asked for the sale that frees the money before, A3): the plan short of
 // money as FPL's draft is (ahead.saleBuy → bringIn, memory.holdOf's debts), Forkcast's way to pay it back the pitch's
 // best (ahead.plansOf, owedRoad). A8 the hit is said once over the list (the rows' numbers count it), and a buy who

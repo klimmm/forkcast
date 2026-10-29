@@ -33,7 +33,7 @@
 //                 entry_id, gw, squad: [player row + sell_price, purchase_price], bank, ft,
 //                 chips_available, chips_used, horizon: xpGws}), lineup ({xi, bench, captain, vice}
 //                 now: the entry's FPL picks when the bundle has them, else engine.bestXI for gw),
-//                 gw (next deadline GW), horizon ([gw…], the plan's weeks: You → Plan ahead), reach ([gw…gw+3],
+//                 gw (next deadline GW), horizon ([gw…], the plan's weeks: Settings → Plan ahead), reach ([gw…gw+3],
 //                 the longest plan's), xpGws ([gw…forecast_edge], the GWs row.xp covers), noise, seeds
 //                 (engine.decodeSeeds(bundle.seeds) or null), receivedAt (ms)}
 //   store      shared store: get(key), set(key, value) | set({k: v}), on(key, fn(value, prev)) → off,
@@ -68,7 +68,7 @@
 //                                       the toast's Undo signs straight back in
 //   teamPicker(opts)                    ./picker.js teamPicker(ctx, opts): the one team picker (name search, ID,
 //                                       the Recent list) Connect and the Switch team sheet share (F6)
-//   weeks() → n | null · setWeeks(n)    You → Plan ahead: the plan's weeks asked for this team (weeksOf), and a new
+//   weeks() → n | null · setWeeks(n)    Settings → Plan ahead: the plan's weeks asked for this team (weeksOf), and a new
 //                                       pick (kept per team in this browser, the bundle asked for it at once)
 //   reveal     true while the first mount after Connect's first load runs (read it inside mount)
 //   (local vs remote, for dev-only entries: api.access(), the server's verdict)
@@ -157,7 +157,7 @@ const horizonOf = (m = {}) => (Array.isArray(m.horizon) ? m.horizon.map(Number) 
 /** The GWs the longest plan reaches (meta.reach; a server from before plan lengths: the planned ones). */
 const reachOf = (m = {}) => (Array.isArray(m.reach) ? m.reach.map(Number) : horizonOf(m));
 
-/** You → Plan ahead (the user, 2026-10-14): the plan's weeks this browser picked for team `entry`, kept per team here
+/** Settings → Plan ahead (the user, 2026-10-14): the plan's weeks this browser picked for team `entry`, kept per team here
  *  (localStorage: the bundle request needs it before plan memory, which comes inside the bundle, is known). */
 const HORIZON_KEY = (entry) => `fc:horizon:${entry}`;
 /** The plan's weeks to ask team `entry`'s bundle for: the pick, as bundle b's locks and reach allow it (calls.planWeeks;
@@ -1294,8 +1294,8 @@ const PLACE_SETTLE_MS = 120;  // after a scroll or a resize ends, the toast up i
  * clear of the avatar (m.css #toasts). The review of 2026-10-08: placed where its Undo covered no control (a search from
  * the foot, nudged up; since gone), "Bassey in · +5.7 pts · Undo" sat over the pitch's midfield, on the IN card of the
  * buy it was about, for 6–60 s (a toast with Undo stays until your next touch, A9), and a reviewer saw it "change
- * position"; the header's row holds nothing to tap but the avatar and "Help", which hides while a toast is up
- * (m-ahead.css .ah-help), and of what an edit changes only the GW line's total (since 2026-10-22), whose change waits
+ * position"; the header's row holds nothing to tap but the avatar and the Settings gear, each clear of a toast
+ * (m.css #toasts), and of what an edit changes only the GW line's total (since 2026-10-22), whose change waits
  * for the toast to go (ahead.js renderTotal; the v1.3.75 review #18). It never moves for the page: a toast up is
  * placed again only for a sheet coming or going.
  * QA-5 #2 (QA-3 #6b): taps pass through its body (m.css: only its Undo takes one). With the page scrolled so a row
