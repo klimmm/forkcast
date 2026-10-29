@@ -7173,8 +7173,9 @@ export function mount(el, ctx) {
   const entryKey = (g, e) => `${e.pl ? planKey(g, e.pl) : `rm:${e.remove.out}>${e.remove.in}`}|${e.inId}`;
   /** The Reset's slot (rsBtn: m-ahead.css .ah-rsbtn, the pitch's top-left corner), its top on the pitch, px, `gap` px
    *  under the first token's room at its tallest (the best token with its "Swap" on a line of its own, .ah-tok.mv.gol:
-   *  its padding, its words' line, the gap and the Swap's 20 px; or the first token as drawn where that is taller). The
-   *  same in a week with no token as in one with the best's (1029b T12: nothing on the pitch moves on a GW switch).
+   *  its padding, its words' line, the gap and the Swap's 20 px; or the first token as drawn where that is taller), the
+   *  same for every token so it doesn't jump as a token's words change. A week with no token keeps no room for one
+   *  (placePills: the corner's top).
    *  RESET_GAPS: 12 px (the token's target 9 px under it, the Reset's 3 px over it: the two never meet), else 3 px (a
    *  320 px phone: the keeper's row leaves no more over the defenders' cards behind; .near: 24 px tall, each target to its
    *  half). */
@@ -7182,8 +7183,9 @@ export function mount(el, ctx) {
   const resetSlot = (first, gap = RESET_GAPS[0]) => 6 + Math.max(Math.ceil(cssPx(decks, 'calc(var(--t-sub) * 1.3 + 31px)')[0]), first?.offsetHeight ?? 0) + gap;
   /** The Reset (rsBtn) over the cards as drawn (the pitch's box b, the cards' `boxes`: cardBoxes), shown while something
    *  of yours is there to take back (S.reset: renderPitch): at its slot (resetSlot: 12 px under the token's room, else
-   *  3 px) where it meets no card and takes no card behind's room (resetFits); else (a large text size, whose token
-   *  has room the slot doesn't count on) 3 px under the first token as drawn, at the top with none; else at the top,
+   *  3 px) where it meets no card and takes no card behind's room (resetFits), at the corner's top in a week with no
+   *  token; else (a large text size, whose token has room the slot doesn't count on) 3 px under the first token as
+   *  drawn; else at the top,
    *  the tokens given way (their plates still on the pitch); else not drawn (the You sheet's Reset plan). Its target reaching down only to the card or token
    *  under it. Hidden with the focus on it, it hands it to Player data. Placed by every draw of the choices
    *  (renderDecks), before they reach up to it. */
@@ -7192,7 +7194,9 @@ export function mount(el, ctx) {
     rsBtn.classList.remove('near');
     if (!rsBtn.hidden) {
       const first = [...decks.querySelectorAll(':scope > .ah-tok')].find((t) => t.isConnected) ?? null;
-      const at = [[resetSlot(first), false], [resetSlot(first, RESET_GAPS[1]), true], [first ? first.offsetTop + first.offsetHeight + RESET_GAPS[1] : 6, !!first]]
+      // (no token in the corner: at its top, level with Player data, no room kept for one: the owner, 2026-10-29, "why
+      // reset button so low in the pitch", a week whose best he had taken; "fix bug")
+      const at = (first ? [[resetSlot(first), false], [resetSlot(first, RESET_GAPS[1]), true], [first.offsetTop + first.offsetHeight + RESET_GAPS[1], true]] : [[6, false]])
         .find(([y, near]) => { rsBtn.style.top = `${y}px`; rsBtn.classList.toggle('near', near); return resetFits(boxOf(rsBtn, b), boxes); });
       // (none: a 320 px phone at a large text size, a token in the corner: the Reset at the top and the tokens under it
       // given way, the best's plate still on its player (data-mv-out) and every choice the Week sheet's, so your take-back
