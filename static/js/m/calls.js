@@ -1237,11 +1237,12 @@ export const hitsOf = (plan) => (plan?.weeks ?? plan?.gws ?? []).reduce((n, w) =
  * solver gave (a phone estimate, an older stored plan). Both must be solved on the same data for
  * the count to compare like with like: the caller checks that (Ahead: the plan's roads version).
  */
-export function plannerOf(a, b) {
+export function plannerOf(a, b, keep = null) {
   const oa = E.objectiveOf(a), ob = E.objectiveOf(b);
   if (!oa || !ob) return null;
   const terms = {};
-  for (const k of new Set([...Object.keys(oa.terms), ...Object.keys(ob.terms)])) if (!SLACK.includes(k)) terms[k] = (oa.terms[k] ?? 0) - (ob.terms[k] ?? 0);
+  // (`keep`: those terms alone, POINT_TERMS for a transfer choice's number: counted)
+  for (const k of new Set([...Object.keys(oa.terms), ...Object.keys(ob.terms)])) if (!SLACK.includes(k) && (!keep || keep.includes(k))) terms[k] = (oa.terms[k] ?? 0) - (ob.terms[k] ?? 0);
   // two roads of the same data are on one scale: a plan stored before plan memory kept its k_h reads its partner's
   const onScale = (r, o) => (r && !Array.isArray(r.k_h) && Array.isArray(o?.k_h) ? { ...r, k_h: o.k_h } : r);
   const ra = E.objectiveOf(onScale(a, b), { atAnchor: true }).terms, rb = E.objectiveOf(onScale(b, a), { atAnchor: true }).terms;
@@ -1255,11 +1256,17 @@ export function plannerOf(a, b) {
 /** Two solved roads' own count over the window the solver committed GW g from (Road.windows[g]: every term at every
  *  round of it, api/mobile.py make_road, on the shown scale): plannerOf over those windows → its {delta, ref, terms} |
  *  null where either has no window for g (an estimate, your plan's ≈, a road stored before). */
-export function windowGap(a, b, g) {
+export function windowGap(a, b, g, keep = null) {
   const win = (r) => (r?.windows?.[g] ? { ...r, objective: r.windows[g], weeks: [] } : null);
   const wa = win(a), wb = win(b);
-  return wa && wb ? plannerOf(wa, wb) : null;
+  return wa && wb ? plannerOf(wa, wb, keep) : null;
 }
+/** The solver's terms that are points you score (engine.objectiveOf): the XI's forecast points, the captain's, the hits'
+ *  cost. A transfer choice's number counts these alone over its window (the owner, 2026-10-29, "Back to solver vs roll,
+ *  but fix silva bug which shows -0.3": 353468 GW9's Kayode → Silva read −0.32 = XI +0.12, bench −0.35, transfer charge
+ *  −0.09 against rolling; its bench cover, per-transfer charge and banked transfers are the planner's own, not points);
+ *  a chip's keeps every term. */
+export const POINT_TERMS = ['xi', 'cap', 'hit'];
 /**
  * A choice's number (the owner, 2026-10-28, "Solver's own count, own window": GW12's Raya → Trafford read +1.0, GW12's
  * points alone, while the solver, over GW12–15, rolls: points +1.0 there, its free transfer worth more kept): compare's
@@ -1268,8 +1275,8 @@ export function windowGap(a, b, g) {
  * per-run votes (the count has none); the points kept as `pts`. As it was where either road has no window for g.
  * ctx: planInputs.
  */
-export function counted(ctx, cmp, a, b, g) {
-  const w = cmp ? windowGap(a, b, g) : null;
+export function counted(ctx, cmp, a, b, g, keep = null) {
+  const w = cmp ? windowGap(a, b, g, keep) : null;
   if (!w) return cmp;
   return { ...cmp, delta: w.delta, ref: w.ref, label: E.verdictLabel(w.ref, ctx.noise), winner: w.delta > EPS ? 'a' : w.delta < -EPS ? 'b' : null,
     votes: null, against: null, lead: null, count: w.terms, pts: cmp };
