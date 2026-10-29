@@ -7319,7 +7319,17 @@ export function mount(el, ctx) {
       // (design 1029b Ta: its verb kept at 320 too, the screen's one primary act, H2, M2, G6: where the name would go
       // under NAME_LEAST beside it, "Swap" takes a line of its own under the name and number (.gol), off only where even
       // that leaves no room)
-      return fitsWith(['noxp', 'nomark', 'tight', 'cut']) || fitsWith(['noxp', 'nomark', 'tight', 'gol', 'cut']) || fitsWith(['noxp', 'nomark', 'tight', 'nogo', 'cut']);
+      // (a plan's, its two names or more, one line always: its word off before a second line; where even its names cut
+      // to NAME_LEAST have no room, "2 transfers" in their place, so the week's best is never the corner's gap above its
+      // runner-up; the owner, 2026-10-30, "make it one line and not write 'both'")
+      if (fitsWith(['noxp', 'nomark', 'tight', 'cut']) || (ns.length < 2 && fitsWith(['noxp', 'nomark', 'tight', 'gol', 'cut'])) || fitsWith(['noxp', 'nomark', 'tight', 'nogo', 'cut'])) return true;
+      if (ns.length < 2) return false;
+      const tl = t.querySelector(':scope > .ah-tl'), was = [...tl.childNodes];
+      fill(tl, h('span.ah-tn', null, plural(ns.length, 'transfer')));
+      ns.splice(0, ns.length, ...tl.querySelectorAll('.ah-tn'));
+      if (fitsWith(['noxp', 'nomark', 'tight', 'cut']) || fitsWith(['noxp', 'nomark', 'tight', 'nogo', 'cut'])) return true;
+      fill(tl, ...was);
+      return false;
     };
     // the week's own choices stacked beside the goal, each under the one before, only while they and their targets (9 px
     // under each: m-ahead.css .ah-tok) clear the cards (a short pitch, three of them: the rest are the Week sheet's);
@@ -7731,9 +7741,11 @@ export function mount(el, ctx) {
    *  or a move still checked opens his place, as before. */
   function tokensOf(P, w, toks, lit = new Map(), lead = null, M = null) {
     const g = w.gw, out = [];
-    // (a multi-move best none: its one mark is its sentence's plate over its sellers' row, renderDecks; design 1026e
-    // "line": "Cunha → Palmer, Neto → Tavernier +3.8" never stands whole in the room beside the goal, 149 px at 393 wide)
-    const mv = lit.move, top = mv && lead?.[0]?.L.e.pl === mv && !multiMove(lead[0].L.e, lead[0].d.a) ? lead : null;
+    // (a plan's too, its buys and its number on one line, "Tavernier, Evanilson +1.0 Swap", the names shortened before
+    // anything else gives way, its word off where even that leaves no room: renderDecks' fits; the owner, 2026-10-30,
+    // "find why tav+evanilson transfers not shown in top left above hill, fix bug": since design 1026e "line" its sentence
+    // was a plate alone, "Cunha → Palmer, Neto → Tavernier +3.8" never whole in the 149 px beside the goal)
+    const mv = lit.move, top = mv && lead?.[0]?.L.e.pl === mv ? lead : null;
     /** A move's token: its place `a`'s entry e of choice pl, the best's ink (.mv) or the runner-up's white (.nx). */
     const moveTok = (e, a, pl, best) => {
       const nm = P.L.name;
@@ -7744,7 +7756,7 @@ export function mount(el, ctx) {
         // (its verb first where it takes, as drawn: "Swap. Best move this week: …"; W6 label in name, H3)
         'aria-label': swap ? COPY.bestSwapSaid(said) : `${said}, ${COPY.showsChoices}`,
         onClick: (ev) => (swap ? takeFrom(ev, P, g, pl, ev.currentTarget, a, e.inId) : openPlace(a)) },
-        h('span.ah-tl', { 'aria-hidden': 'true' }, h('span.ah-tn', null, nm(e.inId))),
+        h('span.ah-tl', { 'aria-hidden': 'true' }, (takesBack(e) || !e.adds.length ? [e.inId] : e.adds.map((m) => m.in)).map((id, i, all) => h('span.ah-tn', null, `${nm(id)}${i < all.length - 1 ? ',' : ''}`))),
         // (its number as its plate's, blue with "xP", as every forecast's: numParts)
         h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, numParts(g, pl)),
         // its take's word where its tap takes (the owner, 2026-10-28, design 1028d K1: one act, one word, one look;
