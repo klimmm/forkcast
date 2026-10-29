@@ -5349,8 +5349,10 @@ export function fplSubs(fpl, w, L) {
 /** GW A's lineup as the pitch draws it where it differs from the one set in FPL (the user, 2026-10-21: fix all
  *  (first-use proposal #4); Tom, first use: "Is this my team or the app's version of it?"): the players the cards call
  *  "on your FPL bench: the plan starts him" and "starts in your FPL team: the plan benches him" (pitch.js fplMarks),
- *  their names in the pitch's order, {start, bench}; null where no player changes places (the armband alone is the C's
- *  list's, fplMarks' arm spoken on the card), in a later GW, with no FPL team, or while GW A is under way (FPL has it).
+ *  their names in the pitch's order, {start, bench}; null where nothing is left to set in FPL once the week's transfers
+ *  are made there (no player changing places, the same armbands, the same bench order: the owner, 2026-10-29, "fix all",
+ *  of "set in fpl ... appeared randomly ... now it just missing": an armband or a bench order alone said nothing), in a
+ *  later GW, with no FPL team, or while GW A is under way (FPL has it).
  *  Said as a notice of the week line (weekModel), never a mark on the shirts (the user, 2026-10-09: "remove these
  *  labels"). Its Week-sheet row says only what is true (the review of the first-use proposals, 2026-10-21: FPL's team is
  *  the last deadline's, a lineup set in FPL since is not seen): the GW that team is for (`gw`: fplGw), the substitutions
@@ -5362,14 +5364,16 @@ export function fplSets(ctx, P, w) {
   const fpl = fplOf(ctx, P, w);
   const marks = [...fplMarks(fpl, w)];
   const x = fpl && fplSubs(fpl, w, P.L);
-  if (!x?.subs.length) return null;
+  if (!x) return null;
   const nm = P.L.name;
   const of = (move) => marks.filter(([, m]) => m.move === move).map(([id]) => nm(id));
   const arm = (k) => (w[k] != null && num(fpl[k]) !== num(w[k]) ? nm(w[k]) : null);
+  const captain = arm('captain'), vice = arm('vice');
+  if (!x.subs.length && !x.order && !captain && !vice) return null;
   return {
     start: of('start'), bench: of('bench'), gw: fplGw(P),
     subs: x.subs.map((s) => ({ on: nm(s.on), off: nm(s.off), buy: x.buys.has(s.on) || x.buys.has(s.off) })),
-    captain: arm('captain'), vice: arm('vice'), order: x.order?.map(nm) ?? null, buys: [...x.buys].map(nm),
+    captain, vice, order: x.order?.map(nm) ?? null, buys: [...x.buys].map(nm),
   };
 }
 /** No edit reaches GW g: GW A under way (FPL has it: memory.inkClash judges added pins so); a frozen GW too (§7.7 ink,
@@ -6865,10 +6869,9 @@ export function mount(el, ctx) {
    * a problem notice that stands takes the line after the lead (the first, "· +1" for more; amber for a clash or a
    * price that won't wait), else a short bank keeps it, else, until the week's choices are lit, how far their checks
    * are ("Checking GW9 · 3 of 6 plans · 0:12"). GW A's lineup notice (quiet: weekModel), only where none of them
-   * stands, is never on the strip: on the week's status beside the goal in every week, in "Rolling"'s place in a week
-   * with no transfer, the facts whole on the strip (the owner, 2026-10-22, after the space screenshots: "Set in FPL: 3
-   * changes" in "No transfers yet"'s place over the facts), else under its words (the owner, 2026-10-26: "fix
-   * inconsistency", of it moving to the strip once a transfer was made). Wherever the facts aren't drawn
+   * stands, is never on the strip: on the week's status beside the goal in every week, under its words, one look (the
+   * owner, 2026-10-26: "fix inconsistency", of it moving to the strip once a transfer was made; 2026-10-29, "fix all",
+   * of its two designs: "Rolling"'s own words in a week with no transfer since 2026-10-22). Wherever the facts aren't drawn
    * (all but GW A under way) the week's FT and bank lead the line, "1 FT · £0.3m ITB · Out: Saka", a short bank's words
    * in its place (weekLead; the user, 2026-10-21: "why itb missing", of GW8's line under "Set in FPL: start Murillo");
    * the checks' words then give way beside it, never their clock (fitFacts).
@@ -6930,13 +6933,10 @@ export function mount(el, ctx) {
     const notice = problem ? `${problem.text}${more ? COPY.moreNotices(more) : ''}` : null;
     // (an amber notice or a short bank keeps the line over the wait's words: paintWait, design 1028d W12-dimline)
     S.lineKeep = !M.live && (!!problem?.warn || !!bankWarn(P, w));
-    // the lineup notice in "Rolling"'s place in a week with no transfer, its facts whole on the strip (the owner,
-    // 2026-10-22, of "1 FT · £0.8m ITB · Set in F…": "Set in FPL: 3 changes" over "1 FT · £0.8m ITB · 2 FT in GW9"; the
-    // strip, 2026-10-26), else under the status's words, `sub` ("1 transfer +1.2" over "Set in FPL: 3 changes"; "Rolling
-    // is best" and "Rolling ✓" say more than the notice too: the review of pick1026c); a problem notice keeps the line
-    // after the week's FT and bank
-    const sub = lineup && one !== COPY.rollingNow ? lineup : null;
-    if (lineup && !sub) one = lineup;
+    // (the lineup notice under the status's words in every week, one look, S.status's `sub`: "1 transfer +1.2" or
+    // "Rolling" over "Set in FPL: 3 changes"; the owner, 2026-10-29, "fix all", of "set in fpl note have different
+    // designs": in "Rolling"'s place as its words since 2026-10-22, a small line under any other); a problem notice keeps
+    // the line after the week's FT and bank
     if (problem) two = notice;
     // (the checks' words and their clock after the lead, fitFacts shedding their words; the clock carries its own " · ")
     const chk = checking && h('span.ah-chk', null, h('span.ah-bn.ah-cw', null, checking[0]), waitClock('', { late: true, sep: '\u00a0·\u00a0' }));
@@ -6957,9 +6957,9 @@ export function mount(el, ctx) {
     if (noticeSaid.textContent !== told) fill(noticeSaid, told || null);
     // the status token's (statusTok): the week's −4 only where its words are its transfers (a squad chip's are free);
     // green where the week is yours (your transfers, your chip, your Roll), as "Wildcard · yours" and "Rolling ✓" were;
-    // the lineup notice in its place (never green: FPL's to do, not yours) said after the week's own words ("Rolling.
+    // the lineup notice under its words (never green: FPL's to do, not yours) said after the week's own words ("Rolling.
     // Set in FPL: 3 changes", its words in its name)
-    S.status = M.live ? null : { g, one, hits: n && !M.sq ? w.hits : 0, wait, gain, ap, said: lineup ? `${said}. ${lineup}` : said, sub, mine: n > 0 || kept > 0 || !!M.sq || (facts && !(lineup && !sub) && rollingAt(P, g)) };
+    S.status = M.live ? null : { g, one, hits: n && !M.sq ? w.hits : 0, wait, gain, ap, said: lineup ? `${said}. ${lineup}` : said, sub: lineup, mine: n > 0 || kept > 0 || !!M.sq || (facts && rollingAt(P, g)) };
     fill(strip, h('section.ah-block', { 'aria-label': COPY.weekTitle(g), tabindex: '-1', dataset: { focusHome: '' } },
       barNode({
         two, warn: !!problem?.warn,
@@ -7572,12 +7572,12 @@ export function mount(el, ctx) {
    *  if nothing happens if click it and it dublicates whats alread y in tab over the pitch"; chosen the same day: the
    *  strip, design 1026c): what the week line's first line said, said once, on the pitch, in the place of "Rolling",
    *  "Rolling is best", "Rolling ✓" and "Wildcard · yours" / "Free Hit · yours": "Rolling" (emptyHead: "Rolling is best"
-   *  once settled with nothing better, "Rolling ✓" under your Roll, never "No transfers yet"), "Set in FPL: 4 changes"
-   *  (GW A's lineup notice in a week you roll; under the words of any other: "1 transfer +1.2" over "Set in FPL: 3
-   *  changes", renderLine), "2 transfers −4 +3.8", "Free Hit +4.3"; yours green as "· yours" was;
+   *  once settled with nothing better, "Rolling ✓" under your Roll, never "No transfers yet"), "2 transfers −4 +3.8",
+   *  "Free Hit +4.3", GW A's lineup notice under the words of any ("Rolling" or "1 transfer +1.2" over "Set in FPL: 3
+   *  changes", renderLine); yours green as "· yours" was;
    *  its number the week line's (renderLine: vs rolling everywhere, decision K's "The week line keeps your plan's own
    *  number against rolling"), "checking…" under its words while it solves (never a clock in its slot: waitClock), a
-   *  number kept on its word where the words wrap ("Set in FPL: / 4 changes"). A tap opens the Week sheet, the week it
+   *  number kept on its word where the words wrap. A tap opens the Week sheet, the week it
    *  names, as the strip does (under your Roll at Your rules, where its Remove is: the unlock "Rolling ✓"'s tap was).
    *  Its words said here alone, the strip's label its facts (VoiceOver hears the week once). Never given way for room
    *  (renderDecks; but the lineup notice under its words, the first to give way). renderLine's words (S.status). →

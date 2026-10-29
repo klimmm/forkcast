@@ -275,10 +275,9 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-pbake .ah-spin { flex: none; margin-right: 6px; align-self: center; }
 .ah-pbt .ah-bs.warn { color: var(--warn-ink); font-weight: 600; }
 /* its line one line at every text size (the user, 2026-10-22: "WEEK LINE AT MOST 2 LINES"; it took two for GW
-   A's lineup notice and your week's facts since the reviews of 2026-10-21): GW A's lineup notice in a week with no
-   transfer the week's status beside the goal, "Set in FPL: 3 changes" (the owner, 2026-10-22, after the space
-   screenshots: "Set in F…" cut after the facts; the strip, 2026-10-26: ahead.js statusTok), after the lead in a week
-   with transfers, cut at its end (the Week sheet's row names them all); your week's facts with its bank (ahead.js rollFacts;
+   A's lineup notice and your week's facts since the reviews of 2026-10-21): GW A's lineup notice never on it but under
+   the week's status beside the goal, "Set in FPL: 3 changes" (the owner, 2026-10-22, after the space screenshots: "Set
+   in F…" cut after the facts; the strip, 2026-10-26; one look, 2026-10-29: ahead.js statusTok); your week's facts with its bank (ahead.js rollFacts;
    the user, 2026-10-21: "where it shows itb money", "On the week line"), "2 FT · £0.8m ITB · 3 FT in GW10", about 192 px
    of 13 px SF where the line has about 155 px beside its doors at 375 px (170 at 390, 182 at 402; CoreText's widths,
    2026-10-21): next GW's free transfers (.ah-fnext) left to the Week sheet where they don't fit (ahead.js fitFacts),
@@ -509,7 +508,7 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 button.ah-tok { cursor: pointer; }
 .ah-tok.done { color: var(--acc); }
 /* the week's status (ahead.js statusTok; the owner's strip, 2026-10-26), yours green as "· yours" was: its words wrap
-   between words in its room beside the goal, never cut ("Set in FPL: / 4 changes" at 320 px), its number on its word,
+   between words in its room beside the goal, never cut, its number on its word,
    under them where they leave it no room (a larger text size: "1 transfer / +1.6 xP"), never wider than that room */
 .ah-tok.st { flex-wrap: wrap; row-gap: 0; height: auto; min-height: 26px; padding-top: 3px; padding-bottom: 3px; white-space: normal; }
 .ah-tok.st > .ah-tl { text-align: left; }

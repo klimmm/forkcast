@@ -102,8 +102,11 @@ const range = (a, b) => span(a === b ? [a] : [a, b]);
 const andList = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}` : xs[0] ?? '');
 /** ahead.fplSets → the week line's advice: whom to start ("start Justin, Barry"), else whom to bench, else (only buys
  *  change places) the buy to bench, never a buy to start: he isn't in your FPL team yet (the review of the first-use
- *  proposals, 2026-10-21). */
-const setsSaid = ({ start, bench, subs }) => (start.length ? `start ${start.join(', ')}` : `bench ${(bench.length ? bench : subs.map((x) => x.off)).join(', ')}`);
+ *  proposals, 2026-10-21); where no one changes places, its one other change (the owner, 2026-10-29: "fix all", the note
+ *  for the armbands and the bench's order too): "captain Haaland", "vice-captain Palmer", "bench order". */
+const setsSaid = ({ start, bench, subs, captain, vice }) => (start.length ? `start ${start.join(', ')}`
+  : bench.length || subs.length ? `bench ${(bench.length ? bench : subs.map((x) => x.off)).join(', ')}`
+  : captain ? `captain ${captain}` : vice ? `vice-captain ${vice}` : 'bench order');
 /** …and its Week-sheet row's, true of what FPL has (the review of the first-use proposals, 2026-10-21: FPL's team is the
  *  last deadline's): what that team did ("benched Justin and Barry"), then each change that makes the pitch of it, one
  *  step a line in FPL's order (the user, 2026-10-22; johnson r7 §5, podmajersky r7 §8: three actions in one sentence):
