@@ -2894,6 +2894,14 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // (a row of a week with your transfers waits for their plan too: its colour sets it against them)
     if (r?.state !== 'ready') return { ...x, cmp: x.alone };
     if (own?.state === 'solving' && !heldOf(x.choice)) return { state: 'solving', choice: x.choice, wait: own.wait };
+    // a transfer row and the roll's own (no chip, not a Wildcard's held roll): its week's moves alone on your plan as it
+    // stands, against it, no later transfers on either side (`alone`, what its + moves the total by; the owner, 2026-10-29,
+    // "fix so points compared to roll without future transfers", of Kayode → Silva −0.3 where rolling then made Kayode →
+    // Hill and Calvert-Lewin → Evanilson with two free transfers); in a week of yours that is what it changes on your plan
+    // (decision K: a choice in place of your transfer, a 2nd transfer what it adds, the roll yours turned round)
+    if (!chipMine && !heldOf(x.choice) && !Object.keys(x.choice.chips || {}).length) {
+      return { ...x, cmp: x.alone, refEv: r.ev, refRoad: countRoad(r), vsRoll: true, refRow: !now.length && forkKey(x.choice, g) === rollK, ...(now.length ? { vsMine: x.alone } : {}) };
+    }
     // (vsMine by what its + gives, the week alone against your plan, where both keep your later weeks: in your Wildcard
     // or Free Hit week, your picks in it; a Wildcard row; your transfers' plan failed)
     // (each the solver's own count over GW g's window where both sides are solved roads carrying it: ownCount; the owner,
@@ -2933,12 +2941,14 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // Wildcard row's (your later weeks kept on both: its held roll) → {vsBest, best, bestFrom (the Roll side's plan)}; never
   // one the 2026-10-18 bars keep from being the week's suggestion (`early`: waiting is what they say)
   // (by its number where that is the solver's count, ownCount: one way to rank the rows and the roll against them)
-  const gainOf = (x) => (x.cmp?.count ? x.cmp.delta : x.full.delta);
+  const gainOf = (x) => x.cmp?.delta ?? 0;
   const top = done.filter((x) => !x.refRow && !x.early && x.vsRoll && !heldOf(x.choice)).sort((a, b) => gainOf(b) - gainOf(a))[0] ?? null;
   const topHeld = done.filter((x) => x.vsRoll && heldOf(x.choice)).sort(byGain)[0] ?? null;
   // (one it doesn't clear first, else the narrowest by the gap its label reads: compare's `ref`)
   const against = (x) => {
-    const cs = [top && { vsBest: ownCount(ctx, compare(ctx, x.fullEv, top.fullEv), countRoad(x), top.road, g), best: top, bestFrom: x.fullEv },
+    // (a transfer row's week alone against the roll's, as their numbers count: `alone`; a chip row's on the solver's count)
+    const plainTop = top && !Object.keys(top.choice.chips || {}).length;
+    const cs = [top && (plainTop ? { vsBest: compare(ctx, x.ev, top.ev), best: top, bestFrom: x.ev } : { vsBest: ownCount(ctx, compare(ctx, x.fullEv, top.fullEv), countRoad(x), top.road, g), best: top, bestFrom: x.fullEv }),
       topHeld && { vsBest: ownCount(ctx, compare(ctx, topHeld.refEv, topHeld.fullEv), topHeld.refRoad, topHeld.road, g), best: topHeld, bestFrom: topHeld.refEv }].filter(Boolean);
     return cs.find((c) => !clearGain(c.vsBest)) ?? cs.sort((a, b) => (a.vsBest.ref ?? a.vsBest.delta) - (b.vsBest.ref ?? b.vsBest.delta))[0] ?? {};
   };
@@ -3112,10 +3122,19 @@ const approxAt = (P, g) => (P.mark ?? P.approx).has(g);
  *  Mount's weekRoll; a × that rolls the week (removeMove). A Wildcard or Free Hit week (squadWeek): your
  *  plan's chip week against its own roll (plansOf's `mine`, your plan on it, and `mineRef`), the number its token said
  *  (the user, 2026-10-22: "vs rolling everywhere"; chipWeekGain). */
-function weekRollOf(ctx, P, w, listed = (g) => plansOf(ctx, P, g)) {
+export function weekRollOf(ctx, P, w, listed = (g) => plansOf(ctx, P, g)) {
   const sq = !!squadWeek(w);
   if ((!sq && !w.moves.length) || approxAt(P, w.gw)) return null;
   const L = listed(w.gw) ?? {};
+  // a transfer week: your plan against the roll's row, its week alone on your plan (your transfers taken back), no later
+  // transfers on either side, as the rows count (plansOf `alone`; the owner, 2026-10-29, "fix so points compared to roll
+  // without future transfers"), so the move a + just took reads what its row read
+  if (!sq) {
+    const roll = Array.isArray(L) ? L.find((x) => x.state === 'ready' && !x.choice.moves.length && !Object.keys(x.choice.chips || {}).length && x.ev) : null;
+    if (!roll) return null;
+    const mine = planBaseline(ctx, P, w.gw);
+    return { ...compare(ctx, mine, roll.ev), road: roll.road, ev: roll.ev, mine };
+  }
   const ref = sq ? L.mineRef : L.ref;
   return ref && L.mine ? vsRollOf(ctx, L.mine, ref, w.gw, L.mineRoad, L.countRoad?.(ref)) : null;
 }
@@ -6117,8 +6136,8 @@ export function mount(el, ctx) {
   const pdBtn = h('button.ah-pp.ah-pdbtn', { type: 'button', 'aria-haspopup': 'dialog', onClick: () => { playerDataSheet(); } });
   // "↺ Reset": the pitch's one take-back, in its top-left corner with the week's own choices (one corner for acts on
   // your plan, the other for what you see: the owner, 2026-10-29, "why rec not have reset plan on the left logically
-  // where transfer suggestion pill is"; 1029b T8, N2, H9), a one-line token's room down, lower only under a
-  // taller token (placePills: one place in every week), only while something of yours is there to take back (renderPitch, S.reset):
+  // where transfer suggestion pill is"; 1029b T8, N2, H9), under the corner's tokens, a one-line token's room
+  // down with none or one (placePills: one place in every such week), only while something of yours is there to take back (renderPitch, S.reset):
   // the viewed GW's lineup ("Reset lineup": resetLineup), your plan's transfers, chips and rules ("Reset plan": the
   // user, 2026-10-21, "maybe place it small on pitch"; planHasYours, resetPlan), one tap where one applies (its toast,
   // Undo); where both do, "Reset ⌄" and its tap the choice of the two, each saying what it takes back (resetSheet: NN5,
@@ -7171,16 +7190,17 @@ export function mount(el, ctx) {
   const cardIn = (root, id) => root?.querySelector(`:scope > :is(.pm-field, .pm-benchzone) .pm-card[data-id="${id}"]`) ?? null;
   /** An entry's key in its place (its held order): its choice's (planKey) and the buy it shows. */
   const entryKey = (g, e) => `${e.pl ? planKey(g, e.pl) : `rm:${e.remove.out}>${e.remove.in}`}|${e.inId}`;
-  /** The Reset's top (rsBtn: m-ahead.css .ah-rsbtn, the pitch's top-left corner), `gap` px under one token's room: a
-   *  one-line token's (--pm-pill), or the first token as drawn where that is taller (its "Swap" on a line of its own, a
-   *  long name or a 320 px phone). So it is at one place in every week, one with no token or a one-line one alike (the
-   *  owner, 2026-10-29: "fix so reset button not move to top and be at same position"), with no two-line token's room
-   *  kept over a one-line one ("what space between two pills are left for").
+  /** The Reset's top (rsBtn: m-ahead.css .ah-rsbtn, the pitch's top-left corner), `gap` px under the corner's last
+   *  token's room (`last`; the corner's top with none): a one-line token's (--pm-pill), or that token as drawn where it is
+   *  taller (its "Swap" on a line of its own, a long name or a 320 px phone). So it is at one place in every week with
+   *  no token or one one-line token (the owner, 2026-10-29: "fix so reset button not move to top and be at same
+   *  position"), with no two-line token's room kept over a one-line one ("what space between two pills are left for"),
+   *  and under both of two tokens ("why reset button between two pills not under").
    *  RESET_GAPS: 12 px (the token's target 9 px under it, the Reset's 3 px over it: the two never meet), else 3 px (a
    *  320 px phone: the keeper's row leaves no more over the defenders' cards behind; .near: 24 px tall, each target to its
    *  half). */
   const RESET_GAPS = [12, 3];
-  const resetSlot = (first, gap = RESET_GAPS[0]) => 6 + Math.max(Math.ceil(cssPx(decks, 'var(--pm-pill)')[0]), first?.offsetHeight ?? 0) + gap;
+  const resetSlot = (last, gap = RESET_GAPS[0]) => (last ? last.offsetTop : 6) + Math.max(Math.ceil(cssPx(decks, 'var(--pm-pill)')[0]), last?.offsetHeight ?? 0) + gap;
   /** The Reset (rsBtn) over the cards as drawn (the pitch's box b, the cards' `boxes`: cardBoxes), shown while something
    *  of yours is there to take back (S.reset: renderPitch): at its slot (resetSlot, RESET_GAPS) where it meets no card
    *  and takes no card behind's room (resetFits); else at the top,
@@ -7191,9 +7211,9 @@ export function mount(el, ctx) {
     rsBtn.hidden = !S.reset;
     rsBtn.classList.remove('near');
     if (!rsBtn.hidden) {
-      const first = [...decks.querySelectorAll(':scope > .ah-tok')].find((t) => t.isConnected) ?? null;
+      const last = [...decks.querySelectorAll(':scope > .ah-tok')].filter((t) => t.isConnected).at(-1) ?? null;
       // (no token there and no room at its slot: at the corner's top)
-      const at = [...RESET_GAPS.map((gap, i) => [resetSlot(first, gap), i > 0]), ...(first ? [] : [[6, false]])]
+      const at = [...RESET_GAPS.map((gap, i) => [resetSlot(last, gap), i > 0]), ...(last ? [] : [[6, false]])]
         .find(([y, near]) => { rsBtn.style.top = `${y}px`; rsBtn.classList.toggle('near', near); return resetFits(boxOf(rsBtn, b), boxes); });
       // (none: a 320 px phone at a large text size, a token in the corner: the Reset at the top and the tokens under it
       // given way, the best's plate still on its player (data-mv-out) and every choice the Week sheet's, so your take-back
@@ -7208,7 +7228,7 @@ export function mount(el, ctx) {
           if (gone) decks.dataset.tokOut = gone;
         } else rsBtn.hidden = true;
       } else if (at == null) { rsBtn.hidden = true; rsBtn.classList.remove('near'); }
-      for (const t of decks.querySelectorAll(':scope > .ah-tok')) t.classList.toggle('ah-over', t === first && rsBtn.matches('.near'));
+      for (const t of decks.querySelectorAll(':scope > .ah-tok')) t.classList.toggle('ah-over', t === last && rsBtn.matches('.near'));
     }
     if (rsBtn.hidden) { if (rsBtn === document.activeElement) pdBtn.focus({ preventScroll: true }); return; }
     const p = boxOf(rsBtn, b);
@@ -7316,19 +7336,16 @@ export function mount(el, ctx) {
     // screen): the best move's token shortens first (fits), then the tokens under the status give way, then the best's
     // over it, the status then first in the stack, kept there whether or not it clears the cards
     const st = tk.find((t) => t.matches('.st'));
-    // (the Reset at its slot under the first token kept, the tokens after it under the Reset: resetSlot, placePills; `i`
-    // the tokens kept over this one, `first` the first of them)
+    // (the Reset under the tokens, at its slot under the last: resetSlot, placePills)
     rsBtn.hidden = !S.reset;
-    const past = (top, i, first) => (i === 1 && !rsBtn.hidden ? Math.max(top, resetSlot(first) + rsBtn.offsetHeight + 8) : top);
-    const stack = () => { let top = 6, i = 0, first = null; for (const t of tk) if (t.isConnected) { top = past(top, i++, first); first ??= t; t.style.top = `${top}px`; top += t.offsetHeight + 8; } };
-    let top = 6, ti = 0, kept = null;
+    const stack = () => { let top = 6; for (const t of tk) if (t.isConnected) { t.style.top = `${top}px`; top += t.offsetHeight + 8; } };
+    let top = 6;
     for (const t of tk) {
-      top = past(top, ti, kept);
       t.style.top = `${top}px`;
       // (the status where it can't fit wider: in its own room, trimmed as there, its words wrapping, never over the
       // keeper's card; its trims kept only where they fit it, so its "xP" goes from no plate for nothing: oneLook)
-      if (fits(t)) { top += t.offsetHeight + 8; ti++; kept ??= t; }
-      else if (t === st) { t.style.removeProperty('max-width'); if (!fitNum(t, overOf(t), ST_TRIMS)) t.classList.remove(...ST_TRIMS); top += t.offsetHeight + 8; ti++; kept ??= t; }
+      if (fits(t)) top += t.offsetHeight + 8;
+      else if (t === st) { t.style.removeProperty('max-width'); if (!fitNum(t, overOf(t), ST_TRIMS)) t.classList.remove(...ST_TRIMS); top += t.offsetHeight + 8; }
       else t.remove();
     }
     for (;;) {
@@ -7350,7 +7367,7 @@ export function mount(el, ctx) {
     const gone = tk.filter((t) => !t.isConnected && t.dataset.plan).map((t) => t.dataset.plan).join(' ');
     if (gone) decks.dataset.tokOut = gone;
     else delete decks.dataset.tokOut;
-    // the Reset at its slot under the first token's room, before the choices reach up to it (placePills)
+    // the Reset at its slot under the last token's room, before the choices reach up to it (placePills)
     placePills(b, boxes);
     const walls = [...boxes, ...labelWalls(root, b), ...[...root.querySelectorAll(':scope > .ah-pp:not([hidden]), .ah-tok')].map((x) => boxOf(x, b))];
     // a plate's height (m-ahead.css --pm-tab: the text size's), in whole px
@@ -7747,10 +7764,14 @@ export function mount(el, ctx) {
     // …and two moves in the corner in all, the others the best-paying single moves on the pitch's plates once the week
     // settles (each place's plate as drawn: litOf's, else its first choice, placeFirst; plPays), white, never ink, each tap the take as the best's (the owner, 2026-10-29: "why not suggest runner-up moves
     // or one more apart from evanislson - hill pill can be placed also just below evanislon on top left"; then, of a week
-    // whose best is a plan, its sentence a plate alone: "why missing any suggestions on top left"); under the Reset where
-    // that shows (the Reset's slot is fixed: resetSlot), given way where they don't fit (renderDecks' fits)
+    // whose best is a plan, its sentence a plate alone: "why missing any suggestions on top left"); the Reset under them
+    // (resetSlot), given way where they don't fit (renderDecks' fits)
+    // (each a player the corner doesn't name already: the best's buys, then theirs, so "Vuskovic +1.5" for Kayode is never
+    // over "Vuskovic +1.5" for Thomas; the owner, 2026-10-29, "what the fuck is this")
+    const named = new Set((mv?.choice?.moves || []).filter((m) => (m.gw ?? g) === g).map((m) => Number(m.in)));
     const singles = !M?.settled ? [] : M.decks.filter((d) => !d.mine && !lit.get(d.a)?.best).map((d) => [d.a, lit.get(d.a)?.e ?? placeFirst(d)])
-      .filter(([, e]) => e && singleMove(e) && plPays(e.pl)).sort(([, p], [, q]) => q.pl.cmp.delta - p.pl.cmp.delta);
+      .filter(([, e]) => e && singleMove(e) && plPays(e.pl)).sort(([, p], [, q]) => q.pl.cmp.delta - p.pl.cmp.delta)
+      .filter(([, e]) => !named.has(Number(e.inId)) && named.add(Number(e.inId)));
     for (const [a, e] of singles.slice(0, top ? 1 : 2)) out.push(moveTok(e, a, e.pl, false));
     // (the week's status on the bar's first line since design 1029b REC: statusLine)
     for (const pl of toks) {
@@ -8949,8 +8970,12 @@ export function mount(el, ctx) {
     // decision K; the owner, 2026-10-25, "compare + poitns not to rolling now but to transfer made"), where vsMine is
     // that; else (your chip week, a Wildcard row) what its + gives against your plan, as below
     const mine = pl.vsMine && pl.vsMine !== pl.alone && !pl.refRow ? plansOf(ctx, P, g).mine : null;
-    const [ev, other, cmp, vs, short] = best ? [pl.bestFrom ?? pl.fullEv, best.fullEv, pl.vsBest, titleOf(best), titleOf(best)]
+    // (a transfer row counts its week alone, no later transfers either side: plansOf `alone`, the owner, 2026-10-29; its
+    // sheet the same two plans, so no later week's moves are said as counted)
+    const plain = (x) => !Object.keys(x?.choice?.chips || {}).length && x?.cmp === x?.alone;
+    const [ev, other, cmp, vs, short] = best ? [pl.bestFrom ?? pl.fullEv, plain(best) ? best.ev : best.fullEv, pl.vsBest, titleOf(best), titleOf(best)]
       : mine ? [pl.fullEv, mine.ev, pl.cmp, COPY.planVs(true), COPY.planVs(true)]
+        : plain(pl) && !pl.refRow && !pl.vsMine ? [pl.ev, without, pl.cmp, COPY.planVsRoll, COPY.planRoll(null)]
         : pl.vsRoll && !pl.refRow && !pl.vsMine ? [pl.fullEv, pl.refEv, pl.cmp, COPY.planVsRoll, COPY.planRoll(null)]
           : [pl.ev, without, pl.alone ?? pl.cmp, COPY.planVs(!!pl.vsMine || mineAny(P)), COPY.planVs(!!pl.vsMine || mineAny(P))];
     const d0 = draftOf(ctx);
