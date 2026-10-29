@@ -6220,7 +6220,8 @@ export function mount(el, ctx) {
       h('span.ah-brest', null, chk)];
     // (the strip's one line, two probes: the facts, the lead and checks)
     const probes = [facts(), checks].map((two) => {
-      const b = h('section.ah-block.ah-fitprobe', { 'aria-hidden': 'true' }, barNode({ two, doors: doorStubs() }));
+      // (design 1029b REC: the status's line over them, "Rolling is best" its tallest, the ink chip)
+      const b = h('section.ah-block.ah-fitprobe', { 'aria-hidden': 'true' }, barNode({ one: h('span.ah-bt.ah-bst.best', null, h('span.ah-tl', null, COPY.rollingBest)), two, doors: doorStubs() }));
       b.style.width = `${strip.clientWidth}px`;
       strip.append(b);
       return b;
@@ -6905,7 +6906,10 @@ export function mount(el, ctx) {
       gain = v.cmp;
       wait = v.wait;
       short = bankWarn(P, w);
-      two = mine = COPY.outNames(movesInOrder(P, w).map((m) => P.L.name(m.out)));
+      // (its sales said to VoiceOver alone, never drawn: the status's "1 transfer" and the pitch's →| plates say them; the
+      // owner, 2026-10-29, "why these two fields information overlaps"; design 1029b Ta: the bar the week's facts, the
+      // label its decision, N3, G1, G4, R1)
+      mine = COPY.outNames(movesInOrder(P, w).map((m) => P.L.name(m.out)));
       said = `${one}${hitSaid(w.hits)}, ${numSaid(wait, v.cmp, ap, v.vs)}`;
     } else {
       // ("Rolling is best" where the Roll's token said it: the week settled, no move its best, its Roll offered)
@@ -6950,7 +6954,15 @@ export function mount(el, ctx) {
     const lead = M.live || own ? null : weekLead(P, w);
     const rest = notice ?? (checking ? checking[0] : null);
     // (the rest after it giving way, never the lead: .ah-brest)
-    if (lead) two = [h('span.ah-blead', null, lead.node, bsep('\u00a0·\u00a0')), h('span.ah-brest', null, two)];
+    // (a week of your transfers: the lead alone, no " · " left with nothing after it)
+    // GW A's lineup notice on the bar's second line after the week's FT and bank, under the status (design 1029b REC, from
+    // Tc: "Set in FPL: 2 changes" under the week's words as since 2026-10-29, now inside the bar's one door; the 10-26
+    // "never on the bar" changed), whole or not at all: where it has no room it gives way with its " · ", the Week
+    // sheet's row and VoiceOver saying it (fitFacts; never "Set in FPL: 2 ch…")
+    // (its words alone, "Set in FPL", where its whole line has no room: fitFacts)
+    const lu = lineup ? h('span.ah-blu', null, bsep(' · '), h('span.ah-fact', { dataset: { t: lineup.replace(/(\d) /g, '$1\u00a0') } }, lineup.replace(/(\d) /g, '$1\u00a0'))) : null;
+    if (lu && !lead) two = [two, lu];
+    if (lead) two = two != null ? [h('span.ah-blead', null, lead.node, lu, bsep('\u00a0·\u00a0')), h('span.ah-brest', null, two)] : h('span.ah-blead', null, lead.node, lu);
     // the notice on the line said once to VoiceOver, and nothing once none is on it (the first-use phones, 2026-10-21:
     // "Set in FPL: start Murillo" outlived its notice, onto weeks with none)
     const told = [problem?.text, lineup].filter(Boolean).join('. ');
@@ -6960,13 +6972,22 @@ export function mount(el, ctx) {
     // the lineup notice under its words (never green: FPL's to do, not yours) said after the week's own words ("Rolling.
     // Set in FPL: 3 changes", its words in its name)
     S.status = M.live ? null : { g, one, hits: n && !M.sq ? w.hits : 0, wait, gain, ap, said: lineup ? `${said}. ${lineup}` : said, sub: lineup, mine: n > 0 || kept > 0 || !!M.sq || (facts && rollingAt(P, g)) };
+    // design 1029b REC (problem M, from Tc): the week said in one place, the bar: its status ("1 transfer +1.5 xP") over
+    // its facts ("1 FT · £0.5m ITB · Set in FPL: 2 changes"), one door with one "›" to the Week sheet, under your Roll at
+    // Your rules as the status label's was; its doors Bring in and Chips at its right as before (G1, G2, G4, W5, N2)
     fill(strip, h('section.ah-block', { 'aria-label': COPY.weekTitle(g), tabindex: '-1', dataset: { focusHome: '' } },
       barNode({
-        two, warn: !!problem?.warn,
-        // (the facts said where they are drawn, "1 free transfer, £0.5 million in the bank, …"; the week's status the
-        // token's alone, so VoiceOver hears the week once: the owner's strip, must-fix 4; GW A under way its sentence)
-        label: [M.live ? said : own ? factsSaid : null, lead?.said, mine, rest].filter(Boolean).join('. '),
-        onClick: () => weekSheet(g), moves: w.moves.map((m) => `${m.out}>${m.in}`).join(' '),
+        one: M.live ? null : statusLine(S.status), two, warn: !!problem?.warn,
+        // (the week said once: its status, GW A's lineup notice, then its facts, "1 transfer, 1.5 points more than rolling.
+        // Set in FPL: 2 changes. 1 free transfer, £0.5 million in the bank; opens GW9 transfers"; GW A under way its sentence)
+        label: M.live ? said : COPY.statusSaid([S.status.said, own ? factsSaid : null, lead?.said, mine, rest].filter(Boolean).join('. '), g),
+        onClick: (ev) => {
+          const rules = !!S.drawn && rollingAt(S.drawn, g);
+          weekSheet(g, rules ? 'rules' : null);
+          // (a keyboard's or VoiceOver's focus on your Roll's Remove there: a click with no pointer, detail 0, as takeFrom)
+          if (rules && ev.detail === 0) S.week?.host.querySelector(`.ah-rmv[data-rule="roll:${g}"]`)?.focus({ preventScroll: true });
+        },
+        moves: w.moves.map((m) => `${m.out}>${m.in}`).join(' '),
         doors: inkAt(ctx, P, g) ? [] : [bringDoor(P, g), chipsDoor(P, g)],
       })));
     // what fitFacts places and sheds: the checks' words, shortest last
@@ -6992,6 +7013,15 @@ export function mount(el, ctx) {
    *     letter and "…" in amber, the Week sheet's row saying it whole). */
   function fitFacts() {
     const bar = strip.querySelector(':scope > .ah-block:not(.ah-fitprobe) > .ah-pbar'), bs = bar?.querySelector('.ah-pbt .ah-bs');
+    // the week's status on its line whole, never cut (design 1029b REC): its "xP", then a smaller number, as its label's
+    // on the pitch were (ST_TRIMS); where even that leaves it no room (a larger text size) the doors wrap under the line
+    const bst = bar?.querySelector('.ah-pbt > .ah-bst');
+    if (bst) {
+      bst.classList.remove('noxp', 'tight');
+      bar.classList.remove('ah-pwrap');
+      for (const c of ['noxp', 'tight']) { if (bst.scrollWidth <= bst.clientWidth + 0.5) break; bst.classList.add(c); }
+      if (bst.scrollWidth > bst.clientWidth + 0.5) bar.classList.add('ah-pwrap');
+    }
     if (!bs) return;
     const L = S.line?.bar === bar ? S.line : null, em = parseFloat(getComputedStyle(bs).fontSize);
     const fits = (x) => x.scrollWidth <= x.clientWidth + 0.5, right = (x) => x.getBoundingClientRect().right;
@@ -7006,14 +7036,30 @@ export function mount(el, ctx) {
       if (cw.clientWidth < 2 * em) cw.hidden = true;
     };
     const nx = bs.querySelector('.ah-fnext'), lead = bs.querySelector(':scope > .ah-blead'), rest = bs.querySelector(':scope > .ah-brest');
-    const seps = [...(lead?.querySelectorAll('.ah-bsep') ?? [])], sep = seps.at(-1);
-    for (const x of [nx, rest, ...seps, ...bs.querySelectorAll('.ah-itb')]) if (x) x.hidden = false;
+    // (GW A's lineup notice after the FT and bank, design 1029b REC: whole or gone with its " · ", never cut)
+    const blu = bs.querySelector('.ah-blu'), warn = bs.classList.contains('warn'), luw = blu?.querySelector('.ah-fact');
+    if (luw) luw.textContent = luw.dataset.t;
+    // (where its words have no room, "Set in FPL" alone, then none: never cut)
+    const luLess = () => { if (luw.textContent !== COPY.setInFplShort) luw.textContent = COPY.setInFplShort; else blu.hidden = true; };
+    const seps = [...(lead?.querySelectorAll('.ah-bsep') ?? [])], sep = rest ? seps.at(-1) : null;
+    for (const x of [nx, rest, blu, ...seps, ...bs.querySelectorAll('.ah-itb')]) if (x) x.hidden = false;
     for (const x of seps) x.textContent = x.dataset.t;
+    const leadFits = () => (lead ? lead.scrollWidth <= bs.clientWidth + 0.5 : fits(bs));
+    // (next GW's free transfers first, then the lineup notice: what FPL needs done stays longest)
     if (nx) nx.hidden = !fits(bs);
     // (the lead without its separator after it: that one goes with what follows)
     if (sep) sep.hidden = true;
-    if (!(lead ? lead.scrollWidth <= bs.clientWidth + 0.5 : fits(bs))) for (const x of bs.querySelectorAll('.ah-itb')) x.hidden = true;
+    if (rest) rest.hidden = true;
+    if (blu && !leadFits()) luLess();
+    if (blu && !blu.hidden && !leadFits()) luLess();
+    if (rest) rest.hidden = false;
+    // (an amber notice before the lineup notice: a problem is never pushed off by it; the Week sheet's row says it)
+    for (let i = 0; i < 2 && blu && !blu.hidden && rest && warn && rest.scrollWidth > rest.clientWidth + 0.5; i++) luLess();
+    if (!leadFits()) for (const x of bs.querySelectorAll('.ah-itb')) x.hidden = true;
     if (sep) sep.hidden = false;
+    // (a grey notice whole or gone with its " · ", never cut: "Tomorr…" read as a door's mark or the wait's; design 1029b
+    // REC, T6, P4: its Week sheet's row and VoiceOver's notice say it)
+    if (rest && !warn && !rest.querySelector('.ah-chk') && rest.scrollWidth > rest.clientWidth + 0.5) { rest.hidden = true; if (sep) sep.hidden = true; }
     if (L && rest) {
       shed();
       // (the clock says its own " · "; no room for it after the words: the words go, the clock beside the lead)
@@ -7021,7 +7067,7 @@ export function mount(el, ctx) {
       if (cw.hidden && sep) sep.hidden = true;
     }
     if (rest && !rest.hidden && !rest.querySelector('.ah-chk') && rest.clientWidth < 1.5 * em) {
-      if (bs.classList.contains('warn')) for (const x of seps) x.textContent = x.dataset.t.replace(/[\s\u00a0]+/g, '\u200a');
+      if (warn) for (const x of seps) x.textContent = x.dataset.t.replace(/[\s\u00a0]+/g, '\u200a');
       else rest.hidden = sep.hidden = true;
     }
     if (clock) clock.textContent = was;
@@ -7144,11 +7190,9 @@ export function mount(el, ctx) {
     const root = pitchHost.querySelector(':scope > .pm');
     const P = S.drawn, w = P && weekOf(P, gwNow(P)), M = S.M;
     if (!root || !w || !M || frozenAt(P, w.gw) || !decks.isConnected) {
-      // (a plan you can't change keeps its week's status beside the goal, alone: statusTok; the owner's strip)
-      const st = root && w && decks.isConnected ? statusTok(w) : null;
+      // (a plan you can't change: its week's status on the bar, statusLine; design 1029b REC)
       decks.removeAttribute('aria-label');
-      fill(decks, st);
-      if (st) st.style.top = '6px';
+      fill(decks);
       S.decks = []; closePlace(false); if (root) { placePills(root.getBoundingClientRect(), cardBoxes(root)); reachLabels(root); } return;
     }
     const g = w.gw;
@@ -7205,9 +7249,11 @@ export function mount(el, ctx) {
       const least = NAME_LEAST * parseFloat(getComputedStyle(t).fontSize), ns = [...t.querySelectorAll('.ah-tn')];
       // (its take's word first, its name shortened for it; where that leaves the name under NAME_LEAST, the word off and
       // the name whole again: design 1028d K1)
-      const fitsWith = (steps) => fitNum(t, tw.filter((x) => !x.matches('.ah-tn')), steps) && ns.every((x) => x.scrollWidth <= x.clientWidth + 0.5 || x.clientWidth >= least) && !meetsCard(t, 9, 6);
-      t.classList.remove('nogo');
-      return fitsWith(['noxp', 'nomark', 'tight', 'cut']) || fitsWith(['noxp', 'nomark', 'tight', 'nogo', 'cut']);
+      const fitsWith = (steps) => (t.classList.remove('gol', 'nogo'), fitNum(t, tw.filter((x) => !x.matches('.ah-tn')), steps) && ns.every((x) => x.scrollWidth <= x.clientWidth + 0.5 || x.clientWidth >= least) && !meetsCard(t, 9, 6));
+      // (design 1029b Ta: its verb kept at 320 too, the screen's one primary act, H2, M2, G6: where the name would go
+      // under NAME_LEAST beside it, "Swap" takes a line of its own under the name and number (.gol), off only where even
+      // that leaves no room)
+      return fitsWith(['noxp', 'nomark', 'tight', 'cut']) || fitsWith(['noxp', 'nomark', 'tight', 'gol', 'cut']) || fitsWith(['noxp', 'nomark', 'tight', 'nogo', 'cut']);
     };
     // the week's own choices stacked beside the goal, each under the one before, only while they and their targets (9 px
     // under each: m-ahead.css .ah-tok) clear the cards (a short pitch, three of them: the rest are the Week sheet's);
@@ -7582,26 +7628,18 @@ export function mount(el, ctx) {
    *  Its words said here alone, the strip's label its facts (VoiceOver hears the week once). Never given way for room
    *  (renderDecks; but the lineup notice under its words, the first to give way). renderLine's words (S.status). →
    *  node | null */
-  function statusTok(w) {
-    const g = w.gw, st = S.status?.g === g ? S.status : null;
+  // design 1029b REC (the owner, 2026-10-29: "why these two fields information overlaps actually, find how to merge";
+  // problem M from design 1029b Tc): the status is the bar's first line, inside its one door, never a label on the pitch
+  // of its own: one door to the Week sheet, one look (G1, G2, G4, W5); the pitch's left corner keeps the black best alone,
+  // so nothing there moves on a GW switch (T12). "Rolling is best" an ink chip there, as the best's ink (kept)
+  function statusLine(st) {
     if (!st) return null;
-    // ("Rolling is best" ink as the week's best move's token: the owner, 2026-10-27, "Why rolling is best not black similar
-    // how other best moves are black", then "Make it black"; its tap the Week sheet's still)
-    return h('button.ah-tok.st', { class: { done: st.mine, best: st.one === COPY.rollingBest }, type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` },
-      'aria-label': COPY.statusSaid(st.said, g), onClick: (ev) => {
-        const rules = !!S.drawn && rollingAt(S.drawn, g);
-        weekSheet(g, rules ? 'rules' : null);
-        // (a keyboard's or VoiceOver's focus on your Roll's Remove there: a click with no pointer, detail 0, as takeFrom)
-        if (rules && ev.detail === 0) S.week?.host.querySelector(`.ah-rmv[data-rule="roll:${g}"]`)?.focus({ preventScroll: true });
-      } },
-      // (dashed while an edit is checked, as the week line's first line was: m-pending)
-      h('span.ah-tl', { 'aria-hidden': 'true', class: { 'm-pending': st.ap } }, typeof st.one === 'string' ? st.one.replace(/(\d) /g, '$1\u00a0') : st.one,
-        st.wait ? h('small.ah-tw', null, COPY.pairChecking) : null),
-      // (its number the week line's: gainOf, blue with "xP", shimmering while an edit is checked; its −4 before it)
-      st.hits || (st.gain && !st.wait) ? h('span.ah-tnum', { 'aria-hidden': 'true' }, hitTag(st.hits), st.gain && !st.wait ? gainOf(st.gain, st.ap) : null) : null,
-      // (GW A's lineup notice under its words and number, the token's whole width, as a chip token's "instead of …": "1
-      // transfer +1.6" over "Set in FPL: 2 changes", two lines, not three; the first of it to give way for room: renderDecks)
-      st.sub ? h('small.ah-tw', { 'aria-hidden': 'true' }, st.sub.replace(/(\d) /g, '$1\u00a0')) : null);
+    return h('span.ah-bt.ah-bst', { class: { done: st.mine, best: st.one === COPY.rollingBest }, 'aria-hidden': 'true', dataset: { row: `tok:week:${st.g}` } },
+      // (dashed while an edit is checked: m-pending)
+      h('span.ah-tl', { class: { 'm-pending': st.ap } }, typeof st.one === 'string' ? st.one.replace(/(\d) /g, '$1\u00a0') : st.one),
+      st.wait ? h('small.ah-tw', null, COPY.pairChecking) : null,
+      // (its number the week's: gainOf, blue with "xP", shimmering while an edit is checked; its −4 before it)
+      st.hits || (st.gain && !st.wait) ? h('span.ah-tnum', null, hitTag(st.hits), st.gain && !st.wait ? gainOf(st.gain, st.ap) : null) : null);
   }
   /** The week's own choices beside the goal (top-left; the corner pills' look, m-ahead.css .ah-tok): the week's status
    *  (statusTok, in the place of your chip's "· yours", "Rolling ✓" and the Roll of a week you roll), a Bench Boost or
@@ -7634,7 +7672,8 @@ export function mount(el, ctx) {
       const moves = takesBack(e) ? [COPY.keepSoldSaid(nm(e.inId), nm(top[0].d.a))] : e.adds.map((m) => COPY.moveSaid(nm(m.out), nm(m.in)));
       const swap = mv.state === 'ready' && !frozenAt(P, g);
       out.push(h('button.ah-tok.mv', { type: 'button', 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:best:${g}`, deck: top[0].d.a, best: planKey(g, mv), ...(swap ? { add: `plan:${planKey(g, mv)}` } : {}) },
-        'aria-label': `${COPY.bestSaid(moves, plNumSaid(P, mv), true)}, ${swap ? COPY.bestSwaps : COPY.showsChoices}`,
+        // (its verb first where it takes, as drawn: "Swap. Best move this week: …"; W6 label in name, H3)
+        'aria-label': swap ? COPY.bestSwapSaid(COPY.bestSaid(moves, plNumSaid(P, mv), true)) : `${COPY.bestSaid(moves, plNumSaid(P, mv), true)}, ${COPY.showsChoices}`,
         onClick: (ev) => (swap ? takeFrom(ev, P, g, mv, ev.currentTarget, top[0].d.a, e.inId) : openPlace(top[0].d.a)) },
         h('span.ah-tl', { 'aria-hidden': 'true' }, h('span.ah-tn', null, nm(e.inId))),
         // (its number as its plate's, blue with "xP", as every forecast's: numParts)
@@ -7643,10 +7682,7 @@ export function mount(el, ctx) {
         // N2, W4/W5): "Swap" in the mint of its place's best header, a keep-back "Keep"; none where it opens his place
         swap ? h('span.ah-tgo.m-swap.best', { 'aria-hidden': 'true' }, takesBack(e) ? COPY.placeKeep : COPY.placeSwap) : null));
     }
-    // the week's status, under the best's token, in the place of "Wildcard · yours", "Rolling ✓" and the Roll's "Rolling"
-    // (the owner's strip, 2026-10-26)
-    const st = statusTok(w);
-    if (st) out.push(st);
+    // (the week's status on the bar's first line since design 1029b REC: statusLine)
     for (const pl of toks) {
       // what its take takes back of yours, under its words: a take never takes a transfer of yours back unsaid
       const s = planSaid(P, g, pl), key = planKey(g, pl), { lost } = planBack(P, g, pl);
@@ -8343,7 +8379,7 @@ export function mount(el, ctx) {
       : status ? { role: 'status' } : { 'aria-hidden': 'true' };
     return h(`div.ah-pbar${cls}`, null,
       h('div.ah-pbh', onClick ? { role: 'heading', 'aria-level': '3' } : null,
-        h(`${onClick ? 'button' : 'div'}.ah-brow.ah-pbt`, at, one ? h('span.ah-bt', null, one) : null,
+        h(`${onClick ? 'button' : 'div'}.ah-brow.ah-pbt`, at, one ? (one.classList?.contains('ah-bst') ? one : h('span.ah-bt', null, one)) : null,
           two ? h('span.ah-bs', { class: { warn } }, two) : null)),
       doors.length ? h('div.ah-doors', null, doors) : null);
   }

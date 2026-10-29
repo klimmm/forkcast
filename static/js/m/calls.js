@@ -679,13 +679,13 @@ export const COPY = Object.freeze({
   /** B35 (2026-10-10: one verb on every bring-in label): Add a player's title, and its footer link with "…". */
   bringInSheet: 'Bring in a player',
   /** Its door at the week line's right end (ahead.js bringDoor; the footer went 2026-10-13). */
-  bringInShort: 'Bring in…',
+  bringInShort: 'Bring in',  /* its "…" a "›" since design 1029b Ta (m-ahead.css .ah-door::after: one door look; "…" only a cut word) */
   /** The week line's Chips… door and its sheet (ahead.chipsDoor, sheets/chips.js; the user, 2026-10-13: "add 'chip..'
    *  button next to 'bring in..' every where instead of having play wc play fh inside suggestion"): its title, spoken
    *  label, the line under the title (each number's span; its baseline is each row's own, in its fact: chipNoChip),
    *  and each row's name and one fact (chipStates: played here, by Forkcast, planned in another week, instead of the
    *  week's chip, its best week, played this half). */
-  chipsDoor: 'Chips…',
+  chipsDoor: 'Chips',  /* as Bring in's: "›" drawn, FPL's own word (design 1029b Ta) */
   chipsIn: (gw) => `Chips in GW${gw}`,
   chipsSaid: (gw, chip = null) => (chip ? `Chips in GW${gw}, ${chipName(chip)} planned` : `Chips in GW${gw}`),
   chipsSub: (gws) => `Points over ${span(gws)}`,
@@ -960,7 +960,8 @@ export const COPY = Object.freeze({
   showsChoices: 'shows his choices',
   /** …a multi-move best's plate (design 1026e "line"): it opens that plan's Why sheet, whose one button takes it. */
   showsWhy: 'Shows why',
-  bestSwaps: 'swaps him in',
+  /** The best token's spoken name where its tap takes (ahead.tokensOf): its visible verb first (design 1029b Ta; W6). */
+  bestSwapSaid: (said) => `Swap. ${said}`,
   /** A buy of yours's plate (ahead.swapPlate; the owner, 2026-10-26: "i bough justin but where is no tab on his head so i
    *  can keep prebious player"): the player you sold, said "Keep Gabriel, not Justin, +0.8 points vs your plan". */
   keepSoldSaid: (sold, buy) => `Keep ${sold}, not ${buy}`,
@@ -1083,6 +1084,9 @@ export const COPY = Object.freeze({
     const [had, steps] = setsRow(sets);
     return [`Your FPL team${sets.gw ? ` for GW${sets.gw}` : ''} ${had ?? 'differs from this pitch'}. To match this pitch in FPL:`, steps];
   },
+  /** …its words alone where the bar's line has no room for what to set (design 1029b REC: whole, never "Set in FPL: 2
+   *  ch…"; the Week sheet's row, behind the bar's "›", says what). */
+  setInFplShort: 'Set in FPL',
   liveHead: (gw) => `GW${gw} is live`,
   nTransfers: (n) => plural(n, 'transfer'),
   /** A take's toast where the week keeps transfers of yours beside its own (ahead.addPlan): the week's count its number

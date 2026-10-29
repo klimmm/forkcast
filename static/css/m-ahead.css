@@ -11,7 +11,10 @@
             under it) · .ah-blockhost > .ah-block the week line (its own section below; the same card in the Week
             sheet, .ah-wsheet .ah-block.ah-wk) · .ah-pitch (pitch and bench:
             one height every week, from the screen alone, ahead.js fitPitch; plan-pitch.css; .ah-pp corner pills:
-            .ah-pdbtn Player data top-right, .ah-lubtn Reset lineup under it, .ah-rpbtn Reset plan under those; the
+            .ah-pdbtn Player data top-right, .ah-lubtn Reset lineup under it, .ah-rpbtn Reset plan under those; one
+            look per kind since design 1029b REC: the act ink with "Swap" (.ah-tok.mv), a door flat white with "›" (a chip
+            token, the bar with the week's status, its doors), the view setting the white pill (.ah-pdbtn, its own now), a
+            take-back red-edged; the
             choices: .ah-decks > .ah-sp / .ah-ring / .ah-tok, a player's place .ah-place, its own section below)
             · the Week sheet's .ah-moves > .ah-mrow[.out] > .ah-veto + .ah-fg · .ah-rules
             (Your rules: .ah-rrow > .ah-rule + .ah-rmv) · the Player data sheet .ah-pdsheet (.ah-pd > .ah-pdo, .ah-radio)
@@ -262,6 +265,33 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
   .ah-pbar .ah-pbt, .ah-doors > .ah-door { min-height: 38px; }
   .ah-pbar .ah-pbt::before, .ah-doors > .ah-door::before { bottom: 0; }
 }
+/* one door look (design 1029b Ta; the owner, 2026-10-29: "many buttons of same/ different design"): every way to a
+   sheet in the top area ends in the status label's muted "›" (K3) and words in a control's grey, never green (green the
+   act, Swap, and the selection: m.css:41; T7): the bar's facts (its tap the Week sheet's, as the label's: W5 3.2.4, G3),
+   Bring in and Chips (their "…" gone: on this bar it also meant a cut word and the wait, H6, R11, P4; the "›" says
+   "opens", N2, H8) at the label's 13/600 (M3 text buttons: the lowest emphasis, many side by side; H9 their hairlines) */
+.ah-pbar button.ah-pbt::after, .ah-doors > .ah-door::after { content: "\203A" / ""; color: var(--muted); font: 400 17px/1 var(--f-text); }
+.ah-pbar button.ah-pbt::after { grid-column: 2; grid-row: 1 / -1; align-self: center; transform: translateY(-1px); }
+.ah-doors > .ah-door { gap: 5px; color: var(--ink-2); font: 600 var(--t-sub)/1.3 var(--f-text); }
+.ah-doors > .ah-door::after { transform: translateY(-1px); }
+/* the week in one place (design 1029b REC, problem M from Tc; the owner, 2026-10-29: "why these two fields information
+   overlaps actually, find how to merge"): the bar's first line the week's status, "1 transfer +1.5 xP" (13/600 ink, as
+   its label on the pitch was; yours ink too, T7), over its facts, "1 FT · £0.5m ITB · Set in FPL: 2 changes" (13/400
+   muted), one door with one "›" (G1, G2, G4, W5); "Rolling is best" an ink chip, as the best's token (the owner,
+   2026-10-27, "Make it black"). Its two lines at 1.2 and 2 px over and under them: 35 px, as the one line was (the
+   10-22 "at most 2 lines": two; the pitch keeps its height) */
+.ah-pbar:has(.ah-bst) .ah-pbt { padding-top: 2px; padding-bottom: 2px; }
+.ah-pbar:has(.ah-bst) .ah-pbt .ah-bs { line-height: 1.2; }
+.ah-pbar button.ah-pbt:has(> .ah-bst)::after { grid-row: 1 / span 2; }
+.ah-pbt > .ah-bst { grid-column: 1; display: flex; align-items: baseline; column-gap: 6px; min-width: 0; white-space: nowrap; font: 600 var(--t-sub)/1.2 var(--f-text); color: var(--ink); --xp-c: var(--xp-l); }
+.ah-pbt > .ah-bst .ah-tw { font: 400 var(--t-sub)/1.2 var(--f-text); color: var(--muted); }
+.ah-pbt > .ah-bst .ah-tnum { flex: none; white-space: nowrap; }
+.ah-pbt > .ah-bst .ah-tnum > .ah-bg:first-child { margin-left: 0; }
+.ah-pbt > .ah-bst.noxp .xp-u { display: none; }  /* its trims where it has no room (ahead.js fitFacts), never a word cut */
+.ah-pbt > .ah-bst.tight .ah-tnum { font-size: .85em; }
+.ah-pbt > .ah-bst.best > .ah-tl { padding: 0 5px; border-radius: var(--r-sm); background: #17191A; color: #FFFFFF; }  /* the pitch's --sp-ink */
+.ah-pbar.ah-pwrap > .ah-pbh { flex-basis: 100%; }  /* even trimmed no room: the doors under the line (ahead.js fitFacts) */
+.ah-pbt .ah-bs .ah-blu { white-space: nowrap; }
 .ah-doors > .ah-door:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: -2px; }
 /* a screen under 360 px (320 × 568): the line's and its doors' sides 4 px narrower, so its second line's FT and bank,
    "1 FT · £0.8m ITB", stay whole beside the doors (the user, 2026-10-22: "WEEK LINE AT MOST 2 LINES") */
@@ -283,7 +313,9 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
    2026-10-21): next GW's free transfers (.ah-fnext) left to the Week sheet where they don't fit (ahead.js fitFacts),
    each fact whole (.ah-fact), FPL's "ITB" never cut nor shortened; every week's line as tall as the tallest it can be
    (ahead.js fitBlock: --ah-bar-h, the pitch fitted for it), its lines centred (.ah-pbt), so the pitch never moves on a
-   GW switch */
+   GW switch. Since design 1029b REC two lines, the week's status over these facts, and GW A's lineup notice back on
+   them after the FT and bank (the owner, 2026-10-29: "find how to merge"): whole, or "Set in FPL" alone, or gone to the
+   Week sheet's row where the line has no room, never cut (ahead.js fitFacts) */
 .ah-pbt .ah-bs .ah-fact { white-space: nowrap; }
 .ah-blockhost > .ah-block:not(.ah-fitprobe) > .ah-pbar { min-height: var(--ah-bar-h, 0px); }
 /* where the week's bank leads it (ahead.js renderLine .ah-blead) what follows gives way (.ah-brest: a notice cut at its
@@ -506,7 +538,7 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-tok .ah-tw { display: block; white-space: normal; font-weight: 400; font-size: var(--t-cap); color: var(--muted); }
 .ah-tok > .ah-tl { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 button.ah-tok { cursor: pointer; }
-.ah-tok.done { color: var(--acc); }
+.ah-tok.done { color: var(--ink); }  /* your week's status in ink, as Forkcast's (design 1029b Ta, the owner, 2026-10-29, "many buttons of same/ different design": green is the act and the selection alone, m.css:41, N2; "yours" its words, "1 transfer", "Rolling ✓") */
 /* the week's status (ahead.js statusTok; the owner's strip, 2026-10-26), yours green as "· yours" was: its words wrap
    between words in its room beside the goal, never cut, its number on its word,
    under them where they leave it no room (a larger text size: "1 transfer / +1.6 xP"), never wider than that room */
@@ -524,6 +556,12 @@ button.ah-tok { cursor: pointer; }
 .ah-tok .ah-tnum > .ah-bg:first-child { margin-left: 0; }
 .ah-tok.two { padding: 0; }
 .ah-tok.two::before { content: none; }
+/* …a chip token (BB, TC, a Roll that takes yours back) a door to its Why sheet, so the status label's door look: flat,
+   its hairline, --r-sm, the muted "›" (design 1029b Ta: the raised white pill was Player data's and the resets' too, one
+   look for three kinds; T1, N2, G5 "avoid multipurpose visual cues") */
+.ah-tok.two { border-radius: var(--r-sm); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .16); }
+.ah-tok.two::after { content: "\203A" / ""; position: absolute; right: 7px; top: 50%; transform: translateY(-54%); color: var(--muted); font: 400 17px/1 var(--f-text); pointer-events: none; }
+.ah-tok.two > .ah-tbody { padding-right: 18px; }
 .ah-tbody { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 5px; height: 100%; min-width: 0; padding: 0 10px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
 .ah-tbody::before { content: ""; position: absolute; inset: -9px 0; }
 .ah-tbody > span:first-child { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
@@ -551,6 +589,12 @@ button.ah-tok { cursor: pointer; }
    owner, 2026-10-28: one act, one look); off before its name is cut (.nogo: ahead.js renderDecks' fit) */
 .ah-tok .ah-tgo { flex: none; display: inline-flex; align-items: center; height: 18px; padding: 0 5px; font-size: calc(var(--t-sub) * .85); }
 .ah-tok.nogo .ah-tgo { display: none; }
+/* …where its name would go under NAME_LEAST beside it (a 320 px phone), "Swap" on a line of its own under the name and
+   number, the token's width, never off (design 1029b Ta: the screen's one primary act keeps its verb, H2, H3, M2, M5
+   "don't truncate"; ahead.js renderDecks' fit, .gol) */
+.ah-tok.mv.gol { flex-wrap: wrap; row-gap: 3px; height: auto; padding: 4px; border-radius: 10px; }
+.ah-tok.mv.gol > .ah-tl { margin-left: 6px; }
+.ah-tok.mv.gol > .ah-tgo { flex: 1 0 100%; justify-content: center; height: 20px; margin-right: 0; font-size: var(--t-sub); }
 .ah-tok.mv:not(.nogo):has(> .ah-tgo) { padding-right: 4px; }  /* the chip 4 px in from its end, as a place header's take */
 .ah-tok .ah-tbody:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; border-radius: 10px; }
 /* a solving token fades its words, never its clock (the only sign it is working: findings #2) */
@@ -786,6 +830,11 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
    N4 a slip), each other's 2 px (one kind), in the destructive role's red words with its "↺" (H5: the system red; W1: a
    sign as well as the colour; never filled, never the prominent one: R3, R4; Undo in its toast keeps it a quiet act) */
 .ah-pitch .pm > :is(.ah-lubtn, .ah-rpbtn) { top: 40px; right: 6px; padding: 0 10px; color: var(--loss); }
+/* …a take-back, set apart from the setting over it by its look too, not only its words (design 1029b Ta; T1): the
+   app's take-back button (m.css:41 "the secondary with its words --loss", never filled red), on the turf its white with
+   a --loss hairline, a button's corner (--r-ctl), no pill and no shadow (HIG Buttons: Role, the destructive role; M3
+   outlined; N2, G5) */
+.ah-pitch .pm > :is(.ah-lubtn, .ah-rpbtn) { border-radius: var(--r-ctl); box-shadow: inset 0 0 0 1px var(--loss); }
 .ah-pitch .pm:has(> .ah-lubtn:not([hidden])) > .ah-rpbtn { top: 68px; }
 .ah-pitch .pm > :is(.ah-lubtn, .ah-rpbtn) > .ah-pdl::before { content: "\21BA" / ""; margin-right: 4px; font-weight: 400; }
 .ah-pitch .pm > :is(.ah-lubtn, .ah-rpbtn)::before { top: -4px; bottom: calc(-1 * var(--down, 9px)); }  /* never onto the card under it: ahead.js placePills */
