@@ -129,10 +129,11 @@
 //     0, memory.holdOf's debts; "Do both" and its ask went); bringIn(ctx, id, g, bp) makes it
 //     (memory.pinSell, the funding sale marked `funds`; one Undo), taking back bringInTakes(P, id, g, bp) (a later buy of
 //     him and its funding too); holdBuy(ctx, id, g, road) is the buy Add a player shows and want makes (a solve's
-//     road as its GW-g moves; B36: in both modes); buyProblem(ctx, P, id, bp) says why not (A3: "it fits in
-//     GW7" only when it does: fitsLater, whose week sayBuyProblem's action takes, bringInFrom, B74).
-//     want / Add a player / Replace never hand a week to the planner (on the suggested plan Forkcast plans the rest around
-//     your exact moves, B36), never set a hits rule, and under the hold gwMode reads a week of your exact moves as
+//     road as his wish pin, 'pick': the sale and the money the solver's, the owner, 2026-10-29); buyProblem(ctx, P, id,
+//     bp) says why not (A3: "it fits in GW7" only when it does: fitsLater, whose week sayBuyProblem's action takes,
+//     bringInFrom, B74).
+//     Add a player's week button hands that week to the planner (his wish), its sale chips and Replace never do (on the
+//     suggested plan Forkcast plans the rest around your exact moves, B36); none sets a hits rule, and under the hold gwMode reads a week of your exact moves as
 //     'roll' (Forkcast adds nothing there): no setting changes as a side effect. Replace's "Let Forkcast
 //     choose" is the one sale the planner picks the buy for (sellAny; the user, 2026-10-13): under the hold that week
 //     takes the one buy only, the rest of its squad held (memory.holdOf).
@@ -1577,9 +1578,9 @@ export function veto(ctx, m, { scope = 'gw' } = {}) {
 }
 
 /** M9 / M14: him from GW g, with the road the Wish pill already returned for him (null: the phone's
- *  buy). A1 / B36: in both modes a buy is your transfer, exactly (holdBuy, the buy Add a player measured and
- *  named: bringIn, a rule of yours it contradicts taken back and named); no hits rule is set, and on the suggested plan
- *  Forkcast plans the rest around it. One it can't make says why (sayBuyProblem). */
+ *  buy): his wish pin with that road, the sale and the money the solver's (holdBuy's 'pick'; the owner, 2026-10-29:
+ *  "rules only set gabriel to must have gw10"), else the phone's buy as your transfer (bringIn, a rule of yours it
+ *  contradicts taken back and named); no hits rule is set. One it can't make says why (sayBuyProblem). */
 export function want(ctx, id, g, road) {
   const P = plan(ctx);
   const bp = holdBuy(ctx, id, g, road);
@@ -4443,9 +4444,14 @@ export function takenKeep(P, g, pl) {
 /** The draft taking GW g's choice makes on `base` (the plan's draft, its GW-g chip with it; or yours): GW g's moves
  *  `now`, your plan's weeks before g, and after g only the moves the + keeps (a transfer of yours, a Wildcard's or Free
  *  Hit's squad); Forkcast's own later moves are the next solve's (the user, 2026-10-13: "Same list, both modes": a
- *  choice buying a player Forkcast buys later fits). One rule for the +'s draft (addPlan) and the list's (fitsAt). */
+ *  choice buying a player Forkcast buys later fits). One rule for the +'s draft (addPlan) and the list's (fitsAt). A
+ *  later week your wish makes the planner's (him from then: Add a player's button) is Forkcast's too, his buy with the
+ *  sale that pays for him: kept alone, its money gone, every choice before it read short (the owner, 2026-10-29: with
+ *  "Gabriel from GW10" alone, 353468's GW9 listed nothing, not even its roll, each "£1.0m short" in GW10 where Kayode →
+ *  Gabriel stayed and the solver's Mbeumo → Rayan went). */
 function planTakeDraft(ctx, P, g, base, now) {
-  const keeps = (m) => m.gw < g || (m.gw > g && (!!squadWeek(weekOf(P, m.gw)) || !!pinOfMove(P, m)));
+  const exact = (m) => { const p = pinOfMove(P, m); return !!p && p.kind !== 'wish'; };
+  const keeps = (m) => m.gw < g || (m.gw > g && (!!squadWeek(weekOf(P, m.gw)) || exact(m)));
   return withMoves(base, [...flatMoves(draftOf(ctx)).filter(keeps), ...now]);
 }
 
@@ -4948,10 +4954,10 @@ export function saleBuy(ctx, id, g, out) {
 export function bringIn(ctx, id, g, bp) {
   const P = plan(ctx);
   if (bp?.kind === 'pick') {
-    // his wish pin with the solve that made it, your later buy of him off as wishSolve solved it (bringInTakes)
-    // a wish of him it replaces (another week's pick, one he came with) is named too: one wish a player
+    // his wish pin with the solve that made it (any week's: holdBuy), the rules wishSolve solved without off
+    // (bringInTakes); a wish of him it replaces (another week's, one he came with) is named too: one wish a player
     const pin = wishPin(P, id, g), was = asksOf(P).find((q) => q.id === pin.id && JSON.stringify(q.must) !== JSON.stringify(pin.must));
-    const taken = [...bringInTakes(P, id, g, bp), ...(was ? [was] : [])], what = withTaken(P, pin.label, taken);
+    const taken = [...new Map([...bringInTakes(P, id, g, bp), ...(was ? [was] : [])].map((q) => [q.id, q])).values()], what = withTaken(P, pin.label, taken);
     // its number named as its week pill's, what your total moves by (edit's default's)
     return edit(ctx, { pins: [pin], drop: [pin.id, ...taken.map((q) => q.id)], road: bp.road, from: g, what, taken, text: vsPrev(ctx, what, { total: true }) });
   }
@@ -4967,8 +4973,8 @@ export function bringIn(ctx, id, g, bp) {
   });
 }
 
-/** A bring-in's other sales: [{out, in}] (a solve's road may need several: buyOfRoad's `funds`; buyPlan's one `fund`). */
-const fundsOf = (bp) => bp.funds ?? (bp.fund ? [bp.fund] : []);
+/** A bring-in's other sales: [{out, in}] (buyPlan's one `fund`). */
+const fundsOf = (bp) => (bp.fund ? [bp.fund] : []);
 /** What transfer m (a sale's `out`) frees in GW g on estimate ev: its sale less its buy, £m (below 0 it spends). */
 const freedBy = (ev, g, m) => { const x = ev?.gws.find((s) => s.gw === g)?.moves.find((y) => y.out === m.out); return (x?.sell ?? 0) - (x?.buy ?? 0); };
 /** A bring-in's sales as your exact transfers (memory.pinSell): his, then each other sale, marked `funds` only when it
@@ -4988,8 +4994,11 @@ const buyPins = (P, id, g, bp) => [
 // the rules its tap takes back left out of the solve too (bringInTakes): your later buy of him (laterBuys) and every rule
 // his wish clashes with, a Roll of yours in GW g first (the user, 2026-10-21: Palmer's card behind Saka offered "+0.4
 // instead of rolling" while Bring in said "GW8 not possible": the solve kept the GW8 roll his buy takes back)
-export const wishSolve = (ctx, P, id, g, purpose) => solveFor(ctx, [wishPin(P, id, g)], purpose,
-  [...new Set([...clashing(P, wishPin(P, id, g)), ...laterBuys(P, id, g)].map((p) => p.id))]);
+export const wishSolve = (ctx, P, id, g, purpose) => solveFor(ctx, [wishPin(P, id, g)], purpose, wishTakes(P, id, g).map((p) => p.id));
+/** The rules of yours his wish from GW g takes back, each once: the ones it clashes with, a Roll of yours in GW g first,
+ *  and your later buy of him with its funding (laterBuys). wishSolve solves without them and a 'pick' tap drops them
+ *  (bringInTakes), so the road it lands is the plan of the rules it leaves. → [Pin] */
+const wishTakes = (P, id, g) => [...new Map([...clashing(P, wishPin(P, id, g)), ...laterBuys(P, id, g)].map((p) => [p.id, p])).values()];
 const laterBuys = (P, id, g) => {
   // a Free Hit pick is his for that week alone (the squad comes back after it), so your later buy of him stands beside
   // it, as composePins lets both bind (review 5, 2026-10-12: "Bring Groß into your GW8 Free Hit" removed "Scott → Groß
@@ -5016,7 +5025,7 @@ const draftFor = (ctx, P, id, g) => laterBuys(P, id, g).filter((p) => p.funds !=
  *  later buy of him with its funding (laterBuys), never one its own sales replace. bringIn drops them, its verdict
  *  names them (withTaken), and Add a player names them before the tap. → [Pin] */
 export function bringInTakes(P, id, g, bp) {
-  if (bp?.kind === 'pick') return laterBuys(P, id, g);
+  if (bp?.kind === 'pick') return wishTakes(P, id, g);
   const pins = buyPins(P, id, g, bp);
   const ids = new Set(pins.map((p) => p.id));
   return [...new Map([...pins.flatMap((p) => clashing(P, p)), ...laterBuys(P, id, g)].filter((q) => !ids.has(q.id)).map((q) => [q.id, q])).values()];
@@ -5024,84 +5033,54 @@ export function bringInTakes(P, id, g, bp) {
 /** Rules of yours `pins` a tap takes back, said before it in their chips' words (ruleOf): "It removes “Sell Saka from
  *  GW7 for Palmer”, …", '' with none (Add a player's line). */
 export const removesText = (P, pins) => (pins.length ? `It removes ${pins.map((q) => `“${ruleOf(P, q).text}”`).join(', ')}.` : '');
-/** Him from GW g as your exact transfers (A1, the hold's rule; B36, the user 2026-10-10: every mode's, so on the
- *  suggested plan too a bring-in makes exactly the moves it showed and Forkcast plans the rest around them): a solve's
- *  road for him gives its GW-g moves (buyOfRoad: the sale it made for him and those that free the money), else the
- *  phone's (buyPlan: his best sale, or with one more that funds it). The buy Add a player measures and names
- *  before the tap and want makes, never the road's later weeks (the checker, 2026-10-09). → buyPlan's shape | null */
+/** Him from GW g as Add a player's week button makes him: a solve's road for him (wishSolve) is his wish pin with that
+ *  road ('pick': pickOfRoad), in every week as a Wildcard's or Free Hit's always was, so the sale for him and the money
+ *  are the solver's and your rules say only "him from GW g" (the owner, 2026-10-29, of Gabriel from GW10 pinning
+ *  "Kayode → Gabriel" and "Mbeumo → Rayan from GW10", Mbeumo kept and Rayan barred in GW9: "fix so rules only set
+ *  gabriel to must have gw10 when gabriel brought in not Mbeumo or rayan or even kayode in any of them"; before, A1 /
+ *  B36 made the road's GW-g moves your exact transfers); without a road the phone's buy (buyPlan: his best sale, or
+ *  with one more that funds it). → buyPlan's shape | null */
 export function holdBuy(ctx, id, g, road = null) {
   const P = plan(ctx);
   if (!P) return null;
-  if (road && squadWeek(weekOf(P, g))) return pickOfRoad(ctx, P, id, g, road);
-  return road ? buyOfRoad(ctx, P, id, g, road) : buyPlan(ctx, id, g);
+  return road ? pickOfRoad(ctx, P, id, g, road) : buyPlan(ctx, id, g);
 }
 
-/** A Wildcard or Free Hit week's solve with him in its squad (wishSolve: his wish pin there) as a buyPlan of its own
- *  kind, 'pick': that road against your plan (cmp), the hits it takes there more than now; bringIn makes it his wish pin
- *  with that road, so the plan is the solve at once. */
+/** A week's solve with him in from GW g (wishSolve: his wish pin; in a Wildcard or Free Hit week, in its squad) as a
+ *  buyPlan of its own kind, 'pick': that road against your plan (cmp), the hits it takes there more than now; bringIn
+ *  makes it his wish pin with that road, so the plan is the solve at once. */
 function pickOfRoad(ctx, P, id, g, road) {
   const rw = (road.weeks || []).find((x) => Number(x.gw) === Number(g));
   if (!ids([...(rw?.xi || []), ...(rw?.bench || [])]).includes(Number(id))) return buyPlan(ctx, id, g);
   return { kind: 'pick', in: Number(id), road, cmp: compare(ctx, asYours(ctx, road), { weeks: P.weeks }), hits: Math.max(0, (rw?.hits ?? 0) - (weekOf(P, g)?.hits ?? 0)) };
 }
 
-/** A solve's road for "him from GW g" as a buyPlan: its GW-g sale for him and every other new move it made
- *  there (`funds`, the first also `fund`: a premium often takes three: the review, 2026-10-08, a four-move Haaland road
- *  refused as "needs £6.2m more"; those that free money are pinned as funding: buyPins); a move the phone can't make is
- *  the phone's own buyPlan. */
-function buyOfRoad(ctx, P, id, g, road) {
-  // the moves your week makes already are taken off before pairing (pairMovesOf), so a sale of yours is never re-paired
-  // with his buy (Scott → Groß read as "Tavernier → Groß · Scott → E.Le Fée", both new: the checker, 2026-10-09)
-  const fresh = pairMovesOf(road, g, weekOf(P, g)?.moves || [], P.L);
-  const main = fresh.find((m) => m.in === id);
-  const others = fresh.filter((m) => m !== main);
-  if (!main) return buyPlan(ctx, id, g);
-  const ev0 = planBaseline(ctx, P, g);
-  const by = takenBy(ctx, P);
-  // B36 on the suggested plan: Forkcast plans the rest around your moves, so a GW-g move of its own (no rule of yours
-  // behind it) that the solve for him doesn't make is gone after the tap: dropped first (`drops`), the number, the
-  // transfers and the hit those of the week the tap leaves (the checker, 2026-10-10: "3 transfers, −8" shown, "after a
-  // −4 · replaces Szoboszlai → Xhaka" made)
-  const rw = (road.weeks || []).find((x) => Number(x.gw) === Number(g));
-  const drops = P.mem?.hold ? [] : (weekOf(P, g)?.moves || [])
-    .filter((m) => !pinOfMove(P, { ...m, gw: g }) && !(ids(rw?.out).includes(Number(m.out)) && ids(rw?.in).includes(Number(m.in))));
-  const d1 = drops.reduce((d, m) => dropDrafted(d, { gw: g, ...m }), draftFor(ctx, P, id, g));
-  const r1 = addMove(ctx, d1, g, main.out, id, by);
-  let r = r1;
-  for (const o of others) r = addMove(ctx, r.draft, g, o.out, o.in, by);
-  if (r.problem) return buyPlan(ctx, id, g);
-  const hitsAt = (ev) => ev.gws.find((s) => s.gw === g)?.hits ?? 0;
-  const funds = others.map((o) => ({ out: o.out, in: o.in }));
-  return {
-    kind: others.length ? 'two' : 'one', out: main.out, in: id, draft: r.draft, ev: r.ev, cmp: compare(ctx, r.ev, ev0), hits: Math.max(0, hitsAt(r.ev) - hitsAt(ev0)),
-    ...(others.length ? { fund: funds[0], funds, short: r1.problem?.code === 'budget' ? r1.problem.short : 0 } : {}),
-    ...(drops.length ? { drops: drops.map((m) => ({ out: m.out, in: m.in })) } : {}),
-  };
-}
-
 /** GW g with player `id` brought in: the moves your plan doesn't make yet, and the WEEK's transfers and hits in all
  *  (the checker, 2026-10-09: "3 transfers, −4" printed the hits he adds after a bp and the week's own after a road, in a
- *  week paying −8): road, a solve's GW g; else bp, a buy (holdBuy) as its sale and funding sales, its engine week (as
- *  hitsAt reads it), with the moves of Forkcast's it drops (bp.drops); a chip week's pick, its changes to that squad
- *  (`chip`). → {moves, n, hits, drops, chip} | null */
+ *  week paying −8): road, a solve's GW g (a pick's road the same); else bp, a buy (buyPlan) as its sale and funding
+ *  sales, its engine week (as hitsAt reads it); a chip week's pick, its changes to that squad (`chip`). → {moves, n,
+ *  hits, chip} | null */
 export function weekWith(P, g, { road = null, bp = null } = {}) {
-  if (bp?.kind === 'pick') {
+  const chip = squadWeek(weekOf(P, g));
+  if (bp?.kind === 'pick' && chip) {
     // a Wildcard or Free Hit week's pick (pickOfRoad): who leaves that week's chip squad for whom, and how many such
     // changes (never the chip's own transfers against the week before: review 5, 2026-10-12)
     const w = (bp.road.weeks || []).find((x) => Number(x.gw) === g);
     if (!w) return null;
     const now = weekOf(P, g)?.squad ?? [], sq = ids([...(w.xi || []), ...(w.bench || [])]);
     const moves = pairedMoves(now.filter((x) => !sq.includes(x)), sq.filter((x) => !now.includes(x)), P.L);
-    return { moves, n: moves.length, hits: w.hits ?? 0, chip: squadWeek(weekOf(P, g)) };
+    return { moves, n: moves.length, hits: w.hits ?? 0, chip };
   }
-  if (road) {
-    const w = (road.weeks || []).find((x) => Number(x.gw) === g);
+  // (another week's pick: its road's GW g, the solver's transfers there)
+  const rd = road ?? (bp?.kind === 'pick' ? bp.road : null);
+  if (rd) {
+    const w = (rd.weeks || []).find((x) => Number(x.gw) === g);
     if (!w) return null;
-    return { moves: pairMovesOf(road, g, weekOf(P, g)?.moves ?? [], P.L), n: (w.in || []).length, hits: w.hits ?? 0 };
+    return { moves: pairMovesOf(rd, g, weekOf(P, g)?.moves ?? [], P.L), n: (w.in || []).length, hits: w.hits ?? 0 };
   }
   if (bp?.kind !== 'one' && bp?.kind !== 'two') return null;
   const w = bp.ev.gws.find((s) => s.gw === g);
-  return { moves: [{ out: bp.out, in: bp.in }, ...fundsOf(bp)], n: w?.transfers ?? 0, hits: w?.hits ?? 0, drops: bp.drops ?? [] };
+  return { moves: [{ out: bp.out, in: bp.in }, ...fundsOf(bp)], n: w?.transfers ?? 0, hits: w?.hits ?? 0 };
 }
 
 /** How player `id` comes in from GW g in words, every move it makes and then the week's transfers and hit (weekWith):
@@ -5112,9 +5091,7 @@ export function inWords(P, g, how) {
   const w = weekWith(P, g, how);
   if (!w?.moves.length) return null;
   const said = (ms) => ms.map((m) => `${nm(m.out)} → ${nm(m.in)}`);
-  // …and a move of Forkcast's own it replaces there (buyOfRoad's drops: the bring-in's verdict says the same, sideEffects)
-  return [...said(w.moves), ...(w.drops?.length ? [COPY.replaces(said(w.drops).join(', '))] : []),
-    w.chip ? COPY.chipChanges(w.chip, w.n) : `${w.n} transfer${w.n === 1 ? '' : 's'}, ${COPY.hitsIn(w.hits)}`].join(' · ');
+  return [...said(w.moves), w.chip ? COPY.chipChanges(w.chip, w.n) : `${w.n} transfer${w.n === 1 ? '' : 's'}, ${COPY.hitsIn(w.hits)}`].join(' · ');
 }
 
 /** Why `id` can't come in from GW g (a buyPlan 'none'), in one line: in your team already, the money even with one

@@ -10,7 +10,7 @@
 // same way (the user, 2026-10-09: "why 'bring him in', 'find funds' and '+' all do different things"; "Add Groß in GW6"
 // added him at once from a GW's week line and opened the weeks from a card): + and "Bring him in…" open his week pills.
 // A tap on a pill SELECTS that week, never makes it; under the chips the line names the week's own way (its pill's: the
-// sale Forkcast chose for him and what frees the money) and its one button, "Bring in X from GW g", makes exactly it, no
+// sale Forkcast chose for him and what frees the money) and its one button, "Bring in X from GW g", makes that plan, no
 // sale chosen (the owner, 2026-10-29: "why can't i just choose b.fernandes to bring in without choosing the player to
 // replace and let do whats best considering b.fernandes pinned to buy gw10"); a sale chip makes that sale alone (sells),
 // one the bank can't pay for as it is, the plan short of money as FPL's draft is (the owner, 2026-10-28: ahead.saleBuy,
@@ -23,11 +23,13 @@
 // reason. A player your pins keep out (a veto, Never) is left off the list and marked in search by that rule ("Not Groß
 // · all weeks", ahead.barringRule):
 // bringing him in from a GW it keeps him out lifts it (UX-1; a one-GW veto of another GW stays, F11; A6: its verdict names it).
-// A1 (the fix pass, 2026-10-08: an action does only what it says; B36, the user 2026-10-10: in both modes, so on the
-// suggested plan too, Forkcast then planning the rest around it): a buy is your transfer, exactly: one sale that fits at
-// once (ahead.buyPlan 'one'; ahead.bringIn), else the solver's road for him from that week (the money found, whatever it
-// takes) made as exact transfers (ahead.want → holdBuy), its pill and line that
-// buy's; no week is handed to the planner and no hits rule is set.
+// The week's button is his wish from that week and nothing else (the owner, 2026-10-29, after Gabriel from GW10 pinned
+// "Kayode → Gabriel" and "Mbeumo → Rayan from GW10", so Mbeumo was kept and Rayan barred in GW9: "fix so rules only set
+// gabriel to must have gw10 when gabriel brought in not Mbeumo or rayan or even kayode in any of them"): every week is
+// solved with his wish pin (ahead.wishSolve; one sale that fits only its ≈ meanwhile), the button lands that road with
+// the pin alone (ahead.want → holdBuy's 'pick' → bringIn), so the sale for him and the money are the solver's, as a
+// Wildcard's or Free Hit's always were; its pill and line are that road's. A sale chip is a sale you chose, made as your
+// transfer exactly (A1, 2026-10-08: an action does only what it says; B36: in both modes). No hits rule is set.
 // A13: no instruction subtitle; "ARS · £9.6m · 22.2 xP GW6–9"; a small circular + like a choice's.
 // The list (the user, 2026-10-10: "when i replace a player it shows graphics … with tabs … why when i click add player it
 // shows just a few players"): Replace's rows (buylist.js), the week pills (the arrival week, the opened GW first), All /
@@ -95,10 +97,10 @@ export function saleWords(ctx, id, g, x) {
   // "Groß · needs £5.2m more" (the user, 2026-10-22: "Groß £5.2m short" read as Groß short of money)
   return { tail: `· ${COPY.moneyNeeds(short)}`, loss: false, said: COPY.moneyNeeds(short), off: false };
 }
-/** A week pill whose moves are known: one sale pays for him (buy) or the solve came back (road). */
-const works = (o) => o?.kind === 'buy' || o?.kind === 'road';
-/** A known week as ahead.weekWith / inWords take it: the week's own buy (bp: a week one sale pays for, or a solved
- *  road's GW-g moves, ahead.holdBuy), what its pill counts. */
+/** A week pill whose moves are known: its solve came back (road; every week is solved since the owner's 2026-10-29). */
+const works = (o) => o?.kind === 'road';
+/** A known week as ahead.weekWith / inWords take it: the week's own way (bp: his wish with the solved road,
+ *  ahead.holdBuy's 'pick'; a sale chip's buy), what its pill counts. */
 const how = (o) => ({ bp: o.bp });
 
 export function open(ctx, preId = null, { gw = null, pos = null, out = null } = {}) {
@@ -270,7 +272,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         // opened from a player's place ("Other…": st.place), the sale is his: his chip first and marked (the owner,
         // 2026-10-28: Haaland chosen in João Pedro's place came in for Isak); else the week's own sale marked, where known
         const his = opts.find((x) => x.out === st.place && !saleWords(ctx, id, g, x).off) ?? null;
-        const own = works(o0) ? Number(o0.bp?.out) : null;
+        const own = works(o0) ? weekWith(P, g, how(o0))?.moves.find((m) => Number(m.in) === Number(id))?.out ?? null : null;
         const rec = his ?? opts.find((x) => x.out === own && !saleWords(ctx, id, g, x).off) ?? null;
         const saleChip = (x) => {
           const w = saleWords(ctx, id, g, x);
@@ -329,7 +331,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           ? saleOptions(ctx, id, sel).filter((x) => !saleWords(ctx, id, sel, x).off) : [];
         if (P.editable && (weeks.length || sales.length)) {
           presolveTaps(ctx, [
-            ...weeks.map((x) => ({ kind: 'bring', gw: x, run: () => (res[x].kind === 'buy' ? bringIn(ctx, id, x, res[x].bp) : want(ctx, id, x, res[x].road)) })),
+            ...weeks.map((x) => ({ kind: 'bring', gw: x, run: () => want(ctx, id, x, res[x].road) })),
             ...sales.map((x) => ({ kind: 'bring', gw: sel, run: () => { const bp = saleBuy(ctx, id, sel, x.out); return bp.kind === 'one' && bringIn(ctx, id, sel, bp); } })),
           ], { gw: sel ?? g, sig: `${id}|${weeks.join()}|${sales.map((x) => x.out).join()}`, owner: st });
         }
@@ -366,10 +368,11 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           if (w?.squad.includes(id) && (squadBefore(P, g).includes(id) || squadWeek(w))) { st.res[id][g] = { kind: 'owned' }; continue; }
           // GW A under way (FPL has it: B7; inkAt's frozen weeks are none since Freeze went, 2026-10-12)
           if (inkAt(ctx, P, g)) { st.res[id][g] = { kind: 'bad', text: P.mem?.frozen?.includes(g) ? 'frozen' : 'live' }; continue; }
-          // one sale that fits is the exact transfer at once (buyPlan 'one'; B36: in both modes); the money short, the
-          // solver finds it below as for any week (never the phone's own second sale)
+          // every week is solved below, its button his wish from it, the sale and the money the solver's (ahead.holdBuy;
+          // the owner, 2026-10-29: "rules only set gabriel to must have gw10"): one sale that fits is only its ≈ meanwhile
+          // (buyPlan 'one'; before, H16 made it at once as your transfer, never solved)
           const bp = buyPlan(ctx, id, g);
-          if (bp.kind === 'one') { st.res[id][g] = { kind: 'buy', bp, cmp: bp.cmp, delta: bp.cmp.delta, hits: bp.hits }; continue; }
+          if (bp.kind === 'one') { st.res[id][g] = { kind: 'est', delta: bp.cmp.delta }; continue; }
           // B30: the club limit too (more sales may get round it)
           if (bp.kind === 'none' && !solvesRound(bp)) { st.res[id][g] = { kind: 'bad', text: cantFit(bp) }; continue; }
           // a Wildcard or Free Hit week: no sale's ≈ (the chip remakes the squad), only the solve with him in it
@@ -379,8 +382,8 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           const okk = tries.filter((t) => !t.r.problem).sort((a, b) => b.r.ev.total - a.r.ev.total)[0];
           st.res[id][g] = { kind: 'est', delta: okk ? okk.r.ev.total - ev0.total : null };
         }
-        pickBest(id);  // H16: a week one sale pays for is never solved, so it is the best already (or the list's week)
-        // the weeks to solve (not in team, live, can't fit, nor one sale pays); the selected week first (the
+        pickBest(id);  // (the list's week, else the best ≈ so far)
+        // the weeks to solve (not in team, live, can fit); the selected week first (the
         // card's, the week line's: pickBest; B77, the user 2026-10-10: one week carries card → Add a player),
         // then B134 off the hold by its ≈, largest first and a week with none last, so a better week seldom lands after a
         // worse one has the line; under the hold in GW order
@@ -419,9 +422,8 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           if (st.run !== my) return;
           if (res.state === 'error') { st.res[id][g] = { kind: 'bad', text: res.error?.code === 'infeasible' ? 'not possible' : "can't check" }; return; }
           if (res.state !== 'done' || !res.road) return;
-          // the button makes the road's GW-g moves as your transfers (ahead.holdBuy, as want makes them; B36: in both
-          // modes): the pill is that buy's points and hit, never the road's later weeks (the checker, 2026-10-09: Why
-          // not's −8.8 was the road's, the tap made −11.4)
+          // the button lands this road with his wish pin alone (ahead.holdBuy's 'pick', as want makes it): the pill is
+          // that road's points against your plan and its GW-g hit, the plan the tap makes
           const bp = holdBuy(ctx, id, g, res.road);
           if (!bp || bp.kind === 'none') { st.res[id][g] = { kind: 'bad', text: bp ? cantFit(bp) : "can't fit" }; return; }
           st.res[id][g] = { kind: 'road', road: res.road, bp, cmp: bp.cmp, delta: bp.cmp.delta, hits: bp.hits };
