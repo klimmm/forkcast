@@ -55,7 +55,7 @@
 .ah-avatar { position: relative; justify-self: end; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--track); color: var(--ink-2); font: 600 var(--t-sub)/1.3 var(--f-text); }
 .ah-avatar::before { content: ""; position: absolute; inset: -6px; }  /* a 44pt target */
 /* the Settings gear (ahead setBtn; the owner, 2026-10-29, in Help's place since 2026-10-13): the avatar's mirror in the
-   left column, a hexagon round a hole in a link's colour (.ah-lnk's), its target 44 pt or more; a page toast stops short of it, as of the avatar (m.css
+   left column, a toothed gear in a link's colour (.ah-lnk's), its target 44 pt or more; a page toast stops short of it, as of the avatar (m.css
    #toasts), so it is in sight and takes a tap while one is up */
 .ah-set { position: relative; justify-self: start; display: flex; padding: 0; border: 0; background: none; color: var(--acc); font: 600 var(--t-sub)/1.3 var(--f-text); white-space: nowrap; }
 .ah-set::before { content: ""; position: absolute; inset: -14px -12px; }
@@ -478,7 +478,7 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 /* a quiet plate's edge a white keyline (design 1028c P2-states: its green 1.22:1 on the tile, 2.00 on the turf, so the
    plate was only its words; M6, M10: a cluster's container 3:1; W7): white 3.34:1 on the turf, 5.45 on the tile. The
    best stays solid ink with no edge, so quiet vs best is outlined vs solid in grayscale too, not only green vs black */
-.ah-sp:not(.best, .loss) { box-shadow: inset 0 0 0 1.5px light-dark(#FFFFFF, rgb(255 255 255 / .22)); }
+.ah-sp:not(.best, .loss), .ah-tok.nx { box-shadow: inset 0 0 0 1.5px light-dark(#FFFFFF, rgb(255 255 255 / .22)); }
 .ah-sp.best.part .ah-spb { padding: 0 7px; }
 /* "checking…" in its number's place while the week checks, as a place's header says it (.ah-pv.wait) */
 .ah-spv.wait { font-weight: 500; font-style: italic; }
@@ -579,11 +579,15 @@ button.ah-tok { cursor: pointer; }
 /* "Rolling is best" ink as the week's best move (ahead.js statusTok; the owner, 2026-10-27, "Make it black"), the lineup
    notice under it light on the ink */
 .ah-tok.st.best .ah-tw { color: rgb(255 255 255 / .75); }
-.ah-tok.mv > .ah-tl { display: flex; align-items: center; gap: .25em; }
-.ah-tok.mv .ah-tn { flex: none; }
-.ah-tok.mv .ah-tnum { flex: none; color: var(--xp-d); }
+/* (the week's runner-up under it, .nx: its buy, number and Swap as the best's, in its plate's look on the pitch, the
+   quiet plate's dark green, white words and white keyline (.ah-sp), as the best's is its ink plate's; ahead.js tokensOf,
+   the owner, 2026-10-29, then "why different colors" of a white token over its green plate) */
+.ah-tok.nx { background: var(--sp-alt); color: #FFFFFF; --xp-c: var(--xp-d); }
+.ah-tok:is(.mv, .nx) > .ah-tl { display: flex; align-items: center; gap: .25em; }
+.ah-tok:is(.mv, .nx) .ah-tn { flex: none; }
+.ah-tok:is(.mv, .nx) .ah-tnum { flex: none; color: var(--xp-d); }
 .ah-tok.mv.cut .ah-tn { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.ah-tok.mv:focus-visible { outline: 2px solid #FFFFFF; outline-offset: -2px; }
+.ah-tok:is(.mv, .nx):focus-visible { outline: 2px solid #FFFFFF; outline-offset: -2px; }
 /* …its take's word, "Swap", the place's best header's mint chip at its end (ahead.js tokensOf; design 1028d K1, the
    owner, 2026-10-28: one act, one look); off before its name is cut (.nogo: ahead.js renderDecks' fit) */
 .ah-tok .ah-tgo { flex: none; display: inline-flex; align-items: center; height: 18px; padding: 0 5px; font-size: calc(var(--t-sub) * .85); }
@@ -594,7 +598,7 @@ button.ah-tok { cursor: pointer; }
 .ah-tok.mv.gol { flex-wrap: wrap; row-gap: 3px; height: auto; padding: 4px; border-radius: 10px; }
 .ah-tok.mv.gol > .ah-tl { margin-left: 6px; }
 .ah-tok.mv.gol > .ah-tgo { flex: 1 0 100%; justify-content: center; height: 20px; margin-right: 0; font-size: var(--t-sub); }
-.ah-tok.mv:not(.nogo):has(> .ah-tgo) { padding-right: 4px; }  /* the chip 4 px in from its end, as a place header's take */
+.ah-tok:is(.mv, .nx):not(.nogo):has(> .ah-tgo) { padding-right: 4px; }  /* the chip 4 px in from its end, as a place header's take */
 .ah-tok .ah-tbody:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; border-radius: 10px; }
 /* a solving token fades its words, never its clock (the only sign it is working: findings #2) */
 .ah-tok :disabled { cursor: default; }

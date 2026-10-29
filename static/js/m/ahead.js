@@ -2221,7 +2221,7 @@ export function suggestionsOf(ctx, P, g) {
  * `before`, by addMove's `measure`) don't pass, so they are no suggestion of the week: listed since 2026-10-21 (the user:
  * "Same both times, worse ones too"), never lit on the pitch, their + quiet (litOf, plPays). `true`: from GW g on they
  * gain no more than 0.05 over your plan (their number, or their Why sheet's "Your total", says so); the next GW: the same moves
- * made then are worth no less (waitsAWeek; their row says "as good in GW9": COPY.asGoodIn). One rule for every move a
+ * made then are worth no less (waitsAWeek; no words of it on their row since the owner's 2026-10-29 "remove 'as good as gw10' crap"). One rule for every move a
  * week lists (suggestionsOf, plansOf). None off the hold, nor once GW g's free transfers are used (extraWeek: every move
  * that fits is a choice there, after its −4). → true | GW | null (they pass)
  */
@@ -3585,14 +3585,14 @@ export function failedWords(P, pl) {
  *  what its + takes back ("instead of Palmer", as a Roll behind your buy says it too; "instead of Murillo → Hill", named whole, as its
  *  Week-sheet row does: the user, 2026-10-21, "why hill 'instead of hill'" on a Hill card that moves your Hill buy to
  *  another place), a pair's other moves ("also Dovin → Leno, Saka → Rice": COPY.placeAlso), a transfer it adds to yours ("a 2nd transfer"), a Bench Boost
- *  or Triple Captain it plays, "as good in GW9" (earlyWords: the same move made then is worth no less; the user,
- *  2026-10-21: listed, never lit); last, a move you took off this session, "removed by you" (plansOf `removed`, as its
+ *  or Triple Captain it plays (none for one worth no less a week later since the owner's 2026-10-29 "remove 'as good as
+ *  gw10' crap": listed, never lit); last, a move you took off this session, "removed by you" (plansOf `removed`, as its
  *  Week sheet row says it: B129; the user, 2026-10-21: fix the known issues). `e`: its entry in the place (decksOf). Pure. */
 export function noteOf(P, w, e, a = null) {
   const nm = P.L.name, pl = e.pl, chip = pl?.choice.chips?.[w.gw];
   // (no "about as good as Truffert" under a card: the owner, 2026-10-25, "why needed these silly comments 'about as good
   // as tavernier' which only takes space not adding any value")
-  const said = (...xs) => [...xs, earlyWords(pl), pl?.removed ? COPY.removedByYou : null].filter(Boolean).join(' · ') || null;
+  const said = (...xs) => [...xs, pl?.removed ? COPY.removedByYou : null].filter(Boolean).join(' · ') || null;
   if (pl?.state === 'solving') return said(COPY.pairChecking);
   if (pl?.state === 'failed') return said(failedWords(P, pl).note);
   // in the place of a buy of yours (`a`: the place's player) every card takes that buy back: its title says so ("Rice's
@@ -5422,7 +5422,6 @@ export const plPays = (pl) => !pl.early && clearGain(pl.refRow ? pl.vsBest : pl.
 /** What a checked choice's row, its spoken line and its card's note in his place say of the 2026-10-18 bar it doesn't
  *  pass where its number may not show it (plansOf `early`, a GW: "as good in GW9"; one that adds next to nothing when
  *  taken says so by its number, or by its Why sheet's "Your total" where that differs), else null. Pure. */
-export const earlyWords = (pl) => (pl?.state === 'ready' && typeof pl.early === 'number' ? COPY.asGoodIn(pl.early) : null);
 /** B52 (podmajersky): the head of GW g's row when it has no transfer says who left it empty, the week's status beside
  *  the goal (statusTok): no edit reaches it (`ink`: GW A under way, inkAt) "No transfers"; your Roll (`lock`: rollingAt)
  *  "Rolling ✓"; under the hold (`hold`) the week you roll, "Rolling", "Rolling is best" once settled with nothing
@@ -7269,7 +7268,7 @@ export function mount(el, ctx) {
     const boxes = cardBoxes(root);
     // (the best move's places in its plate's top-most row, for its token beside the goal: tokensOf)
     const lead = topRow(D.filter((d) => lit.get(d.a)?.best).map((d) => ({ d, c: boxes.find((x) => x.id === d.a), L: lit.get(d.a) })).filter((x) => x.c))[0];
-    const name = plansHeading(P, g), tk = tokensOf(P, w, toks, lit, lead), any = D.length || tk.length;
+    const name = plansHeading(P, g), tk = tokensOf(P, w, toks, lit, lead, M), any = D.length || tk.length;
     if (any) decks.setAttribute('aria-label', name);
     else decks.removeAttribute('aria-label');
     fill(decks, any ? h('h3.sr-only', null, name) : null, tk);
@@ -7645,7 +7644,7 @@ export function mount(el, ctx) {
     // your plan": plansVs, decision K) where none gains; a move you removed or one the 2026-10-18 bars hold back said
     // so, as its note: the review of plates3, 2026-10-25)
     const none = !!first && !back && ready && !d.entries.some((x) => x.pl?.state === 'ready' && (plPays(x.pl) || x.pl.cmp.delta > 0.05));
-    const why = first && ready ? [earlyWords(pl), pl.removed ? COPY.removedByYou : null].filter(Boolean).map((x) => `, ${x}`).join('') : '';
+    const why = first && ready && pl.removed ? `, ${COPY.removedByYou}` : '';
     const said = o.tag != null ? `${COPY.partSaid(moves[0], e.adds.filter((m) => Number(m.in) !== e.inId).map((m) => COPY.moveSaid(nm(m.out), nm(m.in))), move)}. ${places}`
       : back && !best ? `${moves[0]}${v == null ? '' : `, ${num}`}${why}. ${places}`
       : best ? `${COPY.bestSaid(moves, num, move)}. ${o.line ? COPY.showsWhy : places}`
@@ -7722,27 +7721,37 @@ export function mount(el, ctx) {
    *  "Evanilson +1.6": "fix so if clicking on evanilson on left top corner it swap to evanilson straight away skipping
    *  options"; G's "a tap opens, the take is inside" stays the plates' and the chip tokens'); a week you can't change
    *  or a move still checked opens his place, as before. */
-  function tokensOf(P, w, toks, lit = new Map(), lead = null) {
+  function tokensOf(P, w, toks, lit = new Map(), lead = null, M = null) {
     const g = w.gw, out = [];
     // (a multi-move best none: its one mark is its sentence's plate over its sellers' row, renderDecks; design 1026e
     // "line": "Cunha → Palmer, Neto → Tavernier +3.8" never stands whole in the room beside the goal, 149 px at 393 wide)
     const mv = lit.move, top = mv && lead?.[0]?.L.e.pl === mv && !multiMove(lead[0].L.e, lead[0].d.a) ? lead : null;
-    if (top) {
-      const nm = P.L.name, e = top[0].L.e;
+    /** A move's token: its place `a`'s entry e of choice pl, the best's ink (.mv) or the runner-up's white (.nx). */
+    const moveTok = (e, a, pl, best) => {
+      const nm = P.L.name;
       // (the take-back of a transfer of yours "Keep Gabriel, not Hill": weekBest)
-      const moves = takesBack(e) ? [COPY.keepSoldSaid(nm(e.inId), nm(top[0].d.a))] : e.adds.map((m) => COPY.moveSaid(nm(m.out), nm(m.in)));
-      const swap = mv.state === 'ready' && !frozenAt(P, g);
-      out.push(h('button.ah-tok.mv', { type: 'button', 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:best:${g}`, deck: top[0].d.a, best: planKey(g, mv), ...(swap ? { add: `plan:${planKey(g, mv)}` } : {}) },
+      const moves = takesBack(e) ? [COPY.keepSoldSaid(nm(e.inId), nm(a))] : e.adds.map((m) => COPY.moveSaid(nm(m.out), nm(m.in)));
+      const swap = pl.state === 'ready' && !frozenAt(P, g), said = (best ? COPY.bestSaid : COPY.nextSaid)(moves, plNumSaid(P, pl), true);
+      return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}) },
         // (its verb first where it takes, as drawn: "Swap. Best move this week: …"; W6 label in name, H3)
-        'aria-label': swap ? COPY.bestSwapSaid(COPY.bestSaid(moves, plNumSaid(P, mv), true)) : `${COPY.bestSaid(moves, plNumSaid(P, mv), true)}, ${COPY.showsChoices}`,
-        onClick: (ev) => (swap ? takeFrom(ev, P, g, mv, ev.currentTarget, top[0].d.a, e.inId) : openPlace(top[0].d.a)) },
+        'aria-label': swap ? COPY.bestSwapSaid(said) : `${said}, ${COPY.showsChoices}`,
+        onClick: (ev) => (swap ? takeFrom(ev, P, g, pl, ev.currentTarget, a, e.inId) : openPlace(a)) },
         h('span.ah-tl', { 'aria-hidden': 'true' }, h('span.ah-tn', null, nm(e.inId))),
         // (its number as its plate's, blue with "xP", as every forecast's: numParts)
-        h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, numParts(g, mv)),
+        h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, numParts(g, pl)),
         // its take's word where its tap takes (the owner, 2026-10-28, design 1028d K1: one act, one word, one look;
         // N2, W4/W5): "Swap" in the mint of its place's best header, a keep-back "Keep"; none where it opens his place
-        swap ? h('span.ah-tgo.m-swap.best', { 'aria-hidden': 'true' }, takesBack(e) ? COPY.placeKeep : COPY.placeSwap) : null));
-    }
+        swap ? h(`span.ah-tgo.m-swap${best ? '.best' : ''}`, { 'aria-hidden': 'true' }, takesBack(e) ? COPY.placeKeep : COPY.placeSwap) : null);
+    };
+    if (top) out.push(moveTok(top[0].L.e, top[0].d.a, mv, true));
+    // …and two moves in the corner in all, the others the best-paying single moves on the pitch's plates once the week
+    // settles (each place's plate as drawn: litOf's, else its first choice, placeFirst; plPays), white, never ink, each tap the take as the best's (the owner, 2026-10-29: "why not suggest runner-up moves
+    // or one more apart from evanislson - hill pill can be placed also just below evanislon on top left"; then, of a week
+    // whose best is a plan, its sentence a plate alone: "why missing any suggestions on top left"); under the Reset where
+    // that shows (the Reset's slot is fixed: resetSlot), given way where they don't fit (renderDecks' fits)
+    const singles = !M?.settled ? [] : M.decks.filter((d) => !d.mine && !lit.get(d.a)?.best).map((d) => [d.a, lit.get(d.a)?.e ?? placeFirst(d)])
+      .filter(([, e]) => e && singleMove(e) && plPays(e.pl)).sort(([, p], [, q]) => q.pl.cmp.delta - p.pl.cmp.delta);
+    for (const [a, e] of singles.slice(0, top ? 1 : 2)) out.push(moveTok(e, a, e.pl, false));
     // (the week's status on the bar's first line since design 1029b REC: statusLine)
     for (const pl of toks) {
       // what its take takes back of yours, under its words: a take never takes a transfer of yours back unsaid
@@ -8023,7 +8032,7 @@ export function mount(el, ctx) {
       // (a card's one line is its header: a take-back alone says what it undoes under it, a single only its own state,
       // "removed by you", "as good in GW10", why it can't be checked; never another move; design 1026e)
       const text = takesBack(e) ? noteOf(P, w, e, d.a)
-        : [earlyWords(pl), pl?.removed ? COPY.removedByYou : null, pl?.state === 'failed' ? failedWords(P, pl).note : null].filter(Boolean).join(' · ') || null;
+        : [pl?.removed ? COPY.removedByYou : null, pl?.state === 'failed' ? failedWords(P, pl).note : null].filter(Boolean).join(' · ') || null;
       // one block on top of its card, read down: its header, its note, its line, then his name and fixture (the owner,
       // 2026-10-26, of "instead of Evanilson" / "or 2nd transfer −4 −6.1 xP ›" in the gap between rows, a neighbour's
       // header next to them: "here not clear what refer to what"): the note and the line in his card's own column, flush
@@ -8849,11 +8858,10 @@ export function mount(el, ctx) {
     const head = back ? `${base} ${back}` : base;
     const wait = pl.state === 'ready' ? null : pl.state === 'failed' ? failedWords(P, pl).row : { flight: COPY.pairChecking, heal: COPY.pairAfterEdit }[pl.wait] ?? COPY.pairWaiting;
     const who = pl.removed ? `${head}, ${COPY.removedByYou}` : head;
-    // the roll's own row is what the others count against: no number (the user, 2026-10-19: "Gain over rolling"); a
-    // choice worth no less a week later says so after it (earlyWords)
-    const ew = earlyWords(pl);
+    // the roll's own row is what the others count against: no number (the user, 2026-10-19: "Gain over rolling"); no
+    // "as good in GW9" after one worth no less a week later (the owner, 2026-10-29: "remove 'as good as gw10' crap")
     const label = wait ? `${who}: ${wait}` : pl.refRow ? `${who}, ${COPY.planRefSaid}`
-      : `${who}, ${fmt.signed(pl.cmp.delta)} points over ${span(P.gws.filter((x) => x >= g))} vs ${pl.vsRoll ? choiceVs(P, pl) : plansVs(P, g)}${ew ? `, ${ew}` : ''}`;
+      : `${who}, ${fmt.signed(pl.cmp.delta)} points over ${span(P.gws.filter((x) => x >= g))} vs ${pl.vsRoll ? choiceVs(P, pl) : plansVs(P, g)}`;
     return { head, label, wait, pays: !wait && plPays(pl) };
   }
   /** A choice's + (a Week sheet row's, a token's): GW g alone taken (planTake, addPlan) through addOnce; `then` once it
@@ -8883,13 +8891,12 @@ export function mount(el, ctx) {
     const shown = planWeeks(P, { ...pl.choice, moves: adds, hits: pl.hits }, g, false).find(([x]) => x === g)?.[1] ?? (now.length ? '' : COPY.planRoll(null));
     const tail = !own ? null : shown || adds.length ? ` ${own}` : capFirst(own);
     // the first line wraps between its moves, never inside one, and never cuts one (the plans reviews, 2026-10-11: a
-    // second GW-g buy the + makes sat in the ellipsis; m-ahead.css .ah-bplan); quiet after them, a choice worth no less a
-    // week later, "· as good in GW9" (earlyWords; the user, 2026-10-21: listed, never lit), and a move you took off this
-    // session, "· removed by you" (B129; the user, 2026-10-21: fix the known issues)
-    const ew = earlyWords(pl);
+    // second GW-g buy the + makes sat in the ellipsis; m-ahead.css .ah-bplan); quiet after them a move you took off this
+    // session, "· removed by you" (B129; the user, 2026-10-21: fix the known issues); a choice worth no less a week later
+    // is listed, never lit, with no words of it (the owner, 2026-10-29: "remove 'as good as gw10' crap")
     // (its moves one sentence, "Cunha → Palmer, Neto → Tavernier", as the pitch's line says it: design 1026e)
     const line = [adds.length ? adds.flatMap((m, i) => [i ? ', ' : null, h('span.ah-pmv', null, h('s', null, `${nm(m.out)} → `), nm(m.in))]) : shown,
-      tail ? h('span.ah-bq2', null, tail) : null, ew ? h('span.ah-bq2', null, ' · ', ew) : null, pl.removed ? h('span.ah-bq2', null, ' · ', COPY.removedByYou) : null];
+      tail ? h('span.ah-bq2', null, tail) : null, pl.removed ? h('span.ah-bq2', null, ' · ', COPY.removedByYou) : null];
     // its take worded as everywhere else (design 1028d K1: "Swap", "Swap both", a Roll's "Roll", a chip alone's "Take"),
     // the one mark (.m-swap), ink for the week's best, green where it pays, outlined where it doesn't; never a + (Bring
     // in's opened a player's weeks: R9, R12)

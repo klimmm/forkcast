@@ -217,10 +217,6 @@ export const COPY = Object.freeze({
   /** B129: a choice making a move you removed this session (ahead.plansOf `removed`: after the others, never lit; its
    *  Week sheet row, its spoken line, its card's note in his place). The user, 2026-10-21: fix the known issues. */
   removedByYou: 'removed by you',
-  /** A choice whose moves made the next week are worth no less (ahead.plansOf `early`, earlyOf; the user, 2026-10-18:
-   *  "why murillo-hill suggested in gw8 if worse points"), listed since 2026-10-21 ("Same both times, worse ones too"),
-   *  never lit: its Week sheet row, its spoken line, its card's note in his place (ahead.earlyWords). */
-  asGoodIn: (gw) => `as good in GW${gw}`,
   /** …with your later sale of the player it bought, which has no one to sell then (ahead.removeMove). */
   /** The review (2026-10-08: "there is no 'move to next week'"): your transfer made in another GW, its toast's subject
    *  ("Chilwell → Bassey moved to GW7", ahead.moveTo). */
@@ -971,6 +967,8 @@ export const COPY = Object.freeze({
    *  token, top of stack"): "Evanilson +1.6" (no "Best:" since "yes do both"), said "Best move this week: …, shows his
    *  choices". */
   showsChoices: 'shows his choices',
+  /** The week's runner-up token's name (ahead.js tokensOf; the owner, 2026-10-29), as bestSaid says the best's. */
+  nextSaid: (moves, num) => `Next best this week: ${moves.length > 1 ? `${moves.length} transfers, ${num}: ${moves.join('; ')}` : `${moves[0]}, ${num}`}`,
   /** …a multi-move best's plate (design 1026e "line"): it opens that plan's Why sheet, whose one button takes it. */
   showsWhy: 'Shows why',
   /** The best token's spoken name where its tap takes (ahead.tokensOf): its visible verb first (design 1029b Ta; W6). */
