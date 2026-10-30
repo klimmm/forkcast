@@ -1273,13 +1273,19 @@ export const POINT_TERMS = ['xi', 'cap', 'hit'];
  * `cmp` with its gap the solver's own count over the window it committed GW g from (windowGap: points, bench, its charge
  * per transfer, the free transfers kept), its label that count on the anchor's scale against the noise floor, no
  * per-run votes (the count has none); the points kept as `pts`. As it was where either road has no window for g.
+ * `keep` (a transfer choice's POINT_TERMS): the number those terms alone, the solver's whole count its `rank`, the one
+ * that orders and lights the choices (rankOf), so the week's best is the move the solver commits (the owner, 2026-10-30,
+ * TORPEDO GW10: Thomas → Silva XI +0.52, bench −0.18 drawn best over Calvert-Lewin → Evanilson XI +0.20, bench +0.25,
+ * which main.py --show-plan commits: "fix bug so it shows same choices as in cli, silva bug must not be returned").
  * ctx: planInputs.
  */
 export function counted(ctx, cmp, a, b, g, keep = null) {
   const w = cmp ? windowGap(a, b, g, keep) : null;
   if (!w) return cmp;
-  return { ...cmp, delta: w.delta, ref: w.ref, label: E.verdictLabel(w.ref, ctx.noise), winner: w.delta > EPS ? 'a' : w.delta < -EPS ? 'b' : null,
-    votes: null, against: null, lead: null, count: w.terms, pts: cmp };
+  const of = (x) => ({ delta: x.delta, ref: x.ref, label: E.verdictLabel(x.ref, ctx.noise) });
+  const whole = keep && windowGap(a, b, g);
+  return { ...cmp, ...of(w), winner: w.delta > EPS ? 'a' : w.delta < -EPS ? 'b' : null,
+    votes: null, against: null, lead: null, count: w.terms, pts: cmp, ...(whole ? { rank: of(whole) } : {}) };
 }
 /** What a solved road's hits cost in points (HIT_COST a hit: what compare counts) beyond what its planner's count
  *  charged for them (its objective's hit term, −hit_cost a hit: solve.py add_ft): FPL's 4 less the planner's price where

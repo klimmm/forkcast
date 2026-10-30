@@ -2970,21 +2970,21 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // (a row numbered by the solver's own count that beats the roll is no early one: its window counts making it next week
     // instead, so a count past the 0.05 bar says now; the owner, 2026-10-28, "Why it shows Trafford +1 and rolling the
     // best at the same time": an early row's plate beside "Rolling is best")
-    .map((x) => (early.has(forkKey(x.choice, g)) && !(x.cmp?.count && x.cmp.delta > 0.05) ? { ...x, early: early.get(forkKey(x.choice, g)) } : x))
+    .map((x) => (early.has(forkKey(x.choice, g)) && !(x.cmp?.count && solverCmp(x.cmp).delta > 0.05) ? { ...x, early: early.get(forkKey(x.choice, g)) } : x))
     .map((x) => (placed.has(forkKey(x.choice, g)) ? { ...x, placed: true } : x));
   const done = all.filter((x) => x.state === 'ready');
   // the Roll row against the hardest of: the best transfer row's plan (Forkcast's later moves on both sides) and the best
   // Wildcard row's (your later weeks kept on both: its held roll) → {vsBest, best, bestFrom (the Roll side's plan)}; never
   // one the 2026-10-18 bars keep from being the week's suggestion (`early`: waiting is what they say)
   // (by its number where that is the solver's count, ownCount: one way to rank the rows and the roll against them)
-  const gainOf = (x) => (x.cmp?.count ? x.cmp.delta : x.full.delta);
+  const gainOf = (x) => (x.cmp?.count ? solverCmp(x.cmp).delta : x.full.delta);
   const top = done.filter((x) => !x.refRow && !x.early && x.vsRoll && !heldOf(x.choice)).sort((a, b) => gainOf(b) - gainOf(a))[0] ?? null;
   const topHeld = done.filter((x) => x.vsRoll && heldOf(x.choice)).sort(byGain)[0] ?? null;
   // (one it doesn't clear first, else the narrowest by the gap its label reads: compare's `ref`)
   const against = (x) => {
     const cs = [top && { vsBest: ownCount(ctx, compare(ctx, x.fullEv, top.fullEv), countRoad(x), top.road, g, termsOf(top.choice)), best: top, bestFrom: x.fullEv },
       topHeld && { vsBest: ownCount(ctx, compare(ctx, topHeld.refEv, topHeld.fullEv), topHeld.refRoad, topHeld.road, g), best: topHeld, bestFrom: topHeld.refEv }].filter(Boolean);
-    return cs.find((c) => !clearGain(c.vsBest)) ?? cs.sort((a, b) => (a.vsBest.ref ?? a.vsBest.delta) - (b.vsBest.ref ?? b.vsBest.delta))[0] ?? {};
+    return cs.find((c) => !clearGain(c.vsBest)) ?? cs.sort((a, b) => (solverCmp(a.vsBest).ref ?? solverCmp(a.vsBest).delta) - (solverCmp(b.vsBest).ref ?? solverCmp(b.vsBest).delta))[0] ?? {};
   };
   const ranked = [...done.map((x) => (x.refRow ? { ...x, ...against(x) } : x)).sort(byGain),
     ...all.filter((x) => x.state === 'failed'), ...all.filter((x) => x.state === 'solving')];
@@ -3351,7 +3351,7 @@ const litCan = (P, w, M) => {
   // number (FPL confirms no team short of money: the owner, 2026-10-28, "show it as black transfer suggested as usual")
   if (owedAt(P, w)) return (pl) => pl?.state === 'ready' && paysBack(w, pl);
   const fresh = !w.moves.length && !M.sq && !P.pins.some((p) => p.id === `roll:${g}`);
-  return (pl) => pl?.state === 'ready' && (fresh ? pl.cmp.delta > 0.05 : plPays(pl));
+  return (pl) => pl?.state === 'ready' && (fresh ? solverCmp(pl.cmp).delta > 0.05 : plPays(pl));
 };
 /** The places choice pl is drawn at (decksOf): behind each player it replaces; a take-back of a transfer of yours behind
  *  your buy. → [deck] */
@@ -3371,7 +3371,7 @@ export function weekBest(P, w, M, D, toks = []) {
   const ok = (pl) => !pl.refRow && !pl.early && !pl.placeOnly && can(pl);
   const moves = M.plans.filter((pl) => ok(pl) && placesOf(D, pl).length && !placesOf(D, pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl))));
   const chips = toks.filter((pl) => ok(pl) && !rollOnly(pl) && !!pl.choice.chips?.[g]);
-  return [...moves, ...chips].reduce((m, pl) => (!m || pl.cmp.delta > m.cmp.delta ? pl : m), null);
+  return [...moves, ...chips].reduce((m, pl) => (!m || solverCmp(pl.cmp).delta > solverCmp(m.cmp).delta ? pl : m), null);
 }
 /** The choices the pitch shows lit, green (the user, 2026-10-22: the Week sheet greened every gain while the pitch lit
  *  two; one rule): those litOf lights that pay (plPays: a lit lead inside the noise has its tab, never green), and a
@@ -3587,7 +3587,7 @@ export const lineMoves = (P, e) => {
  *  checking or failed, then what takes a transfer back (the Roll of a week with yours, Remove) last; ties as listed. Pure. */
 export const placeOrder = (entries) => {
   const tier = (e) => (takesBack(e) ? 2 : e.pl?.state === 'ready' ? 0 : 1);
-  return entries.map((e, i) => [e, i]).sort(([a, i], [b, j]) => tier(a) - tier(b) || (tier(a) === 0 ? b.pl.cmp.delta - a.pl.cmp.delta : 0) || i - j).map(([e]) => e);
+  return entries.map((e, i) => [e, i]).sort(([a, i], [b, j]) => tier(a) - tier(b) || (tier(a) === 0 ? solverCmp(b.pl.cmp).delta - solverCmp(a.pl.cmp).delta : 0) || i - j).map(([e]) => e);
 };
 /** The most cards a player's place deals beside him (drawPlace: slotsBeside's n). */
 const PLACE_SLOTS = 4;
@@ -3654,8 +3654,13 @@ export function noteOf(P, w, e, a = null) {
 /** N9 (the plans review, 2026-10-11): your plan has a transfer in some week (every plan keeps the others), so plans
  *  count against "your plan", never "no transfers". */
 const mineAny = (P) => P.weeks.some((w) => w.moves.length);
-/** Best first: the higher number, the model's own plan on a tie. */
-const byGain = (a, b) => b.cmp.delta - a.cmp.delta || b.model - a.model;
+/** A choice's count as the solver ranks it: its whole window count where its number is the points alone (calls.counted
+ *  `rank`: a transfer choice's), else its number's own. What orders and lights the choices, so the week's best is the
+ *  move main.py --show-plan commits (the owner, 2026-10-30, TORPEDO GW10's Silva over Evanilson: "fix bug so it shows
+ *  same choices as in cli, silva bug must not be returned"); the number drawn stays the points. */
+export const solverCmp = (cmp) => cmp?.rank ?? cmp;
+/** Best first: the higher count (solverCmp), the model's own plan on a tie. */
+const byGain = (a, b) => solverCmp(b.cmp).delta - solverCmp(a.cmp).delta || b.model - a.model;
 
 /** GW g's choice c ({moves, chips}) can be made on your plan as it stands (decision 6): its moves in place of your GW-g
  *  ones, your other weeks kept (estimate: every move legal, and no week's bank or clubs worse off than your plan has
@@ -4058,7 +4063,7 @@ function presolve(ctx, P, src, taps, { gw = P.A, sig = '', owner = null } = {}) 
  *  first, the newest first). → {takes, removes, sig} */
 function weekTaps(ctx, P, g, list) {
   const ready = list.filter((pl) => pl.state === 'ready' && !pl.self && !rollOnly(pl) && !pl.removed)
-    .sort((a, b) => plPays(b) - plPays(a) || b.cmp.delta - a.cmp.delta);
+    .sort((a, b) => plPays(b) - plPays(a) || byGain(a, b));
   // (`pri`: the order they are asked in, the takes first by their number; `id`: one tap of the view's, made dry once)
   const takes = ready.map((pl, i) => ({ kind: 'take', gw: g, id: `take:${forkKey(pl.choice, g)}`, pri: i, run: () => addPlan(ctx, g, pl) }));
   const rules = rulesOf(P).filter((p) => ruleOf(P, p).removable);
@@ -5443,7 +5448,7 @@ export const shirtOf = (L, id, size = 28) => shirt({ club: L.club(id), gk: L.pos
 /** B1: a gain that beats the forecast's noise: green, a solid +, a filled button, a "Best". cmp {delta, label}: a
  *  compare result (its label: engine.verdictLabel against the noise), or a bare gap g as
  *  {delta: g, label: E.verdictLabel(g, noise)}. */
-export const clearGain = (cmp) => !!cmp && cmp.delta > 0 && cmp.label !== 'coin';
+export const clearGain = (cmp) => { const c = solverCmp(cmp); return !!c && c.delta > 0 && c.label !== 'coin'; };
 /** A suggested plan row's green, solid + and filled Why button (plansOf's rows): its number past the noise; the roll's
  *  own row (no number: `refRow`) when its plan beats the best other row's past the noise (`vsBest`); in a week with your
  *  transfer, Wildcard or Free Hit, past your own choice's too (`vsMine`), a move you took off this session too (plansOf
@@ -7435,7 +7440,7 @@ export function mount(el, ctx) {
     const under = (x) => !lineBest && span && !x.best && Math.abs(x.c.y - span.y) < 2 && x.c.x >= span.x && x.c.x + x.c.w <= span.x + span.w;
     // (one buy, one plate: two places offering the same buy, "Truffert +1.3" and "Truffert +1.0", keep the better, the
     // other's his place's; the owner's judge of design 1026e)
-    const plateGain = (x) => (x.L.e.pl?.state === 'ready' ? x.L.e.pl.cmp.delta : -Infinity);
+    const plateGain = (x) => (x.L.e.pl?.state === 'ready' ? solverCmp(x.L.e.pl.cmp).delta : -Infinity);
     const byBuy = new Map();
     for (const x of marks) if (!x.best && x.L.e.pl && !takesBack(x.L.e) && (!byBuy.has(x.L.e.inId) || plateGain(x) > plateGain(byBuy.get(x.L.e.inId)))) byBuy.set(x.L.e.inId, x);
     const bestIns = new Set(marks.filter((x) => x.best).map((x) => x.L.e.inId));
@@ -7507,7 +7512,7 @@ export function mount(el, ctx) {
     // (what a quiet plate yielded: its name, or a Remove's shortened)
     const yielded = (p) => (p.el.matches('.bare') ? 'cut' : 'only');
     // (its gain: one still checking the lowest)
-    const gain = (p) => (p.m.L.e.pl?.state === 'ready' ? p.m.L.e.pl.cmp.delta : -Infinity);
+    const gain = (p) => (p.m.L.e.pl?.state === 'ready' ? solverCmp(p.m.L.e.pl.cmp).delta : -Infinity);
     // the nearest cards beside a plate's (its span's) in his row, each side, with a quiet plate still named
     const beside = (p) => [boxes.filter((q) => Math.abs(q.y - p.c.y) < 2 && q.x + q.w <= p.c.x + 0.5).sort((a, b) => b.x - a.x)[0],
       boxes.filter((q) => Math.abs(q.y - p.c.y) < 2 && q.x >= p.c.x + p.c.w - 0.5).sort((a, b) => a.x - b.x)[0]]
@@ -7687,7 +7692,7 @@ export function mount(el, ctx) {
     // (a first choice: what his place holds as the handle said it, "none better than rolling" (in a week of yours "than
     // your plan": plansVs, decision K) where none gains; a move you removed or one the 2026-10-18 bars hold back said
     // so, as its note: the review of plates3, 2026-10-25)
-    const none = !!first && !back && ready && !d.entries.some((x) => x.pl?.state === 'ready' && (plPays(x.pl) || x.pl.cmp.delta > 0.05));
+    const none = !!first && !back && ready && !d.entries.some((x) => x.pl?.state === 'ready' && (plPays(x.pl) || solverCmp(x.pl.cmp).delta > 0.05));
     const why = first && ready && pl.removed ? `, ${COPY.removedByYou}` : '';
     const said = o.tag != null ? `${COPY.partSaid(moves[0], e.adds.filter((m) => Number(m.in) !== e.inId).map((m) => COPY.moveSaid(nm(m.out), nm(m.in))), move)}. ${places}`
       : back && !best ? `${moves[0]}${v == null ? '' : `, ${num}`}${why}. ${places}`
@@ -7807,7 +7812,7 @@ export function mount(el, ctx) {
     // over "Vuskovic +1.5" for Thomas; the owner, 2026-10-29, "what the fuck is this")
     const named = new Set((mv?.choice?.moves || []).filter((m) => (m.gw ?? g) === g).map((m) => Number(m.in)));
     const singles = !M?.settled ? [] : M.decks.filter((d) => !d.mine && !lit.get(d.a)?.best).map((d) => [d.a, lit.get(d.a)?.e ?? placeFirst(d)])
-      .filter(([, e]) => e && singleMove(e) && plPays(e.pl)).sort(([, p], [, q]) => q.pl.cmp.delta - p.pl.cmp.delta)
+      .filter(([, e]) => e && singleMove(e) && plPays(e.pl)).sort(([, p], [, q]) => byGain(p.pl, q.pl))
       .filter(([, e]) => !named.has(Number(e.inId)) && named.add(Number(e.inId)));
     for (const [a, e] of singles.slice(0, top ? 1 : 2)) out.push(moveTok(e, a, e.pl, false));
     // (the week's status on the bar's first line since design 1029b REC: statusLine)
