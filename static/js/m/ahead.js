@@ -2189,6 +2189,8 @@ export function adoptModel(ctx, { drop = null } = {}) {
  * move brings GW g a hit: its number is after it). Once per plan view and GW.
  */
 const SUGGESTIONS = new WeakMap();
+const SUGGEST_LEAST = 4;   // a week's single moves at least, the roads' first, then the engine's best of each sale's
+const SUGGEST_TRIES = 3;   // …buys measured for each sale (buyCandidates' order: mean xP, his money pays for them)
 export function suggestionsOf(ctx, P, g) {
   if (inkAt(ctx, P, g) || !weekOf(P, g)) return [];
   let by = SUGGESTIONS.get(P);
@@ -2203,16 +2205,37 @@ export function suggestionsOf(ctx, P, g) {
   const hitsAt = (ev) => ev.gws.find((x) => x.gw === g)?.hits ?? 0;
   // B129: a move you took off this session is still offered, as yours (`removed`: "removed by you")
   const gone = removedAt(P, g);
-  const out = [];
-  for (const m of modelMoves(P, g).values()) {
-    if (!into.includes(m.out) || !squad.includes(m.out) || squad.includes(m.in) || mine.has(m.out) || mine.has(m.in) || no.has(m.in) || kept.has(m.out)) continue;
+  const fits = (m) => into.includes(m.out) && squad.includes(m.out) && !squad.includes(m.in) && !mine.has(m.out) && !mine.has(m.in) && !no.has(m.in) && !kept.has(m.out);
+  // (null where the week can't make it)
+  const measured = (m) => {
     const r = addYours(ctx, P, g, m.out, m.in, d0);
-    if (r.problem) continue;
-    const cmp = compare(ctx, r.ev, before);
+    return r.problem ? null : { ...m, r, cmp: compare(ctx, r.ev, before) };
+  };
+  const out = [];
+  const push = ({ r, ...m }) => {
     const removed = gone.has(`${m.out}>${m.in}`);
     // (your rules already hold for it the next week: barred, keptFrom are from GW g on)
     const early = earlyOf(ctx, P, g, [m], r.ev, before, d0);
-    out.push({ ...m, cmp, instead: r.instead, hit: hitsAt(r.ev) > hitsAt(before), ...(early ? { early } : {}), ...(removed ? { removed: true } : {}) });
+    out.push({ ...m, instead: r.instead, hit: hitsAt(r.ev) > hitsAt(before), ...(early ? { early } : {}), ...(removed ? { removed: true } : {}) });
+  };
+  for (const m of modelMoves(P, g).values()) {
+    const x = fits(m) ? measured(m) : null;
+    if (x) push(x);
+  }
+  // a week the roads' moves don't reach (your plan made them already, and the roads roll it: Raketa's GW11 after
+  // Evanilson in GW9 and Hill in GW10 listed only "Roll"; the owner, 2026-10-30, "also no transfer options offered for
+  // some reason fix"): each sale's best buy of the few his money pays for (buyCandidates' order, as Replace's
+  // ownAltsOf), the best of them up to SUGGEST_LEAST moves in all, one a buy, each solved as any (plansOf)
+  const short = SUGGEST_LEAST - out.filter((x) => !x.removed).length;
+  if (short > 0) {
+    const pool = new Map(), bank = w.bank ?? 0, buys = new Set(out.map((x) => x.in));
+    const buysOf = (pos) => pool.get(pos) ?? pool.set(pos, buyCandidates(P, { pos, from: g, limit: 80 })).get(pos);
+    const best = squad.flatMap((o) => {
+      const room = bank + (P.L.price(o) ?? 0) + 1e-6;
+      const tries = buysOf(P.L.pos(o)).filter((id) => (P.L.price(id) ?? Infinity) <= room).slice(0, SUGGEST_TRIES).map((id) => ({ out: o, in: id, model: false }));
+      return tries.filter(fits).map(measured).filter(Boolean).sort((a, b) => b.cmp.delta - a.cmp.delta).slice(0, 1);
+    }).sort((a, b) => b.cmp.delta - a.cmp.delta);
+    for (const x of best.filter((y) => !buys.has(y.in) && buys.add(y.in)).slice(0, short)) push(x);
   }
   out.sort((a, b) => !!a.early - !!b.early || b.cmp.delta - a.cmp.delta || b.model - a.model);
   by.set(g, out);
@@ -3821,9 +3844,10 @@ export function forkValues(ctx, P, g, c) {
 }
 
 // (the newest FORK_ROADS_MAX by their last use, keepNewest: a week drawn before an edit asked its solves first, and an
-// Undo back to it needs them all again; the phone recheck of the first-use proposals, 2026-10-21)
+// Undo back to it needs them all again; the phone recheck of the first-use proposals, 2026-10-21; twice 48 since every
+// week lists SUGGEST_LEAST moves at least, its choices its own and not the roads' alone, 2026-10-30)
 const FORK_ROADS = new Map();  // valuesKey → Road | 'infeasible' | {failedAt}
-const FORK_ROADS_MAX = 48;
+const FORK_ROADS_MAX = 96;
 /** A fork's solve ({key: valuesKey, values}): its road, 'infeasible' (no plan keeps your rules with the choice: kept
  *  for the forecast), 'error' (it failed, or no solve service / offline: the road plans stand), or null while it is
  *  asked (forkPump). A failure is asked again PAIR_HOLD_MS after it (review 5, 2026-10-12: a failed check stayed dead
@@ -5432,14 +5456,14 @@ export const plPays = (pl) => !pl.early && clearGain(pl.refRow ? pl.vsBest : pl.
  *  taken says so by its number, or by its Why sheet's "Your total" where that differs), else null. Pure. */
 /** B52 (podmajersky): the head of GW g's row when it has no transfer says who left it empty, the week's status beside
  *  the goal (statusTok): no edit reaches it (`ink`: GW A under way, inkAt) "No transfers"; your Roll (`lock`: rollingAt)
- *  "Rolling ✓"; under the hold (`hold`) the week you roll, "Rolling", "Rolling is best" once settled with nothing
- *  better (`best`: the user, 2026-10-23), never "No transfers yet" (the owner, 2026-10-26: "no transfer yeat remove since
+ *  "Rolling ✓"; under the hold (`hold`) the week you roll, "Rolling" ("Rolling is best" the corner's token since
+ *  2026-10-30: tokensOf), never "No transfers yet" (the owner, 2026-10-26: "no transfer yeat remove since
  *  rolling already show it"; its "No transfer pays this week" when no listed plan beat yours went: the user, 2026-10-18,
  *  "remove 'no transfer pays the week'"); off the hold a week Forkcast adds no transfer to (`off`:
  *  a later week drawn from the plan before an edit still checked: rollFacts; gwMode 'roll' too, a Roll a plan's + stored, addPlan) "No transfers", one
  *  Forkcast's plan leaves empty "Forkcast rolls GW8". Pure. */
-export const emptyHead = (g, { ink = false, hold = false, off = false, lock = false, best = false } = {}) => (ink ? COPY.noTransfers
-  : lock ? COPY.rollingOn : hold ? (best ? COPY.rollingBest : COPY.rollingNow) : off ? COPY.noTransfers : COPY.forkcastRolls(g));
+export const emptyHead = (g, { ink = false, hold = false, off = false, lock = false } = {}) => (ink ? COPY.noTransfers
+  : lock ? COPY.rollingOn : hold ? COPY.rollingNow : off ? COPY.noTransfers : COPY.forkcastRolls(g));
 /** A4: the facts under a week with no transfer (the week line's second line, rollFacts), each with its spoken words: GW
  *  `gw`'s free transfers first (`ft`), then its bank after the week's moves (the user, 2026-10-21: "where it shows itb
  *  money", chose "On the week line": `bank`, the plan view's week bank, w.bank, the figure Replace's header and the
@@ -6255,8 +6279,8 @@ export function mount(el, ctx) {
       h('span.ah-brest', null, chk)];
     // (the strip's one line, two probes: the facts, the lead and checks)
     const probes = [facts(), checks].map((two) => {
-      // (design 1029b REC: the status's line over them, "Rolling is best" its tallest, the ink chip)
-      const b = h('section.ah-block.ah-fitprobe', { 'aria-hidden': 'true' }, barNode({ one: h('span.ah-bt.ah-bst.best', null, h('span.ah-tl', null, COPY.rollingBest)), two, doors: doorStubs() }));
+      // (design 1029b REC: the status's line over them)
+      const b = h('section.ah-block.ah-fitprobe', { 'aria-hidden': 'true' }, barNode({ one: h('span.ah-bt.ah-bst', null, h('span.ah-tl', null, COPY.rollingNow)), two, doors: doorStubs() }));
       b.style.width = `${strip.clientWidth}px`;
       strip.append(b);
       return b;
@@ -6914,6 +6938,13 @@ export function mount(el, ctx) {
    * GW A under way; off on a plan you can't change). A tap opens the Week sheet (weekSheet), as the status's does. The
    * page's focus home (B48: focus lands here when a sheet closes and what opened it has gone: app.js dismiss).
    */
+  /** The Week sheet of GW g, the bar's tap and the corner's "Rolling is best"'s (tokensOf): under your Roll at Your
+   *  rules, where its Remove is (a keyboard's or VoiceOver's focus on it: a click with no pointer, detail 0, as takeFrom). */
+  function openWeek(ev, g) {
+    const rules = !!S.drawn && rollingAt(S.drawn, g);
+    weekSheet(g, rules ? 'rules' : null);
+    if (rules && ev.detail === 0) S.week?.host.querySelector(`.ah-rmv[data-rule="roll:${g}"]`)?.focus({ preventScroll: true });
+  }
   function renderLine(P, w, M) {
     const g = w.gw, n = w.moves.length;
     const ap = ap0(P, g);
@@ -6946,8 +6977,8 @@ export function mount(el, ctx) {
       mine = COPY.outNames(movesInOrder(P, w).map((m) => P.L.name(m.out)));
       said = `${one}${hitSaid(w.hits)}, ${numSaid(wait, v.cmp, ap, v.vs)}`;
     } else {
-      // ("Rolling is best" where the Roll's token said it: the week settled, no move its best, its Roll offered)
-      const f = rollFacts(P, w, !!M.settled && !M.lit.best && M.toks.some(rollOnly));
+      // ("Rolling", never "Rolling is best": the corner's black token says that, tokensOf)
+      const f = rollFacts(P, w);
       one = kept ? COPY.nTransfers(kept) : f.head;
       wait = kept > 0;
       two = f.rest;
@@ -7015,12 +7046,7 @@ export function mount(el, ctx) {
         // (the week said once: its status, GW A's lineup notice, then its facts, "1 transfer, 1.5 points more than rolling.
         // Set in FPL: 2 changes. 1 free transfer, £0.5 million in the bank; opens GW9 transfers"; GW A under way its sentence)
         label: M.live ? said : COPY.statusSaid([S.status.said, own ? factsSaid : null, lead?.said, mine, rest].filter(Boolean).join('. '), g),
-        onClick: (ev) => {
-          const rules = !!S.drawn && rollingAt(S.drawn, g);
-          weekSheet(g, rules ? 'rules' : null);
-          // (a keyboard's or VoiceOver's focus on your Roll's Remove there: a click with no pointer, detail 0, as takeFrom)
-          if (rules && ev.detail === 0) S.week?.host.querySelector(`.ah-rmv[data-rule="roll:${g}"]`)?.focus({ preventScroll: true });
-        },
+        onClick: (ev) => openWeek(ev, g),
         moves: w.moves.map((m) => `${m.out}>${m.in}`).join(' '),
         doors: inkAt(ctx, P, g) ? [] : [bringDoor(P, g), chipsDoor(P, g)],
       })));
@@ -7709,10 +7735,10 @@ export function mount(el, ctx) {
   // design 1029b REC (the owner, 2026-10-29: "why these two fields information overlaps actually, find how to merge";
   // problem M from design 1029b Tc): the status is the bar's first line, inside its one door, never a label on the pitch
   // of its own: one door to the Week sheet, one look (G1, G2, G4, W5); the pitch's left corner keeps the black best alone,
-  // so nothing there moves on a GW switch (T12). "Rolling is best" an ink chip there, as the best's ink (kept)
+  // so nothing there moves on a GW switch (T12). "Rolling is best" the corner's since 2026-10-30 (tokensOf), the bar "Rolling"
   function statusLine(st) {
     if (!st) return null;
-    return h('span.ah-bt.ah-bst', { class: { done: st.mine, best: st.one === COPY.rollingBest }, 'aria-hidden': 'true', dataset: { row: `tok:week:${st.g}` } },
+    return h('span.ah-bt.ah-bst', { class: { done: st.mine }, 'aria-hidden': 'true', dataset: { row: `tok:week:${st.g}` } },
       // (dashed while an edit is checked: m-pending)
       h('span.ah-tl', { class: { 'm-pending': st.ap } }, typeof st.one === 'string' ? st.one.replace(/(\d) /g, '$1\u00a0') : st.one),
       st.wait ? h('small.ah-tw', null, COPY.pairChecking) : null,
@@ -7764,6 +7790,14 @@ export function mount(el, ctx) {
         swap ? h(`span.ah-tgo.m-swap${best ? '.best' : ''}`, { 'aria-hidden': 'true' }, takesBack(e) ? COPY.placeKeep : COPY.placeSwap) : null);
     };
     if (top) out.push(moveTok(top[0].L.e, top[0].d.a, mv, true));
+    // "Rolling is best" in the best move's place once the week settles with no move its best and its Roll offered (the
+    // owner, 2026-10-30, of it on the bar since design 1029b REC: "why rolling is best pill is in wrong place fix so it in
+    // same place on top left like transfers suggestions and clickable"): ink, flat, its "›" the door to the Week sheet,
+    // where every choice is counted against it (openWeek), never given way for room (renderDecks: .st)
+    else if (M?.settled && !lit.best && toks.some(rollOnly)) {
+      out.push(h('button.ah-tok.st.best', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` }, 'aria-label': COPY.statusSaid(COPY.rollingBest, g), onClick: (ev) => openWeek(ev, g) },
+        h('span.ah-tl', { 'aria-hidden': 'true' }, COPY.rollingBest)));
+    }
     // …and two moves in the corner in all, the others the best-paying single moves on the pitch's plates once the week
     // settles (each place's plate as drawn: litOf's, else its first choice, placeFirst; plPays), white, never ink, each tap the take as the best's (the owner, 2026-10-29: "why not suggest runner-up moves
     // or one more apart from evanislson - hill pill can be placed also just below evanislon on top left"; then, of a week
@@ -8797,7 +8831,7 @@ export function mount(el, ctx) {
    *  that fork. The head the week's status beside the goal (statusTok: "Rolling", "Rolling is best" once settled with
    *  nothing better, `best`; "Rolling ✓" under your Roll). → {head, rest (nodes: next GW's free transfers the strip may
    *  leave to the Week sheet, fitFacts), said} */
-  function rollFacts(P, w, best = false) {
+  function rollFacts(P, w) {
     const g = w.gw;
     const ink = inkAt(ctx, P, g), hold = !!P.mem?.hold;
     // this week's free transfers first, then what rolling them makes next week (the reviews, 2026-10-08: "2 FT in GW7"
@@ -8808,7 +8842,7 @@ export function mount(el, ctx) {
     // transfers", not "Forkcast rolls GW8": the check may re-plan it; review 5, 2026-10-12)
     const stale = !hold && P.healing && P.approx.has(g) && !ap0(P, g);
     return {
-      head: emptyHead(g, { ink, hold, off: gwMode(P, g) === 'roll' || stale, lock: rollingAt(P, g), best }),
+      head: emptyHead(g, { ink, hold, off: gwMode(P, g) === 'roll' || stale, lock: rollingAt(P, g) }),
       // (next GW's the last of them in every GW but the window's last: weekFacts)
       rest: [factSpans(facts, g < P.end), bank ? [' · ', bank] : null],
       // B92: read out with FPL's codes in full ("1 free transfer, £0.5 million in the bank, 2 free transfers in gameweek 7")

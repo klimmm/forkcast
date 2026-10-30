@@ -288,7 +288,6 @@ button.ah-brow { border-left: 0; border-right: 0; border-bottom: 0; }
 .ah-pbt > .ah-bst .ah-tnum > .ah-bg:first-child { margin-left: 0; }
 .ah-pbt > .ah-bst.noxp .xp-u { display: none; }  /* its trims where it has no room (ahead.js fitFacts), never a word cut */
 .ah-pbt > .ah-bst.tight .ah-tnum { font-size: .85em; }
-.ah-pbt > .ah-bst.best > .ah-tl { padding: 0 5px; border-radius: var(--r-sm); background: #17191A; color: #FFFFFF; }  /* the pitch's --sp-ink */
 .ah-pbar.ah-pwrap > .ah-pbh { flex-basis: 100%; }  /* even trimmed no room: the doors under the line (ahead.js fitFacts) */
 .ah-pbt .ah-bs .ah-blu { white-space: nowrap; }
 .ah-doors > .ah-door:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: -2px; }
