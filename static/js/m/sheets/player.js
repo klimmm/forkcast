@@ -584,7 +584,7 @@ function matchStrip(m, G, { low, peak } = scaleOf(m, G)) {
   let top = 0;
   lines.forEach((line, i) => { top = drawLine(line, top, i > 0 && !lines[i - 1].cols[0]?.ahead === !line.cols[0]?.ahead) + GAP; });
   const said = (c) => (c.kind === 'cup' ? cupWords(c)
-    : `GW${c.gw} ${fixText(c.opp, c.home)} ${c.minutes ? `${c.points} pts in ${c.minutes} min` : "didn't play"}`);
+    : `GW${c.gw} ${fixText(c.opp, c.home)} ${c.minutes ? `${c.points} pts in ${c.minutes} min` : c.minutes == null ? 'not played yet' : "didn't play"}`);
   const past = cols.filter((c) => !c.ahead);
   const label = `${past.filter((c) => c.kind !== 'slot').map(said).join(', ')}`
     + `${avgText ? `; ${WORD[m.pos] ?? m.pos} averaged ${f1(avg)} a match in those rounds` : ''}`
@@ -627,9 +627,9 @@ function matchStrip(m, G, { low, peak } = scaleOf(m, G)) {
     for (const c of lc) {
       if (c.kind === 'epl') {
         const p = c.points ?? 0, mn = c.minutes ?? 0;
-        // a match he didn't play: "0′", as a cup's unused sub says it
-        if (!mn) b.push(T(c.cx, sy(0) - 4, '0′'));
-        else {
+        // a match he didn't play: "0′", as a cup's unused sub says it; one not kicked off yet (api/card.py _match: no
+        // minutes) nothing (the user, 2026-10-31: "why liv zero minutes if match not played yet")
+        if (!mn) { if (c.minutes != null) b.push(T(c.cx, sy(0) - 4, '0′')); } else {
           const bw = Math.max(2, (c.w * 0.66 * Math.min(mn, 90)) / 90);
           b.push(`<g class="past" data-gw="${c.gw}" data-pts="${p}" data-min="${mn}">`
             + R(c.cx - bw / 2, Math.min(sy(p), sy(0)), bw, Math.abs(sy(0) - sy(p)), 'var(--ink-2)')
