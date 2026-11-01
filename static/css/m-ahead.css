@@ -383,6 +383,16 @@ out (.ah-stepout). .ah-ghost the card a take sends behind its buy (ahead.js land
 /* under an open place the plates' layer hides, rings too (else its chalk dots and counts show through the shade) */
 .pm:has(> .ah-place) > .ah-decks { visibility: hidden; }
 .ah-decks button { pointer-events: auto; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; }
+/* a card's corner marks (ahead.js cardMarks; owner, 2026-11-02, FPL's transfers pitch): × at its top-left (his place),
+the lock under it (a GW Keep of him: shut and ink where one holds him, then in the ×'s corner); a 28 px target round
+each 16 px mark */
+.ah-decks .ah-cm { position: absolute; z-index: 3; width: 16px; height: 16px; padding: 0; border: 0; border-radius: 50%;
+  display: grid; place-items: center; background: rgba(255, 255, 255, .92); color: #17191A; box-shadow: 0 0 0 1px rgba(23, 25, 26, .35); }
+.ah-decks .ah-cm::before { content: ""; position: absolute; inset: -6px; }
+.ah-decks .ah-cm.out { background: #17191A; color: #fff; box-shadow: 0 0 0 1.5px #fff; font: 700 13px/1 system-ui, sans-serif; }
+.ah-decks .ah-cm.out span { margin-top: -1px; }
+.ah-decks .ah-cm.lock svg { width: 9px; height: 11px; }
+.ah-decks .ah-cm.lock.on { background: #17191A; color: #fff; box-shadow: 0 0 0 1.5px #fff; }
 /* the swap plates' three weights (design.md §1, §7): the best's ink (the C / V badge's, both themes: white 17.6:1; on
 the dark turf a white hairline holds its edge), a take's the app's "worth doing" mint (#05341C on it 10.2:1: a
 place's best header), the quiet plate the pitch's dark green (white 6.7 / 12.3:1; the bench tile's wash held the blue

@@ -91,7 +91,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // the week's single moves (suggestionsOf; none in your chip week), each its choice with your GW-g transfers
   // (singleOf; in a week Forkcast re-picks, the move takes the place of one of its transfers: addYours' `instead`), and
   // choice c with move m on top (plus: m's sale or buy giving way)
-  const singles = chipMine ? [] : suggestionsOf(ctx, P, g);
+  // (a sale your × asked, `asked`, is its place's alone: below)
+  const sales = chipMine ? [] : suggestionsOf(ctx, P, g), singles = sales.filter((y) => !y.asked);
   const singleOf = (x, inn = x.in) => ({ moves: [...now.filter((y) => !(x.instead?.gw === g && y.out === x.instead.out && y.in === x.instead.in)), { gw: g, out: x.out, in: inn }], chips: {} });
   const plus = (c, m) => ({ moves: [...c.moves.filter((y) => y.out !== m.out && y.in !== m.in), { gw: g, out: m.out, in: m.in }], chips: {} });
   // a move m of a choice made alone: the suggestion's choice where it is one (`x`), else your GW-g transfers with it
@@ -317,14 +318,14 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   }
   for (const x of singles.filter((y) => y.removed)) single(x);
   // each place you opened (askPlace), its card's other buys beside the week's FORK_MAX, PLACE_ALTS of them, worse ones
-  // too: your transfer's with that buy in its place, else his best single move's (suggestionsOf) with another buy; none
-  // for a player no single move sells. Theirs alone: its place's cards and the Week sheet's rows, never a plate, the
+  // too: your transfer's with that buy in its place, else his best single move's (suggestionsOf) with another buy, the
+  // asked sale of a player no suggestion sells (his ×) first; none where no buy fits (a Keep of him, his money). Theirs alone: its place's cards and the Week sheet's rows, never a plate, the
   // corner or the week's best, so opening a place moves nothing else on the pitch (owner, 2026-10-29)
   const listed = new Set(choices.keys());
   for (const a of placesAsked(P, g)) {
-    const m = now.find((y) => Number(y.in) === a), x = m ? null : singles.find((y) => Number(y.out) === a && !y.removed);
+    const m = now.find((y) => Number(y.in) === a), x = m ? null : sales.find((y) => Number(y.out) === a && !y.removed);
     if (m) otherBuys(m, (inn) => swapIn(m, inn), ownAltsOf(ctx, P, w, m, true).slice(0, PLACE_ALTS), false);
-    else if (x) otherBuys(x, (inn) => singleOf(x, inn), ownAltsOf(ctx, P, w, x, true).slice(0, PLACE_ALTS), false);
+    else if (x) otherBuys(x, (inn) => singleOf(x, inn), [...(x.asked ? [x] : []), ...ownAltsOf(ctx, P, w, x, true).slice(0, PLACE_ALTS)], false);
   }
   // (what those places added, and nothing listed after them: the roll below is the week's own)
   const placeOnly = new Set([...choices.keys()].filter((k) => !listed.has(k)));

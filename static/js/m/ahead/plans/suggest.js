@@ -28,7 +28,9 @@ export function suggestionsOf(ctx, P, g) {
   if (inkAt(ctx, P, g) || !weekOf(P, g)) return [];
   let by = SUGGESTIONS.get(P);
   if (!by) SUGGESTIONS.set(P, (by = new Map()));
-  if (by.has(g)) return by.get(g);
+  // (the places you opened are part of it: a player's × asks his sale, below)
+  const asked = placesAsked(P, g), at = `${g}|${asked.join(',')}`;
+  if (by.has(at)) return by.get(at);
   const w = weekOf(P, g), squad = w.squad, into = squadBefore(P, g);
   const no = barred(P, g);
   const mine = movedFrom(P, g, true);
@@ -58,19 +60,25 @@ export function suggestionsOf(ctx, P, g) {
   // a week the roads' moves don't reach (your plan made them already, and the roads roll it; owner, 2026-10-30): each
   // sale's best buy of the few his money pays for (buyCandidates' order, as Replace's ownAltsOf), up to SUGGEST_LEAST
   // moves in all, one a buy, each solved as any (plansOf)
+  const pool = new Map(), bank = w.bank ?? 0;
+  const buysOf = (pos) => pool.get(pos) ?? pool.set(pos, buyCandidates(P, { pos, from: g, limit: 80 })).get(pos);
+  // sale o's best buy of the few his money pays for (buyCandidates' order), measured → [x] | []
+  const bestOf = (o) => {
+    const room = bank + (P.L.price(o) ?? 0) + 1e-6;
+    const tries = buysOf(P.L.pos(o)).filter((id) => (P.L.price(id) ?? Infinity) <= room).slice(0, SUGGEST_TRIES).map((id) => ({ out: o, in: id, model: false }));
+    return tries.filter(fits).map(measured).filter(Boolean).sort((a, b) => b.cmp.delta - a.cmp.delta).slice(0, 1);
+  };
   const short = SUGGEST_LEAST - out.filter((x) => !x.removed).length;
   if (short > 0) {
-    const pool = new Map(), bank = w.bank ?? 0, buys = new Set(out.map((x) => x.in));
-    const buysOf = (pos) => pool.get(pos) ?? pool.set(pos, buyCandidates(P, { pos, from: g, limit: 80 })).get(pos);
-    const best = squad.flatMap((o) => {
-      const room = bank + (P.L.price(o) ?? 0) + 1e-6;
-      const tries = buysOf(P.L.pos(o)).filter((id) => (P.L.price(id) ?? Infinity) <= room).slice(0, SUGGEST_TRIES).map((id) => ({ out: o, in: id, model: false }));
-      return tries.filter(fits).map(measured).filter(Boolean).sort((a, b) => b.cmp.delta - a.cmp.delta).slice(0, 1);
-    }).sort((a, b) => b.cmp.delta - a.cmp.delta);
+    const buys = new Set(out.map((x) => x.in));
+    const best = squad.flatMap(bestOf).sort((a, b) => b.cmp.delta - a.cmp.delta);
     for (const x of best.filter((y) => !buys.has(y.in) && buys.add(y.in)).slice(0, short)) push(x);
   }
+  // a player whose × you tapped (askPlace) and no move here sells: his best sale (`asked`), his place's alone, never
+  // a suggestion of the week (plansOf: its card and its other buys; owner, 2026-11-02: every card's × opens his place)
+  for (const o of asked.filter((a) => !out.some((x) => x.out === a))) for (const x of bestOf(o)) push({ ...x, asked: true });
   out.sort((a, b) => !!a.early - !!b.early || b.cmp.delta - a.cmp.delta || b.model - a.model);
-  by.set(g, out);
+  by.set(at, out);
   return out;
 }
 

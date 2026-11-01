@@ -717,6 +717,10 @@ export const COPY = Object.freeze({
    *  GW8") and the swipe say it. */
   notHim: 'Not him',
   placeKeepSaid: (name, g) => `Keep ${name} in GW${g}: no transfer sells him`,
+  // a card's corner marks (ahead renderDecks: cardMarks): × his place, the lock a GW Keep of him (owner, 2026-11-02)
+  cardOutSaid: (name, g) => `Replace ${name} in GW${g}: his choices`,
+  cardNoBuy: (name, g) => `No buy fits ${name}'s money in GW${g}`,
+  cardLockSaid: (name, g, on) => (on ? `${name} kept in GW${g}. Unlock` : `Lock ${name} in GW${g}: no transfer sells him`),
   /** A Keep that leaves your plan as it is (ahead.keep), from his place or his card's Force keep, whichever Keep of his
    *  it remakes: what it changed, the suggestions. */
   keptFromChoices: (name, when) => `${name} kept${when}: suggestions won't sell him`,

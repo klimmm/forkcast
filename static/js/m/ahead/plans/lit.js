@@ -1,7 +1,7 @@
 // ahead/plans.js: the lit plates and places, the decks, fits
 
 import * as E from '../../../plan/engine.js';
-import { chipName } from '../../../ui.js';
+import { chipName, shownGain } from '../../../ui.js';
 import { COPY } from '../../calls.js';
 import { capFirst, estimate, flatMoves, problemOf, problemShort, problemsOf, weekOf } from '../core.js';
 import { chipBackOf } from '../edits.js';
@@ -263,13 +263,15 @@ export const placeOrder = (entries) => {
 /** The most cards a player's place deals beside him (drawPlace: slotsBeside's n). */
 export const PLACE_SLOTS = 4;
 /** A place's first choice, the card it deals first (placeDealt in placeOrder's order): the plate of a place no plate of
- *  litOf's names (owner, 2026-10-25), its number whatever its sign; none for one with no choice checked or checking.
+ *  litOf's names (owner, 2026-10-25), a checked one only where it gains (shownGain; the owner, 2026-11-01: "why
+ *  Forkcast suggest negative move, fix": his choices stay behind his card's "N choices for his place ›"), else one
+ *  still checking; none for one with no such choice.
  *  Your own buy's place its take-back, the Roll or Remove decksOf puts first there, naming the player you sold (owner,
  *  2026-10-26). Pure. → its entry | null */
 export const placeFirst = (d) => {
   if (d.mine) return d.entries[0] && takesBack(d.entries[0]) ? d.entries[0] : null;
   // (never a buy its opened place asked for: plansOf `placeOnly`, its cards' alone)
-  const live = (e) => !takesBack(e) && !e.pl?.placeOnly && (e.pl?.state === 'ready' || e.pl?.state === 'solving');
+  const live = (e) => !takesBack(e) && !e.pl?.placeOnly && ((e.pl?.state === 'ready' && shownGain(e.pl.cmp.delta)) || e.pl?.state === 'solving');
   // (his own moves alone: a plan he is part of has its one mark elsewhere, its sentence)
   const own = placeSplit(placeOrder(d.entries), d.a).singles;
   if (!own.some(live)) return null;

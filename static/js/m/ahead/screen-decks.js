@@ -1,13 +1,19 @@
 // screen.js mount: the plates, the corner tokens and a take's landing
 
 import { MINUS, weekOf } from './core.js';
-import { h, fill, append, plural, reduceMotion, xpGain, shownGain } from '../../ui.js';
+import { h, svg, fill, append, plural, reduceMotion, toast, xpGain, shownGain } from '../../ui.js';
 import { SQUAD_CHIPS, askPlace, byGain, failedWords, lineMoves, litShown, multiMove, placeFirst, placeOrder, planBack, planWeeks, rollOnly, singleMove, solverCmp, takesBack } from './plans.js';
 import { COPY } from '../calls.js';
 import { plPays } from './pieces.js';
 import * as E from '../../plan/engine.js';
 import { addPlan, planTake } from './presolve.js';
+import { keep, pinOf, removeRule } from './edits.js';
 import { EDGE_MIN, NAME_LEAST, PLATE_MIN, PLATE_TRIMS, ST_TRIMS, boxesMeet, cssPx, fitNum, oneLook, reachOf } from './screen.js';
+
+/** The lock's glyph, shut or open (cardMarks). */
+const lockGlyph = (shut) => svg('svg', { viewBox: '0 0 12 14', 'aria-hidden': 'true' },
+  svg('path', { d: shut ? 'M3.5 6V4.2a2.5 2.5 0 0 1 5 0V6' : 'M3.5 6V4.2a2.5 2.5 0 0 1 4.9-.7', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.6 }),
+  svg('rect', { x: 1.5, y: 6, width: 9, height: 7, rx: 1.5, fill: 'currentColor' }));
 
 export function decksPart(V) {
   function renderDecks() { const { S, boxOf, cardBoxes, decks, drawPlace, frozenAt, gwNow, labelWalls, pitchHost, placePills, plansHeading, reachLabels, rsBtn, sideRoom, topRow } = V;
@@ -331,8 +337,46 @@ export function decksPart(V) {
     // (as a landing's ink name plate: in 150 ms after 170 ms, m-ahead.css ah-in; Reduce Motion: the 150 ms fade, as
     // land's; none for a place's first choice drawn while the week checked)
     if (lights) for (const x of decks.querySelectorAll('.ah-sp:not(.first), .ah-tok.mv')) x.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: reduceMotion() ? 0 : 170, fill: 'backwards' });
+    cardMarks(P, g, boxes);
+    // a × tapped on a card no choice sold: his place once his asked buys are listed (askPlace), or why none comes
+    const want = S.placeWant?.g === g ? S.placeWant : null;
+    if (!want) S.placeWant = null;
     if (S.place) drawPlace(false);
+    else if (want && D.some((d) => d.a === want.a)) { S.placeWant = null; openPlace(want.a); }
+    else if (want && M.settled) { S.placeWant = null; toast(COPY.cardNoBuy(P.L.name(want.a), g), 'info'); }
     sheetFollows(P, w, M);
+  }
+  /** Each card's corner marks, as FPL's transfers pitch has them (owner, 2026-11-02): × at its top-left opens his place
+   *  (openPlace: his choices; one no choice sells has his best sale and its other buys asked first, askPlace), a lock
+   *  under it his Keep in GW g, both under his C or V (keep: every plan keeps him that week), shut where one holds him then; a tap on a shut
+   *  lock takes a Keep of this week alone off, a wider one's sheet opens (ruleSheet: its weeks). A kept player has no ×
+   *  (no transfer sells him). Never on a week you can't change (renderDecks). */
+  function cardMarks(P, g, boxes) { const { S, boxOf, ctx, decks, pitchHost, ruleSheet } = V;
+    const root = pitchHost.querySelector(':scope > .pm');
+    if (!P.editable || !root) return;
+    const nm = P.L.name, b = root.getBoundingClientRect();
+    for (const c of boxes) {
+      const a = c.id, pin = pinOf(P, 'keep', a, g);
+      // (under his C or V, which holds the corner: the armband's drag starts there)
+      // (3 px in from his tile's top-left, as the C / V: plan-pitch.css .pm-badge.c)
+      const tile = c.n.querySelector('.pm-kit'), t = tile ? boxOf(tile, b) : c;
+      const arm = c.n.querySelector('.pm-badge:is(.c, .v)'), q = arm && boxOf(arm, b);
+      const top = q ? q.y + q.h + 4 : t.y + 3, at = (k) => ({ left: `${t.x + 3}px`, top: `${top + k * 19}px` });
+      if (!pin) decks.append(h('button.ah-cm.out', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.cardOutSaid(nm(a), g), dataset: { row: `out:${a}` },
+        style: at(0),
+        onClick: () => {
+          if (S.decks?.some((d) => d.a === a)) { openPlace(a); return; }
+          S.placeWant = { a, g };
+          if (!askPlace(ctx, P, g, a)) renderDecks();
+        } }, h('span', { 'aria-hidden': 'true' }, '×')));
+      decks.append(h('button.ah-cm.lock', { type: 'button', class: { on: !!pin }, 'aria-pressed': String(!!pin), 'aria-label': COPY.cardLockSaid(nm(a), g, !!pin), dataset: { row: `lock:${a}` },
+        style: at(pin ? 0 : 1),
+        onClick: () => {
+          if (!pin) keep(ctx, a, { gw: g, scope: 'gw' });
+          else if (pin.must?.length === 1 && pin.must[0][1] === g && pin.must[0][2] === g) removeRule(ctx, pin.id);
+          else ruleSheet(pin);
+        } }, lockGlyph(!!pin)));
+    }
   }
   /** The Week sheet's green follows the pitch as just drawn (owner, 2026-10-25: "Follow the pitch"): the week's `shown`
    *  is recomputed from the places drawn (litShown: `D.drawn`) and, where that changed it, the open sheet of that week

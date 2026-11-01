@@ -279,6 +279,7 @@ export function mount(el, ctx) {
     get rollFacts() { return rollFacts; },
     get rollOf() { return rollOf; },
     get rolling() { return rolling; },
+    get ruleSheet() { return ruleSheet; },
     get rowTies() { return rowTies; },
     get rsBtn() { return rsBtn; },
     get sayCarried() { return sayCarried; },
