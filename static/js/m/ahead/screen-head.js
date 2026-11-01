@@ -301,16 +301,16 @@ export function headPart(V) {
     const gp = ctx.bundle?.roads?.base ? memPlan(ctx) : null, failed = !!gp?.hold && !!gp.error && !gp.pending;
     // …where your rules are what no plan keeps (an older app's phone-made plan dropped on load): the clash row with a
     // Remove on each rule it names, each said with its Undo, never silently
-    const V = failed ? { ...info(ctx), mem: gp, pins: gp.pins, weeks: [], healing: false, editable: editable(ctx) } : null;
-    const c = V && aboutRules(gp.error) ? clashParts(V, null) : null;
-    const off = (p) => { const said = COPY.removed(rowName(V, p)), r = memOf(ctx).removePin(p.id); toastOf(ctx)(said, 'info', { action: { label: 'Undo', onClick: () => r.undo() } }); };
+    const FV = failed ? { ...info(ctx), mem: gp, pins: gp.pins, weeks: [], healing: false, editable: editable(ctx) } : null;
+    const c = FV && aboutRules(gp.error) ? clashParts(FV, null) : null;
+    const off = (p) => { const said = COPY.removed(rowName(FV, p)), r = memOf(ctx).removePin(p.id); toastOf(ctx)(said, 'info', { action: { label: 'Undo', onClick: () => r.undo() } }); };
     fill(strip, h('section.ah-block', { 'aria-label': 'Your plan' }, failed
       ? barNode({ one: gp.error.plain || COPY.unfinished, two: 'Try again', warn: true, label: `${gp.error.plain || COPY.unfinished} Try again`, onClick: () => memOf(ctx).heal({ now: true }), doors: doorStubs(), cls: '.ah-pbake' })
       // (in the story the squad drawn is named: FPL's lineup until the plan's comes)
       : S.story ? barNode({ one: h('span.ah-bn', null, COPY_FPL_TEAM), doors: doorStubs(), cls: '.ah-pbake' })
       : barNode({ one: [h('span.ah-spin', { 'aria-hidden': 'true' }), h('span.ah-bn', null, planning(d.horizon))], status: true, doors: doorStubs(), cls: '.ah-pbake' }),
     c?.pins.length ? h('div.ah-brow.ah-ask.ah-clash', { role: 'status' }, icon('warn', { size: 16 }), h('p.ah-askt', null, COPY.rulesStuck(c.what, null, COPY.clashWhy(gp.error.why, gp.error.gw))),
-      h('div.ah-askb', null, c.pins.map((p) => h('button.ah-askno', { type: 'button', disabled: !V.editable, onClick: () => off(p) }, `Remove ${rowName(V, p)}`)))) : null));
+      h('div.ah-askb', null, c.pins.map((p) => h('button.ah-askno', { type: 'button', disabled: !FV.editable, onClick: () => off(p) }, `Remove ${rowName(FV, p)}`)))) : null));
     fill(decks);
     S.M = null;
     S.wl = null;
