@@ -305,7 +305,7 @@ export function linePart(V) {
   }
   /**
    * The choices on the pitch as drawn (decksOf, litOf; S.M: the model renderWeek drew), placed from the mounted cards'
-   * boxes (forkcast/design_marks/DECISION.md, design.md; owner, 2026-10-23): the week's one best an ink plate over the
+   * boxes (forkcast/studies/design_marks/DECISION.md, design.md; owner, 2026-10-23): the week's one best an ink plate over the
    * player it replaces naming the buy and its gain (swapPlate; a plan of several moves ONE plate over its sellers in
    * the top-most of their rows, with the plan's one number, each other seller a small ink tag of his buy: owner,
    * 2026-10-25); each other place whose best single move beats rolling, and each with a choice ready or checking, a

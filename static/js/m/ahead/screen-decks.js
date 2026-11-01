@@ -15,6 +15,10 @@ const lockGlyph = (shut) => svg('svg', { viewBox: '0 0 12 14', 'aria-hidden': 't
   svg('path', { d: shut ? 'M3.5 6V4.2a2.5 2.5 0 0 1 5 0V6' : 'M3.5 6V4.2a2.5 2.5 0 0 1 4.9-.7', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.6 }),
   svg('rect', { x: 1.5, y: 6, width: 9, height: 7, rx: 1.5, fill: 'currentColor' }));
 
+// (the ×, drawn as two 1.6 px strokes, the lock's weight, not a 13 px bold type ×)
+const crossGlyph = () => svg('svg', { viewBox: '0 0 10 10', 'aria-hidden': 'true' },
+  svg('path', { d: 'M2 2l6 6M8 2l-6 6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round' }));
+
 export function decksPart(V) {
   function renderDecks() { const { S, boxOf, cardBoxes, decks, drawPlace, frozenAt, gwNow, labelWalls, pitchHost, placePills, plansHeading, reachLabels, rsBtn, sideRoom, topRow } = V;
     const root = pitchHost.querySelector(':scope > .pm');
@@ -346,31 +350,34 @@ export function decksPart(V) {
     else if (want && M.settled) { S.placeWant = null; toast(COPY.cardNoBuy(P.L.name(want.a), g), 'info'); }
     sheetFollows(P, w, M);
   }
-  /** Each card's corner marks, as FPL's transfers pitch has them (owner, 2026-11-02): × at its top-left opens his place
-   *  (openPlace: his choices; one no choice sells has his best sale and its other buys asked first, askPlace), a lock
-   *  under it his Keep in GW g, both under his C or V (keep: every plan keeps him that week), shut where one holds him then; a tap on a shut
-   *  lock takes a Keep of this week alone off, a wider one's sheet opens (ruleSheet: its weeks). A kept player has no ×
-   *  (no transfer sells him). Never on a week you can't change (renderDecks). */
+  /** Each card's two marks (owner, 2026-11-02, FPL's transfers pitch; design_1102a: A's light marks, the × where the C / V
+   *  was): × at his tile's top-left opens his place (openPlace: his choices; one no choice sells has his best sale and
+   *  its other buys asked first, askPlace); the lock at its bottom-left his Keep in GW g, shut where one holds him then
+   *  (a tap on a shut lock takes a Keep of this week alone off, a wider one's sheet opens: ruleSheet). The C / V sits on
+   *  his name plate (m-ahead.css), so a captain moved on a GW switch moves no mark. A kept player has no × (no transfer
+   *  sells him). Never on a week you can't change (renderDecks). */
   function cardMarks(P, g, boxes) { const { S, boxOf, ctx, decks, pitchHost, ruleSheet } = V;
     const root = pitchHost.querySelector(':scope > .pm');
     if (!P.editable || !root) return;
     const nm = P.L.name, b = root.getBoundingClientRect();
+    // (the mark's size: m-ahead.css .ah-cm, 12 px)
+    const M = 12;
     for (const c of boxes) {
       const a = c.id, pin = pinOf(P, 'keep', a, g);
-      // (under his C or V, which holds the corner: the armband's drag starts there)
-      // (3 px in from his tile's top-left, as the C / V: plan-pitch.css .pm-badge.c)
       const tile = c.n.querySelector('.pm-kit'), t = tile ? boxOf(tile, b) : c;
-      const arm = c.n.querySelector('.pm-badge:is(.c, .v)'), q = arm && boxOf(arm, b);
-      const top = q ? q.y + q.h + 4 : t.y + 3, at = (k) => ({ left: `${t.x + 3}px`, top: `${top + k * 19}px` });
+      // (a tile too short for both, at large text: the lock right of the ×, their 24 px targets apart)
+      const tall = t.h >= 2 * M + 8;
+      const xAt = { left: `${t.x + 3}px`, top: `${t.y + 3}px` };
+      const lAt = tall ? { left: `${t.x + 3}px`, top: `${t.y + t.h - 3 - M}px` } : { left: `${t.x + 3 + 2 * M}px`, top: `${t.y + 3}px` };
       if (!pin) decks.append(h('button.ah-cm.out', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.cardOutSaid(nm(a), g), dataset: { row: `out:${a}` },
-        style: at(0),
+        style: xAt,
         onClick: () => {
           if (S.decks?.some((d) => d.a === a)) { openPlace(a); return; }
           S.placeWant = { a, g };
           if (!askPlace(ctx, P, g, a)) renderDecks();
-        } }, h('span', { 'aria-hidden': 'true' }, '×')));
+        } }, crossGlyph()));
       decks.append(h('button.ah-cm.lock', { type: 'button', class: { on: !!pin }, 'aria-pressed': String(!!pin), 'aria-label': COPY.cardLockSaid(nm(a), g, !!pin), dataset: { row: `lock:${a}` },
-        style: at(pin ? 0 : 1),
+        style: lAt,
         onClick: () => {
           if (!pin) keep(ctx, a, { gw: g, scope: 'gw' });
           else if (pin.must?.length === 1 && pin.must[0][1] === g && pin.must[0][2] === g) removeRule(ctx, pin.id);

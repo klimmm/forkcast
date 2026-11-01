@@ -359,7 +359,7 @@ headings (.ah-wh: what the choices count against, "instead of …" every one tak
 .ah-wk > .ah-wgain { padding-bottom: 0; color: var(--ink); }  /* a week of two or more transfers: its number over its facts (its rows have none) */  /* the week's facts under the title, as the week line's (drawWeek) */
 
 /* ------------------------------------------------------------------ the choices on the pitch (ahead.js renderDecks;
-owner, 2026-10-23; chosen design: forkcast/design_marks/DECISION.md, design.md, CSS in the app's tokens
+owner, 2026-10-23; chosen design: forkcast/studies/design_marks/DECISION.md, design.md, CSS in the app's tokens
 design_marks/src/base.css).
 .ah-decks a layer over the pitch with no taps of its own (only its buttons). .ah-sp a swap plate: one flat line in
 the row gap over the player it would replace, its foot on his tile's top (never on it: holds and drags start there),
@@ -383,16 +383,23 @@ out (.ah-stepout). .ah-ghost the card a take sends behind its buy (ahead.js land
 /* under an open place the plates' layer hides, rings too (else its chalk dots and counts show through the shade) */
 .pm:has(> .ah-place) > .ah-decks { visibility: hidden; }
 .ah-decks button { pointer-events: auto; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; }
-/* a card's corner marks (ahead.js cardMarks; owner, 2026-11-02, FPL's transfers pitch): × at its top-left (his place),
-the lock under it (a GW Keep of him: shut and ink where one holds him, then in the ×'s corner); a 28 px target round
-each 16 px mark */
-.ah-decks .ah-cm { position: absolute; z-index: 3; width: 16px; height: 16px; padding: 0; border: 0; border-radius: 50%;
-  display: grid; place-items: center; background: rgba(255, 255, 255, .92); color: #17191A; box-shadow: 0 0 0 1px rgba(23, 25, 26, .35); }
+/* a card's two marks (ahead.js cardMarks; owner, 2026-11-02; design_1102a): × at the tile's top-left (his place), the
+lock at its bottom-left (a GW Keep of him). Idle each is a 12 px disc of the tile's own dark (ink at .5 over it) with a
+white glyph, no ring: the C / V's language at a lower weight, the glyph 10.4:1 on it (7.8:1 on the bench tile); shut,
+the lock is the C / V's own solid ink with its white keyline (a state you set reads as strong as the armband). A 24 px
+target round each (WCAG 2.2 SC 2.5.8) */
+.ah-decks .ah-cm { position: absolute; z-index: 3; width: 12px; height: 12px; padding: 0; border: 0; border-radius: 50%;
+  display: grid; place-items: center; background: rgb(23 25 26 / .5); color: #FFFFFF; box-shadow: none; }
 .ah-decks .ah-cm::before { content: ""; position: absolute; inset: -6px; }
-.ah-decks .ah-cm.out { background: #17191A; color: #fff; box-shadow: 0 0 0 1.5px #fff; font: 700 13px/1 system-ui, sans-serif; }
-.ah-decks .ah-cm.out span { margin-top: -1px; }
-.ah-decks .ah-cm.lock svg { width: 9px; height: 11px; }
-.ah-decks .ah-cm.lock.on { background: #17191A; color: #fff; box-shadow: 0 0 0 1.5px #fff; }
+.ah-decks .ah-cm.out svg { width: 6px; height: 6px; }
+.ah-decks .ah-cm.lock svg { width: 7px; height: 8px; }
+.ah-decks .ah-cm.lock.on { background: #17191A; box-shadow: 0 0 0 1.5px #FFFFFF; }
+/* the C / V as a tag at the left end of his name plate (owner, 2026-11-02: the tile's top-left is the ×'s), the plate's
+height and corner, its name moved past it; still the armband's drag handle (screen-pitch.js .pm-badge[data-badge]) */
+.ah-pitch .pm .pm-badge:is(.c, .v) {
+  top: calc(100% + 1px); left: 1px; width: auto; min-width: var(--pm-plate); height: var(--pm-plate); padding: 0 2px;
+  border-radius: calc(var(--pm-tile-r) - 2px) 0 0 0; box-shadow: none; font-size: calc(var(--pm-plate) * .62); }
+.ah-pitch .pm .pm-card:has(.pm-badge:is(.c, .v)) .pm-pn { padding-left: calc(var(--pm-plate) + 2px); }
 /* the swap plates' three weights (design.md §1, §7): the best's ink (the C / V badge's, both themes: white 17.6:1; on
 the dark turf a white hairline holds its edge), a take's the app's "worth doing" mint (#05341C on it 10.2:1: a
 place's best header), the quiet plate the pitch's dark green (white 6.7 / 12.3:1; the bench tile's wash held the blue

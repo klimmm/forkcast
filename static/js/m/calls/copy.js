@@ -671,7 +671,7 @@ export const COPY = Object.freeze({
    *  tab its part mark, "1/3" (the main), "2/3", "3/3" (owner, 2026-10-22), read "part 2 of a 3-transfer plan, +5.8
    *  points vs rolling", never as that one player's sale. */
   placeOf: (name) => `Replace ${name}`,
-  /** The marks on the pitch (ahead.renderDecks; owner, 2026-10-23; forkcast/design_marks/DECISION.md): a take's words,
+  /** The marks on the pitch (ahead.renderDecks; owner, 2026-10-23; forkcast/studies/design_marks/DECISION.md): a take's words,
    *  "Swap", "Swap both", "Swap all 3", spoken by a place's card ("Swap both: …", swapSaid; the pitch's plates take
    *  nothing: owner, 2026-10-25); a move said "Kayode out, Truffert in"; the best plate's label, "Best this week: …"; a
    *  plan's tag in another row, never its number twice; a place's first choice's plate where nothing there beats
