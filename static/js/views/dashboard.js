@@ -1,10 +1,9 @@
 // Dashboard: solver data (GET /api/dashboard), market, DGW/BGW, ticker preview, data freshness; the entry box hands off
 // to the planner.
 
-import {
-  h, card, statTile, countdown, fmt, icon, empty, errorCard, loading, toast, statusDot, statusInfo, pill, posName, toMs,
-  humanise, entryId, recentEntryChips, gwInput,
-} from '../ui.js';
+import { h, fmt, icon, toast, statusDot, statusInfo, posName, toMs } from '../ui.js';
+import { card, statTile, countdown, empty, errorCard, loading, pill, entryId, recentEntryChips, gwInput } from '../studio/kit.js';
+import { humanise } from '../studio/flags.js';
 import { ticker, modeSwitch, dgwBgwNote, gwCell, seasonLabel, group, int } from './fixtures.js';
 import { addToCompare, COMPARE_MAX, XI, XI_TITLE } from './players.js';
 

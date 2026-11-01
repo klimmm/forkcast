@@ -3,10 +3,10 @@
 // re-predicts the pools --dir prod reads.
 
 import * as api from '../api.js';
-import {
-  h, card, statTile, table, pill, toast, confirm, jobRunner, jobStatusPill, icon, fmt, loading, errorCard,
-  countdown, toMs, copyText, errText, flagControl,
-} from '../ui.js';
+import { h, toast, icon, fmt, toMs } from '../ui.js';
+import { card, statTile, pill, confirm, loading, errorCard, countdown, copyText, errText } from '../studio/kit.js';
+import { table } from '../studio/tables.js';
+import { jobRunner, jobStatusPill, flagControl } from '../studio/flags.js';
 
 const TONE = { ok: 'gain', stale: 'warn', missing: 'loss' };
 const SEVERITY = { missing: 0, stale: 1, ok: 2 };

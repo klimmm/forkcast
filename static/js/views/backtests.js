@@ -4,10 +4,10 @@
 
 import * as api from '../api.js';
 import { enc } from '../api.js';
-import {
-  h, card, table, lineChart, segmented, flagControl, field, jobRunner, jobStatusPill, toast,
-  copyText, fmt, icon, empty, loading, toMs, fill, fin, pick, errText, errorCallout, extraFlagsButton,
-} from '../ui.js';
+import { h, toast, fmt, icon, toMs, fill, fin } from '../ui.js';
+import { card, segmented, field, copyText, empty, loading, pick, errText, errorCallout } from '../studio/kit.js';
+import { table, lineChart } from '../studio/tables.js';
+import { flagControl, jobRunner, jobStatusPill, extraFlagsButton } from '../studio/flags.js';
 import {
   spanText, committedCells, cellsTable, cumulative, rankChart, resultTiles, warningsBlock, errorBlock, cmdBlock, logBlock, parseRank,
 } from './runs.js';

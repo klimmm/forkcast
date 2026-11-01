@@ -4,9 +4,9 @@
 // (api/data.py _ticker): the opponent's realised xG conceded / scored per match over the GWs before `from`; derived,
 // not a model rating.
 
-import {
-  h, append, card, table, heatCell, segmented, icon, fmt, empty, errorCard, loading, fin,
-} from '../ui.js';
+import { h, append, icon, fmt, fin } from '../ui.js';
+import { card, segmented, empty, errorCard, loading } from '../studio/kit.js';
+import { table, heatCell } from '../studio/tables.js';
 
 export const MODES = {
   fdr: { label: 'FDR', high: false, d: 0, sort: 'avg', what: 'FPL difficulty' },

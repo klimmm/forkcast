@@ -2,10 +2,9 @@
 // highlighted). Same source as Players; ?ids=1,2 is shareable.
 
 import * as api from '../api.js';
-import {
-  h, append, card, table, lineChart, playerPicker, segmented, statusDot, statusInfo, icon, toast,
-  loading, empty, errorCard, fmt, fin, plural,
-} from '../ui.js';
+import { h, append, statusDot, statusInfo, icon, toast, fmt, fin, plural } from '../ui.js';
+import { card, segmented, loading, empty, errorCard } from '../studio/kit.js';
+import { table, lineChart, playerPicker } from '../studio/tables.js';
 import {
   COMPARE_MAX, LUCK_FREE, XI_TITLE, sourceOf, prepRows, describeSource, fixtureTags, xpTitle, xiText,
   signedCompact, compareIds,

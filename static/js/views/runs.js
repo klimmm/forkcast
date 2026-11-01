@@ -3,10 +3,10 @@
 
 import * as api from '../api.js';
 import { enc } from '../api.js';
-import {
-  h, card, table, lineChart, statTile, pill, jobStatusPill, jobRunner, toast, confirm, copyText, fmt, icon,
-  empty, loading, errorCard, chipName, toMs, norm, fill, fin, callout,
-} from '../ui.js';
+import { h, toast, fmt, icon, chipName, toMs, norm, fill, fin } from '../ui.js';
+import { card, statTile, pill, confirm, copyText, empty, loading, errorCard, callout } from '../studio/kit.js';
+import { table, lineChart } from '../studio/tables.js';
+import { jobStatusPill, jobRunner } from '../studio/flags.js';
 
 export const KINDS = ['solve', 'backtest', 'preview', 'rate', 'fetch', 'build', 'infer'];  // api/jobs.py KINDS
 export const KIND_TONE = { solve: 'gain', backtest: 'info', fetch: 'warn', build: 'warn', infer: 'warn' };

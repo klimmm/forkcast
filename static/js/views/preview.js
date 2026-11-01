@@ -3,10 +3,10 @@
 // opens a run.
 
 import * as api from '../api.js';
-import {
-  h, card, flagControl, segmented, jobRunner, jobStatusPill, table, toast, confirm, icon, pill, fmt,
-  loading, errorCard, empty, toMs, errText, entryId, recentEntryChips, extraFlagsButton,
-} from '../ui.js';
+import { h, toast, icon, fmt, toMs } from '../ui.js';
+import { card, segmented, confirm, pill, loading, errorCard, empty, errText, entryId, recentEntryChips } from '../studio/kit.js';
+import { flagControl, jobRunner, jobStatusPill, extraFlagsButton } from '../studio/flags.js';
+import { table } from '../studio/tables.js';
 
 const KINDS = { preview: 'Preview', rate: 'Rating' };
 const GW = { label: 'Gameweek', placeholder: 'next deadline' };

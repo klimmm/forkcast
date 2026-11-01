@@ -2,10 +2,9 @@
 // ?section=<id>, ?q=; `--flag` in prose links to its entry.
 
 import * as api from '../api.js';
-import {
-  h, card, icon, pill, flagLabel, empty, errorCard, loading, copyText, toast, norm, blankish, showValue, seasonDefaults,
-  groupFlags, flagHaystack, unitView,
-} from '../ui.js';
+import { h, icon, toast, norm } from '../ui.js';
+import { card, pill, empty, errorCard, loading, copyText } from '../studio/kit.js';
+import { flagLabel, blankish, showValue, seasonDefaults, groupFlags, flagHaystack, unitView } from '../studio/flags.js';
 
 const show = (v) => showValue(v, ', ');
 

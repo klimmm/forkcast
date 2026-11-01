@@ -20,6 +20,7 @@
 
 import * as api from './api.js';
 import * as ui from './ui.js';
+import { closeAllModals, copyText, countdown, errorCard, logo, modal } from './studio/kit.js';
 import { qrSvg } from './vendor/qr.js';
 import lab from './views/planner.js';
 import dashboard from './views/dashboard.js';
@@ -41,12 +42,12 @@ const ICON = {
 // ---------------------------------------------------------------- Open on iPhone (⚙)
 
 const urlRow = (url) => h('div.row.tight', null, h('code.share-url', null, url),
-  h('button.btn.sm.ghost', { type: 'button', title: 'Copy link', 'aria-label': `Copy ${url}`, onClick: () => ui.copyText(url, 'Link copied') },
+  h('button.btn.sm.ghost', { type: 'button', title: 'Copy link', 'aria-label': `Copy ${url}`, onClick: () => copyText(url, 'Link copied') },
     ui.icon('copy', { size: 14 })));
 
 /** urls: where another device opens Forkcast, best first (access.share_urls). */
 function openOnPhone(urls) {
-  ui.modal({
+  modal({
     title: 'Open on iPhone',
     body: h('div.share', null,
       h('div.share-qr', null, qrSvg(urls[0])),
@@ -224,7 +225,7 @@ async function showShare() {
 const tabLinks = [];  // [route, <a>] for both bars
 
 function buildNav() {
-  $('brand').prepend(ui.logo(26));
+  $('brand').prepend(logo(26));
   const links = (cls, size) => NAV.filter((r) => byRoute.has(r)).map((r) => {
     const v = byRoute.get(r);
     const a = h(`a.${cls}`, { href: `#/${r}` }, ui.icon(v.icon || r, { size }), h('span', null, v.title));
@@ -281,7 +282,7 @@ async function render() {
   const view = byRoute.get(route);
   const token = ++mountSeq;
   const moved = current.route !== route;
-  ui.closeAllModals();  // a dialog belongs to the view it was opened from
+  closeAllModals();  // a dialog belongs to the view it was opened from
   runCleanup();
   current = { route, cleanup: null };
 
@@ -314,7 +315,7 @@ async function render() {
     current.cleanup = typeof out === 'function' ? out : null;
   } catch (e) {
     console.error(e);
-    if (token === mountSeq) el.replaceChildren(ui.errorCard(e, { title: `${view.title} could not be shown`, retry: render }));
+    if (token === mountSeq) el.replaceChildren(errorCard(e, { title: `${view.title} could not be shown`, retry: render }));
   }
 }
 
@@ -329,7 +330,7 @@ async function showDeadline() {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     deadlineBox.replaceChildren(ui.icon('clock', { size: 15 }),
       h('span.deadline-gw', null, ui.fmt.gw(meta.next_gw)),
-      ui.countdown(meta.deadline_epoch, { passed: 'deadline passed' }));
+      countdown(meta.deadline_epoch, { passed: 'deadline passed' }));
     deadlineBox.title = `${ui.fmt.gw(meta.next_gw)} deadline: ${ui.fmt.date(meta.deadline_epoch)} (${tz})`;
     deadlineBox.setAttribute('aria-label', deadlineBox.title);
     deadlineBox.hidden = false;

@@ -3,10 +3,10 @@
 // planner's --must-have / --exclude. Exports helpers Compare shares.
 
 import * as api from '../api.js';
-import {
-  h, append, card, table, segmented, field, flagControl, statusDot, statusInfo, heatCell, icon, toast,
-  loading, errorCard, download, fmt, norm, fin, POS, compareValues, gwInput, readNum, uid,
-} from '../ui.js';
+import { h, append, statusDot, statusInfo, icon, toast, fmt, norm, fin, POS, uid } from '../ui.js';
+import { card, segmented, field, loading, errorCard, download, gwInput, readNum } from '../studio/kit.js';
+import { table, heatCell, compareValues } from '../studio/tables.js';
+import { flagControl } from '../studio/flags.js';
 import { applyMark, idsOf, DEST } from '../marks.js';
 import { fixtureText, fixtureLabel, fixtureTitle } from './fixtures.js';
 
