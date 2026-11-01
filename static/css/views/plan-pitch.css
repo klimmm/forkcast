@@ -1,12 +1,10 @@
-/* Planner pitch (static/js/plan/pitch.js) and kit shirts (plan/kits.js).
-   renderPitch (pp-*): the pitch and bench are one dark-turf object in both themes; sizes follow the pitch's own
-   width (container units), so it scales from ~300px to a wide column without overflowing.
-   mountPitch (pm-*, Forkcast's phone pitch): the FPL-like pitch of DESIGN_V2 §4, at the bottom of this file. */
+/* Planner pitch (static/js/plan/pitch.js) and kit shirts (plan/kits.js). renderPitch (pp-*): pitch and bench as one
+dark-turf object in both themes. mountPitch (pm-*, Forkcast's phone pitch): at the bottom of this file. */
 
 .pp { container-type: inline-size; min-width: 0; }
 
-/* The turf is dark in both themes, so it resolves every light-dark() token as dark (accent, gain, warn,
-   text…). Sizes are in container units, resolved against .pp. */
+/* The turf is dark in both themes, so it resolves every light-dark() token as dark. Sizes are container units, resolved
+against .pp. */
 .pp-field, .pp-bench {
   color-scheme: dark;
   color: #fff;
@@ -210,62 +208,42 @@ button.pp-player:focus-visible .pp-kit {
 
 .kit-shirt .kit-edge { stroke: var(--kit-edge, var(--text, #000)); }
 
-/* ------------------------------------------------------------------ list row (renderMiniPlayer) */
-
-.pp-mini { display: inline-flex; align-items: center; gap: 9px; min-width: 0; max-width: 100%; vertical-align: middle; }
-.pp-mini-kit { flex: none; width: 28px; height: 28px; filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / .22)); }
-.pp-mini-kit .kit-shirt { display: block; width: 100%; height: 100%; }
-.pp-mini-txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; text-align: left; }
-.pp-mini-name { display: flex; align-items: center; gap: 5px; min-width: 0; font-weight: 600; color: var(--text); }
-.pp-mini-nm, .pp-mini-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pp-mini-sub { font-size: 11.5px; color: var(--muted); }
-
 @media (prefers-reduced-motion: reduce) {
   .pp-kit { transition: none; }
   .pp-player.is-new .pp-kit { animation: none; }
 }
 
 /* ------------------------------------------------------------------ phone pitch (mountPitch, pm-*: DESIGN_V2 §4)
-   An edge-to-edge box (390 x 446 at 390 wide by default): an 11-band turf clipped to a perspective top, the goal over its
-   goal line, cards of --pm-card wide with a --pm-tile tall shirt tile, a white name plate and a light second plate,
-   then the bench panel over the turf fading into the page. Plates stay light in both themes. Colours are m.css's pitch
-   tokens (--turf-1/2, --chalk, --tile, --bench-*, --plate*, --warn, --out, --acc-bg). Rules are scoped under .pm so they
-   hold over the older pm-* rules m.css loads after this file.
-   SIZE (F16): --pm-card comes from the pitch's width (--pm-card-w, cqw: .pm is an inline-size container), never wider
-   than five cards with 9 px between and beside them; --pm-tile is 0.92 x card (FPL's own: its 67 pt card's tile is 0.920 of its width). A host that also has a height to fit (Ahead's .ah-pitch, a size container:
-   m-ahead.css) caps both from that height (cqh), so pitch + bench fit it; the plates' text shrinks with the card, never
-   under 9 px. The sizes such a host scales: --pm-plate (each plate's height), --pm-bench-pad (the bench panel's padding
-   top and bottom), --pm-bl / --pm-bl-gap (the bench's "GKP", "1 · DEF" … label and the gap under it). */
+An edge-to-edge box (390 x 446 at 390 wide): an 11-band turf clipped to a perspective top, the goal over its goal
+line, cards --pm-card wide with a --pm-tile tall shirt tile, a white name plate and a light second plate, then the
+bench panel fading into the page. Rules are scoped under .pm to hold over older pm-* rules loaded after this file.
+SIZE: --pm-card follows the pitch's width (--pm-card-w, cqw), at most five cards with 9 px between and beside them;
+--pm-tile is 0.92 x card. A host with a height to fit (Ahead's .ah-pitch, m-ahead.css) caps both from that height
+(cqh); plate text never under 9 px. */
 
 .pm {
-  /* five cards with FPL's 9 pt between and beside them (its pick team: 62 pt cards 9 pt apart at 390 wide), never under
-     56 px (a 320-wide pitch's cards are 6.7 px apart; since the card type is --t-cap, "IN for Scott" fits whole only from
-     ~70 px, narrower cards read "IN": pitch.js) */
+  /* five cards with FPL's 9 pt between and beside them, never under 56 px ("IN for Scott" fits whole only from ~70 px,
+  narrower cards read "IN": pitch.js) */
   --pm-card-w: clamp(56px, calc((100cqw - 6 * 9px) / 5), 72px);
   --pm-card: var(--pm-card-w);
-  --pm-plate: max(15px, calc(var(--t-cap, 11px) * 1.36));  /* grows with the text size (B7): the plate text is rem */
+  --pm-plate: max(15px, calc(var(--t-cap, 11px) * 1.36));  /* grows with the text size: the plate text is rem */
   --pm-bench-pad: 6px;
   --pm-bl: max(12px, var(--t-cap, 11px));
   --pm-bl-gap: 4px;
   --pm-sold: #3B403D;  /* a sold-later player's plate and OUT tag: neutral, apart from the buy's green and the flags' amber/red */
   --pm-tile: calc(var(--pm-card) * .92);
-  /* B27: the tile of a card whose fixture takes a line of its own (.pm-pf.two): one plate flatter, so the card keeps its
-     height (the 2026-10-09 pitch rule: a two-line plate may flatten the tile), never flatter than a mark with its margins;
-     from whichever --pm-tile this pitch has (a height-capped host's too: m-ahead.css) */
+  /* the tile of a card whose fixture takes a line of its own (.pm-pf.two): one plate flatter, so the card keeps its
+  height, never flatter than a mark with its margins */
   --pm-tile-two: max(calc(var(--pm-tile) - var(--pm-plate)), calc(var(--pm-mark) + 6px));
-  /* the shirt's box (FPL's 220 x 290 image frame, kits.js FPL_FRAME, whose outfield shirt is 193/220 of its width): wide
-     enough that the shirt is FPL's 0.741 of the card */
-  --pm-fit: var(--pm-card);  /* the card size the shirt and the marks are drawn for (a height-capped host narrows it, never the plates) */
+  /* the shirt's box (FPL's 220 x 290 image frame, kits.js FPL_FRAME, outfield shirt 193/220 of its width): wide enough
+  that the shirt is FPL's 0.741 of the card */
+  --pm-fit: var(--pm-card);  /* the card size the shirt and marks are drawn for (a height-capped host narrows it, never the plates) */
   --pm-shirt-w: calc(var(--pm-fit) * .741 * 220 / 193);
-  /* C / V: FPL's are 0.15 of the card, 10–15 px, their letter scaled with them (.pm-badge.c below), so they shrink with the
-     card as FPL's do (the owner, 2026-10-29: "why are they so huge and not scaling": the text size's floor, 11 × 1.3,
-     held them at 14.3 px on every card, 72 px or 56: 0.20–0.26 of it) */
+  /* C / V: FPL's 0.15 of the card, 10–15 px, their letter scaled with them (.pm-badge.c below), so they shrink with the
+  card (owner, 2026-10-29) */
   --pm-mark: clamp(10px, calc(var(--pm-fit) * .15), 15px);
-  /* the app's ink on both plates and the bench labels (B4: one ink, not FPL's aubergine); white chalk at .8, 2 px wide
-     (design 1028c P1: opaque chalk was the plates' own white, 3.34:1, so the halfway line ran into the MID plates as one
-     edge, J2; at .8 the plates stay the field's only pure white, 1.26:1 over the chalk, the stripes' own step, while the
-     lines keep 2.65:1 / 3.20:1 on the two stripes, 1.9:1 under a .25 veil: J6); a lighter, bluer shirt tile (FPL's
-     #0E794A on the light turf) */
+  /* the app's ink on both plates and the bench labels (not FPL's aubergine); white chalk at .8, 2 px wide (opaque, the
+  halfway line ran into the MID plates); a lighter, bluer shirt tile */
   --plate-ink: var(--ink, #17191A);
   --plate-2-ink: var(--ink, #17191A);
   --bench-ink: var(--ink, #17191A);
@@ -273,19 +251,17 @@ button.pp-player:focus-visible .pp-kit {
   --tile: light-dark(#0E794A, rgb(0 0 0 / .3));
   --pm-tile-r: 6px;  /* the tile's corners (FPL's 6 pt); the plates' are 2 px less, 1 px inside it */
   --pm-tag: calc(var(--t-cap, 11px) * 1.3);  /* a tag's height (IN / OUT, the flag, bench?) */
-  /* the cards' type (B4): m.css's --t-cap (11 px at the default size, rem: it follows the text size), one size for every
-     word on a card: the name, the second plate, the tags, C / V and the bench's GKP · DEF labels. 600 throughout, the
-     fixture 400; letter-spacing 0; the app's ink */
+  /* the cards' type: m.css's --t-cap (11 px at the default size, rem), one size for every word on a card (name, second
+  plate, tags, C / V, bench labels). 600, the fixture 400; letter-spacing 0 */
   --pm-t: var(--t-cap, 11px);
   --pm-t-name: var(--pm-t);
   position: relative;
   container-type: inline-size;
   font-family: var(--f-text);
 }
-/* the card's type shrinks with a narrow card (F16: never under 9 px): a pitch under 359 px gives cards under 61 px, whose
-   plate (the card less its 1 px insets) is narrower than a fixture beside its points at --t-cap ("MUN H 3.8": 58.8 px at
-   11 px, 2026-10-12), so at the default size almost every fixture took a line of its own (B27) and its card a plate more
-   than its row has (320 × 568: rows 3–4 px into each other); 0.9 of it keeps them on one line */
+/* the card's type shrinks with a narrow card (never under 9 px): under 359 px the plates are narrower than a fixture
+beside its points at --t-cap ("MUN H 3.8": 58.8 px at 11 px), so most fixtures took a line of their own (B27); 0.9 of
+it keeps them on one line */
 @container (max-width: 358.98px) {
   .pm > * { --pm-t: max(9px, calc(var(--t-cap, 11px) * .9)); --pm-t-name: var(--pm-t); }
 }
@@ -294,7 +270,7 @@ button.pp-player:focus-visible .pp-kit {
   position: relative; width: 100%; height: auto; aspect-ratio: 390 / 446;
   overflow: visible; isolation: isolate; border-radius: 0; background: none; box-shadow: none;
 }
-/* the turf's top corners rounded as FPL's (a ~14 px radius in the 390 x 446 box: four points per corner) */
+/* the turf's top corners rounded as FPL's (~14 px radius in the 390 x 446 box: four points per corner) */
 .pm .pm-turf { position: absolute; inset: 0; clip-path: polygon(8.59% 4.66%, 9.23% 3.7%, 10.26% 3.05%, 11.92% 2.69%, 88.08% 2.69%, 89.74% 3.05%, 90.77% 3.7%, 91.41% 4.66%, 100% 23.5%, 100% 100%, 0 100%, 0 23.5%); }
 .pm .pm-lines, .pm .pm-goal { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
 .pm .pm-band { fill: var(--turf-1); }
@@ -325,18 +301,16 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
   position: relative; width: 100%; height: var(--pm-tile);
   background: var(--tile); border-radius: var(--pm-tile-r) var(--pm-tile-r) 0 0; perspective: 260px;
 }
-/* the shirt as FPL's card draws it (its Pick Team measured, 2026-10-06): 0.741 of the card wide, its collar 0.216 of the
-   tile's height under the tile's top (0.2 x the card in FPL's 0.92 tile), never stretched (its box is its frame's
-   220 x 290, kits.js shirt({tall}), the same for a drawn and an official shirt), and cut off by the name plate as FPL's
-   is: the tile clips it. A height-capped tile (Ahead on a short screen) draws it smaller, halfway to the tile's
-   proportions (m-ahead.css --pm-shirt-w). */
+/* the shirt as FPL's card draws it: 0.741 of the card wide, its collar 0.216 of the tile's height under the tile's top,
+never stretched (its box is its frame's 220 x 290, kits.js shirt({tall})), cut off by the name plate. A height-capped
+tile draws it smaller (m-ahead.css --pm-shirt-w). */
 .pm .pm-flip { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
 .pm .pm-face {
   position: absolute; inset: auto; filter: none;
   top: calc(var(--pm-tile) * .216 - var(--pm-shirt-w) * 4 / 220);  /* FPL's frame has its shirt 4/220 of its width down */
   left: calc(50% - var(--pm-shirt-w) / 2); width: var(--pm-shirt-w); aspect-ratio: 220 / 290;
 }
-.pm .pm-face.back { display: none; }  /* no 3D flip (DESIGN_V2 §2 motion): m.css fades the new shirt in */
+.pm .pm-face.back { display: none; }  /* no 3D flip: m.css fades the new shirt in */
 .pm .pm-face > .kit-shirt { display: block; width: 100%; height: 100%; }
 
 /* C / V: a small solid circle (--pm-mark) 3 px in from the tile's top-left, beside the collar as FPL's (TC: "3×") */
@@ -346,17 +320,14 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
   display: grid; place-items: center;
   background: var(--plate-ink); color: #FFFFFF; font: 600 calc(var(--pm-mark) * .7)/1 var(--f-text);
 }
-/* …each held off the green by a white 1.5 px keyline (design 1028c P2-states: the ink alone 3.24:1 on the tile, 5.45 with
-   it), both solid ink with a white letter as FPL draws them: the letter tells them apart (the owner, 2026-10-28, after
-   v1.3.114: a white V "have same design like fpl show caps and vicecaps when triple captain played - black on white
-   which confusing"; chosen: "As FPL: black like C") */
+/* …each held off the green by a white 1.5 px keyline, both solid ink with a white letter as FPL draws them: the letter
+tells them apart (owner, 2026-10-28: "As FPL: black like C") */
 .pm .pm-badge.c, .pm .pm-badge.v { box-shadow: 0 0 0 1.5px #FFFFFF; }
 .pm .pm-badge.tc { width: auto; min-width: var(--pm-mark); padding: 0 2px; border-radius: calc(var(--pm-mark) / 2); letter-spacing: 0; }
 .pm .pm-badge.pm-fly { top: 0; left: 0; z-index: 50; pointer-events: none; }
 
-/* FPL's flag (its availability only, B4), 3 px in from the tile's top-right: the warning triangle and his chance
-   ("75%") on a tag in the flag's colour; the name plate takes the colour too. WhoScored's predicted lineup is never
-   a flag (spoken on the card, written on the player sheet) */
+/* FPL's flag (its availability only), 3 px in from the tile's top-right: the warning triangle and his chance ("75%") on
+a tag in the flag's colour; the name plate takes the colour too */
 .pm .pm-flag {
   position: absolute; top: 3px; right: 3px; z-index: 3; max-width: calc(100% - 6px); height: var(--pm-tag);
   display: flex; align-items: center; gap: 2px; padding: 0 3px 0 2px; border-radius: 3px; overflow: hidden;
@@ -370,16 +341,14 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
 .pm .pm-flag-i { fill: var(--warn); }
 .pm .pm-flag.red .pm-flag-t { fill: #FFFFFF; }
 .pm .pm-flag.red .pm-flag-i { fill: var(--out); }
-/* …each flag held off the green by a 1.5 px keyline, so its tag reads as a shape in grayscale, deuteranopia and glare
-   (design 1028c P2-states: amber vs the tile 2.89:1, red 1.09:1; W7, J6, J9, J11): the amber's ink (3.24:1 on the tile,
-   5.28 on the turf; 9.78 against the amber), the red's white (5.45 / 3.34; 5.62 against the red). The red's glyph is
-   its own, a no-entry disc, not the doubt's triangle (pitch.js flag: H14, J10), so out and doubt differ by shape too */
+/* …each flag held off the green by a 1.5 px keyline, so its tag reads as a shape in grayscale. The red's glyph is a
+no-entry disc, not the doubt's triangle (pitch.js flag), so out and doubt differ by shape too */
 .pm .pm-flag { box-shadow: 0 0 0 1.5px #17191A; }
 .pm .pm-flag.red { box-shadow: 0 0 0 1.5px #FFFFFF; }
-/* …on the bench's lighter tile (white 1.5–2.96:1 there) an ink line outside the white (5.95:1 on it) */
+/* …on the bench's lighter tile an ink line outside the white */
 .pm .pm-bench .pm-flag.red { box-shadow: 0 0 0 1.5px #FFFFFF, 0 0 0 2.5px #17191A; }
 
-/* sold later (F16): "OUT GW8" on the tile's bottom-right, the name plate dark unless a buy of this GW or a flag colours it */
+/* sold later: "OUT GW8" on the tile's bottom-right, the name plate dark unless a buy of this GW or a flag colours it */
 .pm .pm-out {
   position: absolute; bottom: 0; right: 0; z-index: 3; max-width: 100%; padding: 0 3px; border-radius: 3px 0 0 0;
   background: #FFFFFF; color: var(--pm-sold); font: 600 var(--pm-t)/var(--pm-tag) var(--f-text);
@@ -391,7 +360,7 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
   border-radius: 0 0 var(--pm-tile-r) var(--pm-tile-r); background: var(--tile); box-shadow: none; line-height: var(--pm-plate);
 }
 /* FPL's plates sit 1 px inside the tile, which runs on under them; the name plate's top corners and the fixture plate's
-   bottom ones rounded */
+bottom ones rounded */
 .pm .pm-bench .pm-plate { background: var(--bench-tile); }
 .pm .pm-pn, .pm .pm-pf {
   display: block; height: var(--pm-plate); padding: 0 3px; font-family: inherit; line-height: var(--pm-plate);
@@ -403,8 +372,8 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
   border-radius: 0 0 calc(var(--pm-tile-r) - 2px) calc(var(--pm-tile-r) - 2px); background: var(--plate-2); color: var(--plate-2-ink);
   font-size: var(--pm-t); font-weight: 400; font-variant-numeric: tabular-nums;
 }
-/* "SUN A 4.2" fits a 56 px card; a wider pair (a DGW's two fixtures) puts the fixture on a line of its own over
-   the points (B27, pitch.js fitFixtures: the venue stays), then ellipsises the fixture there, never the points */
+/* "SUN A 4.2" fits a 56 px card; a wider pair (a DGW's two fixtures) puts the fixture on a line of its own over the
+points (pitch.js fitFixtures), then ellipsises the fixture, never the points */
 .pm .pm-fx { min-width: 0; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0; }
 .pm .pm-pf.two { flex-direction: column; align-items: center; gap: 0; height: calc(2 * var(--pm-plate)); }
 .pm .pm-pf.two .pm-fx { max-width: 100%; }
@@ -413,31 +382,24 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
 .pm .pm-pf.data .pm-px { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .pm .pm-px.approx::before { content: "≈"; margin-right: 1px; color: var(--plate-2-ink); }
 .pm .pm-card.sold .pm-pn { background: var(--pm-sold); color: #FFFFFF; }
-/* bought this GW (M9, `is-in`): the name plate ink, as the plates of the moves suggested over the pitch, no badge and no
-   green, a buy of an earlier week ink-ringed (below; the owner, 2026-10-25: "the player transferred in must be highlited in same style as transfer suggested like with black or something not with green tab and sign 'in' in it it looks sily overall"; then "Transfer week only") */
+/* bought this GW (`is-in`): the name plate ink, as the plates of the moves suggested over the pitch, no badge, no
+green; an earlier week's buy is ink-ringed (below) (owner, 2026-10-25) */
 .pm .pm-card.is-in .pm-pn { background: var(--plate-ink); color: var(--plate); }
-/* …and an arrow in before his name, the one thing the week's best plate (the same ink over the pitch) has not: his is
-   done, the best's a suggestion (design 1028c P2-states; H4: tell states apart by a glyph, not only colour; J10). Drawn
-   in CSS (a mask in the name's colour), a sign only, no word, no green (the owner, 2026-10-25) */
+/* …and an arrow in before his name, the one thing the week's best plate (the same ink) has not: his is done, the best's
+a suggestion. Drawn in CSS (a mask in the name's colour), no word, no green (owner, 2026-10-25) */
 .pm .pm-card.is-in .pm-pn::before {
   content: ""; display: inline-block; width: .78em; height: .78em; margin-right: 2px; vertical-align: -.06em; background: currentColor;
   -webkit-mask: var(--pm-in-g) center / contain no-repeat; mask: var(--pm-in-g) center / contain no-repeat;
 }
 .pm { --pm-in-g: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M0 4h5.3L3.2 1.9 4.3.8l4.2 4.2-4.2 4.2-1.1-1.1L5.3 6H0z'/%3E%3Cpath d='M8.6 0H10v10H8.6z'/%3E%3C/svg%3E"); }
-/* bought in an earlier GW of the plan (`bought`, not `is-in`: ahead.js boughtIn, every later week he is in the plan's
-   squad and not yet in your FPL team): the same ink one step quieter, a 2 px ring of the ink plate's own ink inside his
-   plain name plate (an inset shadow: it follows the plate's corners), so he reads as "a buy of yours, older" beside this
-   week's solid ink buy and the best's solid ink plate and token (decision I, the owner, 2026-10-26: "evanilson bought
-   in first gameweek can be still highlithed somehow similiar to black in futher weeks", picked "Black ring"; Johnson
-   ch. 2, Similarity: alike looks are seen as one group, the weight sets their order). 17.6:1 on the white plate, 9.4:1
-   on the amber flag, 3.5:1 on the red one, whose fill it keeps (the flag's colour wins, the ring only an edge). Its side
-   padding 2 px, the ring's width, so a long name's "…" stops at the ring, never under it */
+/* bought in an earlier GW of the plan (`bought`, not `is-in`: ahead.js boughtIn): the same ink one step quieter, a 2 px
+ring of the ink plate's own ink inside his plain name plate (an inset shadow) (owner, 2026-10-26: "Black ring"). A
+flag's fill wins, the ring only an edge. Side padding 2 px, the ring's width, so a long name's "…" stops at the ring */
 .pm .pm-card.bought:not(.is-in) .pm-pn { padding: 0 2px; box-shadow: inset 0 0 0 2px var(--plate-ink); }
 .pm .pm-card.f-amber .pm-pn { background: var(--warn); color: #1B1300; }
 .pm .pm-card.f-red .pm-pn { background: var(--out); color: #FFFFFF; }
-/* …its red plate inside a white keyline (an outline, not a ring: the inset shadow is a buy's), so the red never meets the
-   tile's green (1.09:1, one grey in grayscale) and reads in grayscale as a dark plate in a white edge (design 1028c
-   P2-states; J9, J11, W7); a buy of an earlier week keeps his 2 px ink ring outside it */
+/* …its red plate inside a white keyline (an outline, not a ring: the inset shadow is a buy's), so the red never meets
+the tile's green; an earlier week's buy keeps his 2 px ink ring outside it */
 .pm .pm-card.f-red .pm-pn { padding: 0 2px; outline: 1.5px solid #FFFFFF; outline-offset: -1.5px; }
 .pm .pm-card.bought:not(.is-in).f-red .pm-pn { padding: 0 4px; outline-offset: -3.5px; }
 
@@ -453,7 +415,7 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
 .pm .pm-bl > span { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }  /* "1 · DEF" never wider than its card */
 .pm .pm-bl .pm-blo { display: none; }  /* its order's ending, "st", a host's to show (pitch.js benchPanel: Ahead's "1st") */
 /* a host's tap on a sub's label (mountPitch onBench: Ahead's sub list): the label's whole width a button, its look the
-   label's; its target reaches up over the turf (m-ahead.css) */
+label's; its target reaches up over the turf */
 .pm button.pm-bl { position: relative; align-self: stretch; min-width: 0; padding: 0; border: 0; background: none; font-family: inherit; cursor: pointer; }
 .pm .pm-bench .pm-kit { background: var(--bench-tile); }
 
@@ -461,9 +423,7 @@ button.pm-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; bor
 .pm .pm-card.blank .pm-face { filter: grayscale(1) opacity(.6); }
 
 /* ------------------------------------------------------------------ official shirts (kits.js officialShirt, opt-in)
-   FPL's shirt image in place of the drawn <svg>: every shirt host is a sized box (the pitch face, .mk, .ps-kit…), so the
-   image fills it as the svg does, never stretched. The "Shirts: Drawn | Official" row (kitSourceRow) ends the Player
-   data sheet; it runs edge to edge as that sheet's options do (m-ahead.css .ah-pd). */
+   FPL's shirt image in place of the drawn <svg>, filling the sized shirt box as the svg does, never stretched. */
 img.kit-shirt { display: block; width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; user-select: none; }
 .kit-src { margin: 0 calc(-1 * var(--gutter, 16px)); padding: 10px var(--gutter, 16px) 12px; border-top: 1px solid var(--hair); }
 .kit-src-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; }
@@ -472,28 +432,24 @@ img.kit-shirt { display: block; width: 100%; height: 100%; object-fit: contain; 
 .kit-src-note { margin: 6px 0 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
 
 /* ------------------------------------------------------------------ FDR on the second plate (pitch.js secondPlate)
-   Each opponent in a pale tint of FPL's fixture difficulty colour for the GW shown: 1 easy .. 5 hard. The user,
-   2026-10-09: "make colors more pale" (FPL's own chips, #01FC7A / #FF1751 sampled 2026-10-06, were the loudest ink on
-   the screen for a forecast swing of ~0.3 pts, and their red met the flag's red plate). 2 / 3 / 4 are app.css's FDR
-   tokens (the Studio's heat cells, one palette); here only the ends are paler than the Studio's strong 1 and 5, each a
-   deeper tint of its side, so 1 and 5 still read past 2 and 4 (1.4:1, 1.7:1). One ink, the plate's (B4): 7.4:1 on 5,
-   12.7:1 or more on the rest. Plates stay light in both themes. A blank or an unknown FDR stays the plate's own. */
+Each opponent in a pale tint of FPL's fixture difficulty colour, 1 easy .. 5 hard (owner, 2026-10-09: "make colors
+more pale"). 2 / 3 / 4 are app.css's FDR tokens; only the ends are paler, so 1 and 5 still read past 2 and 4. One
+ink, the plate's. */
 :root {
   --fdr-1: #8DD3A9;
   --fdr-5: #EB8F87;
 }
-/* the chip's colour reaches past the text by a box-shadow, not padding: the plate's text keeps its width, so
-   "LIV (A) 12.2" still fits a 65 px card (padding pushed the home/away marker into the ellipsis) */
+/* the chip's colour reaches past the text by a box-shadow, not padding: the plate's text keeps its width, so "LIV (A)
+12.2" still fits a 65 px card */
 .pm .pm-opp.fdr-1 { --fdr-c: var(--fdr-1); }
 .pm .pm-opp.fdr-2 { --fdr-c: var(--fdr-2); }
 .pm .pm-opp.fdr-3 { --fdr-c: var(--fdr-3); }
 .pm .pm-opp.fdr-4 { --fdr-c: var(--fdr-4); }
 .pm .pm-opp.fdr-5 { --fdr-c: var(--fdr-5); }
 .pm .pm-opp[class*="fdr-"] { padding: 0; border-radius: 2px; background: var(--fdr-c); box-shadow: 0 0 0 1.5px var(--fdr-c); color: var(--plate-ink); }
-/* B27: the ends marked without colour too (the tints put easy and hard about 1.09:1 apart, one beige under
-   deuteranopia): hard (4-5) underlined, easy (1-2) a dotted underline, average plain; the weight stays. The underline
-   sits clear of the plate's edge (an em offset: it grows with the text). The legend's chips (Player data, m-a.css
-   .ah-fdrc) carry the same marks, from this one rule */
+/* the ends marked without colour too: hard (4-5) underlined, easy (1-2) a dotted underline, average plain. The
+underline sits an em clear of the plate's edge. The legend's chips (m-a.css .ah-fdrc) carry the same marks, from this
+one rule */
 .pm .pm-opp.fdr-1, .pm .pm-opp.fdr-2, .ah-fdrc.fdr-1, .ah-fdrc.fdr-2,
 .pm .pm-opp.fdr-4, .pm .pm-opp.fdr-5, .ah-fdrc.fdr-4, .ah-fdrc.fdr-5 {
   text-decoration-line: underline; text-decoration-thickness: 1px; text-underline-offset: .15em;

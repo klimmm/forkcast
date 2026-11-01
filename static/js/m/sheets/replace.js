@@ -1,24 +1,14 @@
-// Forkcast · Replace sheet (IPHONE_DESIGN §5.7, M6 "sell from a week"). Large detent. Opened by dropping a
-// shirt on a rail tick, or the Player sheet's Sell · From GW…: open(ctx, outId, gw). Every row is scored on the phone at
-// once (the swap from GW g on, best XI each week but a lineup you saved, ahead.takenBy); F15c: one tap on a row makes
-// it the plan (no "Add to plan" step): the shirt changes on Ahead, the heal solve confirms it and the verdict toast has Undo. The
-// first row, "Let Forkcast choose", in both modes (the user, 2026-10-13: "only add player to must sell list and let model
-// choose alternative"), makes the sale alone your rule (ahead.sellAny): the full plan picks who comes in, named by its
-// verdict, the best row's ≈ shown meanwhile (autoGuess); under the hold the rest of that week's squad stays and the week
-// takes that one buy only (memory.holdOf), off it Forkcast plans the rest around the sale as it plans everything. It
-// replaces B36 (the user, 2026-10-10: the pick made exactly as the top row's tap) and B32's "Forkcast's pick" mark on the
-// top row under the hold (a named pick the full plan could then differ from). Selling a player you asked to keep, or in a GW you roll, goes at
-// once, the verdict naming
-// the Keep or Roll it takes back, with Undo (ahead.sellOut, A6). A row that needs a −4
-// says so, or, when GW g has other suggested moves, that the full plan may drop one of them instead ("−4, or instead of
-// Scott → Groß", M6); a player your rules keep out (a veto, Never) is blocked as "your rule" (UX-1).
-// The fix pass (2026-10-08): A1 Forkcast's pick was the best row as it is, made as your transfer (a week handed to the
-// planner could add a sale and a hit of its own: under the hold the week now takes the one buy only, memory.holdOf; hits
-// stay within Settings → Plan). A row he can't afford is made as it is (the owner, 2026-10-28: "make it to add player even
-// with negative itb like official fpl allow"; it asked for the sale that frees the money before, A3): the plan short of
-// money as FPL's draft is (ahead.saleBuy → bringIn, memory.holdOf's debts), Forkcast's way to pay it back the pitch's
-// best (ahead.plansOf, owedRoad). A8 the hit is said once over the list (the rows' numbers count it), and a buy who
-// wouldn't start that week says "bench in GW6" in grey.
+// Forkcast · Replace sheet (large detent). Opened by dropping a shirt on a rail tick, or the Player sheet's Sell · From
+// GW…: open(ctx, outId, gw). Every row is scored on the phone at once (the swap from GW g on, best XI each week but a
+// lineup you saved: ahead.takenBy); one tap makes a row the plan (the shirt changes on Ahead, the heal solve confirms
+// it, the verdict toast has Undo). The first row, "Let Forkcast choose" (autoGuess, sell(null)), makes the sale alone
+// your rule; under the hold the week keeps the rest of its squad and takes that one buy only (memory.holdOf). Selling a
+// player you asked to keep, or in a GW you roll, goes at once, the verdict naming the Keep or Roll it takes back
+// (ahead.sellOut). A row needing a −4 says so, or, when GW g has other suggested moves, that the full plan may drop one
+// instead; a player your rules keep out (a veto, Never) is blocked as "your rule". A row he can't afford is made as it
+// is (owner, 2026-10-28): the plan goes short as FPL's draft does (ahead.saleBuy → bringIn, memory.holdOf's debts),
+// paid back the pitch's best way (ahead.plansOf, owedRoad). The hit is said once over the list; a buy who wouldn't
+// start that week says "bench in GW6" in grey.
 
 import { h, fmt, fill, toast, norm, posName, icon, xpGain } from '../../ui.js';
 import * as E from '../../plan/engine.js';
@@ -31,7 +21,7 @@ const CAP = 30;
 const hitsFrom = (ev, g) => ev.gws.filter((s) => s.gw >= g).reduce((n, s) => n + (s.hits || 0), 0);
 const POS_WORD = { GK: 'goalkeeper', DEF: 'defender', MID: 'midfielder', FWD: 'forward' };
 /** Replace's own sort, first among the lists' chips (buylist.sortsOf): the swap's estimate over the window, each row's
- *  number (B88b: named by its weeks, "Best GW6–9"). */
+ *  number, named by its weeks ("Best GW6–9"). */
 const BEST = { key: 'plan', name: (P) => `Best ${COPY.span(P.gws)}`, val: (P, r, g, o) => o.delta ?? null };
 
 export function open(ctx, rawOut, rawGw) {
@@ -44,7 +34,7 @@ export function open(ctx, rawOut, rawGw) {
   const cache = new Map();
   const pos = P0.L.pos(out);
   const word = POS_WORD[pos] || 'player';
-  /** B125 (podmajersky P1 §6): Sell · "From GW6…" opens "Sell Scott from GW6", the week a pill picks (one title, both places). */
+  /** Sell · "From GW6…" opens "Sell Scott from GW6", the week a pill picks (one title, both places). */
   const titleOf = (g) => `Sell ${P0.L.name(out)} from GW${g}`;
 
   /** Every same-position player for GW g: {id, row, delta, ev, blocked, problem} (memoised per GW). */
@@ -52,7 +42,7 @@ export function open(ctx, rawOut, rawGw) {
     if (cache.has(g)) return cache.get(g);
     const P = plan(ctx);
     const d0 = draftOf(ctx);
-    // as taken (your saved lineups kept, as plan rows and the tap's verdict: review 5, 2026-10-12)
+    // as taken (your saved lineups kept, as plan rows and the tap's verdict)
     const ev0 = planBaseline(ctx, P, g);
     const before = squadBefore(P, g), owned = inTeamAt(P, g);
     const no = barred(P, g);
@@ -63,7 +53,7 @@ export function open(ctx, rawOut, rawGw) {
       const res = addMove(ctx, d0, g, out, id, takenBy(ctx, P));
       const p = res.problem;
       if (p) return { id, row: r, blocked: problemShort(p), code: p.code, problem: p };
-      // a −4 this swap needs that the plan didn't (GW g's free transfer already used): said once over the list (A8)
+      // a −4 this swap needs that the plan didn't (GW g's free transfer already used): said once over the list
       const wk = res.ev.gws.find((x) => x.gw === g);
       return { id, row: r, ev: res.ev, draft: res.draft, delta: res.ev.total - ev0.total, hit: hitsFrom(res.ev, g) > hitsFrom(ev0, g), bench: !!wk?.bench?.includes(id) };
     });
@@ -72,8 +62,8 @@ export function open(ctx, rawOut, rawGw) {
     return out0;
   }
 
-  /** "Let Forkcast choose"'s number ({id, draft, delta, hit} | null): the best legal row's estimate, its ≈ (never drawn as
-   *  the plan: the full plan's buy is the solver's, ahead.sellAny). */
+  /** "Let Forkcast choose"'s number ({id, draft, delta, hit} | null): the best legal row's estimate, its ≈ (never drawn
+   *  as the plan). */
   function autoGuess(list) {
     return list.filter((o) => !o.blocked).sort((a, b) => b.delta - a.delta)[0] ?? null;
   }
@@ -86,7 +76,7 @@ export function open(ctx, rawOut, rawGw) {
       me = sheet;
       const subEl = h('p.rs-sub');
       const pills = h('div.ah-pills', { role: 'group', 'aria-label': 'From gameweek' });
-      // B93: the names FPL writes are mostly surnames (a first name finds no one)
+      // the names FPL writes are mostly surnames (a first name finds no one)
       const input = h('input', { type: 'search', placeholder: `Search ${word}s by surname`, 'aria-label': `Search ${word}s by surname`, autocomplete: 'off', spellcheck: 'false', enterkeyhint: 'search' });
       const sortEl = h('div.ws-sorts', { role: 'radiogroup', 'aria-label': 'Sort by' });
       const list = h('div.ah-list', { role: 'list' });
@@ -103,40 +93,37 @@ export function open(ctx, rawOut, rawGw) {
         // what he sells for going into GW g, and the bank then (the plan's own accounting, engine.evaluate)
         const prev = ev0.gws.find((s) => s.gw === st.g - 1);
         const sellM = prev ? prev.sell[out] : L.sellT(out) / 10;
-        // the week's other transfers spend or free money too (your own Scott → E.Le Fée in GW6): the bank after them, as
-        // the rows have it (addMove), his own sale there taken back (a row swaps its buy)
+        // the week's other transfers spend or free money too: the bank after them, as the rows have it (addMove), his
+        // own sale there taken back (a row swaps its buy)
         const wk = ev0.gws.find((s) => s.gw === st.g);
         const besides = (wk?.moves || []).some((m) => m.ok && m.out !== out);
         const own = (wk?.moves || []).filter((m) => m.ok && m.out === out).reduce((n, m) => n + m.sell - m.buy, 0);
         const bank = besides ? wk.bank - own : prev ? prev.bank : baseOf(ctx).bank;  // GW A: the bank your plan starts from
-        // a shortfall the plan already has at FPL's prices is its own, not this swap's (ahead.problemOf, PC-1): the
-        // swap may spend up to the sale then, so the header says what the rows allow
-        // M10: which bank: GW A's is the bank now, a later GW's the one after the week before (after that week's other
-        // transfers where it has some)
+        // a shortfall the plan already has at FPL's prices is its own, not this swap's (ahead.problemOf): the swap may
+        // spend up to the sale, so the header says what the rows allow
+        // which bank: GW A's is the bank now, a later GW's the one after the week before and its other transfers
         const banked = COPY.bankNow(fmt.money(bank), st.g, P.A, besides);
         fill(subEl, bank < -1e-9
           ? `Sells for ${fmt.money(sellM)}, ${banked} (the plan's own): up to ${fmt.money(sellM)}`
           : `Sells for ${fmt.money(sellM)}, ${banked}: up to ${fmt.money(sellM + bank)}`);
-        // M6 / A8: a −4 the rows' estimates take, said once over the list (each row's number counts it); off the hold it
-        // may instead be a suggested GW-g move the full plan drops (a free transfer back)
+        // a −4 the rows' estimates take, said once over the list; off the hold it may instead be a suggested GW-g move
+        // the full plan drops (a free transfer back)
         const others = P.mem?.hold ? '' : (weekOf(P, st.g)?.moves || []).filter((m) => m.out !== out).map((m) => `${L.name(m.out)} → ${L.name(m.in)}`).join(', ');
         const anyHit = all.some((o) => o.hit);
         fill(hitNote, anyHit ? COPY.replaceHit(st.g, others || null) : null);
         hitNote.hidden = !anyHit;
         weekPills(pills, P.gws, st.g, (g) => valid.includes(g), (g) => { st.g = g; draw(); });
-        // the lists' sort chips, its own first (the owner, 2026-10-28: "why sorting by price, ownership etc. is missing";
-        // buylist.sortChips): each row's number stays the swap's ≈, the chosen stat said after his club and price where
-        // nothing else shows it (owned, form, xGI…; a forecast's his bars, the price his own)
+        // the lists' sort chips, its own first (owner, 2026-10-28; buylist.sortChips): the row's number stays the
+        // swap's ≈; the chosen stat follows his club and price where nothing else shows it
         const sorts = sortsOf(ctx, [BEST]), x = sorts.find((y) => y.key === st.sort) ?? BEST;
         sortChips(sortEl, sorts, st, P, st.g, draw);
         const statOf = x === BEST || x.xp || x.key === 'price' ? () => null
           : (o) => { const v = x.val(P, o.row, st.g); return v == null ? null : h('span.rs-stat', null, ` · ${x.num(v)} ${x.unit(P, st.g)}`); };
         const q = norm(st.q.trim());
         const by = orderOf(x, st.flip, P, st.g, (o) => o.row);
-        // the rows that can't be taken last (in team, your rule, …); one the bank can't pay for is taken as it is (FPL's
-        // draft short of money, the owner 2026-10-28), so it ranks by the chosen sort as any row, after the estimated rows
-        // only by Best (it has no estimate): the owner, 2026-10-29, "why isak missing when i try to sell evanilson" (Price
-        // ↓: 41 forwards in the £6.7m, the 10 dearer after them all, past the list's CAP)
+        // rows that can't be taken last (in team, your rule, …); one the bank can't pay for is taken as it is (FPL's
+        // draft short of money), so it ranks by the chosen sort like any row, after the estimated ones only by Best,
+        // which has no estimate for it (owner, 2026-10-28/29)
         const last = (o) => !!o.blocked && o.code !== 'budget';
         const shown = all.filter((o) => !q || found(o.row, q))
           .sort((a, b) => (last(a) - last(b)) || by(a, b)).filter((o, i) => i < CAP);
@@ -151,16 +138,14 @@ export function open(ctx, rawOut, rawGw) {
           },
           who(L, o.row, [statOf(o), o.bench ? h('span.rs-bench', null, ` · bench in GW${st.g}`) : null]),
           bars(L, o.id, P.gws, st.g, top, st.sort),
-          // its ≈ over what it counts, your total (the user, 2026-10-21: fix all (first-use proposal #1)); forecast points,
-          // blue with "xP" (ui.js xpGain; the user, 2026-10-22, after v1.3.68)
+          // its ≈ over what it counts, your total; forecast points, blue with "xP" (ui.js xpGain; owner, 2026-10-22)
           h('span.rt.m-num', null, o.blocked
             ? h('small', { class: { 'g-loss': o.code === 'budget' } }, o.blocked)
             : [xpGain(o.delta, 'span', null, true, '≈ '), h('small', null, COPY.listTotal)]));
           return rowEl;
         }) : h('p.ah-empty', null, COPY.noneCalled(word, st.q.trim())));
-        // "Let Forkcast choose" (both modes, the user 2026-10-13): the sale alone your rule, the full plan picks who comes
-        // in (sell(null): ahead.sellAny), the best row's ≈ its number (autoGuess), no name promised (B32: a named pick the
-        // full plan then differed from)
+        // "Let Forkcast choose" (both modes): the sale alone your rule, the full plan picks who comes in (sell(null):
+        // ahead.sellAny); the best row's ≈ is its number (autoGuess), no name promised
         const best = auto;
         list.prepend(h('button.ah-lrow.rs-auto', {
           type: 'button', role: 'listitem', disabled: !plan(ctx)?.editable || !best,
@@ -171,8 +156,8 @@ export function open(ctx, rawOut, rawGw) {
         h('span.nm', null, h('b', null, 'Let Forkcast choose'), h('span', null, best ? COPY.autoBuy : 'No buy fits')),
         h('span.rt.m-num', null, best ? [xpGain(best.delta, 'span', null, true, '≈ '), h('small', null, COPY.listTotal)] : h('small', null, '—'))));
         fill(foot, `"${BEST.name(P)}" is an estimate over ${COPY.span(P.gws)} (best XI each week but a lineup you saved); Forkcast confirms it.`);
-        // its taps solved ahead while it is open (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and
-        // done without no cost"): Let Forkcast choose, then the rows the list ranks first that can be made
+        // its taps solved ahead while open (presolveTaps; owner, 2026-10-26): Let Forkcast choose, then the rows the
+        // list ranks first that can be made
         const g = st.g;
         if (P.editable) {
           presolveTaps(ctx, [
@@ -184,20 +169,19 @@ export function open(ctx, rawOut, rawGw) {
 
       function pick(o) {
         if (o.blocked && o.code === 'budget') {
-          // the sale made as it is, the bank short as FPL's draft is (ahead.saleBuy; B36: in both modes); one the club
-          // limit stops says why, and the later week he fits in with its action (B74)
+          // the sale made as it is, the bank short as FPL's draft is (ahead.saleBuy, both modes); one the club limit
+          // stops says why, and the later week he fits in with its action
           const P = plan(ctx), g = st.g;
           const bp = saleBuy(ctx, o.id, g, out);
           if (bp.kind !== 'one') { sayBuyProblem(ctx, P, o.id, bp, 'info'); return; }
           if (!bringIn(ctx, o.id, g, bp)) return;
           sheet.close();
-          ctx.navigate('ahead', { gw: g }, { replace: true, top: true });  // B45: no new entry; H1: the top
+          ctx.navigate('ahead', { gw: g }, { replace: true, top: true });  // no new entry; the top
           return;
         }
-        // B89 (podmajersky P2 §13: "Remove the rule on Ahead" sent you away to do it): the one rule of yours that keeps
-        // him out from GW g (ahead.barringRules) is removed from the toast (removeRule: its verdict and Undo), the list
-        // then scored again; several: its Review opens Your rules on Ahead there (review 5, 2026-10-12: no action at
-        // all); none, the toast says where to go
+        // the one rule of yours that keeps him out from GW g (ahead.barringRules) is removed from the toast
+        // (removeRule: verdict and Undo), the list scored again; several: its Review opens Your rules on Ahead; none:
+        // the toast says where to go
         const bar = o.code === 'vetoed' ? barringRules(plan(ctx), o.id, st.g) : [];
         if (bar.length === 1) {
           toast(`Your rules keep ${o.row.name} out.`, 'info', { action: { label: 'Remove', onClick: () => { if (removeRule(ctx, bar[0].id)) { cache.clear(); draw(); } } } });
@@ -215,9 +199,8 @@ export function open(ctx, rawOut, rawGw) {
         sell(o.id);
       }
 
-      /** F15c: a row tapped is the plan at once (ahead.sellOut: a rule of yours it takes back goes too, named; the
-       *  verdict toast has Undo): him sold from GW g for `inn` (a row's), or (null) for the buy the full plan picks ("Let
-       *  Forkcast choose"). */
+      /** A tapped row is the plan at once (ahead.sellOut: a rule of yours it takes back goes too, named; toast with
+       *  Undo): him sold from GW g for `inn`, or (null) for the buy the full plan picks. */
       async function sell(inn) {
         if (st.busy) return;
         st.busy = true;
@@ -225,7 +208,7 @@ export function open(ctx, rawOut, rawGw) {
         try {
           if (!sellOut(ctx, g, out, inn)) return;
           sheet.close();
-          ctx.navigate('ahead', { gw: g }, { replace: true, top: true });  // B45: no new entry; H1: the top
+          ctx.navigate('ahead', { gw: g }, { replace: true, top: true });  // no new entry; the top
         } finally { st.busy = false; }
       }
 

@@ -1,4 +1,4 @@
-/* Backtests view (shares .rs-* result pieces with runs.css). */
+/* Shares .rs-* with runs.css */
 
 .bt-top { align-items: start; }
 .bt-fields { gap: 12px; }

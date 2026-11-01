@@ -1,7 +1,6 @@
-// Preview: the solver's own HTML pages, run as jobs and shown inline. A round preview
-// (--preview / --preview-full / --preview-no-solve) and a team rating (--rate-team), which
-// rates an --entry squad or, without one, every screenshot in --rate-dir (main.py:719-738;
-// --team-state is not read by the rating). #/preview?job=<id> opens a run.
+// Preview: the solver's own HTML pages, run as jobs and shown inline: round previews (--preview, -full, -no-solve) and
+// team ratings (--rate-team: an --entry squad, else every --rate-dir screenshot; main.py:719-738). #/preview?job=<id>
+// opens a run.
 
 import * as api from '../api.js';
 import {
@@ -11,12 +10,10 @@ import {
 
 const KINDS = { preview: 'Preview', rate: 'Rating' };
 const GW = { label: 'Gameweek', placeholder: 'next deadline' };
-// The solver flags each form edits, with page-specific overrides of the catalogue text.
 const FIELDS = {
   preview: [['season'], ['to', GW], ['dir'], ['preview_full'], ['preview_no_solve']],
   rate: [['season'], ['to', GW], ['dir']],
 };
-// Each form's own settings; "Extra flags" offers the rest. --from-r is set from the GW at launch.
 const OWN = {
   preview: new Set([...FIELDS.preview.map(([d]) => d), 'from_r']),
   rate: new Set([...FIELDS.rate.map(([d]) => d), 'from_r', 'entry', 'rate_dir']),
@@ -24,7 +21,7 @@ const OWN = {
 const FRAME_MODES = [{ key: 'fit', label: 'Fit page' }, { key: 'scroll', label: 'Scroll inside' }];
 const MAX_FRAME_PX = 60000;
 
-/** flagControls for `specs` that write into `values` (undefined = solver default, key dropped). */
+/** Controls for `specs` writing into `values` (undefined = solver default, key dropped). */
 function controls(specs, values, byDest, meta) {
   return specs.map(([dest, over]) => {
     const f = byDest.get(dest);
@@ -64,7 +61,7 @@ export default {
     if (forms.rate.entry === undefined) delete forms.rate.entry;
 
     const seasonOf = (v) => v.season ?? meta?.season;
-    // The GW a run is for: --to, else the next deadline in the live season (a past season: main.py's last round).
+    // The GW a run is for: --to, else the live season's next deadline (a past season: main.py's last round).
     const gwOf = (v) => v.to || (seasonOf(v) === (meta?.latest_season ?? meta?.season) ? meta?.next_gw : undefined);
     const gwText = (v) => { const g = gwOf(v); return g ? fmt.gw(g) : 'last GW'; };
     const seasonText = (v) => (v.season && v.season !== meta?.season ? `${v.season} ` : '');
@@ -73,8 +70,8 @@ export default {
 
     async function launch(kind, values, label, btn) {
       btn.disabled = true;
-      // --from-r = the GW, as the planner's previews: τ and its captain tie-break are measured up to
-      // --from-r (main.py:952-965), so a bare run would price them from GW1.
+      // --from-r = the GW, as the planner's previews: τ and its captain tie-break are measured up to it
+      // (main.py:952-965); a bare run would price them from GW1.
       const gw = gwOf(values);
       try {
         const out = await api.createJob({ kind, values: gw ? { ...values, from_r: gw } : values, label });
@@ -178,7 +175,7 @@ export default {
       const url = job.html_url;
       const frame = h('iframe.report.pv-frame', { src: url, title: job.label || 'Solver page', class: { scroll: frameMode === 'scroll' } });
       let ro = null;
-      // Same-origin page: in "fit" mode the frame takes the document's height, so the app page scrolls.
+      // Same-origin: in "fit" mode the frame takes the document's height, so the app page scrolls.
       function fit() {
         if (frameMode !== 'fit') { frame.style.height = ''; return; }
         try {
@@ -194,7 +191,7 @@ export default {
           ro?.disconnect();
           ro = new frame.contentWindow.ResizeObserver(fit);
           ro.observe(frame.contentDocument.body);
-        } catch { /* fixed height is fine */ }
+        } catch { }
       });
       const name = job.summary?.page?.split('/').pop() || `${job.kind}_${job.id}.html`;
       const tools = h('div.pv-tools', null,

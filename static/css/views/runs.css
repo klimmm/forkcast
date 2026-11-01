@@ -1,4 +1,4 @@
-/* Runs view, plus the result pieces it shares with Backtests (.rs-*) and the solve diff (.df-*). */
+/* Runs view; .rs-* (shared with Backtests) and .df-* (solve diff). */
 
 .rs-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
 .rs-filters .select { flex: 0 1 190px; min-width: 0; }
@@ -30,7 +30,7 @@
 
 .rs-log > summary, .bt-canon-t > summary { cursor: pointer; padding: 4px 0; font-size: 13px; font-weight: 600; color: var(--text-2); }
 .rs-log[open] > summary { margin-bottom: 6px; }
-/* the solver prints aligned tables: keep lines whole and scroll sideways */
+/* aligned solver tables: keep lines whole, scroll sideways */
 .rs-pre { max-height: 420px; border: 1px solid var(--line); border-radius: var(--r-ctl); white-space: pre; overflow-wrap: normal; }
 
 .rs-notes { margin: 0; padding-left: 18px; }
@@ -42,7 +42,6 @@
 .tbl tr.rs-now td { background: color-mix(in oklab, var(--accent) 7%, var(--surface)); }
 .tbl tr.rs-chip td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
 
-/* diff of two solves */
 .df-heads { gap: 10px; }
 .df-side { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
 .df-side a { overflow-wrap: anywhere; }

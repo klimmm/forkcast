@@ -1,4 +1,4 @@
-/* Data view (#/data): freshness table, data jobs, live logs. */
+/* Data view (#/data): freshness table, jobs, logs. */
 
 .dt-pool { max-width: 520px; margin-bottom: 12px; }
 .dt-pool:empty { display: none; }

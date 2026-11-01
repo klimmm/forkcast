@@ -1,7 +1,5 @@
-// Shared components for FPL Solver Studio. Views build their DOM from these plus plain DOM.
-// Every component returns a DOM element (modal returns a handle). Untrusted text always goes
-// in through text nodes — only the `html` attr of h() writes markup, and only icons use it.
-// No side effects at import time.
+// Shared components. Each returns a DOM element (modal a handle). Untrusted text goes in as text nodes: only h()'s
+// `html` attr writes markup (icons only). No import-time side effects.
 
 import * as api from './api.js';
 
@@ -41,7 +39,7 @@ function applyAttrs(el, attrs) {
   }
 }
 
-/** Append children: strings/numbers become text, arrays flatten, null/false/true are skipped. */
+/** Strings/numbers → text, arrays flatten, null/false/true skipped. */
 export function append(el, ...children) {
   for (const c of children.flat(Infinity)) {
     if (c == null || c === false || c === true) continue;
@@ -50,7 +48,7 @@ export function append(el, ...children) {
   return el;
 }
 
-/** Replace an element's children by append()'s rules (native replaceChildren prints "null" and won't flatten). */
+/** Like append() but replaces children (native replaceChildren prints "null", won't flatten). */
 export const fill = (el, ...kids) => { el.replaceChildren(); return append(el, kids); };
 
 function parseTag(tag) {
@@ -71,7 +69,7 @@ export function h(tag, attrs, ...children) {
   return append(el, children);
 }
 
-/** SVG element: svg('path', {d, class}) — attributes are always set as attributes. */
+/** SVG element; attributes are always set as attributes. */
 export function svg(tag, attrs, ...children) {
   const { name, cls, id } = parseTag(tag);
   const el = document.createElementNS(SVG_NS, name);
@@ -91,29 +89,23 @@ export function svg(tag, attrs, ...children) {
   return el;
 }
 
-/** A forecast number (expected points) as every screen draws it (the user, 2026-10-22, after v1.3.68: "is points
- *  coloring not too much, and why + still goes with other colors and no xp": no chip, the number in the forecast's blue
- *  and an "xP" by it, everywhere): the number `text` (an element `tag`, its classes too, with `attrs`: m.css .xp, the
- *  --xp tokens, a surface's own by --xp-c), then "xP" (.xp-u: the text-only marker; never spoken: the labels say
- *  "expected points"); `mark` false where a heading over the numbers carries it. The number's element holds the number
- *  alone (what reads it, reads that). → [number, marker] */
+/** A forecast number as every screen draws it (owner, 2026-10-22): the forecast's blue plus a text-only "xP" marker
+ *  (.xp-u, never spoken; `mark` false where a heading carries it). `text` goes alone in an element `tag` (m.css .xp). →
+ *  [number, marker] */
 export const xpNum = (text, tag = 'span', attrs = null, mark = true) => [h(`${tag}.xp`, attrs, text), mark ? xpMark() : null];
-/** A signed forecast difference (a gain or a loss, `d` points) as xpNum draws it, "+2.3 xP", "−0.4 xP": blue as every
- *  forecast number, its sign its direction, never green or red (the user, 2026-10-22: worth doing is the solid + alone);
- *  `pre` before the sign inside the number ("≈" while it checks). One class on every surface, .xp-g (m.css: 600, the
- *  ground's blue; design 1028d K4, the owner 2026-10-28: "same stats … consistent across app"). */
+/** Signed forecast difference as xpNum draws it, "+2.3 xP": blue, never green or red (owner, 2026-10-22); `pre`
+ *  precedes the sign ("≈" while it checks). One class everywhere, .xp-g (owner, 2026-10-28). */
 export const xpGain = (d, tag = 'span', attrs = null, mark = true, pre = '') => xpNum(`${pre}${fmt.signed(d)}`, `${tag}.xp-g`, attrs, mark);
-/** Whether difference `d` reads as a gain where it is shown: its sign as fmt.signed (xpGain) draws it, so "+0.1" (a
- *  0.05) is a gain and "0.0" or "−0.1" is not (a quiet plate that gains nothing, its number alone: ahead.js swapPlate
- *  .loss; the owner, 2026-10-26, "mabe negatice plates not need names in them"). */
+/** Whether `d` reads as a gain as shown: "+0.1" (a 0.05) does, "0.0" and "−0.1" don't (ahead.js swapPlate .loss; owner,
+ *  2026-10-26). */
 export const shownGain = (d) => fmt.signed(d).startsWith('+');
-/** The text-only "xP" marker (xpNum's; m.css .xp-u): a span, never a <small> (a row's unit under its number is one:
- *  m-ahead.css .ah-lrow .rt small, .ah-bg small). */
+/** Text-only "xP" marker (m.css .xp-u): a span, never a <small> (a row's unit: m-ahead.css .ah-lrow .rt small, .ah-bg
+ *  small). */
 export const xpMark = () => h('span.xp-u', { 'aria-hidden': 'true' }, 'xP');
 
 /**
- * Run fn every `ms` while `el` is in the document; stops once it is removed (or never attached within ~10s),
- * then calls onEnd. The returned stop() does not call onEnd.
+ * Run fn every `ms` while `el` is in the document; stops (calling onEnd) once it's removed or unattached for ~10s.
+ * stop() skips onEnd.
  */
 export function whileConnected(el, fn, ms = 1000, onEnd) {
   let seen = false;
@@ -164,7 +156,7 @@ export const ICONS = {
   swap: 'M7 4 3 8l4 4M3 8h13M17 12l4 4-4 4M21 16H8',
 };
 
-/** icon('lock') or icon('M4 4h16…') → inline SVG (decorative, aria-hidden). Emoji/text → <span>. */
+/** icon('lock') or icon('M4 4h16…') → decorative inline SVG; emoji/text → <span>. */
 export function icon(name, { size = 18, label } = {}) {
   if (!name) return null;
   const d = ICONS[name] || (/^[Mm][\d\s.,-]/.test(name) ? name : null);
@@ -177,7 +169,7 @@ export function icon(name, { size = 18, label } = {}) {
   return el;
 }
 
-/** The Studio mark: a chalk pitch with the solver's rising plan line. */
+/** The Studio mark: a chalk pitch with a rising plan line. */
 export function logo(size = 28) {
   return svg('svg', { class: 'logo', viewBox: '0 0 32 32', width: size, height: size, 'aria-hidden': 'true' },
     svg('rect', { x: 1.5, y: 1.5, width: 29, height: 29, rx: 7, class: 'logo-bg' }),
@@ -192,13 +184,13 @@ export function logo(size = 28) {
 const DASH = '—';
 const MINUS = '−';
 const toNum = (v) => (v == null || v === '' || typeof v === 'boolean' ? NaN : Number(v));
-/** A finite number or numeric string (null, '', booleans and NaN are not). */
+/** Finite number or numeric string (not null, '', booleans, NaN). */
 export const fin = (v) => Number.isFinite(toNum(v));
 export const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
-/** The listed keys of `o` that are set (not undefined). */
+/** Listed keys of `o` that are set (not undefined). */
 export const pick = (o, keys) => Object.fromEntries(keys.filter((k) => o?.[k] !== undefined).map((k) => [k, o[k]]));
 
-/** Epoch seconds, epoch ms, ISO string or Date → ms (NaN when unknown). */
+/** Epoch s, epoch ms, ISO string or Date → ms (NaN when unknown). */
 export function toMs(t) {
   if (t == null || t === '') return NaN;
   if (t instanceof Date) return t.getTime();
@@ -227,16 +219,16 @@ export const fmt = {
   signed(x, d = 1) {
     if (!fin(x)) return DASH;
     const v = toNum(x);
-    // a tie goes away from zero whatever the float noise: one change summed two ways (1.5499…9 and 1.5500…04, the total's
-    // change and its verdict's) reads "+1.6" in both
+    // a tie goes away from zero despite float noise: 1.5499…9 and 1.5500…04, one change summed two ways, both read
+    // "+1.6"
     const s = (Math.round(Math.abs(v) * 10 ** d + 1e-6) / 10 ** d).toFixed(d);
     return Number(s) === 0 ? s : `${v > 0 ? '+' : MINUS}${s}`;
   },
   int(n) { return fin(n) ? Math.round(toNum(n)).toLocaleString('en-GB').replace('-', MINUS) : DASH; },
-  /** 1 → "1st", 12 → "12th", 23 → "23rd" (a rank in words: the player card's stats) */
+  /** 1 → "1st", 12 → "12th", 23 → "23rd" (player card ranks) */
   ordinal(r) { return `${r}${r % 100 >= 11 && r % 100 <= 13 ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[r % 10] ?? 'th'}`; },
-  /** 795123 → "795K", 8200 → "8K", 1234567 → "1.2M"; d: the M's decimals when given (rank "2.18M" at 2), else one below
-   *  10M and none above. B118 (review3 P7 §4): one K, capital and whole, never "8.2k" beside "2.18M". */
+  /** 795123 → "795K", 8200 → "8K", 1234567 → "1.2M"; d: the M's decimals if given (rank "2.18M" at 2), else one below
+   *  10M, none above. One whole capital K, never "8.2k". */
   compact(n, d = null) {
     if (!fin(n)) return DASH;
     const v = toNum(n), a = Math.abs(v), sign = v < 0 ? MINUS : '';
@@ -267,18 +259,17 @@ export const fmt = {
 };
 
 export const POS = ['GK', 'DEF', 'MID', 'FWD'];
-/** 1-4, 'GK'/'GKP'/'DEF'/'MID'/'FWD' → 'GK'|'DEF'|'MID'|'FWD' (null when unknown). */
+/** 1-4 or 'GK'/'GKP'/'DEF'/'MID'/'FWD' → 'GK'|'DEF'|'MID'|'FWD' (null if unknown). */
 export function posName(p) {
   if (p == null) return null;
   if (fin(p)) return POS[toNum(p) - 1] || null;
   const s = String(p).toUpperCase();
   return s === 'GKP' ? 'GK' : POS.includes(s) ? s : null;
 }
-/** B119: a position's code on screen, FPL's (its Pick Team: GKP, DEF, MID, FWD; the bench said "GKP", the player card
- *  "GK"); posName stays the internal key (filters, shirts, every === 'GK'). null when unknown. */
+/** A position's code on screen, FPL's: GKP, DEF, MID, FWD; posName stays the internal key. null when unknown. */
 export const posCode = (p) => { const k = posName(p); return k === 'GK' ? 'GKP' : k; };
 
-/** A player's xP for display: explicit `xp_value`, else numeric `pred`, else xp[i] / xp. */
+/** A player's xP for display: `xp_value`, else numeric `pred`, else xp[i] / xp. */
 export function xpOf(p, i = 0) {
   if (!p) return null;
   if (fin(p.xp_value)) return toNum(p.xp_value);
@@ -287,7 +278,7 @@ export function xpOf(p, i = 0) {
   return fin(p.xp) ? toNum(p.xp) : null;
 }
 
-// FPL status: letters from /api/players, solver ints (player_data.py STATUS_SHORT), or short labels like "d75".
+// FPL status: letters from /api/players, solver ints (player_data.py STATUS_SHORT), labels like "d75".
 const STATUS_INT = { 1: 'a', 2: 'd', 3: 'i', 4: 'n', 5: 's', 0: 'u' };
 const STATUS_LABEL = { a: 'Available', d: 'Doubtful', i: 'Injured', s: 'Suspended', u: 'Unavailable', n: 'Not available' };
 /** → {code, label, tone: 'ok'|'warn'|'bad', chance} */
@@ -310,7 +301,7 @@ export function statusInfo(status, chance) {
 
 export const pill = (text, tone = '', attrs = {}) => h('span.pill', { ...attrs, class: [tone, attrs.class] }, text);
 
-/** Coloured availability dot; nothing for fit players unless `always`. */
+/** Availability dot; none for fit players unless `always`. */
 export function statusDot(status, { chance, news, always = false } = {}) {
   const s = statusInfo(status, chance);
   if (s.tone === 'ok' && !always) return null;
@@ -322,10 +313,10 @@ export const loading = (text = 'Loading…') => h('div.loading', { role: 'status
 
 export const empty = (text, action) => h('div.empty', null, h('p', null, text), action || null);
 
-/** An error (ApiError or any Error) as one line of text: "message: detail". */
+/** An error as one line: "message: detail". */
 export const errText = (e) => (e?.detail ? `${e.message}: ${e.detail}` : e?.message || String(e));
 
-/** The server's message, the traceback behind a disclosure and an optional retry button. */
+/** Server message, traceback behind a disclosure, optional retry button. */
 function errorBody(err, retry) {
   const detail = err?.detail;
   return [
@@ -335,15 +326,15 @@ function errorBody(err, retry) {
   ];
 }
 
-/** Error state as a card: errorBody under a title. */
+/** errorBody as a card under a title. */
 export const errorCard = (err, { title = 'This could not be loaded', retry } = {}) =>
   card({ title, className: 'card-error', body: errorBody(err, retry) });
 
 const TONE_ICON = { info: 'info', gain: 'check' };
-/** A note in a tone ('loss' | 'warn' | 'info' | 'gain') with that tone's icon. */
+/** A note in a tone ('loss'|'warn'|'info'|'gain') with its icon. */
 export const callout = (tone, ...body) => h('div.callout', { class: tone }, icon(TONE_ICON[tone] || 'warn'), h('div', null, ...body));
 
-/** Error state inside another card: errorBody in a callout. */
+/** errorBody inside another card, in a callout. */
 export const errorCallout = (err, { retry } = {}) =>
   h('div.callout.loss', null, icon('warn'), h('div.stack.tight', null, errorBody(err, retry)));
 
@@ -353,8 +344,8 @@ export function field(label, control, hint) {
 }
 
 /**
- * A number box's value: {bad: true} for text the browser cannot read as a number ('6e', '-', which
- * input.value reports as ''), {} when blank, else {n}.
+ * A number box's value: {bad: true} for text the browser can't read as a number ('6e', '-': input.value gives ''), {}
+ * when blank, else {n}.
  */
 export function readNum(input) {
   if (input.validity?.badInput) return { bad: true };
@@ -363,8 +354,8 @@ export function readNum(input) {
 }
 
 /**
- * Gameweek number box: blank = the server's default GW (`placeholder`). onChange(gw | undefined) fires for
- * a whole number 1..max or a blank; anything else puts back get().
+ * Blank = the server's default GW (`placeholder`). onChange(gw | undefined) fires for a whole 1..max or blank;
+ * anything else restores get().
  */
 export function gwInput({ get, onChange, max = 38, ...attrs }) {
   const input = h('input.input.num', { type: 'number', min: 1, max, step: 1, inputmode: 'numeric', placeholder: 'next', ...attrs, value: get() ?? '' });
@@ -379,18 +370,18 @@ export function gwInput({ get, onChange, max = 38, ...attrs }) {
 // ---------------------------------------------------------------- FPL entries
 
 const ENTRY_RE = /^\d{1,10}$/;  // api/entry.py _entry_id
-/** An FPL entry id from text or a recent-entry row ({entry_id | id | entry}) → its digits, or null. */
+/** FPL entry id from text or a recent-entry row ({entry_id | id | entry}) → its digits or null. */
 export function entryId(v) {
   const id = v && typeof v === 'object' ? v.entry_id ?? v.id ?? v.entry : v;
   const s = id == null ? '' : String(id).trim();
   return ENTRY_RE.test(s) ? s : null;
 }
 
-/** Hover text for a recent entry (GET /api/entries/recent row): manager · rank · points · id. */
+/** Hover text for a /api/entries/recent row: manager · rank · points · id. */
 export const entryTitle = (r) => [r.manager, r.overall_rank ? `overall rank ${fmt.int(r.overall_rank)}` : null,
   r.points != null ? `${r.points} pts` : null, `#${r.entry_id}`].filter(Boolean).join(' · ');
 
-/** "Recent:" and one chip per recent entry (team name, then its id); onPick(id). [] when there are none. */
+/** "Recent:" and a chip per recent entry (team name, id); onPick(id). [] when none. */
 export function recentEntryChips(list, { limit = 6, onPick } = {}) {
   const top = (list || []).slice(0, limit);
   if (!top.length) return [];
@@ -415,7 +406,7 @@ export function card({ title, sub, actions, body, className, id, attrs } = {}) {
   return el;
 }
 
-/** statTile({label, value, sub, tone:'gain'|'loss'|'warn', title}) — value may be a Node (e.g. countdown). */
+/** value may be a Node (e.g. a countdown); tone: 'gain'|'loss'|'warn'. */
 export function statTile({ label, value, sub, tone, title, icon: ic } = {}) {
   return h('div.stat', { class: tone, title },
     h('div.stat-label', null, ic ? icon(ic, { size: 15 }) : null, label),
@@ -425,26 +416,21 @@ export function statTile({ label, value, sub, tone, title, icon: ic } = {}) {
 
 // ---------------------------------------------------------------- motion, gestures and focus (Forkcast's shell and screen)
 
-/** The system's Reduce Motion is on: the one test (Forkcast's sheets, Ahead's swipes, the pitch's armband hop). */
+/** System Reduce Motion is on: the one test (sheets, swipes, armband hop). */
 export const reduceMotion = () => globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
-/** A gesture that owns the finger stops the scroll (a non-passive touchmove's preventDefault: Forkcast's sheet drags, the
- *  pull to refresh, the pitch's drags, the move rows' swipes), only while the touch can still be cancelled: one whose
- *  scroll has already begun is not (cancelable false), its preventDefault does nothing but log Chrome's "Ignored attempt
- *  to cancel a touchmove event with cancelable=false" (the v1.3.72 QA, 2026-10-22: about-clips' "no console errors"
- *  under load, the move-row swipe). The same as e.preventDefault() wherever that does anything. */
+/** preventDefault only while the touch is cancelable (sheet drags, pull to refresh, pitch drags, move-row swipes); once
+ *  its scroll has begun it only logs Chrome's "Ignored attempt to cancel a touchmove event with cancelable=false". */
 export const holdTouch = (e) => { if (e.cancelable) e.preventDefault(); };
 
-/** B43 (Apple, "Designing Fluid Interfaces": a release carries on at its speed): a drag's speed at release from its
- *  last FLICK_WINDOW_MS of samples, their least-squares slope in px/ms (0 with fewer than two: a finger that rested
- *  before it lifted), and where a release at that speed carries it, project(pos) = pos + velocity × FLICK_MS. One
- *  helper for Forkcast's sheet drags, the pitch's week swipe and the move rows' swipes. */
+/** A drag's speed at release: the least-squares slope, px/ms, of the last FLICK_WINDOW_MS of samples (0 with fewer than
+ *  two: the finger rested); project(pos) = pos + velocity × FLICK_MS. For sheet drags and swipes. */
 const FLICK_WINDOW_MS = 100;
-export const FLICK_MS = 150;  // how far a release carries, in ms of its speed: a first value, its phone check is open
+export const FLICK_MS = 150;  // ms of its speed a release carries: a first value, phone check open
 export function flick() {
   const pts = [];
   const self = {
-    /** A sample: pos (px) at t (ms, the event's timeStamp); samples older than FLICK_WINDOW_MS before it go. */
+    /** A sample: pos (px) at t (ms, event timeStamp); samples older than FLICK_WINDOW_MS go. */
     add(pos, t = performance.now()) {
       pts.push({ pos, t });
       while (t - pts[0].t > FLICK_WINDOW_MS) pts.shift();
@@ -461,12 +447,11 @@ export function flick() {
   return self;
 }
 
-/** The selector of the element whose data-row is `row`, its value escaped (a plan row's holds a chip as JSON: quotes). */
+/** Selector for data-row=`row`, escaped (a plan row's holds a chip as JSON: quotes). */
 export const rowKey = (row) => `[data-row="${globalThis.CSS?.escape ? CSS.escape(row) : String(row).replace(/["\\]/g, '\\$&')}"]`;
-/** B48 (APG dialog: on close, focus goes back to the opener, or to what takes its place when it is gone): the key a
- *  focused element's replacement is found by once its part of the page is drawn anew: its row's data-row, else its
- *  move's data-gw / data-out / data-in (a transfer or a suggestion row, its + and × too), else the focus home it is in
- *  (data-focus-home: Ahead's week line); null when it has none. */
+/** The key a focused element's replacement is found by after a redraw: its row's data-row, else its move's data-gw /
+ *  data-out / data-in (a transfer or suggestion row, its + and × too), else its focus home (data-focus-home); null when
+ *  none. */
 export function focusKey(el) {
   const row = el?.closest?.('[data-row]');
   if (row) return rowKey(row.dataset.row);
@@ -475,9 +460,8 @@ export function focusKey(el) {
   return el?.closest?.('[data-focus-home]') ? '[data-focus-home]' : null;
 }
 const FOCUSABLE = 'button:not(:disabled), a[href], input, select, textarea, [tabindex]';
-/** Focus what `key` (focusKey) names in root (itself, or the first control in it: a transfer row's target), else
- *  `fallback`, without scrolling; a match not drawn (hidden, or with no box: display none) is no
- *  match, as focus() would leave focus nowhere. */
+/** Focus what `key` names in root (itself or its first control), else `fallback`, without scrolling; a match with no
+ *  box (display none) doesn't count. */
 export function refocus(root, key, fallback = null) {
   const at = key ? root?.querySelector(key) : null;
   const t = at && (at.matches(FOCUSABLE) ? at : at.querySelector(FOCUSABLE));
@@ -486,39 +470,33 @@ export function refocus(root, key, fallback = null) {
 
 // ---------------------------------------------------------------- toast / modal / confirm
 
-/** The toasts' live region (#toasts, aria-live polite), made once: a shell makes it at start (Forkcast's boot) so its
- *  first toast is announced too (review3 Part 6 §11: a region added with its first message may go unread). */
+/** Toasts' live region (#toasts, aria-live polite), made once at shell start (Forkcast's boot) so the first toast is
+ *  announced. */
 export function toastRegion() {
   let r = document.getElementById('toasts');
   if (!r) document.body.append(r = h('div#toasts', { 'aria-live': 'polite', 'aria-atomic': 'false' }));
   return r;
 }
 
-/** Where a new toast goes: a shell may set a function (setToastPlace) called once the toast is in the region, as
- *  fn(region, toast): an answer that is a string is the region's data-place for its CSS, and it may place the region
- *  itself (Forkcast: app.js placeToasts, the top of the screen or a sheet's foot); unset, the region's own place. */
+/** setToastPlace(fn): fn(region, toast) runs once the toast is in the region; a string answer is the region's
+ *  data-place (CSS); fn may place the region itself (app.js placeToasts). */
 let toastPlace = null;
 export const setToastPlace = (fn) => { toastPlace = typeof fn === 'function' ? fn : null; };
 
-/** Where rect r overlaps rect o grown by pad ({left, top, right, bottom} each): that rect, or null when they don't. */
+/** Where rect r overlaps rect o grown by pad: that rect, or null. */
 export function overlapOf(r, o, pad = 0) {
   const left = Math.max(r.left, o.left - pad), right = Math.min(r.right, o.right + pad);
   const top = Math.max(r.top, o.top - pad), bottom = Math.min(r.bottom, o.bottom + pad);
   return right > left && bottom > top ? { left, top, right, bottom } : null;
 }
 
-/** A9 (Birman s48: a message is better if it doesn't vanish on its own; s50: nothing changes under a finger already
- *  moving): a toast with an action (Undo) never leaves by itself. Once its time is up (counted from when a shell says
- *  its action first takes a tap: 'toast-armed', Forkcast's placeToasts) it goes after your next touch anywhere else; a
- *  newer toast with an action replaces it, and its action takes it; so no finger, however slow, finds it gone (QA
- *  check6: a tap on a loaded machine came 2.2 s after a timed toast had left). A toast without one leaves after its
- *  timeout (nothing on it to miss). One tagged 'pending' neither a touch nor a newer toast ends: it stays until what
- *  follows replaces it in place (B23; a refusal's "Unfreeze GW8" or the drift's "Use it" comes in beside it). */
+/** A toast with an action (Undo) never leaves by itself: once its time is up (from 'toast-armed', when the action first
+ *  takes a tap) it goes on your next touch elsewhere; a newer toast with an action replaces it. Without an action it
+ *  times out. One tagged 'pending' stays until what follows replaces it in place. */
 const STAYING = new Set();
 const END_MS = 400;
 if (typeof addEventListener === 'function') {
-  // a touch elsewhere after its time is up marks it; it goes once that gesture has ended and its click has landed
-  // (END_MS after the finger lifts: nothing on the page moves under a tap in progress, s50)
+  // a touch elsewhere after its time marks it; it goes END_MS after the finger lifts (click landed)
   addEventListener('pointerdown', (e) => {
     const now = performance.now();
     for (const s of STAYING) if (s.until < now && !s.el.contains(e.target) && s.el.dataset.tag !== 'pending') s.ending = true;
@@ -531,59 +509,49 @@ if (typeof addEventListener === 'function') {
   }
 }
 
-/** toast('Saved', 'ok'|'info'|'warn'|'error', {timeout, action:{label, onClick, keep}, actions, tag, replaces, onDismiss, take}) →
- *  dismiss(), whose .update(msg) changes its words alone. actions: [{label, onClick}, …], buttons in that order (B89:
- *  "Try again" beside Undo); action is the one-button form. keep: the toast stays up after that action; an onClick that
- *  answers a promise (a sheet it opened, settled once that has closed: Forkcast's take's Why) holds it, no touch ending
- *  it, until that settles, then gives it its whole time again (the review of the first-use proposals, 2026-10-21: a
- *  touch in the Why sheet after the toast's 6.5 s ended it, and its Undo with it). tag: the toast's data-tag (Forkcast: 'pending', an edit's
- *  toast while the full plan checks it). replaces: a tag; a toast up with it becomes this one in place (B23: its words,
- *  kind, actions, tag and time, its place and its armed Undo kept; a button whose label stays is kept, as a finger may
- *  be on it), and its dismiss is returned; with none up, a new toast comes in. onDismiss: called once when the toast
- *  leaves any way but by one of its own buttons (a touch elsewhere, a newer toast with an action, ×, its time, another
- *  toast in its place: B22, the drift's toast keeps your plan then). take: a take's receipt (Forkcast's addPlan), the
- *  clauses of its words that may clip ([] none): two rows where it would take more than one line (fit, m.css .split). */
-/** A toast's words in parts → [head, num, rest]: its last " · +4.7 pts" with its weak word (" (narrow)") the number,
- *  kept whole; the words before it a head that may clip (m.css: never more than three lines in all; the reviews,
- *  2026-10-11: long toasts covered the week switcher, and a clip at the end would take the number every toast ends
- *  with, B145); the words after it (an edit's ending, "· Forkcast rates them level: …") the rest, which wraps under it
- *  (review 5, 2026-10-12: held whole with the number they ran off the toast). A choice's number, " · +2.6 vs rolling"
- *  (a take's and a removal's: COPY.planGain; the owner, 2026-10-26: no "· total" beside it; "vs your plan" in a week of
- *  yours: decision K, 2026-10-25), with a "· total +4.0" after it where one is said, is one, so neither clips (a Wildcard's
- *  or Free Hit's "· +6.2 vs rolling" from Chips… too, its "· 3.0 less than in GW8" the rest). No number: [m, '', '']. */
+/** toast(msg, kind: 'ok'|'info'|'warn'|'error', opts) → dismiss(), whose .update(msg) changes the words alone. opts:
+ *  {timeout, action:{label, onClick, keep}, actions:[…], tag, replaces, onDismiss, take}.
+ *  keep: stay up after that action; an onClick returning a promise (a sheet it opened) holds the toast until it
+ *  settles.
+ *  tag: data-tag (Forkcast: 'pending' while the full plan checks an edit).
+ *  replaces: a tag; a toast up with it becomes this one in place (place and armed Undo kept), its dismiss returned;
+ *  none up, a new toast.
+ *  onDismiss: called once when it leaves any way but its own buttons. take: a take's receipt (addPlan), the clauses
+ *  that may clip ([] none). */
+/** A toast's words → [head, num, rest]. num: the last " · +4.7 pts" with its weak word (" (narrow)"), kept whole; head:
+ *  the words before it, which may clip (m.css: three lines at most); rest: the words after it. A choice's " · +2.6 vs
+ *  rolling" (COPY.planGain; owner, 2026-10-26: no "· total" beside it) and a "· total +4.0" after it count as one, so
+ *  neither clips. No number: [m, '', '']. */
 export const toastParts = (m) => {
   const cut = [...m.matchAll(/ · (?:[+−-]?\d[\d.,]* pts\b(?: \([a-z ]+\))?|[+−-]?\d[\d,]*(?:\.\d+)? vs (?:rolling|your plan)(?: · total [+−-]?\d[\d,]*(?:\.\d+)?)?|total [+−-]?\d[\d,]*(?:\.\d+)?)/g)].at(-1);
   return cut ? [m.slice(0, cut.index), cut[0], m.slice(cut.index + cut[0].length)] : [m, '', ''];
 };
-/** A toast's head (toastParts') in parts → [lead, also]: its first part, to its first " · " (a take's moves: what clips),
- *  and what follows it ("· Free Hit in GW8 taken off": what else the edit did, kept whole; the review of the first-use
- *  proposals, 2026-10-21: a three-move take's head cut to two lines took the Free Hit it took off with it). None: ''. */
+/** A toast's head → [lead, also]: the lead runs to its first " · " (a take's moves: what clips); also is the rest ("·
+ *  Free Hit in GW8 taken off"), kept whole. None: ''. */
 export const toastLead = (head) => { const i = head.indexOf(' · '); return i < 0 ? [head, ''] : [head.slice(0, i), head.slice(i)]; };
 /** …as drawn: the number opens the tail, the rest after it in the same span (one clip keeps the number); two numbers
- *  each whole, a line break only between them (m.css: "· total +4.0" under "· +2.6 vs rolling" where a toast with Why
- *  and Undo is too narrow for both; never narrower than one of them: its buttons go under its words then), and the tail
- *  on a line of its own flush with the line above (m.css --toast-sp: its " · " keeps its space); the head's
- *  lead (.toast-lead) clips before what follows it (.toast-also: toastLead). */
+ *  stay whole, a line break only between them (m.css); the tail on its own line, flush with the line above (--toast-sp
+ *  keeps its " · " space); the lead (.toast-lead) clips before .toast-also. */
 const toastWords = (m, clips = null) => {
   if (typeof m !== 'string') return m;
   const [head, num, rest] = toastParts(m);
   const [lead, also] = toastLead(head);
-  // the lead's last buy apart from what comes before it (a take's "GW9 Calvert-Lewin" | " → Evanilson"): on a take's
-  // one-line head (.split) the sale clips before the buy (m.css), so the player a take brings in stays named; what follows
-  // the lead a clause a span, those of `clips` (a take's rule word and its week's count: ahead.addPlan) clipping next,
-  // the rest whole ("… removed", "Free Hit in GW8 taken off": the 1026b judges, a clipped "removed" flips the meaning)
+  // the lead's last buy apart from what precedes it (a take's "GW9 Calvert-Lewin" | " → Evanilson"): on a take's
+  // one-line head (.split) the sale clips before the buy (m.css), so the incoming player stays named; clauses after the
+  // lead are spans, those of `clips` (ahead.addPlan) clipping next, the rest whole (a clipped "removed" flips the
+  // meaning)
   const to = lead.lastIndexOf(' → ');
   const words = h('span.toast-head', null,
     h('span.toast-lead', { class: { moves: to > 0 } }, to > 0 ? [h('span.toast-from', null, lead.slice(0, to)), h('span.toast-to', null, lead.slice(to))] : lead),
     also ? h('span.toast-also', null, also.split(/(?= · )/).map((c) => h('span', { class: { 'toast-may': !!clips?.includes(c.slice(3)) } }, c))) : null);
   if (!num) return words;
-  // its " · " a span of its own (.toast-sep), not drawn where the number opens a row of its own (.split: the owner,
-  // 2026-10-26, of a take's toast, "why this takes 3 lines": a line opened with "·"), still in its words
+  // its " · " a span of its own (.toast-sep), not drawn where the number opens a row of its own (.split; owner,
+  // 2026-10-26)
   const nums = num.split(/(?= · total )/).flatMap((x, j) => (j ? [' ', h('span', null, x.slice(1))] : [h('span', null, h('span.toast-sep', null, x.slice(0, 3)), x.slice(3))]));
   return [words, h('span.toast-tail', null, h('span.toast-num', null, nums), rest)];
 };
-/** Whether this browser lays a take's toast out in two rows (m.css .toast.split: its parts on the toast's own columns,
- *  subgrid, iOS 16+); without it the take's toast keeps the wrapping way every toast has (the 1026b judges). */
+/** Whether this browser can lay a take's toast out in two rows (m.css .toast.split: subgrid, iOS 16+); without it the
+ *  toast wraps as usual. */
 const SPLITS = !!globalThis.CSS?.supports?.('grid-template-columns', 'subgrid');
 
 export function toast(msg, kind = 'info', opts = {}) {
@@ -604,7 +572,7 @@ export function toast(msg, kind = 'info', opts = {}) {
   const text = h('span.toast-msg');
   const x = h('button.icon-btn', { type: 'button', 'aria-label': 'Dismiss', onClick: () => dismiss() }, icon('close', { size: 14 }));
   const el = h('div.toast', null, text, x);
-  // held: the `keep` actions whose sheet is still up (hold); its time runs only once none is
+  // held: `keep` actions whose sheet is still up; its time runs once none is
   const stay = { el, until: 0, dismiss, held: 0 };
   const restart = () => { stay.until = stay.held ? Infinity : performance.now() + ms; };
   const hold = (r) => {
@@ -615,19 +583,12 @@ export function toast(msg, kind = 'info', opts = {}) {
     r.then(back, back);
   };
   el.addEventListener('toast-armed', restart, { once: true });
-  // its buttons all on a line of their own under the words (m.css .toast.under) once one of them can't sit beside its
-  // widest number (m.css .toast-msg's min-width), never split between the two lines; past three lines once laid out,
-  // that line one of them, its words clip (m.css .toast-msg.long), never its number (toastWords): the tail keeps up to
-  // two lines (the number and the rest's first), the head what is left, three with no tail. The head's lead clips first:
-  // what follows it keeps its lines (.toast-also, measured as it lies once long)
-  // A take's toast (opts.take: ahead.addPlan, the clauses that may clip), past one line with its buttons beside it, is
-  // two rows (m.css .toast.split): its head on the first, the toast's whole width, on one line (the sales clip first,
-  // then the clauses of `take`, the buy last, each with "…"; the other clauses whole), and its one number on the second
-  // beside its buttons, its " · " not drawn (the owner, 2026-10-26: "GW9 Calvert-Lewin → Evanilson · frozen · +1.6 vs
-  // rolling", two lines at 393 and 320 px, no line opened with "·", "why this takes 3 lines"; Saffer p. 92, "convey the
-  // most with the least"); with no number (the owner, 2026-10-27: no "vs …" in it) its buttons alone on the second.
-  // Where the head or the number can't (a larger text size, an armband's ending past the number), the way every toast
-  // has, below
+  // buttons on a line under the words (m.css .toast.under) when one can't sit beside the widest number; past three
+  // lines the head clips (.toast-msg.long), never the number; the lead clips before .toast-also
+  // A take's toast (opts.take) past one line with buttons beside it is two rows (m.css .toast.split): the head on one
+  // line (sales clip first, then `take`'s clauses, the buy last, each with "…"), the number beside the buttons on the
+  // second, its " · " not drawn (owner, 2026-10-26); no number: buttons alone. If head or number can't fit: the
+  // every-toast way, below
   const fit = () => globalThis.requestAnimationFrame?.(() => {
     if (!text.isConnected) return;
     text.classList.remove('long', 'tailrow');
@@ -654,21 +615,19 @@ export function toast(msg, kind = 'info', opts = {}) {
       text.style.setProperty('--lead-lines', Math.max(1, most - t - lines(text.querySelector('.toast-also'))));
     }
     text.classList.toggle('long', long);
-    // its number on a line of its own: its " · " not drawn there (m.css .tailrow; the owner, 2026-10-26: no line opened
-    // with "·")
+    // its number on a line of its own, its " · " not drawn (m.css .tailrow; owner, 2026-10-26)
     const tl = text.querySelector('.toast-tail'), hd = text.querySelector('.toast-head');
     text.classList.toggle('tailrow', !!tl && !!hd && tl.getBoundingClientRect().top >= hd.getBoundingClientRect().bottom - 0.5);
   });
-  // …and laid out again when its width changes (the region's: docked under a sheet it is wider than at the top, so a
-  // take made in the Week sheet fitted one line there, then wrapped "· frozen" onto a line of its own as the sheet
-  // closed; QA plan-week, 2026-10-27). A toast is its region's width whatever its classes, so fit never moves it
+  // …and laid out again when its width changes (the region is wider docked under a sheet). fit never moves a toast: it
+  // is its region's width whatever its classes
   let fitW = 0;
   const ro = globalThis.ResizeObserver ? new ResizeObserver(([e]) => { const w = e.contentRect.width; if (Math.abs(w - fitW) > 0.5) { fitW = w; fit(); } }) : null;
   ro?.observe(el);
   dismiss.update = (m) => { if (el.isConnected && !el.classList.contains('leaving')) { fill(text, toastWords(m, take)); fit(); } };
   el.retoast = (m, k, { timeout = 4500, action, actions, tag = null, onDismiss = null, take: tk = null } = {}) => {
     take = tk;
-    const left = ondis;  // the toast this one takes the place of has left
+    const left = ondis;  // the toast it replaces has left
     ondis = null;
     left?.();
     if (kd !== k) {
@@ -687,13 +646,12 @@ export function toast(msg, kind = 'info', opts = {}) {
       const b = had.get(a.label) ?? { label: a.label };
       had.delete(a.label);
       b.act = a;
-      // `keep`: the toast stays up after it, held while what it opened is up (a take's Why: its Undo still there when the
-      // sheet closes)
+      // `keep`: stays up after it, held while what it opened is up (a take's Why)
       b.el ??= h('button.btn.sm.ghost', { type: 'button', onClick: () => { if (b.act.keep) { hold(b.act.onClick?.()); return; } ondis = null; b.act.onClick?.(); dismiss(); } }, a.label);
       return b;
     });
     for (const b of had.values()) b.el.remove();
-    // in their order before ×; a kept one moves only when out of place (a finger may be on it)
+    // in order before ×; a kept one moves only if out of place (a finger may be on it)
     let next = x;
     for (const b of [...btns].reverse()) { if (b.el.nextSibling !== next) next.before(b.el); next = b.el; }
     if (tag) el.dataset.tag = tag; else delete el.dataset.tag;
@@ -703,7 +661,7 @@ export function toast(msg, kind = 'info', opts = {}) {
     if (list.length) {
       for (const s of [...STAYING]) if (s !== stay && s.el.dataset.tag !== 'pending') s.dismiss();
       STAYING.add(stay);
-      restart();  // from now when it is up already ('toast-armed' restarts it for a new one); none while held
+      restart();  // from now if already up ('toast-armed' restarts it for a new one); none while held
     } else {
       STAYING.delete(stay);
       if (timeout) timer = setTimeout(dismiss, ms);
@@ -717,13 +675,12 @@ export function toast(msg, kind = 'info', opts = {}) {
 }
 
 const openModals = new Set();  // each open modal's close()
-/** Close every open modal as Esc would (each resolves null); the router calls this on every route change. */
+/** Close every open modal as Esc would (each resolves null); the router calls it on route change. */
 export function closeAllModals() { for (const close of [...openModals]) close(null); }
 
 /**
- * modal({title, body, actions:[{label, kind:'primary'|'danger'|'ghost', value, onClick(close)}], wide})
- * → {el, close(value), result: Promise<value|null>}. An onClick returning false keeps it open.
- * Esc / backdrop click resolve null.
+ * modal({title, body, actions:[{label, kind:'primary'|'danger'|'ghost', value, onClick(close)}], wide}) → {el,
+ * close(value), result: Promise<value|null>}. An onClick returning false keeps it open; Esc / backdrop resolve null.
  */
 export function modal({ title, body, actions, wide = false, onClose } = {}) {
   let resolve;
@@ -767,12 +724,10 @@ export function confirm({ title = 'Are you sure?', body = '', confirmLabel = 'Co
 
 const ROVING = new WeakMap();
 /**
- * roving(group, {items, attr, pick}) → group: the one keyboard pattern of a radio group (and a tab list, B113): one Tab
- * stop, the checked enabled option (the first enabled one when none is checked), and Arrow keys / Home / End moving
- * the focus over the enabled options, wrapping, each picking the one it lands on (pick(button): the path a tap takes,
- * so a key does what a tap does). items(): the options as drawn now (its radios by default); attr: the attribute that
- * says checked. Set up once per group; roving(group) again (its options checked or drawn anew) paints them again. A
- * pick that draws the options anew in the same group moves the focus to the one then checked.
+ * roving(group, {items, attr, pick}) → group: keyboard pattern of a radio group or tab list: one Tab stop (the checked
+ * enabled option, else the first); Arrows/Home/End move focus over the enabled options, wrapping, each picking its
+ * target via pick(button), the path a tap takes. items(): options as drawn (radios by default); attr says checked.
+ * Call again to repaint.
  */
 export function roving(group, { items = () => [...group.querySelectorAll(':scope > [role="radio"]')], attr = 'aria-checked', pick } = {}) {
   let r = ROVING.get(group);
@@ -829,11 +784,11 @@ function choiceGroup({ items, active, onChange, label, role, cls }) {
   return el;
 }
 
-/** tabs({items:[{key,label,badge,icon}], active, onChange}) → tab bar (views render the panel). */
+/** items: [{key,label,badge,icon}] → tab bar; views render the panel. */
 export const tabs = ({ items = [], active, onChange, label } = {}) =>
   choiceGroup({ items, active, onChange, label, role: 'tablist', cls: 'tabs' });
 
-/** segmented({items, value, onChange, label}) → compact radio-button group (e.g. FDR / Attack / Defence). */
+/** Compact radio-button group (e.g. FDR / Attack / Defence). */
 export const segmented = ({ items = [], value, onChange, label } = {}) =>
   choiceGroup({ items, active: value, onChange, label, role: 'radiogroup', cls: 'seg' });
 
@@ -846,7 +801,7 @@ function remaining(ms) {
   return d ? `${d}d ${p(hh)}h ${p(mm)}m` : `${hh}h ${p(mm)}m ${p(ss)}s`;
 }
 
-/** countdown(epoch, {onZero, passed}) → live <time> "2d 04h 13m"; the title carries the local date. */
+/** countdown(epoch, {onZero, passed}) → live <time> "2d 04h 13m", title = local date. */
 export function countdown(epoch, { onZero, passed = 'Deadline passed' } = {}) {
   const ms = toMs(epoch);
   const el = h('time.countdown', Number.isFinite(ms) ? { datetime: new Date(ms).toISOString(), title: fmt.date(ms) } : null);
@@ -898,8 +853,8 @@ const textOf = (x) => (x instanceof Node ? x.textContent : x == null ? '' : Stri
 
 const isBlank = (v) => v == null || v === '' || (typeof v === 'number' && Number.isNaN(v));
 /**
- * table()'s sort order for two cell values: blanks last in either direction, numbers by value, text
- * numeric-aware and case-insensitive. sign 1 = ascending, -1 = descending.
+ * table()'s order for two cell values: blanks last either way, numbers by value, text numeric-aware and
+ * case-insensitive; sign 1 ascending, -1 descending.
  */
 export function compareValues(a, b, sign = 1) {
   const ba = isBlank(a), bb = isBlank(b);
@@ -916,11 +871,9 @@ function defaultCell(v) {
 }
 
 /**
- * table({columns:[{key, label, num, fmt(value,row), sort:false|fn(row), render(row,i), title, width,
- *        className, csv:false|fn(row)}], rows, sortKey, sortDir:'asc'|'desc', onRow(row,ev), stickyFirst,
- *        csv:'file.csv'|false, empty, rowClass(row), maxHeight, dense, caption})
- * → wrapper with .update(rows), .getRows() (current order), .toCSV().
- * Blank values always sort last. num columns are right-aligned mono and sort descending first.
+ * table({columns, rows, …}) → wrapper with .update(rows), .getRows() (current order), .toCSV(). A column: {key, label,
+ * num, fmt(value,row), sort:false|fn(row), render(row,i), title, width, className, csv:false|fn(row)}; csv:
+ * 'file.csv'|false. num columns are right-aligned mono and sort descending first.
  */
 export function table({
   columns = [], rows = [], sortKey = null, sortDir = null, onRow, stickyFirst = false, csv = 'table.csv',
@@ -1027,10 +980,9 @@ function niceTicks(lo, hi, count = 5) {
 }
 
 /**
- * lineChart({series:[{name, points:[[x,y]], band:[[x,lo,hi]], color, dashed}], xLabel, yLabel, height,
- *            xFmt(x), yFmt(y), yZero, labels}) → <figure> with legend, SVG plot (redrawn on resize), crosshair tooltip.
- * yZero (default: when all y ≥ 0) pulls the axis to 0; labels=false drops the end-of-line names.
- * Colours follow series order (--s1…--s8) unless `color` is given. y=null breaks a line.
+ * lineChart({series:[{name, points:[[x,y]], band:[[x,lo,hi]], color, dashed}], …}) → <figure> with legend, SVG plot
+ * (redrawn on resize), crosshair tooltip. yZero (default: all y ≥ 0) pulls the axis to 0; labels=false drops
+ * end-of-line names. Colours follow series order (--s1…--s8) unless `color`. y=null breaks a line.
  */
 export function lineChart({
   series = [], xLabel = '', yLabel = '', height = 240, xFmt = (x) => String(x), yFmt,
@@ -1059,7 +1011,7 @@ export function lineChart({
   if (yZero ?? yLo >= 0) yLo = Math.min(0, yLo);
   const yt = niceTicks(yLo, yHi, Math.max(3, Math.round(height / 55)));
   yLo = yt[0]; yHi = yt[yt.length - 1];
-  // Without a yFmt, ticks get just enough decimals for their step and values one more.
+  // Without a yFmt, ticks get just enough decimals for their step, values one more.
   const step = yt.length > 1 ? yt[1] - yt[0] : 1;
   const tickD = step >= 1 ? 0 : Math.min(4, Math.ceil(-Math.log10(step) - 1e-9));
   const tickFmt = yFmt || ((v) => fmt.num(v, tickD));
@@ -1188,9 +1140,8 @@ export function lineChart({
 // ---------------------------------------------------------------- heat cell
 
 /**
- * heatCell(value, scale, {text, title}) → <span class="heat">.
- * scale 'fdr' (default): FPL difficulty 1-5 colours. scale {min, max, reverse}: continuous bad→neutral→good,
- * where high = good unless reverse. value null → muted dash (blank GW).
+ * heatCell(value, scale, {text, title}) → <span class="heat">. scale 'fdr' (default): FPL difficulty 1-5 colours;
+ * {min, max, reverse}: continuous bad→neutral→good (high = good unless reverse). null → muted dash.
  */
 export function heatCell(value, scale = 'fdr', { text, title } = {}) {
   const label = text ?? (fin(value) ? (scale === 'fdr' ? String(Math.round(toNum(value))) : fmt.num(value, 2)) : DASH);
@@ -1245,9 +1196,8 @@ function playerChip(id, p, { captain, vice, chip, showXp, onPlayer, isNew, bench
 }
 
 /**
- * pitch({xi, bench, captain, vice, players, chip, showXp, onPlayer(id, player, ev), title, newIds})
- * players: {id: {name, club, pos (1-4|'GK'..), xp|pred, price, status, chance, news}}.
- * xi rows are grouped by position in the given order; bench keeps its order (numbered).
+ * players: {id: {name, club, pos (1-4|'GK'..), xp|pred, price, status, chance, news}}. xi rows group by position in
+ * the given order; the bench keeps its order (numbered).
  */
 export function pitch({ xi = [], bench = [], captain, vice, players = {}, chip, showXp = true, onPlayer, title, newIds = [] } = {}) {
   const P = (id) => players[id] ?? players[String(id)];
@@ -1287,8 +1237,8 @@ function xferSide(kind, p) {
 }
 
 /**
- * transferCard({out, in, gain, cost, note}) — out/in: {name, club, pos, price, xp|pred}.
- * gain → "+1.3 xPts"; cost: number → "costs £9.6m", string shown as is (e.g. "−4 hit").
+ * out/in: {name, club, pos, price, xp|pred}. gain → "+1.3 xPts"; cost: number → "costs £9.6m", string as is (e.g. "−4
+ * hit").
  */
 export function transferCard({ out, in: inn, gain, cost, note } = {}) {
   const foot = [
@@ -1303,12 +1253,12 @@ export function transferCard({ out, in: inn, gain, cost, note } = {}) {
 
 // ---------------------------------------------------------------- combobox & player picker
 
-// Accent-insensitive: NFD strips combining marks; FOLD covers letters NFD keeps whole (ø, ß, ł…).
+// NFD strips combining marks; FOLD covers letters NFD keeps whole (ø, ß, ł…).
 const FOLD = { ø: 'o', æ: 'ae', œ: 'oe', ß: 'ss', ł: 'l', đ: 'd', ð: 'd', þ: 'th', ı: 'i' };
 export const norm = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .replace(/[øæœßłđðþı]/g, (c) => FOLD[c]);
 
-/** Internal type-ahead: items (array or Promise), rank(item, q) → number|null (lower = better). */
+/** Type-ahead: items (array or Promise), rank(item, q) → number|null (lower = better). */
 function combo({ items = [], rank, renderItem, onPick, placeholder = 'Search…', label, limit = 12, openOnFocus = false }) {
   const listId = uid('lb');
   const input = h('input.input', {
@@ -1379,10 +1329,8 @@ const playerOption = (p) => [
 ];
 
 /**
- * playerPicker({players, multiple, onPick, selected:[ids], exclude:[ids], placeholder, label})
- * players: [{id, name, club, pos, price}] or a Promise of it.
- * single → onPick(player) and the box clears; multiple → removable chips, onPick(selectedPlayers[]).
- * Returned element: .setPlayers(list), .setSelected(ids), .getSelected() → ids, .focus().
+ * players: [{id, name, club, pos, price}] or a Promise of it. single → onPick(player), box clears; multiple →
+ * removable chips, onPick(selectedPlayers[]). Element: .setPlayers(list), .setSelected(ids), .getSelected(), .focus().
  */
 export function playerPicker({ players = [], multiple = false, onPick, selected = [], exclude = [], placeholder = 'Search players…', label, limit = 12 } = {}) {
   let sel = (selected || []).map(Number);
@@ -1443,7 +1391,7 @@ export const humanise = (key) => key.replace(/_/g, ' ').replace(/^./, (c) => c.t
 // /api/flags sets every flag's label and widget (api/flags.py _static_catalogue).
 export const flagLabel = (f) => f.label;
 
-/** Flags in their catalogue groups ([{...group, fs}]), then an "Other settings" group for any left over. */
+/** Flags in their catalogue groups ([{...group, fs}]), then an "Other settings" group for leftovers. */
 export function groupFlags(flags, groups) {
   const byDest = new Map(flags.map((f) => [f.dest, f]));
   const grouped = new Set();
@@ -1457,16 +1405,15 @@ export function groupFlags(flags, groups) {
   return gs;
 }
 
-/** What a settings search matches: label, help, flag, dest, aliases and the special-values note. */
+/** What a settings search matches: label, help, flag, dest, aliases, special-values note. */
 export const flagHaystack = (f) => norm([f.label, f.help, f.flag, f.dest, ...(f.aliases || []), f.sentinel_note].filter(Boolean).join(' '));
 
-// Solver units the number boxes show in a friendlier one, by the flag's unit (api/flags.py DOCS). Only the
-// widget converts: values, presets, scenario overrides and the argv all stay in the solver's unit.
+// Solver units the number boxes show in a friendlier one (api/flags.py DOCS). Only the widget converts: values,
+// presets, overrides and argv stay in the solver's unit.
 const UNIT_VIEWS = { 'tenths of £m': { unit: '£m', scale: 10, dp: 1, min: 0, text: (m) => fmt.money(m) } };  // money is never negative
 /**
- * How flag f's number box shows its value, when that differs from the solver's unit: {unit, step, dp,
- * show(solverValue) → box text, text(solverValue) → "£100.0m", solver(boxNumber) → solverValue}; null for
- * every other flag.
+ * How flag f's number box shows its value when it differs from the solver's unit: {unit, step, dp, show(solverValue) →
+ * box text, text(solverValue) → "£100.0m", solver(boxNumber) → solverValue}; null for other flags.
  */
 export function unitView(f) {
   const u = UNIT_VIEWS[f?.unit];
@@ -1478,7 +1425,7 @@ export function unitView(f) {
   } : null;
 }
 
-/** A "?" button with a tooltip bubble (hover, focus or click; Escape closes); `label` is its accessible name. */
+/** A "?" button with a tooltip bubble (hover, focus or click; Esc closes); `label` is its accessible name. */
 export function infoTip(label, ...body) {
   const id = uid('tip');
   const bubble = h('div.tip-body', { id, role: 'tooltip' }, ...body);
@@ -1502,7 +1449,7 @@ function helpTip(f) {
   const def = f.kind === 'bool' ? (f.default ? 'on' : 'off') : blankish(f.default) ? showValue(f.default)
     : uv ? uv.text(f.default) : `${showValue(f.default)}${f.unit ? ` ${f.unit}` : ''}`;
   const bySeason = seasonDefaults(f);
-  // the box's unit against the flag's: 1.5 → --cash=15 (the default, when there is one, as the example)
+  // the box's unit against the flag's: 1.5 → --cash=15 (the default, if any, as the example)
   const eg = uv && (fin(f.default) ? toNum(f.default) : uv.solver(1.5));
   return infoTip(`About ${flagLabel(f)}`,
     h('code.tip-flag', null, f.flag || `--${f.dest.replace(/_/g, '-')}`),
@@ -1557,11 +1504,10 @@ function tokenWidget({ id, value, emit, combo: comboOpts, describe, placeholder 
 }
 
 /**
- * flagControl(flag, value, onChange(value, flag), {players, meta}) → one setting row.
- * Values by widget: toggle → bool; number → number; text/select/pool/players → string; rounds → int[];
- * season → int. onChange(undefined) means "back to default" (drop the key). Inverted (store_false)
- * flags are shown by effect: checked = the dest's value, which defaults to true.
- * Returned element: .setValue(v) re-syncs the widget without firing onChange.
+ * → one setting row; opts {players, meta}. Values by widget: toggle → bool; number → number; text/select/pool/players
+ * → string; rounds → int[]; season → int. onChange(value, flag); undefined = back to default (drop the key). Inverted
+ * (store_false) flags show by effect: checked = the dest's value (default true). Element: .setValue(v) re-syncs
+ * without firing onChange.
  */
 export function flagControl(flag, value, onChange, opts = {}) {
   const f = flag;
@@ -1612,8 +1558,8 @@ function buildWidget(f, kind, id, get, set, fail, opts) {
     const input = h('input.input.num', {
       type: 'number', id, step: uv ? uv.step : isInt ? 1 : 'any', inputmode: isInt && !uv ? 'numeric' : 'decimal', placeholder: empty,
     });
-    // The box shows the default as its value, so typing must replace it rather than append to it.
-    // The click that focused the box would drop the selection on mouseup, so that one mouseup is cancelled.
+    // The box shows the default as its value, so typing must replace it; the focusing click would drop the selection on
+    // mouseup, so that mouseup is cancelled.
     let focusing = false;
     input.addEventListener('focus', () => { input.select(); focusing = true; });
     input.addEventListener('mouseup', (e) => { if (focusing) e.preventDefault(); focusing = false; });
@@ -1652,7 +1598,7 @@ function buildWidget(f, kind, id, get, set, fail, opts) {
     return { el: input, sync: (v) => { input.value = Array.isArray(v) ? v.join(', ') : blankish(v) ? '' : String(v); } };
   }
   if ((kind === 'select' || kind === 'season') && f.kind === 'str' && f.placeholder) {
-    // Suggested values, but any string is valid (e.g. bench weights "auto-raw" or "0.001,0.25,0.2,0.15").
+    // Suggested values, but any string is valid (e.g. "auto-raw" or "0.001,0.25,0.2,0.15").
     const dl = h('datalist', { id: `${id}-dl` }, (f.choices || []).map((c) => h('option', { value: String(c) })));
     const input = h('input.input.mono', { type: 'text', id, list: `${id}-dl`, spellcheck: 'false', placeholder: blankish(dflt) ? hint(f, 'not set') : String(dflt) });
     input.addEventListener('change', () => { const s = input.value.trim(); set(!s || s === String(dflt) ? undefined : s); });
@@ -1730,11 +1676,10 @@ function buildWidget(f, kind, id, get, set, fail, opts) {
 }
 
 /**
- * flagForm({flags, groups, values, onChange(values, dest, value), filter, players, meta, showAdvanced, open})
- * Grouped accordion of flagControls with search (label, help, flag, dest), "Show advanced" and
- * "Changed only" toggles and per-group changed counts. filter: fn(flag)→bool limits the flags, or a string
- * pre-fills the search. open: group keys expanded initially.
- * Returned element: .setValues(values) re-syncs all controls, .getValues().
+ * flagForm({flags, groups, values, onChange(values, dest, value), filter, players, meta, showAdvanced, open}): grouped
+ * accordion of flagControls with search, "Show advanced" and "Changed only" toggles, per-group changed counts. filter:
+ * fn(flag)→bool or a string pre-filling the search; open: group keys expanded initially. Element: .setValues(values),
+ * .getValues().
  */
 export function flagForm({ flags = [], groups = [], values = {}, onChange, filter, players, meta, showAdvanced = false, open = [] } = {}) {
   let vals = { ...values };
@@ -1850,9 +1795,8 @@ export function flagForm({ flags = [], groups = [], values = {}, onChange, filte
 }
 
 /**
- * "Extra flags" button with a count badge for a run form that shows a few flags itself: it opens every
- * other flag (not in `own`, not a run-mode switch: flag.branch) in a flagForm modal. Edits go straight
- * into `values` (the form's own object), then onChange() runs.
+ * "Extra flags" button with a count badge for a run form that shows a few flags itself: opens every other flag (not in
+ * `own`, not a run-mode switch: flag.branch) in a flagForm modal; edits go into `values`, then onChange().
  */
 export function extraFlagsButton({ flags = [], groups = [], meta, values, own, onChange }) {
   const extra = () => Object.keys(values).filter((k) => !own.has(k));
@@ -1881,9 +1825,9 @@ const STATUS_TONE = { queued: 'info', running: 'run', done: 'gain', error: 'loss
 export const jobStatusPill = (status) => pill(status || 'unknown', STATUS_TONE[status] || '', { role: 'status' });
 
 /**
- * jobRunner({job, onDone({job, result, log}), onUpdate(tick), title}) — job object or id.
- * Status pill, elapsed timer, copyable command, live log (auto-scrolls while you are at the bottom), Cancel.
- * Polling stops by itself once the element leaves the document (or is never attached); .stop() stops it explicitly.
+ * jobRunner({job, onDone({job, result, log}), onUpdate(tick), title}); job object or id. Status pill, elapsed timer,
+ * copyable command, live log (auto-scrolls while at the bottom), Cancel. Polling stops once the element leaves the
+ * document; .stop() stops it.
  */
 export function jobRunner({ job, onDone, onUpdate, title } = {}) {
   let j = typeof job === 'object' && job ? job : { id: job, status: 'queued' };
@@ -1915,7 +1859,7 @@ export function jobRunner({ job, onDone, onUpdate, title } = {}) {
     el.dataset.status = j.status;
   }
   paint();
-  // A runner removed from the page, or built after its view went away and never shown, stops polling.
+  // A runner removed from the page, or never shown, stops polling.
   const stopTimer = whileConnected(el, paint, 1000, () => ctrl.abort());
   api.pollJob(j.id, (tick) => {
     j = tick.job || j;

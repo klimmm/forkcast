@@ -1,6 +1,6 @@
-// Data: how fresh everything the solver reads is, and the jobs that refresh it. Solves read the
-// built parquet (ml/solver/data/epl_fpl_stats_full.parquet), not the raw fetches, so "fetch then
-// build" is the full refresh; "infer" re-predicts the production pools that --dir prod reads.
+// Data: freshness of what the solver reads, and the jobs that refresh it. Solves read the built parquet
+// (ml/solver/data/epl_fpl_stats_full.parquet), not raw fetches, so "fetch then build" is the full refresh; "infer"
+// re-predicts the pools --dir prod reads.
 
 import * as api from '../api.js';
 import {
@@ -13,7 +13,7 @@ const SEVERITY = { missing: 0, stale: 1, ok: 2 };
 const OPS_KINDS = ['fetch', 'build', 'infer'];
 const KIND_TITLE = { fetch: 'Fetch FPL data', build: 'Rebuild parquet', infer: 'Refresh predictions' };
 
-// The commands mirror api/jobs.py KINDS (the flags it adds to each script).
+// Commands mirror api/jobs.py KINDS (its per-script flags).
 const OPS = [
   {
     key: 'fetch', kinds: ['fetch'], icon: 'download', title: 'Fetch latest FPL data',
@@ -59,7 +59,7 @@ export default {
   async mount(el, ctx) {
     let meta = null;
     let rows = null;
-    // The prediction pool the freshness table describes (blank = the season default); kept for the session.
+    // Pool the freshness table describes (blank = season default); kept for the session.
     let pool = ctx.state.get('dataPool');
     let poolCtl = null;
     const keepPool = (v) => { pool = v; ctx.state.set('dataPool', v); };
@@ -185,7 +185,7 @@ export default {
         onDone: ({ job: j }) => {
           dismiss.hidden = false;
           if (j?.status === 'done') {
-            // show the pools the infer job just re-inferred (--dir prod)
+            // show the pools the infer job just re-inferred
             if (j.kind === 'infer' && meta?.prod_alias?.alias) { keepPool(meta.prod_alias.alias); poolCtl?.setValue(pool); }
             // the server already cleared its caches (api/jobs.py _wait); re-read meta and file ages
             toast(`${KIND_TITLE[j.kind] || j.kind} finished; freshness updated`, 'ok');

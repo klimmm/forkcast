@@ -1,6 +1,5 @@
-// Fetch wrappers for every /api endpoint (see SPEC "REST API"). Each returns the
-// unwrapped `data` of {ok, data}; failures throw ApiError(error) with .status and .detail.
-// No side effects at import time.
+// Fetch wrappers for /api (SPEC "REST API"): return `data` of {ok, data}; failures throw ApiError (.status, .detail).
+// No import side effects.
 
 export class ApiError extends Error {
   constructor(message, { status = 0, detail = '', path = '' } = {}) {
@@ -12,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-/** '?a=1&b=x' from an object; null/undefined/''/false are dropped, true becomes 1. */
+/** Dropped: null/undefined/''/false; true → 1. */
 export function qs(params) {
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(params || {})) {
@@ -61,15 +60,15 @@ const get = (path, query) => request('GET', path, { query });
 const post = (path, body) => request('POST', path, { body: body ?? {} });
 const del = (path) => request('DELETE', path);
 
-// The job list has one poller, the header (app.js): it re-reads /api/jobs on every 'fss:jobs' event (job
-// mutations send one) and every few seconds while jobs are active, and publishes each list as 'fss:joblist'.
-/** Ask the header for a fresh job list now. */
+// Sole job-list poller: the header (app.js), on 'fss:jobs' and every few seconds while jobs run; publishes
+// 'fss:joblist'.
+/** Ask the header to re-list jobs now. */
 export function jobsChanged() {
   globalThis.dispatchEvent?.(new Event('fss:jobs'));
 }
-/** app.js: hand the views a new job list ({jobs}) or the error that stopped it ({error}). */
+/** app.js: publishes {jobs} or the {error} that stopped listing. */
 export const publishJobs = (detail) => globalThis.dispatchEvent?.(new CustomEvent('fss:joblist', { detail }));
-/** onList(jobs) with every published job list (one is requested now), onError(e) when listing fails → unsubscribe. */
+/** onList(jobs) per published list (first now), onError(e) on failure → unsubscribe. */
 export function watchJobs(onList, onError) {
   const fn = ({ detail }) => (detail.error ? onError?.(detail.error) : onList(detail.jobs));
   globalThis.addEventListener('fss:joblist', fn);
@@ -91,15 +90,13 @@ function memo(fn) {
 export const getMeta = memo(() => get('/api/meta'));
 export const getFlags = memo(() => get('/api/flags'));
 export const buildArgv = (values) => post('/api/flags/argv', { values: values || {} });
-/** Paste a command: parseCommand({cmd:'python ml/solver/main.py --w 5'} | {argv:[...]}) → {values, ...}. */
-export const parseCommand = (body) => post('/api/flags/parse', body);
 export const listPresets = (season) => get('/api/presets', { season });
 export async function savePreset({ name, description = '', values }) {
   const out = await post('/api/presets', { name, description, values });
   getFlags.clear();
   return out;
 }
-/** By slug (GET /api/presets): a name may hold '/', which the server unquotes before routing. */
+/** By slug; the server unquotes a '/' in a name. */
 export async function deletePreset(slug) {
   const out = await del(`/api/presets/${enc(slug)}`);
   getFlags.clear();
@@ -112,12 +109,12 @@ export const getPlayerHistory = (id, { season, pool } = {}) => get(`/api/players
 export const getFixtures = ({ season, from, n } = {}) => get('/api/fixtures', { season, from, n });
 export const getDashboard = ({ season, gw, pool } = {}) => get('/api/dashboard', { season, gw, pool });
 export const getFreshness = ({ season, pool } = {}) => get('/api/freshness', { season, pool });
-/** Drop the server's data memos and the solver's lru caches (after a data refresh) → {cleared}. */
+/** Drop server data memos and solver lru caches → {cleared}. */
 export const invalidateData = () => post('/api/data/invalidate');
 
 // ---- entry / team state ----
 export const getEntry = (id, { season, gw, pool, refresh } = {}) => get(`/api/entry/${enc(id)}`, { season, gw, pool, refresh });
-/** Entries with cached solver data, last viewed first → [{entry_id, season, manager, ...}]. */
+/** Cached entries, last viewed first → [{entry_id, season, manager, ...}]. */
 export const getRecentEntries = ({ season } = {}) => get('/api/entries/recent', { season });
 export const saveTeamState = (body) => post('/api/team-state', body);
 
@@ -146,10 +143,10 @@ export const getBacktests = () => get('/api/backtests');
 
 export const ACTIVE_STATUSES = new Set(['queued', 'running']);
 export const isActive = (job) => ACTIVE_STATUSES.has(job?.status);
-/** A Forkcast phone job (api/mobile.py: source 'phone'; older records only by their 'phone · ' label). */
+/** Phone job: source 'phone' (api/mobile.py), or an older 'phone · ' label. */
 export const isPhone = (job) => job?.source === 'phone' || /^phone · /.test(job?.label || '');
 
-/** Resolves after `ms`, or at once when `signal` aborts. */
+/** Resolves after `ms`, or at once if `signal` aborts. */
 export function sleep(ms, signal) {
   return new Promise((resolve) => {
     const t = setTimeout(resolve, ms);
@@ -158,10 +155,9 @@ export function sleep(ms, signal) {
 }
 
 /**
- * Follow a job until it finishes, streaming its log by offset (status only with withLog false).
- * onUpdate({job, text, log, offset, done}) fires every tick (`text` = the new chunk, `log` = everything so far).
- * Resolves {job, result, log} once the job is done/error/cancelled, or null if `signal` aborts first.
- * Transient fetch errors are retried; it rejects at once on a 404 and after 5 consecutive failures.
+ * Follow a job, streaming its log by offset (withLog false: status only): onUpdate({job, text, log, offset, done}) per
+ * tick (text: new chunk, log: all) → {job, result, log}, or null if `signal` aborts. Retries transient errors; rejects
+ * on 404 and after 5 in a row.
  */
 export async function pollJob(id, onUpdate, { interval = 1000, signal, withLog = true } = {}) {
   let offset = 0;
@@ -182,7 +178,7 @@ export async function pollJob(id, onUpdate, { interval = 1000, signal, withLog =
         jobsChanged();
         return { job, result: info?.result ?? null, log };
       }
-      // A finished job may still have unread log: loop again without waiting.
+      // unread log may remain once done: loop again
       if (!done) await sleep(interval, signal);
     } catch (e) {
       if (e.status === 404 || ++failures >= 5) throw e;

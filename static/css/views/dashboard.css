@@ -1,6 +1,5 @@
-/* Dashboard view (prefix dash-). Ticker styles live in fixtures.css. */
+/* Dashboard view (dash-); ticker: fixtures.css */
 
-/* hero: the entry box */
 .dash-hero {
   background:
     radial-gradient(120% 160% at 100% 0%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 62%),
@@ -22,7 +21,7 @@
 .dash-recent:empty { display: none; }
 .dash-noentry { align-self: flex-start; }
 
-/* freshness badges + season/pool controls */
+/* freshness + season/pool controls */
 .dash-bar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; }
 .dash-bar:empty { display: none; }
 .dash-fresh { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; flex: 1 1 420px; }
@@ -41,13 +40,12 @@
 .dash-pool { width: 240px; max-width: 100%; }
 .dash-pool-now { align-self: center; padding-top: 18px; }
 
-/* tiles */
 .dash-tiles .stat-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dash-tile-sub, .dash-when { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .dash-tile-sub .heat.tk-fx, .dash-fix .heat.tk-fx { width: auto; }
 .dash-tz { height: 26px; max-width: 170px; padding: 0 6px; font-size: 12px; }
 
-/* ranked player lists: one row when wide, fixture + metrics on a second row in narrow cards */
+/* narrow cards: fixture + metrics on row 2 */
 .dash-list { list-style: none; margin: 0; padding: 0; container-type: inline-size; }
 .dash-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
 .dash-item:last-child { border-bottom: 0; }
@@ -65,7 +63,6 @@
 .dash-add { width: 28px; height: 28px; color: var(--muted); }
 .dash-add:hover { color: var(--accent); }
 
-/* market: four ranked columns */
 .dash-market { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 20px; }
 .dash-col { min-width: 0; }
 .dash-col-title { margin: 0 0 2px; font-size: 12.5px; font-weight: 620; color: var(--text-2); }
@@ -101,7 +98,7 @@
   .dash-hero h2 { font-size: 19px; }
   .dash-entry-form { flex-wrap: wrap; }
   .dash-entry-form .btn { flex: 1 1 auto; }
-  .dash-badge.ok { display: none; } /* the label still counts them; stale/missing stay visible */
+  .dash-badge.ok { display: none; } /* label still counts them; stale/missing visible */
   .dash-pool { width: 100%; }
   .dash-controls { width: 100%; }
   .dash-controls > .field { flex: 1 1 140px; }

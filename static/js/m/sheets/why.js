@@ -1,26 +1,16 @@
 // Forkcast · Why (IPHONE_DESIGN §5.3): a medium sheet, draggable to large, for a move or a plan's week against the plan
-// without it (ahead.js openWhy: a transfer row; openPlanWhy: a suggested plan). The user, 2026-10-19 ("get in order
-// players comparison page. many random and dublicated info, structure is random, aligment is fucked, no actual
-// comparision of stats, price, only points comparision in many places"): every fact once, in this order —
-//   · its title the move ("Saka → Palmer"), its sub the one gain ("GW8 · +5.6 xP over GW8–11 vs no transfers": ahead.js whySub);
-//   · its buttons, two to a row (Remove, Keep, Not; Take), the sheet closing when one acts;
-//   · each move's two players side by side, the buy first (its sale; a choice in place of your buy: your buy it
-//     replaces, design 1027b): one table, a column each, every value on one right edge (pairTable): club and position, price (the buy's, the sale's at FPL's sale price), owned, status; each GW's
-//     forecast with its opponent, and their total; their last six matches; the stats the data chose for the buy, per
-//     match or per 90 (the card's switch, this viewer's pick), each with its rank among his position, the head saying
-//     among how many ("ranks among 84 midfielders"), and once under the tables what the stats are against the forecast
-//     ("Stats are past matches; the GW8–11 points above are the forecast."; the user, 2026-10-21: fix all (first-use
-//     proposal #6));
-//   · a Wildcard's or Free Hit's changes instead (ahead.squadChanges: the Week sheet's change rows, no × or swipe);
-//   · what else it changes, one fact a line (ahead.whyFacts: the money, a hit, the next GW's free transfers, what it
-//     replaces, if he misses, a better use), then the When line;
-//   · "Counted after GW8": the two plans' later weeks in words (ahead.countedAfter), none where neither moves later;
-//   · the run strip ("Every forecast run"): model internals, on a local page only (Dev mode, api.access), as the You
-//     sheet's. Never "objective", "τ" or "seed" in the copy (§9).
+// without it (ahead.js openWhy: a transfer row; openPlanWhy: a suggested plan). Every fact once, in this order (owner,
+// 2026-10-19): the title (the move, "Saka → Palmer") and sub (the one gain, "GW8 · +5.6 xP over GW8–11 vs no
+// transfers": ahead.js whySub); buttons, two to a row (Remove, Keep, Not; Take), the sheet closing when one acts; each
+// move's two players side by side, the buy first (pairTable), then once what the stats are against the forecast ("Stats
+// are past matches; the GW8–11 points above are the forecast."); a Wildcard's or Free Hit's changes instead
+// (ahead.squadChanges, no × or swipe); what else it changes, one fact a line (ahead.whyFacts), then the When line;
+// "Counted after GW8" (ahead.countedAfter): the two plans' later weeks in words; the run strip ("Every forecast run"):
+// model internals, on a local page only (Dev mode). Never "objective", "τ" or "seed" in the copy.
 //
-// open(ctx, {title, sub, reason? (a plan's why, read off its solved road), gw (the move's GW: the table's first), pairs: [{in, out, buy, sell, yours?}], facts: [text], when?,
-// acts?: [{label, act, fill, disabled}], changes?: {head, rows: [node]}, later?: {head, lines: [text]}, a: {road, label},
-// b: {road, label, short} (the two plans: the run strip's)}) → sheet.
+// open(ctx, {title, sub, reason? (a plan's why), gw (the move's GW: the table's first), pairs: [{in, out, buy, sell,
+// yours?}], facts: [text], when?, acts?: [{label, act, fill, disabled}], changes?: {head, rows: [node]}, later?: {head,
+// lines: [text]}, a: {road, label}, b: {road, label, short}}) → sheet.
 
 import * as C from '../calls.js';
 import { h, svg, fmt, fill, posCode, posName, xpNum, xpGain, xpMark } from '../../ui.js';
@@ -42,24 +32,23 @@ export function open(ctx, spec = {}) {
   let me = null;
   return ctx.sheets.open({
     title: spec.title, sub: spec.sub, detent: 'medium', detents: ['medium', 'large'], cls: 'wy-sheet',
-    // its taps (spec.presolve: Take it, Remove, Keep, Not, Move to GWn) solved ahead while it is open (the owner,
-    // 2026-10-26: "fix speed so all pre solved and done without no cost")
+    // its taps (spec.presolve: Take it, Remove, Keep, Not, Move to GWn) solved ahead while it is open (owner,
+    // 2026-10-26)
     onClose: () => presolveTaps(ctx, null, { owner: me }),
     build(body, sheet) {
       me = sheet;
       if (spec.presolve?.length) presolveTaps(ctx, spec.presolve, { gw: spec.gw ?? null, owner: sheet });
-      // the move's answers by tap (the six-book review, 2026-10-09: the swipes had no visible twin): "Keep Scott · GW6",
-      // "Not Groß · GW6" (the row's left swipe by tap, B19), each with its toast and Undo; the sheet closes when one acts.
-      // B99: the row's own one ("Remove") filled only when it beats the noise (a.fill)
-      // why a plan's moves go together, read off its solved road, first under the title (design 1026e "line": the
-      // second tap's answer; ahead.openPlanWhy)
+      // the move's answers by tap: "Keep Scott · GW6", "Not Groß · GW6" (the row's left swipe by tap), each with its
+      // toast and Undo; the sheet closes when one acts. The row's own one ("Remove") is filled only when it beats the
+      // noise (a.fill)
+      // why a plan's moves go together, first under the title (ahead.openPlanWhy)
       if (spec.reason) body.append(h('p.wy-reason', null, spec.reason));
       if (spec.acts?.length) {
-        // (design 1028d K2: one filled green, the act the plan advises; a take-back's words red (`danger`); a way to another
-        // view (`link`: his place) a green row with ›, under the acts, never one of their boxes: H5, M4, R12, T1)
+        // (one filled green, the act the plan advises; a take-back's words red (`danger`); a way to another view
+        // (`link`: his place) a green row with ›, under the acts, never one of their boxes)
         const btn = (a, cls) => h(cls, {
           // `said`: its spoken label where the shown one is short ("Take it": the title names the move)
-          // (a take, a.swap: the one mark, .m-swap, as its row's and its place's: design 1028d K1)
+          // (a take, a.swap: the one mark, .m-swap, as its row's and its place's)
           type: 'button', class: a.swap ? { 'm-swap': true, best: a.swap === 'best', quiet: a.swap === 'quiet' } : { acc: !!a.fill, 'm-danger': !!a.danger && !a.fill }, disabled: !!a.disabled, 'aria-label': a.said ?? null, onClick: () => { if (a.act() !== false) sheet.close(); },
         }, a.label);
         const acts = spec.acts.filter((a) => !a.link), links = spec.acts.filter((a) => a.link);
@@ -67,12 +56,12 @@ export function open(ctx, spec = {}) {
         for (const a of links) body.append(btn(a, 'button.m-nav'));
       }
       const g = spec.gw ?? P.A, gws = P.gws.filter((x) => x >= g);
-      // under the tables, once, what the stats are against the forecast (COPY.statsPast; the user, 2026-10-21: fix all
-      // (first-use proposal #6)), there once a table draws its stats
+      // under the tables, once, what the stats are against the forecast (COPY.statsPast; owner, 2026-10-21), there once
+      // a table draws its stats
       const past = h('p.m-foot.wy-fn.wy-past', { hidden: true }, C.COPY.statsPast(gws));
       for (const pr of spec.pairs || []) body.append(pairTable(ctx, P, pr, g, gws, () => { past.hidden = false; }));
       body.append(past);
-      // a Wildcard's or Free Hit's changes in their place, read-only (the user, 2026-10-21: fix all (first-use proposal #7))
+      // a Wildcard's or Free Hit's changes in their place, read-only
       if (spec.changes?.rows.length) body.append(h('div.m-sec.wy-chg', null, h('h3', null, spec.changes.head), h('div.ah-moves.sq', null, spec.changes.rows)));
       const when = spec.when?.weeks?.length ? whenLine(spec.when, sheet) : null;
       if (spec.facts?.length || when) {
@@ -80,7 +69,7 @@ export function open(ctx, spec = {}) {
           spec.facts?.length ? h('ul.wy-facts', null, spec.facts.map((t) => h('li', null, cap(t)))) : null,
           when?.line, when?.note, when?.go));
       }
-      // what its number counts after its week, both plans in words, read-only (proposal #3)
+      // what its number counts after its week, both plans in words, read-only
       if (spec.later) body.append(h('div.m-sec.wy-after', null, h('h3', null, spec.later.head), h('ul.wy-facts', null, spec.later.lines.map((t) => h('li', null, t)))));
       const runs = h('div');
       body.append(runs);
@@ -91,8 +80,8 @@ export function open(ctx, spec = {}) {
 
 // ================================================================ the two players, side by side
 
-/** A player's status as the table's one cell (design 1027b: one line, its dot on its words): his card's flag in short
- *  (player.statusOf: "75%", "Injured"), else "Available", the flag's reason under it ("thigh injury"). → {node, sub, said} */
+/** A player's status as the table's one cell: his card's flag in short (player.statusOf: "75%", "Injured"), else
+ *  "Available", the flag's reason under it ("thigh injury"). → {node, sub, said} */
 function statusCell(r) {
   const fl = statusOf(r);
   if (!fl) return { node: h('span.wy-st.ok', null, h('i.dot', { 'aria-hidden': 'true' }), 'Available'), said: 'available' };
@@ -100,35 +89,22 @@ function statusCell(r) {
 }
 
 /**
- * One move's two players, the buy first, each name a button to his card (the user, 2026-10-14: "in this tab better to
- * also see the stats fixtures and stats comparison which players card show"; 2026-10-19: "no actual comparision of
- * stats, price"): a table with a row label and a column each, its groups under cap labels.
- * Which two (one baseline per sheet, the owner 2026-10-22; design 1027b): a move's own sheet sets its buy against its
- * sale ("In" / "Out"); a choice in place of your buy of the same seller (ahead.openPlanWhy, `pr.yours`) sets its buy
- * against YOUR buy it replaces ("Choice" / "Yours": Barry against Evanilson, the decision the sheet's number weighs;
- * the app's own words, Help's "every choice … is vs your plan" and your buy's place's "Yours"), the seller, the same in
- * both plans, only in the title.
- * One grid, one scale (the owner, 2026-10-27: "formating and fonts are fucked up and desing in random in comparison
- * tab"; m-ahead.css .wy-cmp): every value 15 px on ONE right edge per column, tabular; what qualifies it (a stat's
- * rank, a forecast's opponent) 13 px muted in a fixed slot of its own left of the value, so no value moves; a second
- * line (the seller's price now, a flag's reason) 13 px muted under it on the same edge; the heads a cap label once
- * ("In") over the player's name in ink with a chevron, his card. No winner marked in bold or colour (decision of
- * 2026-10-22: a number's sign its direction, never a verdict; Butterick: bold sparingly, the totals the only 600
- * figures): the stats compare by their ranks, the better rank of a row in ink, the other muted:
- *   · club and position; price: the buy's and the sale's (`buy`, `sell`: the engine's, FPL's sale price, so the bank
- *     line under it adds up), the seller's current price under his where they differ; against your buy, both buy
- *     prices; owned; status: one line, its dot on its words ("● 75%", "● Available"), the reason under it;
- *   · FORECAST PTS: one row a GW from `g`, each value as the pitch shows it (ahead.xpShown), its opponent beside it
- *     ("TOT" home, "tot" away, as the card's strip), then their total ("Total xP": the unit once, in the label);
- *   · LAST 6 MATCHES: their points and minutes (the card's, player.pastSums), "–" while a card loads;
- *   · STATS: the buy's rows (the stats the data chose for him: api/card.py _rows), his figure and the other's on each
- *     (stats.vs, only when they play the same position), each with its rank among his position, the head saying among
- *     how many (COPY.statsHead: "ranks among 84 midfielders", the strip's `n`; one count, the other's the same: stats.vs
- *     is of his position); per match or per 90 (the card's switch, this viewer's pick: player.statsView).
- * The card-borne groups fill in place as the cards land (player.cardOf: the bundle's at once, else asked while the sheet
- * is open), so nothing above them moves. g: the move's GW, gws: the table's (g to the plan's end); onStats() once its
- * stats are drawn. pr: {in, out, buy, sell, yours?} (`yours`: `out` is your buy, `sell` his buy price). → node | null
- * (a player the data lacks).
+ * One move's two players, the buy first, each name a button to his card: one table, a row label and a column each.
+ * Baseline (owner, 2026-10-22): a move's own sheet sets its buy against its sale ("In" / "Out"); a choice in place of
+ * your buy of the same seller (`pr.yours`) sets it against YOUR buy it replaces ("Choice" / "Yours"). One grid
+ * (m-ahead.css .wy-cmp; owner, 2026-10-27): every value on one right edge per column, qualifiers (rank, opponent)
+ * muted left of it, a second line muted under. No winner marked in bold or colour: stats compare by rank, the better
+ * in ink.
+ * · price: `buy` / `sell` are the engine's (FPL's sale price, so the bank line adds up); against your buy, both buy
+ * prices; status: one line, "● 75%" / "● Available", reason under;
+ * · FORECAST PTS: a row a GW from `g` (ahead.xpShown), its opponent beside it ("TOT" home, "tot" away), then the
+ * total;
+ *   · LAST 6 MATCHES: points and minutes (player.pastSums), "–" while a card loads;
+ * · STATS: the buy's rows (api/card.py _rows), his figure and the other's (stats.vs, same position only), each with
+ * its rank among his position (COPY.statsHead); per match or per 90 (player.statsView).
+ * Card-borne groups fill in as the cards land (player.cardOf), so nothing above moves. g: the move's GW, gws: g to the
+ * plan's end; onStats() once its stats are drawn. pr: {in, out, buy, sell, yours?} (`yours`: `out` is your buy, `sell`
+ * his buy price). → node | null (a player the data lacks).
  */
 function pairTable(ctx, P, pr, g, gws, onStats) {
   const d = ctx.data, L = P.L;
@@ -136,7 +112,7 @@ function pairTable(ctx, P, pr, g, gws, onStats) {
   const rows = ids.map((id) => d.byId?.get(id));
   if (rows.some((r) => !r)) return null;
   const nm = ids.map((id) => L.name(id));
-  // each column's one label (Podmajersky: one word for one thing; "Yours" as your buy's place says it, decision K)
+  // each column's one label ("Yours" as your buy's place says it)
   const role = pr.yours ? ['Choice', 'Yours'] : ['In', 'Out'];
   // a cell: a value, or {node, aux (its rank or opponent, in the slot left of the value), sub (a line under it), said}
   const cellOf = (c, i) => {
@@ -146,10 +122,10 @@ function pairTable(ctx, P, pr, g, gws, onStats) {
   };
   const row = (label, cells, cls = '', dataset = null) => h(`div.r${cls}`, { role: 'row', dataset }, h('div.n', { role: 'rowheader' }, label), cells.map(cellOf));
   const grp = (label, extra = null, dataset = null) => h('div.grp', { role: 'row', dataset }, h('span', { role: 'rowheader' }, label), extra);
-  // the opponent's code its venue, "COV" at home, "cov" away (the user, 2026-10-16), spoken in words; a double GW's
-  // one a line ("LEE +" over "mun"), so its slot holds at 320
+  // the opponent's code its venue, "COV" at home, "cov" away (owner, 2026-10-16), spoken in words; a double GW's one a
+  // line, so its slot holds at 320
   const fxs = (row, x) => ctx.pitch?.fixturesAt?.(row, x, d.xpGws) || [];
-  // (each in its FDR tint and mark, the Player data legend's chip: plan-pitch.css .ah-fdrc; design 1028d K4 B16)
+  // (each in its FDR tint and mark, the Player data legend's chip: plan-pitch.css .ah-fdrc)
   const opp = (row, x) => { const f = fxs(row, x); return f.length ? f.map((o, j) => h('span', { class: o.fdr ? `ah-fdrc fdr-${o.fdr}` : null }, j < f.length - 1 ? `${oppText(o)} +` : oppText(o))) : DASH; };
   const oppSaid = (row, x) => fxs(row, x).map((f) => `${String(f.opp).toUpperCase()} ${f.home ? 'home' : 'away'}`).join(' and ') || 'no match';
   const xpAt = (row, x) => num(ctx.pitch?.xpAt?.(row, x, d.xpGws));
@@ -159,10 +135,8 @@ function pairTable(ctx, P, pr, g, gws, onStats) {
   const later = h('div.wy-later');
   const box = h('div.wy-cmp', { role: 'table', 'aria-label': pr.yours ? `${nm[0]}, your choice, against ${nm[1]}, yours` : `${nm[0]} in, ${nm[1]} out` },
     h('div.r.hd', { role: 'row' }, h('div.n', { role: 'columnheader' }),
-      // each name his card (the pitch research's 4a, the user 2026-10-19: an IN card's Why sheet "with a link to his
-      // player card"): over a Week sheet it takes the Why sheet's place (app.js: two sheets at most), Back the Week sheet;
-      // a link in the content's own ink, "Mbeumo ›" (the user, 2026-10-23: "how do i open player cards ... anywhere i
-      // click it open only comparison card"; m-ahead.css .wy-pn), never the accent's button green; the name whole
+      // each name his card: over a Week sheet it takes the Why sheet's place (app.js: two sheets at most), Back the
+      // Week sheet; a link in the content's own ink, "Mbeumo ›" (m-ahead.css .wy-pn), never the accent's button green
       ids.map((id, i) => h('div.c', { role: 'columnheader', 'aria-label': `${nm[i]}, ${role[i].toLowerCase()}` },
         h('span.o', { 'aria-hidden': 'true' }, role[i]),
         h('button.wy-pn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': C.COPY.cardOf(nm[i]), onClick: () => ctx.openSheet('player', id, { gw: g }) }, nm[i])))),
@@ -174,8 +148,8 @@ function pairTable(ctx, P, pr, g, gws, onStats) {
     }]),
     row('Owned', rows.map(owned)),
     row('Status', rows.map(statusCell)),
-    // each forecast in its blue (ui.js xpNum; the user, 2026-10-22); "Total xP" says once what they all are, its unit in
-    // the row's label so the totals' digits stand on the weeks' digit edge (design 1027b r2); the head says the span once
+    // each forecast in its blue (ui.js xpNum); "Total xP" says once what they all are, its unit in the row's label so
+    // the totals' digits stand on the weeks' digit edge
     grp(`${C.COPY.gridUnit} · ${span(gws)}`),
     gws.map((x) => row(`GW${x}`, ids.map((id, i) => ({
       node: xpNum(xpShown(ctx, id, x), 'span', null, false), aux: opp(rows[i], x),
@@ -193,7 +167,7 @@ function pairTable(ctx, P, pr, g, gws, onStats) {
     const kids = [grp(`Last ${n} matches`),
       row('Points', sums.map((s) => (s ? String(s.pts) : DASH))),
       row('Minutes', sums.map((s) => (s ? `${s.mins}′` : DASH)))];
-    // the stats: the buy's rows with the other's figures beside his (the same position only: api/card.py stats.vs)
+    // the stats: the buy's rows with the other's figures beside his (same position only: api/card.py stats.vs)
     const st = cards[0]?.stats, mine = st?.[view], theirs = st?.vs?.[view];
     if (mine && theirs && Object.values(mine.rows).some((r) => r.value != null)) {
       const [g0, g1] = cards[0].season_rounds ?? [];
@@ -203,7 +177,7 @@ function pairTable(ctx, P, pr, g, gws, onStats) {
       }), { view }));
       for (const [k, r] of Object.entries(mine.rows)) {
         const [lab, dp] = STAT[k] ?? [k, 1];
-        // the better rank of the two in ink (none on a tie): the row's comparison read at a glance, without a verdict's bold
+        // the better rank of the two in ink (none on a tie): the row's comparison at a glance, without a verdict's bold
         const rk = [r?.rank, theirs.rows[k]?.rank];
         const best = rk.every((v) => v != null) && rk[0] !== rk[1] ? (rk[0] < rk[1] ? 0 : 1) : -1;
         const cell = (x, of, i) => ({
@@ -228,19 +202,15 @@ function pairTable(ctx, P, pr, g, gws, onStats) {
 // ================================================================ When (the same move in each GW)
 
 /**
- * The When line (the usability review, 2026-10-08: "Nothing answers 'why this week and not next'" and "There is no 'move
- * to next week'. It took 4 steps"), labelled "If made in" over a tile a GW, "GW6 +6.2 | GW7 +4.0 | GW8 +2.1 | GW9 +0.6"
- * (the first-use findings, #8 2026-10-21: "When GW8 +3.3 · 9 +3.7 …, each week vs keeping Kayode" read as a per-week
- * split): the same move (the same sale, the same buy) made in each GW of the plan, each against the sheet's own baseline
- * (ahead.whenOf). The tiles are Add a player's (wish.js: .ah-apills / .ah-ap, the chosen one .sel), a picker for timing;
- * the move's own week has its GW in ink (no word for it); a week where it can't be made is "—". B79 (johnson Part 4 §3;
- * the user, 2026-10-10): a tap chooses the week, as Add a player's pills do, and one button under the line moves the
- * transfer there, "Move it to GW7" (when.pick(gw): Ahead's moveTo, one edit with its toast and Undo, and the view on that
- * GW), then the sheet closes. The move's own week is chosen first: the transfer is there already, so its button waits
- * for another week. Each week's gain forecast points, blue with "xP" (ui.js xpGain; the user, 2026-10-22, after
- * v1.3.68: no green or grey verdict on a number, its sign its direction).
- * Under it, what its numbers count against (`vs`, a note: the sheet's own number is another measure).
- * when: {weeks: [{gw, ok, current, delta, label}], pick(gw) → bool, disabled, vs}. → {line, note, go (the button's row)}
+ * The When line, labelled "If made in" over a tile a GW, "GW6 +6.2 | GW7 +4.0 | GW8 +2.1": the same move made in each
+ * GW of the plan, each against the sheet's own baseline (ahead.whenOf). The tiles are Add a player's (wish.js
+ * .ah-apills / .ah-ap, the chosen one .sel); the move's own week has its GW in ink; a week where it can't be made is
+ * "—". A tap chooses the week and one button under the line moves the transfer there, "Move it to GW7" (when.pick(gw):
+ * Ahead's moveTo, one edit with toast and Undo), then the sheet closes; the move's own week is chosen first, so its
+ * button waits for another week. Each gain forecast points, blue with "xP" (ui.js xpGain; owner, 2026-10-22). Under
+ * it, `vs`: what its numbers count against.
+ * when: {weeks: [{gw, ok, current, delta, label}], pick(gw) → bool, disabled, vs}. → {line, note, go (the button's
+ * row)}
  */
 function whenLine(when, sheet) {
   let sel = when.weeks.find((w) => w.current && w.ok)?.gw ?? null;
@@ -290,7 +260,7 @@ function runStrip(why, sheet) {
   const winner = c.delta >= 0 ? why.a.label : why.b.label;
   const lead = c.lead ?? 0;
   const agree = `${C.COPY.agreement(lead, c.runs)} back ${winner}`;
-  // B106: what a dot measures and what the band is, named; on GW A's scale when the gaps are put back on it (runGaps)
+  // what a dot measures and what the band is, named; on GW A's scale when the gaps are put back on it (runGaps)
   const scale = runGaps(c) !== c.diffs ? ` on GW${why.A}'s scale` : '';
   const capDots = `Each dot is one forecast run: ${why.a.label} minus ${why.b.short}, ${span(c.gws)}, in points${scale}.${n > 0 ? ` Shaded: within ±${fmt.num(n, 2)} pts, ${C.COPY.chargeName}.` : ''}`;
   const capLines = `Each line is one forecast run: the running gain of ${why.a.label} over ${why.b.label}, ${span(c.gws)}.`;
@@ -319,16 +289,16 @@ function runStrip(why, sheet) {
     box, caption);
 }
 
-/** Each run's window gap put back on the anchor's scale (engine.compareRoads diffsRef: each week ×k_0/k_h), the shown
- *  gap without a scale by horizon: what the label and the noise floor (×k_0) read. */
+/** Each run's window gap put back on the anchor's scale (engine.compareRoads diffsRef: each week ×k_0/k_h); what the
+ *  label and the noise floor (×k_0) read. */
 const runGaps = (c) => c?.diffsRef ?? c?.diffs ?? [];
 
-/** Each run's tone: 'pos' | 'neg' | 'mid' (inside the noise band), its gap (runGaps) against the noise floor: like with
- *  like, so a run never leaves the band for a week being further ahead. c: a compare result with runs. */
+/** Each run's tone: 'pos' | 'neg' | 'mid' (inside the noise band): its gap (runGaps) against the noise floor, like with
+ *  like. c: a compare result with runs. */
 const runTones = (c, noise) => Array.from(runGaps(c), (v) => (v > noise ? 'pos' : v < -noise ? 'neg' : 'mid'));
 
-/** One dot per run: a − b over the window, placed on the scale it is toned on (runGaps, runTones: B106, a dot's colour
- *  always matches its side of the band); the ±noise band reads "too close". */
+/** One dot per run: a − b over the window, placed on the scale it is toned on (runGaps, runTones), so a dot's colour
+ *  always matches its side of the band; the ±noise band reads "too close". */
 function swarmSvg(c, noise, label) {
   const vals = [...runGaps(c)];
   const tones = runTones(c, noise);

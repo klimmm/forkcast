@@ -1,4 +1,4 @@
-/* Compare view (#/compare). Fixture tags come from players.css (.pv-fx). */
+/* Compare view (#/compare); fixture tags: players.css */
 
 .cv-src { margin: 10px 0 0; }
 .cv-empty-acts { justify-content: center; }
@@ -21,7 +21,7 @@
 .cv-status { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font); }
 .cv-xp { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; cursor: help; }
 
-/* the player switcher can be wider than a phone: let it scroll inside the card */
+/* switcher scrolls in the card */
 .cv-hist .card-actions { min-width: 0; max-width: 100%; }
 .cv-hist-sum { display: grid; gap: 8px 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
 .cv-hs { min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--surface-2); }

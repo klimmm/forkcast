@@ -1,6 +1,5 @@
-// Compare: up to four players side by side: xP by GW with a ±1 sd seed band, actual vs forecast
-// history, and a metric table with the best value in each row highlighted. Reads the Players page's
-// source (season / first GW / pool) so both pages show the same numbers. ?ids=1,2 is shareable.
+// Compare: up to four players: xP by GW with a ±1 sd seed band, actual vs forecast history, metric table (best per row
+// highlighted). Same source as Players; ?ids=1,2 is shareable.
 
 import * as api from '../api.js';
 import {
@@ -34,7 +33,7 @@ export default {
   icon: 'compare',
   async mount(el, ctx) {
     const { state, params, setParams, navigate, setTitle } = ctx;
-    // A link with no valid id leaves the saved list alone; syncUrl below then rewrites the address.
+    // No valid id in the link: the saved list stays; syncUrl rewrites the address.
     const fromUrl = compareIds((params.ids || '').split(','));
     if (fromUrl.length) state.set('compare', fromUrl);  // the store keeps the newest COMPARE_MAX
     if (fromUrl.length > COMPARE_MAX) toast(`Compare holds ${COMPARE_MAX} players: kept the last ${COMPARE_MAX} in the link`, 'warn');
@@ -55,7 +54,7 @@ export default {
         toast(`Compare holds ${COMPARE_MAX} players: remove one first`, 'warn');
         return;
       }
-      state.set('compare', next);  // the subscription below repaints
+      state.set('compare', next);
     }
 
     const dataP = api.getPlayers({ ...src, all: true }).then(prepRows);
@@ -184,7 +183,7 @@ export default {
         for (const p of scope) {
           const i = sel.indexOf(p);
           const rounds = res[i]?.rounds || [];
-          // Cumulative lines count only GWs with a forecast so actual and forecast stay comparable.
+          // Cumulative lines use only GWs with a forecast, so actual and forecast compare.
           const rr = histCum ? rounds.filter((r) => fin(r.pred_h0)) : rounds;
           const line = (k) => {
             let s = 0;
@@ -258,7 +257,7 @@ export default {
         let best = null;
         if (m.best && nums.length > 1) {
           const b = m.best === 'max' ? Math.max(...nums) : Math.min(...nums);
-          if (nums.some((v) => v !== b)) best = b;  // all equal: nothing stands out
+          if (nums.some((v) => v !== b)) best = b;
         }
         return { m, vals, best };
       });

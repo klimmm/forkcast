@@ -1,5 +1,5 @@
-// Dashboard: TransferLab's dashboard on the solver's own data (GET /api/dashboard) plus the market,
-// DGW/BGW, a ticker preview and data freshness. The entry box hands off to the planner.
+// Dashboard: solver data (GET /api/dashboard), market, DGW/BGW, ticker preview, data freshness; the entry box hands off
+// to the planner.
 
 import {
   h, card, statTile, countdown, fmt, icon, empty, errorCard, loading, toast, statusDot, statusInfo, pill, posName, toMs,
@@ -8,7 +8,7 @@ import {
 import { ticker, modeSwitch, dgwBgwNote, gwCell, seasonLabel, group, int } from './fixtures.js';
 import { addToCompare, COMPARE_MAX, XI, XI_TITLE } from './players.js';
 
-const TZ_KEY = 'fss:dashTz'; // per-browser convenience; not part of the shared store
+const TZ_KEY = 'fss:dashTz'; // per-browser, not in the shared store
 
 const localTz = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 function readTz() {
@@ -29,11 +29,11 @@ const owned = { label: 'owned', value: (r) => fmt.pct(r.sel_pct) };
 
 // ---------------------------------------------------------------- pieces
 
-/** Ranked player rows: name + status, club·pos·price, fixture chips, metrics, "+ compare". */
+/** Ranked rows: name + status, club·pos·price, fixture chips, metrics, "+ compare". */
 function playerList(ctx, rows, metrics, { fixture = true, rank = true, note, emptyText = 'Nothing to show.' } = {}) {
   if (!rows?.length) return empty(emptyText);
   return h('ol.dash-list', { class: { withfix: fixture } }, rows.map((r, i) => {
-    const [ws, tone] = XI[r.ws_preview] || [];  // only the risky ones (a tone) get a badge
+    const [ws, tone] = XI[r.ws_preview] || [];  // only risky ones (a tone) get a badge
     return h('li.dash-item', null,
       rank ? h('span.dash-rank.num', null, i + 1) : null,
       h('div.dash-who', null,
@@ -330,7 +330,7 @@ export default {
       const my = ++seq;
       const meta = await metaP;
       if (dead || my !== seq) return;
-      if (!(st.gw >= 1 && st.gw <= (meta?.last_fixture_round || 38))) st.gw = null;  // blank, or a bad ?gw= link
+      if (!(st.gw >= 1 && st.gw <= (meta?.last_fixture_round || 38))) st.gw = null;
       const q = { season: st.season ?? undefined, gw: st.gw ?? undefined };
       ctx.setParams({ ...q, pool: st.pool || undefined });
       body.replaceChildren(loading('Loading the dashboard…'));

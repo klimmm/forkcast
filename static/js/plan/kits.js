@@ -1,44 +1,33 @@
-// Club kits: a flat inline-SVG shirt per club, for the pitch and player lists; or, when this browser opts in, FPL's
-// official shirt image for the club (off by default, kitSource).
+// Club kits: a flat inline-SVG shirt per club, or (opt-in) FPL's official image.
 //   shirt({club, gk, size, title, turf, tall}) → <svg> | <img>      clubColor(club) → '#rrggbb' for small accents
-//   FPL_FRAME: FPL's shirt image frame (220 × 290) and where its shirt sits in it, which shirt({tall}) gives both sources
-//   kitSource() / setKitSource(s) 'drawn' | 'official'      kitSourceRow() → the "Shirts: Drawn | Official" control
-// Keyed by the club short codes /api/players returns in `teams` (2026: the 20 below). Unknown → grey.
-// Official images are never copied or stored by Forkcast: the viewer's browser loads them from FPL's own server, only
-// while this browser has chosen them (Premier League terms allow private, personal use only).
+//   FPL_FRAME: the official image's frame (220 × 290) and its shirt's bounds
+//   setKitSource(s) 'drawn' | 'official'      kitSourceRow() → the "Shirts: Drawn | Official" control
+// Keyed by /api/players `teams` short codes; unknown → grey. Official images load from FPL in the viewer's browser only
+// while chosen, never copied or stored (Premier League terms: private use only).
 
 import { h, svg, uid, roving } from '../ui.js';
 
-// A kit spec: a club's outfield shirt, and `g` its goalkeeper's (a spec of its own, or just a body colour). Drawn from
-// FPL's 2026/27 shirt images, measured (2026-10-07, details 2026-10-08); missing fields fall back to the body colour (see paint).
-//   b body · gr the body's lower colour (fades in below the chest) · s sleeves · kt a trim line above the cuff
-//   k cuffs: a colour, or a list of bands from the cuff's edge up · kw their reach up the sleeve (default 2.3; a list with k's)
-//   ls long sleeves (default: a goalkeeper's, as FPL draws them; false: short) — a long sleeve's cuff band (kw ≈ 10) is
-//     a forearm panel
-//   c collar · cs its shape: 'crew' (default) | 'v' | 'polo' | 'wrap' · vd a V's depth (its point's y, default 15.2)
-//     cw the collar band's width (default 2.6; a thin one in a light colour over ct rings is a piped edge) · ct trim rings
-//     under the collar (a polo's: along its wings' edge) · ci the collar's inside at the front (above its band)
-//     n back of the neck · pk a polo's placket (default the body colour; false: none, so no buttons) · pe its edge colour
-//     bt its buttons (default the collar; false: none)
-//   v body bands, sv sleeve bands: [colour, period, width, offset, angle°] — repeated every `period` (0: one band) at
-//     `offset` from the centre line, upright (angle 0: stripes), level (90: hoops) or slanted (a sash); in the 64-unit
-//     box, the torso ≈ 30 wide (x 17–47); a sleeve's bands run along its length
-//   rg raglan: the sleeves' colour carried over the shoulder to the collar
-//   sh shoulder stripes [colour, n, width, gap = width, from = 0.25] along the shoulder seam, the first `from` inside it (the
-//     seam runs 0.55 inside the shirt's edge: -0.55 puts it flush with the edge); colour and width may be lists (one per
-//     stripe, seam first); a 6th item `len` stops them that share of the way from the neck to the cuff (on the shoulder)
-//   ch chevrons (a kit maker's short bars across the shoulder seam) [colour, n = 3, width (across the seam) = 1.2, in from
-//     the seam = 1.4, start = 0.06, length = 0.05, gap = 0.035] — the last three as shares of the seam from the neck
-//   ar piping beside the armhole seam [colour, width, length = 1 (share of the way from the shoulder to the armpit)]
-//   sl a side line [colour, width]: from under the arm, bowing in, to the hem · sc the side crescent outside that line
-//   sp side panels [colour, width] · x accent (clubColor)
-// code: FPL's team code (bootstrap teams[].code, not the team id: Arsenal = 3), the official shirt image's name
+// A kit spec: a club's outfield shirt; `g` its goalkeeper's (a spec or a body colour).
+// b body · gr lower colour (fades in below the chest) · s sleeves · kt trim above the cuff · rg raglan sleeve colour
+// over the shoulder
+//   k cuffs: a colour or bands from the edge up · kw their reach · ls long sleeves (default: goalkeeper's)
+// c collar · cs 'crew' | 'v' | 'polo' | 'wrap' · vd V depth (point y) · cw band width · ct trim rings under it (polo:
+// along its wings' edge) · ci inside at the front · n back of the neck · pk polo placket (false: none, no buttons) · pe
+// its edge · bt buttons (false: none)
+// v body bands, sv sleeve bands: [colour, period, width, offset, angle°] every `period` (0: one) at `offset` from the
+// centre line; angle 0 stripes, 90 hoops, else a sash
+// sh shoulder stripes [colour, n, width, gap, from, len] along the seam, first `from` inside it (seam is 0.55 inside
+// the edge: -0.55 = flush); colour/width may be lists (seam first); `len` ends them part-way (share neck→cuff)
+//   ch chevrons [colour, n, width, in from the seam, start, length, gap], the last three as shares of the seam
+// ar armhole piping [colour, width, length] · sl side line · sc crescent outside it · sp side panels [colour, width] ·
+// x accent (clubColor)
+// code: FPL's team code (teams[].code, not the id), names the official image
 const WHITE = '#ffffff', BLACK = '#16181d';
-/** Stripes period p, width w; a stripe on the centre line (gap = false) or a gap there (gap = true). */
+/** Stripes of period p, width w: a stripe (or, with gap, a gap) on the centre line. */
 const stripes = (a, p, w, gap = false, angle = 0) => [a, p, w, gap ? p / 2 : 0, angle];
-/** The kit maker's three shoulder stripes as FPL's image shows them: two visible at its angle (the third under the arm). */
+/** The kit maker's three shoulder stripes: two show, one is under the arm. */
 const two = (a) => [a, 2, 1.2, 0.7];
-/** Arsenal's (2026-10-07, FPL's right shoulder, 1 px = 0.295): a 1.05 stripe flush with the edge, 0.9 gap, a 1.5 stripe. */
+/** Arsenal's: a 1.05 stripe flush with the edge, 0.9 gap, a 1.5 stripe. */
 const arsenal = (a) => [a, 2, [1.05, 1.5], 0.9, -0.55];
 
 export const KITS = {
@@ -104,17 +93,17 @@ export const KITS = {
       k: '#df4b87', ar: ['#3a1022', 0.45, 0.6] } },
 };
 const NEUTRAL = { b: '#9aa3b2', s: '#8b94a3', c: '#6b7383' };
-/** A goalkeeper shirt drawn on the turf (shirt({turf})) in this grey when its own colour is green-family. */
+/** Grey for a green-family goalkeeper shirt on the turf (shirt({turf})). */
 const TURF_GK = '#d4d9de';
 
 // ---------------------------------------------------------------- colour helpers
 
 const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 const hex = (c) => `#${c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('')}`;
-/** Mix toward black (amt < 0) or white (amt > 0), amt in -1..1. */
+/** Mix toward black (amt < 0) or white (> 0); amt in -1..1. */
 const shade = (h, amt) => hex(rgb(h).map((v) => (amt < 0 ? v * (1 + amt) : v + (255 - v) * amt)));
 const luma = (h) => { const [r, g, b] = rgb(h); return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
-/** A saturated colour of hue 60–190° (lime, green, teal): it vanishes on a green pitch. */
+/** Saturated hue 60–190°: vanishes on a green pitch. */
 function greenish(h) {
   const [r, g, b] = rgb(h).map((v) => v / 255);
   const mx = Math.max(r, g, b), d = mx - Math.min(r, g, b);
@@ -126,7 +115,7 @@ function greenish(h) {
 const clubKey = (club) => String(club ?? '').toUpperCase();
 const kitOf = (club) => KITS[clubKey(club)] || null;
 
-/** The club's identifying colour for small accents (x; else a white kit gives its first band or collar colour). */
+/** Accent colour: x, else (white kit) its first band or collar colour. */
 export function clubColor(club) {
   const k = kitOf(club);
   if (!k) return NEUTRAL.b;
@@ -139,24 +128,22 @@ const TORSO = 'M23 6.5 13.5 10 17 24 17.5 57Q32 59.6 46.5 57L47 24 50.5 10 41 6.
 const SLEEVE = 'M13.5 10C9.5 12 6.2 16 3.5 21.5L11.2 28.6 17 24Z';
 const NECK_BACK = 'M23 6.5Q32 4.6 41 6.5C38 12 26 12 23 6.5Z';
 const CUFF = 'M3.5 21.5 11.2 28.6';
-/** The left sleeve's middle and the angle of its length (cuff to shoulder), for its bands. */
+/** Left-side geometry (mirrored on the right): the sleeve's middle and length angle. */
 const SLEEVE_AXIS = [11.3, 21, 44.5];
-/** The shoulder seam (neck to the cuff's top) and the way into the shirt from it: shoulder stripes run along it. */
+/** Shoulder seam, neck to the cuff's top; shoulder stripes run along it. */
 const SEAM = 'M23.5 6.9 13.8 10.5C9.9 12.5 6.6 16.3 4 21.6';
 const SEAM_IN = [0.5, 0.86];
-/** A raglan sleeve's panel on the torso: the shoulder from the neck to the armpit (the left one). */
+/** Raglan panel on the torso: the left shoulder, neck to armpit. */
 const RAGLAN = 'M23 6.5 13.5 10 17 24C18.6 17.5 21.8 12.6 26.4 10.4Z';
-/** Piping beside the armhole seam (`ar`), on the torso just inside the shirt's outline: from the shoulder's edge toward the armpit. */
+/** `ar` piping: just inside the torso outline, shoulder edge toward armpit. */
 const ARMHOLE = 'M14.4 9.66C15.5 14 16.5 18.5 17.9 24';
-/** A side line (`sl` piping): from under the arm, bowing in from the torso's side, out to its edge at the hem. */
+/** `sl`: from under the arm, bowing in, out to the torso's edge. */
 const SIDE_LINE = 'M17.1 28.5C19.7 36 19.9 47.5 17.9 58';
-/** The cuff trim sits this far up the sleeve from the cuff's edge. */
+/** Cuff trim's distance up the sleeve from the cuff's edge. */
 const CUFF_TRIM = [1.9, -1.9];
 /**
- * The sleeves drawn: short (an outfield shirt's), or long (`ls`: a goalkeeper's, as FPL draws them) — the arm hangs from
- * the shoulder to a cuff at the hips, slanted out from the torso and inside the short sleeve's extent (x ≥ 3.5, so the
- * shirt sits in FPL's frame as before). Each: the sleeve, its cuff's edge, its axis (SLEEVE_AXIS), the shoulder seam
- * (SEAM: a long sleeve's ends on the shoulder cap, where FPL's keeper stripes end) and the cuff trim's offset.
+ * Short or long (`ls`) sleeves. A long arm hangs from the shoulder to a cuff at the hips, slanted out, within the
+ * short sleeve's extent (x ≥ 3.5).
  */
 const ARMS = {
   short: { sleeve: SLEEVE, cuff: CUFF, axis: SLEEVE_AXIS, seam: SEAM, trim: CUFF_TRIM },
@@ -166,9 +153,8 @@ const ARMS = {
   },
 };
 /**
- * A polo collar (the left half; mirrored for the right): its wing folds down from the back of the neck to a point beside
- * the placket, `edge` its outer edge (the trims run just inside it); the back stand shows above the neckline; the placket
- * runs down the centre from the neckline, under the wings' points, with two buttons.
+ * Polo collar, left half (mirrored): the wing folds from the back of the neck to beside the placket; `edge` its outer
+ * edge.
  */
 const POLO = {
   wing: 'M22.4 6C22.9 9.9 25.6 13.6 29.9 15.9L31.9 11.7C28.2 11.2 25.5 9.5 24 6.7Z',
@@ -177,7 +163,7 @@ const POLO = {
   placket: 'M30.4 10.8H33.6V20.6H30.4Z',
   buttons: [[32, 17.1], [32, 19.4]],
 };
-/** Collar shapes: the line the collar band follows, and a V's notch (shows the back of the neck). */
+/** Collar band line and, for a V, the notch showing the back of the neck. */
 const COLLARS = {
   crew: { d: 'M23 6.5C26 12 38 12 41 6.5' },
   v: { d: 'M23 6.5 32 15.2 41 6.5', notch: true },
@@ -185,15 +171,15 @@ const COLLARS = {
   wrap: { d: 'M23 6.5C25 11 29.5 13.6 35 14.6M41 6.5C39 11 34.5 13.6 29 14.6' },
 };
 const MIRROR = 'matrix(-1 0 0 1 64 0)';
-/** The left side's elements and their mirror image on the right. */
+/** Left side's elements plus their mirror on the right. */
 const sides = (make) => [svg('g', null, make()), svg('g', { transform: MIRROR }, make())];
-/** A left-side path and its mirror image on the right. */
+/** A left path plus its mirror. */
 const pair = (d, attrs) => sides(() => svg('path', { d, ...attrs }));
-/** A left-side path and its mirror as bare paths: a <clipPath> ignores <g> children (sides' groups), so it takes these. */
+/** Left path + mirror as bare paths: a <clipPath> ignores <g> children. */
 const clipPair = (d) => [svg('path', { d }), svg('path', { d, transform: MIRROR })];
 const at = (dx, dy) => `translate(${dx} ${dy})`;
 
-/** Bands ([colour, period, width, offset, angle]) about (cx, cy), the box's 64 units covered whatever the angle. */
+/** Bands (see v) about (cx, cy), covering the 64-unit box at any angle. */
 function bands(list = [], cx = 32, cy = 32, turn = 0) {
   return list.map(([fill, period, w, off = 0, angle = 0]) => {
     const xs = [];
@@ -205,13 +191,12 @@ function bands(list = [], cx = 32, cy = 32, turn = 0) {
 }
 
 /**
- * FPL's official shirt image: 220 × 290, the shirt's opaque pixels at x 15–208, y 4–288 (a goalkeeper's long sleeves:
- * x 7–214, y 3–286), measured from shirt_<code>[_1]-220.webp of five clubs drawn on a solid colour (2026-10-06).
+ * FPL's shirt image 220 × 290; its shirt's bounds (`out`; `gk`: long sleeves).
  */
 export const FPL_FRAME = { w: 220, h: 290, out: { l: 15, t: 4, r: 208, b: 288 }, gk: { l: 7, t: 3, r: 214, b: 286 } };
-/** The drawn shirt's extent in its 64-unit geometry: the sleeves' cuffs x 3.5–60.5, the back of the neck's top y 5.55. */
+/** Drawn shirt's extent: cuffs x 3.5–60.5, neck-back top y 5.55. */
 const DRAWN = { l: 3.5, r: 60.5, t: 5.55 };
-/** shirt({tall}): the drawn shirt in FPL's frame (an outfield shirt's width share and top), so either source sits the same. */
+/** shirt({tall}): the drawn shirt placed as FPL's image places an outfield shirt. */
 const TALL_VIEWBOX = (() => {
   const { w, h, out } = FPL_FRAME;
   const u = (DRAWN.r - DRAWN.l) / (out.r - out.l);  // shirt units per image pixel
@@ -221,11 +206,8 @@ const TALL_VIEWBOX = (() => {
 const boxHeight = (size, tall) => (tall ? Math.round((size * FPL_FRAME.h) / FPL_FRAME.w) : size);
 
 /**
- * shirt({club, gk=false, size=56, title, turf=false, tall=false}) → the club's shirt as this browser shows them
- * (kitSource): FPL's official image (officialShirt) for a club with a team code whose image has not failed this session,
- * else the drawn one. Either is .kit-shirt and carries data-kit (its options), so setKitSource re-draws every shirt on the
- * page. tall: `size` wide in FPL's 220 × 290 frame (FPL_FRAME), the drawn shirt placed in it as FPL's image places its
- * own (Forkcast's pitch cards); else a size × size square.
+ * shirt(opts as drawnShirt): officialShirt for a club with a team code whose image hasn't failed this session, else
+ * the drawn one; both carry data-kit for the re-draw. tall: `size` wide in FPL_FRAME.
  */
 export function shirt(opts = {}) {
   const el = source === 'official' && officialCode(opts.club) != null ? officialShirt(opts) : drawnShirt(opts);
@@ -233,7 +215,7 @@ export function shirt(opts = {}) {
   return el;
 }
 
-/** The spec drawn: the club's outfield kit, or its goalkeeper's (gk; a bare colour is its body), greyed on the turf. */
+/** Spec drawn: outfield kit, or goalkeeper's (a bare colour is its body), greyed on the turf. */
 function specOf(club, gk, turf) {
   const k = kitOf(club) || NEUTRAL;
   if (!gk) return k;
@@ -242,9 +224,8 @@ function specOf(club, gk, turf) {
 }
 
 /**
- * drawnShirt({club, gk=false, size=56, title, turf=false, tall=false}) → <svg class="kit-shirt"> drawn from KITS (neutral grey for
- * an unknown club). gk draws the club's goalkeeper shirt. Decorative (aria-hidden) unless `title` is given.
- * turf (a shirt drawn on the green pitch, Forkcast's): a green-family goalkeeper colour becomes grey. tall: see shirt.
+ * <svg class="kit-shirt"> from KITS (grey for an unknown club); aria-hidden unless `title`; turf (green pitch): a
+ * green-family goalkeeper colour becomes grey.
  */
 function drawnShirt({ club, gk = false, size = 56, title, turf = false, tall = false } = {}) {
   const k = specOf(club, gk, turf);
@@ -278,7 +259,7 @@ function drawnShirt({ club, gk = false, size = 56, title, turf = false, tall = f
       svg('stop', { offset: 1, 'stop-color': '#000', 'stop-opacity': light ? 0.12 : 0.22 }))),
   svg('path', { d: NECK_BACK, fill: k.n || shade(body, light ? -0.22 : -0.42) }),
   pair(arm.sleeve, { fill: sleeves }),
-  // each side's bands on its own sleeve (-l, mirrored with it): they span the box, so they would cross the other sleeve
+  // bands clipped to their own sleeve (-l, mirrored): they span the box
   clip('s', sides(() => clip('l', bands(k.sv, sx, sy, sa))),
     cuffBands(cuffs, k.kw).map(([c, w]) => pair(arm.cuff, { stroke: c, 'stroke-width': 2 * w, fill: 'none' })),
     k.kt && pair(arm.cuff, { stroke: k.kt, 'stroke-width': 0.8, fill: 'none', transform: at(...arm.trim) })),
@@ -309,14 +290,13 @@ function drawnShirt({ club, gk = false, size = 56, title, turf = false, tall = f
   neck.notch && svg('path', { d: `${neck.d}Z`, fill: k.n || shade(body, light ? -0.22 : -0.42) }),
   ...(neck.polo ? polo(k, body, collar) : [clip('t', (k.ct || []).map((c, i) => ring(c, 0.9, (k.cw ?? 2.6) / 2 + 0.45 + i))),
     k.ci && clip('n', ring(k.ci, 1.6, -1.5)), ring(collar, k.cw ?? 2.6)]),
-  // edge: plan-pitch.css strokes it in the text colour (or --kit-edge) so it shows on any background
+  // edge: plan-pitch.css strokes it in the text colour (or --kit-edge)
   svg('g', { class: 'kit-edge', fill: 'none', stroke: '#000', 'stroke-opacity': 0.3, 'stroke-width': 1.1, 'stroke-linejoin': 'round' },
     svg('path', { d: TORSO }), pair(arm.sleeve, {})));
 }
 
 /**
- * The cuff's bands, outermost first, as [colour, reach up the sleeve from its edge]: `k` one colour (kw its width, 2.3 by
- * default) or a list from the edge up (kw then a list of widths), each band drawn over the one beyond it.
+ * Cuff bands outermost first, [colour, reach up the sleeve]: `k` a colour or a list from the edge up (kw its width/s).
  */
 function cuffBands(k, kw = 2.3) {
   const cs = [k].flat(), ws = [kw].flat();
@@ -324,11 +304,11 @@ function cuffBands(k, kw = 2.3) {
   return cs.map((c, i) => [c, (up += ws[i] ?? ws[0])]).reverse();
 }
 
-/** A polo collar's parts (POLO), in draw order: the back stand, the placket and its buttons, the wings and their trims. */
+/** Polo parts in draw order: back stand, placket and buttons, wings and trims. */
 function polo(k, body, collar) {
   const line = { stroke: '#000', 'stroke-opacity': 0.28, 'stroke-width': 0.45, 'stroke-linejoin': 'round' };
   const id = uid('polo');
-  // the trims run just inside the wing's outer edge (each 0.95 further in), clipped to the wing
+  // trims run just inside the wing's edge (0.95 further each)
   const trims = () => (k.ct || []).map((c, i) => svg('path', {
     d: POLO.edge, stroke: c, 'stroke-width': 0.8, fill: 'none', transform: at(0.75 + 0.8 * i, -0.6 - 0.6 * i) }));
   return [
@@ -346,31 +326,27 @@ function polo(k, body, collar) {
 
 const SOURCE_KEY = 'fc:kits';
 const SOURCES = [['drawn', 'Drawn'], ['official', 'Official']];
-/** FPL's shirt images: shirt_<code>-<w>.webp outfield, shirt_<code>_1-<w>.webp goalkeeper, w = 66, 110 or 220 px. */
+/** FPL's shirt images: shirt_<code>[_1 for a goalkeeper]-<w>.webp. */
 const FPL_SHIRTS = 'https://fantasy.premierleague.com/dist/img/shirts/standard/';
 const WIDTHS = [66, 110, 220];
-/** Clubs whose official image failed to load this session: drawn from then on (no retry on every re-draw). */
+/** Clubs whose official image failed: drawn from then on, no retry. */
 const failed = new Set();
 
 const storage = () => { try { return globalThis.localStorage ?? null; } catch { return null; } };
 let source = (() => { try { return storage()?.getItem(SOURCE_KEY) === 'official' ? 'official' : 'drawn'; } catch { return 'drawn'; } })();
 
-/** 'drawn' (the default) or 'official': which shirts this browser shows. */
-export const kitSource = () => source;
 
-/** The club's FPL team code while its official image is usable this session, else null. */
+/** Team code while the club's official image is usable, else null. */
 const officialCode = (club) => (failed.has(clubKey(club)) ? null : kitOf(club)?.code ?? null);
 
 /**
- * <img class="kit-shirt official"> of FPL's shirt for the club (the goalkeeper's for gk), size wide (size × size, or in
- * its own 220 × 290 frame when tall), the browser picking 66 / 110 / 220 by its pixel density. Lazy, no referrer; alt '' (decorative: the card's label names the
- * player) unless `title`. When it fails (FPL down, blocked, renamed) it becomes the drawn shirt, and so does every
- * later shirt of that club this session.
+ * <img class="kit-shirt official"> of the club's FPL shirt (gk: goalkeeper's); srcset picks 66 / 110 / 220 by density.
+ * Lazy, no referrer, alt '' unless `title`. On failure it and every later shirt of that club are drawn.
  */
 function officialShirt(opts) {
   const { club, gk = false, size = 56, title, tall = false } = opts;
   const url = (w) => `${FPL_SHIRTS}shirt_${kitOf(club).code}${gk ? '_1' : ''}-${w}.webp`;
-  // loading and referrerpolicy before src: the request is made with them
+  // loading and referrerpolicy before src: the request uses them
   const img = h('img', {
     class: gk ? 'kit-shirt official gk' : 'kit-shirt official', alt: title ?? '', width: size, height: boxHeight(size, tall),
     loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer', draggable: 'false',
@@ -383,7 +359,7 @@ function officialShirt(opts) {
   return img;
 }
 
-/** Every shirt under `root` drawn again as the current source has it (data-kit: shirt's options). */
+/** Re-draws shirts under `root` from their data-kit. */
 function redrawShirts(root = globalThis.document) {
   for (const el of root?.querySelectorAll?.('[data-kit]') ?? []) {
     let opts;
@@ -392,7 +368,7 @@ function redrawShirts(root = globalThis.document) {
   }
 }
 
-/** Show 'drawn' or 'official' shirts, kept in this browser (localStorage); every shirt on the page changes now. */
+/** Show 'drawn' or 'official' shirts (kept in localStorage); re-draws every shirt now. */
 export function setKitSource(s) {
   source = s === 'official' ? 'official' : 'drawn';
   try { storage()?.setItem(SOURCE_KEY, source); } catch { /* private mode: this page only */ }
@@ -400,9 +376,8 @@ export function setKitSource(s) {
 }
 
 /**
- * The "Shirts: Drawn | Official" row (Player data's sheet): a segmented radio group (the arrow keys pick as a tap does:
- * ui.roving); a choice applies at once (setKitSource) and the sheet stays open. Its note says where official shirts come
- * from.
+ * The "Shirts: Drawn | Official" row (Player data's sheet): segmented radios (ui.roving), applied at once
+ * (setKitSource); its note says where official shirts come from.
  */
 export function kitSourceRow() {
   const id = uid('kitsrc');

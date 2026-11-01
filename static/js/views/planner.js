@@ -1,11 +1,8 @@
-// Planner (#/planner): load an FPL entry, set locks, bans, chips and solver settings, solve, and read
-// the plan GW by GW; or run up to four scenario variants side by side.
-//
-// One source of truth: state.planner.values = {dest: value} in the flag widgets' value types (the
-// solver's own units). The quick panel, the squad's lock/ban buttons, the pickers and the "All settings"
-// drawer all edit it; the command preview, solves and scenarios read it. Other views edit it directly too
-// (the players table's lock/ban shortcuts, marks.js), and onStore picks their changes up.
-//
+// Planner (#/planner): load an FPL entry, set locks, bans, chips and solver settings, solve, and read the plan GW by
+// GW; or run up to four scenario variants side by side.
+// One source of truth: state.planner.values = {dest: value} in the flag widgets' value types (the solver's units).
+// Every editor writes it (quick panel, squad lock/ban buttons, pickers, "All settings" drawer, other views such as the
+// players table and marks.js; onStore picks their changes up); the command preview, solves and scenarios read it.
 // URL: #/planner?entry=<id> loads that team; #/planner?job=<id> shows that run's result.
 
 import * as api from '../api.js';
@@ -32,7 +29,7 @@ const CHIP_MODES = [
   { key: 'manual', label: 'Manual rounds' }, { key: 'plan', label: 'Stored plan' },
   { key: 'auto', label: 'Auto (--chip-auto)' }, { key: 'none', label: 'No chips' },
 ];
-// Whose squad and which players: a preset or scenario leaves these alone.
+// Whose squad and which players: presets and scenarios leave these alone.
 const KEEP = ['season', 'entry', 'team_state', 'must_have', 'exclude'];
 // What a preview / rating run needs from the solve's settings (they act on --to; main.py:654-658).
 const DATA_KEYS = ['season', 'dir', 'pool', 'seeds', 'w', 'horizon_w'];
@@ -40,9 +37,9 @@ const POS_SLOTS = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
 const XI_RANGE = { GK: [1, 1], DEF: [3, 5], MID: [2, 5], FWD: [1, 3] };
 const MAX_VARIANTS = 4;
 const MOVES_SHOWN = 5;
-// The solver's objective terms (solve.py ConstraintBuilder.obj tags, recorded per anchor by tap/solve_tap.py
-// as anchors[gw].objective = {tag: {gw: value}}), in display order: [label, what it is]. Only the XI and
-// captain rows are the xP a plan reports; the others are rules' charges (−) and credits, in points too.
+// Objective terms (solve.py ConstraintBuilder.obj tags; tap/solve_tap.py records anchors[gw].objective = {tag: {gw:
+// value}}) in display order: [label, what it is]. Only the XI and captain rows are the plan's xP; the rest are charges
+// (−) and credits.
 const OBJ_TERMS = {
   xi: ['Starting XI', 'Forecast points of the starting eleven (look-ahead rounds weighted by --horizon-w).'],
   cap: ['Captain', 'The armband: the captain\'s forecast once more (twice under a triple captain).'],
@@ -88,8 +85,8 @@ const xpSum = (p) => (Array.isArray(p?.xp) ? sum(p.xp) : null);
 // ---------------------------------------------------------------- result model (solve_tap.py document)
 
 /**
- * The run as rows {gw, t: TeamJSON, kind, anchor}: committed rounds from --from-r (earlier ones are the
- * --entry history), then the last anchor's window plan beyond them (as jobs.py timeline(), from --from-r).
+ * The run as rows {gw, t: TeamJSON, kind, anchor}: committed rounds from --from-r (earlier ones are the --entry
+ * history), then the last anchor's window plan.
  */
 function timelineOf(res) {
   const committed = res?.committed || {};
@@ -124,7 +121,7 @@ function pairMoves(t, prev) {
 
 const rowTag = (r, meta) => (r.kind === 'plan' ? 'Plan' : r.t.played ? 'Played' : r.gw === meta?.next_gw ? 'Next' : 'Commit');
 
-/** No squad to start from (no team loaded): all 15 bought from the budget, not transfers from a held one. */
+/** No squad to start from (no team loaded): all 15 bought from the budget, not transfers. */
 const isBuild = (t) => !t?.out?.length && (t?.in?.length || 0) >= 15;
 
 function movesList(t, prev, limit = MOVES_SHOWN) {
@@ -141,9 +138,8 @@ function movesList(t, prev, limit = MOVES_SHOWN) {
 // ---------------------------------------------------------------- result cards (pure)
 
 /**
- * "Why": the anchor's solved objective by term for its GW and the whole window (TransferLab's Gain / Needs /
- * Net, generalised), plus gain vs charge for this GW's moves. Results from before solve_tap recorded the
- * objective (or with no window captured, --fresh --jobs N) get a one-line note instead.
+ * "Why": the anchor's solved objective by term for its GW and the whole window (TransferLab's Gain / Needs / Net,
+ * generalised), plus gain vs charge for this GW's moves; a result without a recorded objective gets a one-line note.
  */
 function whyBlock(res, gw, t, moved) {
   const an = res.anchors?.[gw];
@@ -315,7 +311,7 @@ function warningsCard(res, onExact) {
   const ws = res.warnings || [];
   if (!ws.length) return null;
   // Plan rows past the integer rounds are a rounded LP relaxation and can overspend (see solve_tap warnings);
-  // all-integer windows give an exact plan at a few seconds' extra cost.
+  // all-integer windows are exact at a few seconds' extra cost.
   const m = res.meta || {};
   const overspent = Object.values(res.anchors || {}).some((a) => Object.values(a.plan || {}).some((t) => t.bank < 0));
   const exactN = m.window_len;
@@ -414,8 +410,8 @@ class Planner {
   clean(v) { return Object.fromEntries(Object.entries(v || {}).filter(([k, x]) => this.byDest.has(k) && x !== undefined && x !== null)); }
 
   /**
-   * Every player of the season (all=1: the unforecast ones too, e.g. long-term injured in a real squad),
-   * for the pickers and the squad editor. The row set does not depend on the pool, and no picker shows xP.
+   * Every player of the season (all=1: unforecast ones too, e.g. a long-term injured in a real squad), for the pickers
+   * and squad editor; independent of the pool, no xP.
    */
   players(season = this.season()) {
     if (!this.playerLists.has(season)) {
@@ -434,9 +430,8 @@ class Planner {
     this.el.classList.add('planner');
     this.el.append(loading('Loading solver settings…'));
     const [fl, meta] = await Promise.all([api.getFlags(), api.getMeta().catch(() => null)]);
-    // Run-mode switches (--preview, --rate-team: flag.branch) make main.py stop being a solve: the
-    // Preview / Rate buttons and the Preview tab run those. Leaving them out of byDest drops them from
-    // saved values, presets and scenario overrides too (clean()).
+    // Run-mode switches (--preview, --rate-team: flag.branch) stop main.py being a solve: the Preview / Rate buttons
+    // run them. Left out of byDest, they drop from saved values, presets and scenario overrides (clean()).
     this.flags = (fl?.flags || []).filter((f) => !f.branch);
     this.groups = fl?.groups || [];
     this.presets = fl?.presets || [];
@@ -674,7 +669,7 @@ class Planner {
     if (apply) {
       const p = { entry: id };
       if (this.values.team_state) { p.team_state = undefined; this.save({ manual: null }); }
-      // A bare --entry run replays the season from GW1: plan the next deadline unless the user chose a round.
+      // A bare --entry run replays the season from GW1: plan the next deadline unless a round was chosen.
       if (!this.st.fromTouched) p.from_r = e.gw;
       this.patch(p);
       this.ctx.setParams({ ...this.ctx.params, entry: id });
@@ -854,8 +849,8 @@ class Planner {
     }
     for (const pos of Object.keys(POS_SLOTS)) while (d.slots[pos].length < POS_SLOTS[pos]) d.slots[pos].push(null);
     const squad = () => Object.values(d.slots).flat().filter((x) => x != null);
-    // The GW the plan starts at: the state's own from_r (after a free hit straight after the state round
-    // it is a GW later; api/entry.py), else the GW after the one typed in.
+    // The GW the plan starts at: the state's own from_r (a GW later after a free hit straight after the state round;
+    // api/entry.py), else the GW after the one typed in.
     const planFrom = () => (num(ts?.from_r) != null && d.gw === num(ts.gw) ? num(ts.from_r) : d.gw + 1);
     const xiCount = (pos) => d.slots[pos].filter((id) => id != null && d.xi.has(id)).length;
 
@@ -929,7 +924,7 @@ class Planner {
     const numInput = (label, key, attrs, hint) => field(label, h('input.input.num', {
       type: 'number', value: d[key], ...attrs,
       onChange: (ev) => {
-        const { n } = readNum(ev.target);  // blank or unreadable text: put the last value back
+        const { n } = readNum(ev.target);
         if (n === undefined) ev.target.value = d[key];
         else { d[key] = n; paint(); }
       },
@@ -1100,9 +1095,8 @@ class Planner {
   }
 
   /**
-   * Manual chip rounds (or the season's defaults where unset) the loaded team cannot play: it has already
-   * played that chip in the half of the season they fall in. entry.chips_available is for the half holding
-   * entry.gw, so later halves are not checked.
+   * Manual chip rounds (or the season's defaults where unset) the loaded team cannot play: it already played that chip
+   * in the half they fall in (entry.chips_available covers the half holding entry.gw; later halves are not checked).
    */
   chipClashes(season) {
     const e = this.entry;
@@ -1115,7 +1109,8 @@ class Planner {
     });
   }
 
-  /** The loaded team has already played chip `c` in the half of `season` holding GW `r` (meta.chip_half: solver.chips.HALF). */
+  /** The loaded team already played chip `c` in the half of `season` holding GW `r` (meta.chip_half:
+   *  solver.chips.HALF). */
   chipPlayed(c, r, season) {
     const e = this.entry;
     const last = num(this.meta?.chip_half);  // the first half's last GW; unknown without /api/meta: no check
@@ -1130,8 +1125,8 @@ class Planner {
     const mode = derived === 'manual' && this.chipUi === 'plan' ? 'plan' : derived;
     const season = this.season();
     this.chipSeg.setActive(mode);
-    // A wildcard squad from the team for its first GW (--entry N --from-r N --wc N), not --fresh, which
-    // only moves one GW from the real squad.
+    // A wildcard squad from the team for its first GW (--entry N --from-r N --wc N), not --fresh, which only moves one
+    // GW from the real squad.
     const from = num(this.values.from_r);
     const wcNow = (this.values.entry || this.values.team_state) && from && !this.chipPlayed('wc', from, season)
       && !(mode === 'manual' && String(this.values.wc) === String(from))

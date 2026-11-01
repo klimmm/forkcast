@@ -1,6 +1,6 @@
-// Backtests: replay a season round by round as a 'backtest' job (tap/solve_tap.py), then totals,
-// cumulative pred vs actual, rank by GW and the per-GW committed table. Past backtests overlay on
-// one chart; the canonical benchmark tables come from ml/solver/sweeps/canonical_results.md (api/jobs.py).
+// Backtests: replay a season round by round as a 'backtest' job (tap/solve_tap.py): totals, cumulative pred vs actual,
+// rank by GW, committed table. Past backtests overlay on one chart; canonical benchmark tables come from
+// ml/solver/sweeps/canonical_results.md (api/jobs.py).
 
 import * as api from '../api.js';
 import { enc } from '../api.js';
@@ -12,10 +12,10 @@ import {
   spanText, committedCells, cellsTable, cumulative, rankChart, resultTiles, warningsBlock, errorBlock, cmdBlock, logBlock, parseRank,
 } from './runs.js';
 
-const FORM_KEY = 'backtests:form';  // in-memory store key: kept while the tab is open
+const FORM_KEY = 'backtests:form';  // store key, kept while the tab is open
 const CHIP_KEYS = ['wc', 'fh', 'bb', 'tc'];
 const MODE_KEYS = ['plan', 'chip_auto', 'no_chips', ...CHIP_KEYS];
-const OWN = new Set(['season', 'from_r', 'to', 'dir', ...MODE_KEYS]);  // the form's own fields; the rest live in "Extra flags"
+const OWN = new Set(['season', 'from_r', 'to', 'dir', ...MODE_KEYS]);  // the form's own fields; the rest in "Extra flags"
 const MODES = [
   { key: 'default', label: 'Season default' },
   { key: 'plan', label: 'Named plan' },
@@ -35,7 +35,7 @@ function modeOf(v) {
   return CHIP_KEYS.some((k) => v[k] != null) ? 'manual' : 'default';
 }
 
-/** {wc: ['4','32'] | '4,32' | [4, 32], …} (CHIP_DEFAULTS, canonical plans, form values) → "WC 4, 32 · BB 5, 33". */
+/** {wc: ['4','32'] | '4,32' | [4, 32], …} (CHIP_DEFAULTS, plans, form values) → "WC 4, 32 · BB 5, 33". */
 function chipsText(chips) {
   const parts = CHIP_KEYS.map((k) => {
     const v = chips?.[k];
@@ -45,11 +45,11 @@ function chipsText(chips) {
   return parts.length ? parts.join(' · ') : 'no chips';
 }
 
-/** summary.chips {gw: 'wc'} → "WC 4 · BB 5" in GW order. */
+/** summary.chips {gw: 'wc'} → "WC 4 · BB 5", GW order. */
 const playedChips = (chips) => Object.entries(chips || {}).sort((a, b) => a[0] - b[0]).map(([gw, c]) => `${String(c).toUpperCase()} ${gw}`).join(' · ');
 
-/** Progress of a running backtest from its log: the committed table prints one row per solved round
- * under "COMMITTED (rounds a-b)" (solver/data_io/results.py ResultsTable.row). */
+/** Progress from the log: one committed-table row per solved round under "COMMITTED (rounds a-b)" (results.py
+ * ResultsTable.row). */
 function progressOf(log) {
   const i = log.lastIndexOf('COMMITTED (rounds ');
   if (i < 0) return null;
@@ -89,7 +89,7 @@ export default {
     let alive = true;
     let meta = null, F = {}, flagsData = null;
     let form = null;          // {values, mode, label}
-    let shownId = null;       // the job in the result card
+    let shownId = null;
     let resSeq = 0;
     let past = null;          // GET /api/backtests
     let pastTimer = 0, pvTimer = 0, pvSeq = 0, ovSeq = 0;
@@ -124,7 +124,7 @@ export default {
       return [`Backtest ${v.season} ${gwSpan(v.from_r, v.to)}`, chips, v.dir, n && `+${n} flag${n > 1 ? 's' : ''}`].filter(Boolean).join(' · ');
     }
 
-    // Parts of the form repainted on change (the rest is built once by renderForm).
+    // Repainted on change; the rest is built once by renderForm.
     let modeBox, toHint, extraBtn, labelInput, cmdCode, cmdWarn, runBtn;
 
     function setVal(k, v) {
@@ -140,7 +140,7 @@ export default {
       pvTimer = setTimeout(preview, 250);
     }
 
-    /** POST /api/flags/argv → {cmd, errors (the solver would stop), warnings}; painted under the command. */
+    /** POST /api/flags/argv → {cmd, errors (solver would stop), warnings}, shown under the command. */
     async function preview() {
       const my = ++pvSeq;
       try {
@@ -170,7 +170,7 @@ export default {
 
     function paintMode() {
       const { season } = form.values;
-      // main.py: before 2025 only the last FH/BB/TC round given is played (one of each chip)
+      // main.py: before 2025 only the last FH/BB/TC round is played
       const early = season < 2025 && form.mode !== 'none' && form.mode !== 'auto'
         ? h('p.small.muted', null, `In ${season} only the last Free Hit, Bench Boost and Triple Captain round given is played.`) : null;
       const defaults = meta.chip_defaults?.[season];
@@ -196,7 +196,6 @@ export default {
       else {
         body = [
           h('div.grid-2.bt-chips', null, CHIP_KEYS.filter((k) => F[k]).map((k) => flagControl(F[k], form.values[k], (v) => setVal(k, v), { meta }))),
-          // main.py fills each chip left blank from CHIP_DEFAULTS
           h('p.small.muted', null, `A chip left blank keeps its season default. ${defText}`),
         ];
       }
@@ -205,7 +204,6 @@ export default {
 
     function paintTo() {
       const { season } = form.values;
-      // main.py: no --to ends at the next deadline (live season) or the season's last round
       toHint.textContent = season === meta.season && meta.next_gw
         ? `Blank = up to GW${meta.next_gw}, the next deadline (not played yet: no actual points).`
         : 'Blank = the last round of the season.';
@@ -312,7 +310,7 @@ export default {
         jobStatusPill(job.status),
         job.values ? h('button.btn.sm', { type: 'button', title: 'Put these settings in the form', onClick: () => loadIntoForm(job.values) }, icon('reset', { size: 14 }), 'Load settings') : null,
         h('a.btn.sm.ghost', { href: `#/runs?job=${enc(job.id)}` }, 'Open in Runs'));
-      if (!committedCells(result).cells.length) {  // no result, or it failed before the first round
+      if (!committedCells(result).cells.length) {  // no result, or failed before round 1
         return [head, cmdBlock(job, { ran: false }), errorBlock(job, result) || empty('This backtest left no result.'),
           warningsBlock(result), logBlock(job, { open: job.status === 'error' && !result?.traceback })];
       }
@@ -413,7 +411,7 @@ export default {
       empty: 'No backtests yet.', onRow: (r) => showJob(r.id), rowClass: (r) => r.id === shownId && 'is-selected',
     });
 
-    /** → true when ticked runs were dropped (deleted or no longer done). */
+    /** → true when ticked runs were dropped (deleted or not done). */
     function paintPast() {
       if (!past) return false;
       const runs = past.runs || [];
@@ -461,7 +459,7 @@ export default {
       const tables = past?.canonical || [];
       const src = past?.canonical_source;
       const key = `${src?.mtime_epoch}:${tables.length}`;
-      if (key === canonKey) return;  // unchanged: keep the open tables as they are
+      if (key === canonKey) return;
       canonKey = key;
       if (!tables.length) return canonCard.setBody(empty('No canonical results file (ml/solver/sweeps/canonical_results.md).'));
       const sections = new Map();

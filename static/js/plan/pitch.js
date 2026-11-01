@@ -1,8 +1,8 @@
 // The planner's pitch: kit shirts in formation rows, a bench strip, per-player xPts and opponent chips.
-//   renderPitch({...}) → <div class="pp">       renderMiniPlayer({player}) → shirt 28px + name + club · pos
-//   mountPitch(host, {...}) → host              Forkcast's phone pitch (static/m/): FPL-style turf, plates, bench panel
-// Player rows are /api/players rows ({name, club, pos, xp[], fixtures[][], status, chance, news}); their
-// xp[i] / fixtures[i] are for GW horizon[0] + i.
+//   renderPitch({...}) → <div class="pp">
+//   mountPitch(host, {...}) → host      Forkcast's phone pitch (static/m/)
+// Player rows are /api/players rows ({name, club, pos, xp[], fixtures[][], status, chance, news}); xp[i] / fixtures[i]
+// are for GW horizon[0] + i.
 
 import { h, svg, fin, fmt, posName, posCode, statusDot, statusInfo, chipName, uid, reduceMotion, xpNum } from '../ui.js';
 import { shirt } from './kits.js';
@@ -23,9 +23,8 @@ export function xpAt(p, gw, horizon) {
 }
 
 /**
- * One fixture as {opp: 'SUN', home, fdr}: from /api/players ({opp, home, fdr}) or the phone bundle's cased code
- * (mobile.py _players: "LEE" at home, "sun" away) with its FDR from the row's parallel `fdr` list. fdr: FPL's fixture
- * difficulty for the player's club, 1 easy .. 5 hard, null when unknown.
+ * One fixture as {opp: 'SUN', home, fdr}: from /api/players or the phone bundle's cased code ("LEE" at home, "sun"
+ * away) with its FDR from the row's parallel `fdr` list (1 easy .. 5 hard, null when unknown).
  */
 const fixtureOf = (f, fdr) => {
   const d = typeof f === 'string' ? fdr : f?.fdr;
@@ -42,9 +41,8 @@ export function fixturesAt(p, gw, horizon) {
   return Array.isArray(day) ? day.map((f, j) => fixtureOf(f, p?.fdr?.[i]?.[j])) : null;
 }
 
-/** One opponent, the app's one fixture format: its code in its venue's case, "LEE" at home, "sun" away (the user,
- *  2026-10-16, on the Why sheet and the player card; on the pitch too since Dana's first use, 2026-10-21: its "LEE H"
- *  beside their "liv" was two styles for one fact). {opp, home} → text */
+/** One opponent, the app's one fixture format: its code in its venue's case, "LEE" at home, "sun" away (owner,
+ *  2026-10-16). {opp, home} → text */
 export const oppText = (f) => (f.home === false ? String(f.opp).toLowerCase() : String(f.opp).toUpperCase());
 
 /** Opponents: "sun", "LEE", a DGW both ("LEE, sun"), a blank "—"; '' when unknown. */
@@ -118,15 +116,12 @@ function markings() {
 
 /**
  * renderPitch({xi, bench, captain, vice, players, gw, horizon, chip, incoming, onPlayer(id, evt), selectable,
- *              highlight, animate, caption}) → <div class="pp">
- *   players   {id: row} or Map(id → row) from /api/players (or engine output with the same fields)
- *   gw        the GW shown; horizon = [first GW, …] (or the first GW) that row.xp / row.fixtures start at
- *   chip      'wc'|'fh'|'bb'|'tc'|null: TC shows the captain as 3×, BB marks the bench as counting
- *   incoming  Set of ids bought this GW (green ring + "IN"); animate: Set of ids to pop in
- *   selectable Set|null: when set, only these ids (and highlighted ones) are clickable, the rest dim
- *   highlight Set|null: ids drawn as selected (accent ring)
- *   caption   true adds "Captain: X · Vice: Y · Bench in order shown" under the bench
- * Players without onPlayer render as plain (non-interactive) nodes. Ids compare as numbers.
+ * highlight, animate, caption}) → <div class="pp">: players {id: row} | Map from /api/players; gw the GW shown,
+ * horizon = [first GW, …] that row.xp / row.fixtures start at; chip 'wc'|'fh'|'bb'|'tc'|null (TC shows the captain as
+ * 3×, BB marks the bench as counting); incoming: ids bought this GW (green ring + "IN"); animate: ids to pop in;
+ * selectable: Set|null, only these (and highlighted) are clickable, the rest dim; highlight: ids drawn selected;
+ * caption: adds "Captain: X · Vice: Y · Bench in order shown". Players without onPlayer render as plain nodes. Ids
+ * compare as numbers.
  */
 export function renderPitch({
   xi = [], bench = [], captain, vice, players = {}, gw, horizon, chip, incoming, onPlayer,
@@ -165,38 +160,24 @@ export function renderPitch({
 
 // ---------------------------------------------------------------- list row
 
-/**
- * renderMiniPlayer({player, sub}) → <span class="pp-mini">: 28px shirt, name (+ status dot), "CLUB · POS"
- * (or `sub`, text or a Node). `gw` is accepted for symmetry with renderPitch and not used.
- */
-export function renderMiniPlayer({ player: p, sub } = {}) {
-  const pos = posName(p?.pos);
-  return h('span.pp-mini', null,
-    h('span.pp-mini-kit', null, shirt({ club: p?.club, gk: pos === 'GK', size: 28 })),
-    h('span.pp-mini-txt', null,
-      h('span.pp-mini-name', null, h('span.pp-mini-nm', null, p?.name ?? DASH), statusDot(p?.status, { chance: p?.chance, news: p?.news })),
-      h('span.pp-mini-sub', null, sub ?? [p?.club, pos].filter(Boolean).join(' · '))));
-}
 
 // ---------------------------------------------------------------- phone pitch (Forkcast, static/m/)
-// Classes pm-*, styled by css/views/plan-pitch.css. FPL's own pick-team look (DESIGN_V2 §4): an edge-to-edge striped
-// turf in a 390 × 446 box clipped to a perspective top, a goal over the goal line, shirt tiles with a white name plate
-// and a light second plate ("SUN (A) 4.2"), and the bench as a lighter panel under it. Stable slots keep a changed
-// player in his slot, where his shirt fades in (css/m.css: the back face is never shown, no flip; B147, the user,
-// 2026-10-10: keep the fade), and the armband hops (IPHONE_DESIGN §5.2, §6).
+// Classes pm-*, styled by css/views/plan-pitch.css: FPL's pick-team look. Stable slots keep a changed player in his
+// slot, where his shirt fades in (css/m.css: no flip; owner, 2026-10-10), and the armband hops (IPHONE_DESIGN §5.2,
+// §6).
 
 const PM_ROWS = [...ROWS, 'other'];
 const POS_WORD = { GK: 'goalkeeper', DEF: 'defender', MID: 'midfielder', FWD: 'forward' };
 const PREVIEW_WORD = { O: 'predicted out', D: 'doubtful', DS: 'doubtful', B: 'predicted on the bench' };
 const asSetOrNull = (s) => (s ? asSet(s) : null);
 
-/** The pitch box and its rows (DESIGN_V2 §4): row tops in px of the 446 px box; unknown positions share FWD's. */
+/** The pitch box and its rows: row tops in px of the 446 px box; unknown positions share FWD's. */
 const PW = 390, PH = 446;
 const ROW_TOP = { GK: 13, DEF: 120, MID: 226, FWD: 332, other: 332 };
 
 /**
- * The flag (B4): FPL's availability only (status and chance, statusInfo): 'red' when he is out or 25% or less, 'amber'
- * for any other doubt, else null. WhoScored's predicted lineup is never a flag (availabilityWords speaks it).
+ * The flag: FPL's availability only (status and chance, statusInfo): 'red' when out or 25% or less, 'amber' for any
+ * other doubt, else null. WhoScored's lineup is never a flag.
  */
 export function availabilityTone(p) {
   if (!p) return null;
@@ -212,8 +193,7 @@ const chanceText = (p) => {
   return c == null ? '' : `${c}%`;
 };
 // WhoScored's preview of the next deadline's GW (ws_preview: O out, D / DS doubtful, B bench) is spoken on the card
-// (availabilityWords) and written on the player sheet; its grey tag ("bench?", "doubt?") went on 2026-10-09 (the user:
-// "remove these labels").
+// (availabilityWords) and written on the player sheet, with no tag (owner, 2026-10-09).
 
 function availabilityWords(p, first) {
   const st = statusInfo(p?.status, p?.chance);
@@ -222,10 +202,9 @@ function availabilityWords(p, first) {
 }
 
 /**
- * Stable slots: each position row keeps the last mount's order, and a player who replaces one in a row of
- * the same size takes his slot (flips: new id → old id), so a transfer morphs in place. The order outlives the page
- * (B4: a reload drew the plan's own xi order, "Bassey, De Cuyper, Calafiori" where the session had "De Cuyper,
- * Calafiori, Bassey"): this browser keeps the last one (ORDER_KEY), a convenience only (any storage error: none).
+ * Stable slots: each position row keeps the last mount's order, and a player who replaces one in a row of the same
+ * size takes his slot (flips: new id → old id), so a transfer morphs in place. This browser keeps the last order
+ * across page loads (ORDER_KEY).
  */
 const ORDER_KEY = 'fc:pitch:order';
 function storedOrder() {
@@ -255,12 +234,12 @@ function arrangeRows(prev, xi, posOf) {
   return { rows, flips };
 }
 
-/** A shirt on the turf: a green-family goalkeeper colour turns grey there (kits.js `turf`); in FPL's own 220 × 290 frame
- *  (`tall`), so a drawn and an official shirt sit the same in the tile (plan-pitch.css .pm-face). */
+/** A shirt on the turf: a green-family goalkeeper colour turns grey there (kits.js `turf`); in FPL's 220 × 290 frame
+ *  (`tall`), so a drawn and an official shirt sit the same. */
 const face = (p, side) => h(`span.pm-face.${side}`, null, shirt({ club: p?.club, gk: posName(p?.pos) === 'GK', size: 64, turf: true, tall: true }));
 
-/** FPL's flag at the tile's top-right: a yellow (doubt) warning triangle, or a red (out, ≤ 25%) no-entry disc (a shape of
- *  its own, so out and doubt differ without colour: design 1028c P2-states, H14, J10), and his chance ("75%"). */
+/** FPL's flag at the tile's top-right: a yellow (doubt) warning triangle, or a red (out, ≤ 25%) no-entry disc, and his
+ *  chance ("75%"). */
 const flag = (tone, words) => h('span.pm-flag', { class: tone, 'aria-hidden': 'true' },
   svg('svg', { class: 'pm-flag-g', viewBox: '0 0 15 13' }, ...(tone === 'red' ? [
     svg('circle', { class: 'pm-flag-t', cx: 7.5, cy: 6.5, r: 6.1 }),
@@ -271,15 +250,10 @@ const flag = (tone, words) => h('span.pm-flag', { class: tone, 'aria-hidden': 't
   words ? h('span.pm-flag-w', null, words) : null);
 
 /**
- * Where the plan's lineup differs from your FPL team (mountPitch `fpl`: {xi, bench, captain, vice} as FPL has them, GW A
- * only) → Map(id → {move, arm}): move 'start' for one the plan starts who sits on your FPL bench, 'bench' for one it
- * benches who starts in FPL; arm 'c' on your FPL captain where the plan's armband is on someone else (no mark for your
- * FPL vice: the user, 2026-10-13, "not show future vice captains like on haaland here, only future captains like on
- * saka"). The
- * review of 2026-10-08: the pitch drew the plan's XI, bench and armbands as if they were yours, unmarked (Haaland your
- * FPL captain, the plan's B.Fernandes drawn as the C; Kerkez and Egan starting in FPL, the plan's Slater and Thomas
- * drawn in their place). A buy (in no FPL squad) has none: his "IN" says it; nor does a player the plan sells; nor the
- * bench order (the owner: the lineup and armband get little attention, the plan picks them).
+ * Where the plan's lineup differs from your FPL team (mountPitch `fpl`, GW A only) → Map(id → {move, arm}): move
+ * 'start' for one the plan starts who sits on your FPL bench, 'bench' for one it benches who starts in FPL; arm 'c' on
+ * your FPL captain where the plan's armband is elsewhere (no mark for your FPL vice: owner, 2026-10-13). None for a
+ * buy, a player the plan sells, or the bench order.
  */
 export function fplMarks(fpl, { xi = [], bench = [], captain = null } = {}) {
   const out = new Map();
@@ -295,24 +269,21 @@ export function fplMarks(fpl, { xi = [], bench = [], captain = null } = {}) {
   if (fc != null && fc !== n(captain) && shown.has(fc)) put(fc, 'arm', 'c');
   return out;
 }
-// "↑ start" / "↓ bench" tags went on 2026-10-09 (the user: "remove these labels"), the hollow C on 2026-10-15 (the user:
-// "why there is white cap on saka despite him not in plan to be capped", "fix bug with white c on saka"); each difference
-// stays spoken (FPL_MOVE_SAID, FPL_ARM_SAID)
+// each difference is spoken (FPL_MOVE_SAID, FPL_ARM_SAID), not drawn (owner, 2026-10-09, 2026-10-15)
 const FPL_MOVE_SAID = { start: 'on your FPL bench: the plan starts him', bench: 'starts in your FPL team: the plan benches him' };
 const FPL_ARM_SAID = { c: 'your FPL captain' };
-/** A planned buy, spoken as the lineup's differences are (B55, Podmajersky: "bought in GW6" read as a transfer made):
- *  "not in your FPL team: the plan buys him in GW6", " for Scott" with the player he replaces. */
+/** A planned buy, spoken as the lineup's differences are: "not in your FPL team: the plan buys him in GW6", " for
+ *  Scott" with the player he replaces. */
 const fplBuySaid = (gw, by = null) => `not in your FPL team: the plan buys him in GW${gw}${by ? ` for ${by}` : ''}`;
 /** …one of your FPL team the plan sells and buys back this GW (tagged IN: inFor), said as his tag is drawn. */
 const buyBackSaid = (gw, by = null) => `the plan buys him back in GW${gw}${by && by !== true ? ` for ${by}` : ''}`;
 
-/** A card's points as its plate shows them: his forecast as every other place shows it (one decimal: his spoken label,
- *  his card, the Why sheet) times the armband's `mult`, so the captain's is twice the figure shown for him (Dana, first
- *  use 2026-10-21: Haaland 13.1 on the plate, 6.6 on his card: his forecast doubled before it was rounded); "—" unknown. */
+/** A card's points as its plate shows them: his forecast (one decimal) times the armband's `mult`, so the captain's is
+ *  twice the figure shown for him; "—" unknown. */
 export const platePts = (xp, mult = 1) => (xp == null ? DASH : fmt.pts(Number(xp.toFixed(1)) * mult));
 
-/** The second plate's content (F16 Player data, mountPitch `second`): fixture and points, one of them, or a text of the
- *  caller's ({label, text(id, p)}: a price, an ownership…) → [kids, the words it adds to the card's label]. */
+/** The second plate's content (mountPitch `second`): fixture and points, one of them, or a caller's text ({label,
+ *  text(id, p)}) → [kids, the words it adds to the card's label]. */
 function secondPlate(id, p, o, fx, pts, approx) {
   // each opponent in a pale tint of FPL's FDR colour for this GW (plan-pitch.css .pm-opp.fdr-N); a blank or unknown week stays plain
   const fxEl = () => h('span.pm-fx', null, !fx?.length ? oppLabel(fx) || DASH
@@ -330,15 +301,12 @@ function secondPlate(id, p, o, fx, pts, approx) {
   return [h('span.pm-pf', null, fxEl(), ptsEl()), null];
 }
 
-/** N13 / A12 / B27: a fixture that doesn't fit beside its points (a double's two) takes a line
- *  of its own over them, its venue kept (.pm-pf.two: two plate heights, its card's tile one plate flatter, so the card
- *  keeps its height: plan-pitch.css); one still too wide there ellipsises. Measured on every
- *  box around it that ellipsises (the fixture's .pm-fx and its plate .pm-pf, both text-overflow: ellipsis), and on its
- *  text's own width (a Range: a sub-pixel overflow still ellipsises where scrollWidth rounds it away). */
-/** Each card's fixture beside its points where it fits, else on a line of its own (B27).
- *  The points' "xP" marker (secondPlate) goes first where the line is short (.nomark), and comes back on a points line
- *  of its own (the user, 2026-10-22: the number never cut); gone on one card, gone on every card of `root`. Exported
- *  for a host drawing pitchCard's cards (Ahead's place), measured once they are in the document. */
+/** A fixture that doesn't fit beside its points (a double's two) takes a line of its own over them, its venue kept
+ *  (.pm-pf.two: plan-pitch.css); one still too wide ellipsises. Measured on every box that ellipsises (.pm-fx, .pm-pf)
+ *  and on its text's own width (a Range: scrollWidth rounds a sub-pixel overflow away). */
+/** Each card's fixture beside its points where it fits, else on a line of its own. The points' "xP" marker goes first
+ *  where the line is short (.nomark) and comes back on a points line of its own (owner, 2026-10-22: the number is never
+ *  cut); gone on one card, gone on every card of `root`. Exported for a host drawing pitchCard's cards. */
 export function fitFixtures(root) {
   const range = document.createRange();
   const over = (fx) => {
@@ -358,20 +326,16 @@ export function fitFixtures(root) {
   const lone = [...root.querySelectorAll('.pm-pf:not(:has(.pm-fx)):has(.xp-u)')];
   for (const pf of lone) pf.classList.remove('nomark');
   for (const pf of lone.filter((x) => x.scrollWidth > x.clientWidth + 0.5)) pf.classList.add('nomark');
-  // one look across the cards (the owner, 2026-10-27, "fix all": the cards' "xP" as the plates' and the tokens' beside
-  // the goal, ahead.js renderDecks oneXp): dropped on one card, dropped on all; a fixture on a line of its own (.two)
-  // drops none by itself
+  // one look across the cards (owner, 2026-10-27): dropped on one card, dropped on all (ahead.js renderDecks oneXp)
   const marked = [...root.querySelectorAll('.pm-pf:has(.xp-u)')];
   if (marked.some((pf) => pf.classList.contains('nomark'))) for (const pf of marked) pf.classList.add('nomark');
 }
 
 /**
- * One player card, on the pitch (.pm-pl) or the bench (.pm-bs, `order` = 'goalkeeper' | 'substitute n'): a shirt
- * tile (C / V top-left, a flag top-right, "OUT GW8" bottom-right when a caller passes `sold`; where the plan differs
- * from your FPL team, `fpl`: nothing drawn, said on the card), the
- * name plate (flag-coloured when flagged, else ink when bought this GW, ink-ringed when bought in an earlier GW of the
- * plan, dark when sold later: F16) and the second plate: what
- * `second` says (fixture and points by default).
+ * One player card, on the pitch (.pm-pl) or the bench (.pm-bs, `order` = 'goalkeeper' | 'substitute n'): a shirt tile
+ * (C / V top-left, a flag top-right, "OUT GW8" bottom-right when a caller passes `sold`; where the plan differs from
+ * your FPL team, `fpl`: said on the card, not drawn), the name plate (flag-coloured when flagged, else ink when bought
+ * this GW, ink-ringed when bought earlier in the plan, dark when sold later) and the second plate.
  */
 function card(id, P, o, { flipFrom = null, order = null } = {}) {
   const p = P(id);
@@ -384,21 +348,19 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
   const tone = availabilityTone(p);
   const blank = Array.isArray(fx) && !fx.length;
   const dgw = fx?.length > 1;
-  const bought = o.bought?.[id] ?? null;  // the GW he was bought in (F16), when he is not in the real squad
+  const bought = o.bought?.[id] ?? null;  // the GW he was bought in, when he is not in the real squad
   const sold = o.sold?.[id] ?? null;  // the GW the plan sells him in, when it does after this one
   const approx = o.approx === true || !!o.approx?.has(id);
-  // the captain's points doubled (tripled with a Triple Captain), as FPL shows them, the C badge saying why (the user,
-  // 2026-10-14: "why haaland design fucked with points moved to next row": M9's "6.1 × 2" was 36 px beside a 28 px
-  // fixture on a 62 px plate at 375, so the captain's alone took two lines); his card's spoken label says "6.1 times 2"
+  // the captain's points doubled (tripled with a Triple Captain), as FPL shows them, the C badge saying why (owner,
+  // 2026-10-14); his spoken label says "6.1 times 2"
   const pts = platePts(xp, mult);
-  // M9 / M5: the ink plate a buy of this GW only (an earlier week's buy keeps `bought`: an ink ring inside his plain plate,
-  // plan-pitch.css, the owner 2026-10-26); with `inFor` every buy of the week, one of your FPL team
-  // bought back too (his Why sheet's: o.why): his name plate ink (`is-in`, plan-pitch.css: no badge, no green; the owner,
-  // 2026-10-25, "not with green tab and sign 'in' in it"), the player he replaces in his spoken label and his Why sheet
+  // the ink plate a buy of this GW only (an earlier week's buy keeps `bought`: an ink ring inside his plain plate);
+  // with `inFor` every buy of the week, one of your FPL team bought back too: his name plate ink (`is-in`: no badge, no
+  // green; owner, 2026-10-25), the player he replaces in his spoken label and his Why sheet
   const by = o.inFor?.[id];  // the player he replaces, or true in a squad week (a Wildcard or Free Hit)
   const tagIn = by != null || (bought != null && bought === o.gw) ? 'IN' : null;
-  // where the plan differs from your FPL team (fplMarks, GW A only): your FPL captain, a sub or a start the plan makes
-  // spoken on the card, not drawn
+  // where the plan differs from your FPL team (fplMarks, GW A only): your FPL captain, a sub or a start are spoken on
+  // the card, not drawn
   const mk = o.marks?.get(id) ?? null;
   const [plate2, said] = secondPlate(id, p, o, fx, pts, approx);
   const spoken = [order ? `${order}: ${name}` : name, POS_WORD[pos], p?.club,
@@ -453,39 +415,33 @@ function turf() {
 
 const benchLabel = (chipKey) => (chipKey === 'bb' ? 'Bench, in order (Bench Boost: it counts)' : 'Bench, in order');
 
-/** Each sub's place in FPL's bench order: the outfield subs 1, 2, 3 as the bench lists them, the keeper none (his card's
- *  "substitute 1", a sub's toast's "1st", his list's title: ahead.js sub, subSheet). posOf(id) → 'GK' | … → Map(id → n | null) */
+/** Each sub's place in FPL's bench order: the outfield subs 1, 2, 3 as the bench lists them, the keeper none. posOf(id)
+ *  → 'GK' | … → Map(id → n | null) */
 export function subOrder(bench, posOf) {
   let n = 0;
   return new Map((bench || []).map(Number).map((id) => [id, posOf(id) === 'GK' ? null : ++n]));
 }
-/** A sub's label over his card, FPL's: "1 · DEF" in its bench order (subOrder's n), "GKP" for the keeper (FPL's code, B119) (the user,
- *  2026-10-21: fix all, first-use proposal #5; Tom had no order numbers, only GKP / DEF). */
+/** A sub's label over his card: "1 · DEF" in its bench order (subOrder's n), "GKP" for the keeper (owner, 2026-10-21). */
 export const benchTag = (pos, n) => (n == null ? posCode(pos) ?? 'GKP' : `${n} · ${posCode(pos) ?? ''}`);
-/** A sub's order as Ahead's bench label reads it, "1st", "2nd", "3rd" (fmt.ordinal; the owner, 2026-10-22: a bare "1"
- *  over a tab whose count and part marks are bare numbers too), the keeper's none: benchTag's order with its ending
- *  (.pm-blo, drawn only where a host shows it: m-ahead.css). */
+/** A sub's order as Ahead's bench label reads it, "1st", "2nd", "3rd" (owner, 2026-10-22), the keeper's none:
+ *  benchTag's order with its ending (.pm-blo, drawn only where a host shows it). */
 export const benchNth = (n) => (n == null ? '' : fmt.ordinal(n));
 /** A sub's place as his card and his label say it: "substitute 1" (subOrder's n), "goalkeeper" for the keeper. */
 const benchOrder = (n) => (n == null ? 'goalkeeper' : `substitute ${n}`);
-/** A sub's label's spoken name (benchPanel's button): the label as it reads first, so voice control finds it by what it
- *  shows (WCAG 2.5.3 Label in Name; the review of the first-use proposals, 2026-10-21: "1 · DEF" was named "substitute
- *  1: Thomas, …" and "GKP" "goalkeeper: …"), then his card's words for him and what a tap does: "1 · DEF, substitute 1:
- *  Thomas, pick who he replaces". */
+/** A sub's label's spoken name: the label as it reads first, so voice control finds it by what it shows (WCAG 2.5.3),
+ *  then his card's words and what a tap does: "1 · DEF, substitute 1: Thomas, pick who he replaces". */
 export const benchTagSaid = (pos, n, name) => `${benchTag(pos, n)}, ${benchOrder(n)}: ${name}, pick who he replaces`;
 
 /** The bench panel: a lighter panel over the turf's fade, GKP / 1 · DEF / 2 · DEF / 3 · FWD (benchTag) over full-size
- *  cards, in bench order; with `o.onBench` each label a button, the whole label its target (Ahead: the starters he can
- *  replace, the user 2026-10-21: fix all, first-use proposal #5; Tom: "Where's the 'sub him on' button?"). */
+ *  cards, in bench order; with `o.onBench` each label a button, the whole label its target. */
 function benchPanel(bench, P, o, posOf, chipKey) {
   const nos = subOrder(bench, posOf);
   const bo = { ...o, captain: null, vice: null, animate: null };
   return h('div.pm-benchzone', null, h('div.pm-bench', { role: 'group', 'aria-label': benchLabel(chipKey) },
     bench.map((id) => {
       const n = nos.get(id), order = benchOrder(n), pos = P(id)?.pos;
-      // its position's part (.pm-blp: "GKP", " · DEF") a host may leave out and its order's ending (.pm-blo: "st") a host
-      // may show (Ahead: "1st", the user, 2026-10-22: "text itself like 'GKP' is too large and unnecessary", then the
-      // owner, the same day: "1st", "2nd", "3rd"; m-ahead.css), its spoken name the whole label's
+      // its position's part (.pm-blp: "GKP", " · DEF") a host may leave out and its order's ending (.pm-blo: "st") a
+      // host may show (Ahead: "1st"), its spoken name the whole label's
       const t = benchTag(pos, n), at = t.indexOf(' · ');
       const tag = h('span', null, at < 0 ? h('span.pm-blp', null, t)
         : [t.slice(0, at), h('span.pm-blo', null, benchNth(n).slice(String(n).length)), h('span.pm-blp', null, t.slice(at))]);
@@ -514,9 +470,8 @@ function armbandHop(root, fromRect, captain) {
 }
 
 /**
- * One card as mountPitch draws it, on its own (Ahead's place: a player's choices dealt out in his row): the same tile,
- * plates and marks for player `id` in GW `gw`; `order` makes it a bench card ('substitute n' / 'goalkeeper'); the rest of
- * the options are mountPitch's (players, horizon, second, bought, inFor, approx, onPlayer). → the card's node
+ * One card as mountPitch draws it, on its own (Ahead's place): the same tile, plates and marks for player `id` in GW
+ * `gw`; `order` makes it a bench card; other options are mountPitch's. → the card's node
  */
 export function pitchCard(id, { players = {}, gw, horizon, second = 'both', bought = null, inFor = null, approx = false, onPlayer = null, order = null, first = false } = {}) {
   const o = { gw, horizon: horizon ?? gw, first, capPoints: true, onPlayer, bought, inFor, second, captain: null, vice: null,
@@ -525,37 +480,27 @@ export function pitchCard(id, { players = {}, gw, horizon, second = 'both', boug
 }
 
 /**
- * mountPitch(host, opts) → host: Forkcast's phone pitch. Call it again on the same host to update it; host
- * keeps the slots and the captain between calls (host._pm) and owns its children. The pitch scales from its
- * width (a 390 × 446 box at 390 wide, cards 62–72 px).
- *   xi, bench, captain, vice, chip, players, gw, horizon   as renderPitch (horizon: GWs row.xp starts at)
+ * mountPitch(host, opts) → host: Forkcast's phone pitch. Call again on the same host to update it (host._pm keeps the
+ * slots and captain; host owns its children). Scales from its width.
+ *   xi, bench, captain, vice, chip, players, gw, horizon   as renderPitch
  *   first      gw is the next deadline's GW: WhoScored's preview feeds the flags
- *   bought     {id: gw}: players not in the real squad, each with the GW he was bought in (F16): an ink name plate
- *              in the GW he was bought in (M9), an ink ring inside his plain plate in the plan's later weeks (the
- *              owner, 2026-10-26; a flag's colour wins, the ring kept over it)
- *   inFor      {id: name | true}: this GW's buys, each with the player he replaces: the ink name plate, the player he
- *              replaces in his spoken label (M5; the user, 2026-10-22); true in a Wildcard / Free Hit week
- *   second     the second plate (F16 Player data): 'both' (default, "LEE (H) 4.6"), 'fx' ("LEE (H)"), 'pts' ("4.6"),
- *              or {label, text(id, row) → string} (a price, an ownership…; read out as "<label> <text>")
- *   sold       {id: gw}: players the plan sells after this GW: a dark name plate (a flag's or a buy's colour wins)
- *              and an "OUT GW8" tag on the tile; read out "sold in GW8"
- *   approx     true or ids: "≈" before the points (a phone estimate the solver hasn't confirmed)
- *   capPoints  (default true) the captain's plate shows his points ×2, ×3 under TC, as FPL shows them
- *   animate    ids whose shirt pops in       flip (default true) a slot whose player changed keeps its place, his shirt fading in
- *   benchRow   the bench panel under the pitch (GKP / 1 · DEF / 2 · DEF / 3 · FWD, in bench order: benchTag)
- *   fpl        {xi, bench, captain, vice}: your FPL team, to say where this lineup differs from it (fplMarks: a
- *              starter it benches, a sub it starts, its captain where the plan's armband is elsewhere; said on each
- *              card, never drawn); only for a GW it shows the team for (Ahead: GW A)
- *   why        ids whose tap opens their transfer's Why sheet (Ahead: the week's buys, the pitch research's 4a): their
- *              card says so ("; shows why"), as a row's main part does
- *   gapRows    the rows placed by the host's CSS, not by ROW_TOP's share of the field (Ahead: a fixed gap between rows for
- *              the card behind each player, its row tops m-ahead.css's, that share their floor: --pm-share; the root says
- *              data-rows="gap")
- *   onPlayer(id, evt) on tap; label overrides the field's aria-label.
- *   onBench(id, evt) on a tap on a sub's label over his card (benchRow; benchTag: "1 · DEF", "GKP"): each label a button
- * Each card carries data-pts, its points as drawn.
- * Gesture hooks: each starter is .pm-pl[data-id] (a button when onPlayer is set), the captain's badge is
- * .pm-badge[data-badge="c"]; bench cards are .pm-bs[data-id], their labels .pm-bl (buttons, data-id, with onBench).
+ * bought     {id: gw}: players not in the real squad and the GW each was bought in (ink name plate that GW, ink ring
+ * later; a flag's colour wins)
+ *   inFor      {id: name | true}: this GW's buys with the player each replaces; true in a Wildcard / Free Hit week
+ * second     'both' (default, "LEE (H) 4.6"), 'fx', 'pts', or {label, text(id, row) → string} (read out as "<label>
+ * <text>")
+ *   sold       {id: gw}: players the plan sells after this GW: dark name plate and an "OUT GW8" tag
+ *   approx     true or ids: "≈" before the points (an unconfirmed phone estimate)
+ *   capPoints  (default true) the captain's plate shows ×2, ×3 under TC
+ *   animate    ids whose shirt pops in;  flip (default true): a changed slot keeps its place, his shirt fading in
+ *   benchRow   the bench panel (benchTag labels)
+ * fpl        {xi, bench, captain, vice}: your FPL team, to say where this lineup differs (fplMarks); only for the GW
+ * it shows the team for (Ahead: GW A)
+ *   why        ids whose tap opens their Why sheet (their card says "; shows why")
+ *   gapRows    rows placed by the host's CSS, not ROW_TOP (m-ahead.css --pm-share; data-rows="gap")
+ * onPlayer(id, evt) on tap; label overrides the field's aria-label. onBench(id, evt) on a sub's label (each a button)
+ * Each card carries data-pts. Hooks: starters .pm-pl[data-id] (a button with onPlayer), the captain's badge
+ * .pm-badge[data-badge="c"]; bench cards .pm-bs[data-id], labels .pm-bl (buttons with onBench).
  */
 export function mountPitch(host, {
   xi = [], bench = [], captain, vice, chip, players = {}, gw, horizon, first = false,
@@ -597,9 +542,7 @@ export function mountPitch(host, {
   st.fit = fitKey(root);
   // a web font landing after the first fit widens the text: fit again then
   document.fonts?.ready.then(() => { if (root.isConnected) fitFixtures(root); });
-  // the cards scale with the pitch and their type with the text size: a new width or a new text size fits the fixtures
-  // again (a text size alone leaves a pitch at its height floor as it was: the 2026-10-12 fit run's 375 × 562 kept the
-  // two-line fixtures a 23 px text had, its rows 4 px into each other)
+  // the cards scale with the pitch and their type with the text size: a new width or text size fits the fixtures again
   if (!st.ro && typeof ResizeObserver === 'function') {
     st.ro = new ResizeObserver(() => {
       const r = host.querySelector(':scope > .pm');
@@ -622,10 +565,9 @@ export function mountPitch(host, {
 }
 
 /**
- * The chip of a pitch mounted on `host` (mountPitch) changed to `chip`, and nothing else: the root's data-chip and the
- * bench's label, as mountPitch draws them, without drawing every shirt again (the pitch shows no chip name: the strip
- * and the GW bar do). A Triple Captain on either side changes the captain's badge and points: that takes mountPitch, and
- * so does a host with no pitch on it. → whether it was done here
+ * The chip of a pitch mounted on `host` changed to `chip`, and nothing else: the root's data-chip and the bench's
+ * label, without redrawing shirts. A Triple Captain on either side changes the captain's badge and points: that takes
+ * mountPitch, as does a host with no pitch. → whether it was done here
  */
 export function setPitchChip(host, chip) {
   const root = host?.querySelector(':scope > .pm');

@@ -1,33 +1,22 @@
-// FPL Solver Studio (Dev mode) — app shell at /studio/: hash router, top bar (every tool as a tab, deadline,
-// running jobs, theme, the ⚙ menu), bottom tab bar on narrow windows, state store.
-// Forkcast (static/m/, at /m/) is the app; the Studio is its Dev mode for this computer only, so every tool
-// is always shown (server.py refuses /studio/ and these APIs to any other device: api/access.py).
+// FPL Solver Studio (Dev mode) — app shell at /studio/: hash router, top bar (tool tabs, deadline, running jobs, theme,
+// ⚙ menu), bottom tab bar on narrow windows, state store. Forkcast (/m/) is the app; the Studio is its Dev mode for
+// this computer only (api/access.py refuses other devices).
 //
-// View module contract — static/js/views/<name>.js:
-//   export default {
-//     route: 'lab',            // hash route, e.g. #/lab?entry=383130
-//     title: 'Solver lab',     // tab label and page heading
-//     icon: 'players',         // a ui.ICONS key, a 24×24 stroke SVG path ('M…'), or an emoji
-//     mount(el, ctx) { …; return cleanup }   // may be async; the optional cleanup runs when the route is left
-//   }
-//   ctx = { api, ui, state, params, route, dev, navigate(route, params), setParams(params), setTitle(sub) }
-//     api        static/js/api.js (one function per endpoint, pollJob)
-//     ui         static/js/ui.js (components, fmt)
-//     state      store: get(key, fallback), set(key, value | prev => next), update(key, patch),
-//                subscribe(key, fn(next, prev)) → unsubscribe. Persisted in localStorage (fss:<key>): planner
-//                {values, entry, preset, …}, compare (player ids, newest COMPARE_MAX kept), theme, lastEntry,
-//                playersFilters. Any other key lives in memory for the session.
-//     params     the hash query as {name: string}
-//     dev        always true: the Studio is Dev mode (kept for views written against the old toggle)
-//     navigate   go to a view; navigating to the current hash remounts it
-//     setParams  rewrite the current view's query string without remounting (shareable state)
-//     setTitle   secondary text beside the page heading (null clears)
+// View contract — static/js/views/<name>.js:
+// export default { route: 'lab' (hash route, e.g. #/lab?entry=383130), title: 'Solver lab' (tab label and heading),
+// icon: 'players' (a ui.ICONS key, a 24×24 stroke SVG path 'M…', or an emoji), mount(el, ctx) { …; return cleanup }
+// (may be async; cleanup runs when the route is left) }
+// ctx = { api (static/js/api.js: one function per endpoint, pollJob), ui (static/js/ui.js: components, fmt), state,
+// params ({name: string} from the hash query), route, dev (always true), navigate(route, params) (the current hash
+// remounts), setParams(params) (rewrite the query without remounting), setTitle(sub) (text beside the heading; null
+// clears) }
+// state: get(key, fallback), set(key, value | prev => next), update(key, patch), subscribe(key, fn(next, prev)) →
+// unsubscribe. Persisted in localStorage (fss:<key>): planner {values, entry, preset, …}, compare (player ids, newest
+// COMPARE_MAX kept), theme, lastEntry, playersFilters; other keys in memory.
 //
-// Routes: NAV are the tabs. Old links: #/planner and #/plan go to #/lab, keeping their query.
-// ⚙ → Open on iPhone (only when the server runs with --lan or --public): Forkcast's address for another
-// device as a QR and text (GET /api/meta access.urls). Nothing to pair: the phone just opens the address.
-// Jobs: the header announces a finished job with a toast unless an element with data-job-id="<id>" is in
-// the page (the view showing that job already tells the user).
+// NAV are the tabs; #/planner and #/plan go to #/lab, keeping their query. ⚙ → Open on iPhone (only with --lan or
+// --public): Forkcast's address as a QR and text (GET /api/meta access.urls). The header toasts a finished job unless
+// an element with data-job-id="<id>" is in the page.
 
 import * as api from './api.js';
 import * as ui from './ui.js';
@@ -165,8 +154,8 @@ darkMq.addEventListener('change', applyTheme);
 const menus = new Set();  // each open menu's close()
 
 /**
- * A button that opens a panel below it. Closes on Esc (focus back on the button), a click outside, and
- * a click on a link inside the panel. Up / Down move between the panel's links, buttons and inputs.
+ * Button opening a panel below it. Closes on Esc (focus back on the button), an outside click, or a link click inside;
+ * Up / Down move between its links, buttons, inputs.
  */
 function dropdown(root, { button, panel, label }) {
   const panelId = ui.uid('menu');
@@ -219,7 +208,7 @@ const settings = dropdown($('settings-menu'), {
 });
 settings.btn.classList.add('icon-btn');
 
-/** ⚙ → Open on iPhone, when the server answers other devices (--lan / --public: access.urls). */
+/** ⚙ → Open on iPhone, when the server answers other devices (--lan / --public). */
 async function showShare() {
   let urls = [];
   try {
@@ -351,8 +340,7 @@ async function showDeadline() {
 
 // ---------------------------------------------------------------- header: running jobs
 
-// The app's one /api/jobs poller: each list is published to the views (api.watchJobs). The running-jobs
-// pill links to Runs.
+// The app's one /api/jobs poller: each list is published to the views (api.watchJobs); the pill links to Runs.
 const jobsBox = $('jobs-ind');
 let jobsTimer = 0;
 let jobsSeq = 0;
@@ -382,12 +370,11 @@ async function refreshJobs() {
   }
   if (my !== jobsSeq) return;  // a newer refresh is on its way
   api.publishJobs({ jobs: list });
-  // Forkcast's phone solves and bakes are background work here: no toasts, not in the header count
+  // Forkcast's phone solves and bakes: no toasts, not in the header count
   const active = list.filter((j) => api.isActive(j) && !api.isPhone(j));
   for (const [id, label] of watching) {
     const j = list.find((x) => x.id === id);
     if (!j || api.isActive(j)) continue;
-    // A view that shows this job already tells the user; otherwise announce it.
     if (document.querySelector(`[data-job-id="${CSS.escape(String(id))}"]`)) continue;
     const kind = { done: 'ok', error: 'error', cancelled: 'warn' }[j.status] || 'info';
     ui.toast(`${label} ${j.status === 'done' ? 'finished' : j.status}`, kind, {

@@ -1,6 +1,5 @@
-// Docs: how this solver works, then every setting from /api/flags (the same text the tooltips show).
-// Deep links: #/docs?flag=<dest or --flag> scrolls to a setting, ?section=<id> to a section, ?q= searches.
-// In the prose, `--flag` in backticks links to that flag's entry.
+// Docs: solver prose + every /api/flags setting (the tooltips' text). Deep links: #/docs?flag=<dest or --flag>,
+// ?section=<id>, ?q=; `--flag` in prose links to its entry.
 
 import * as api from '../api.js';
 import {
@@ -10,7 +9,7 @@ import {
 
 const show = (v) => showValue(v, ', ');
 
-/** The overview, one entry per section. Every statement here was checked against ml/solver. */
+/** One entry per section, checked against ml/solver. */
 function howItWorks(meta) {
   const pool = meta?.default_pool ? ` (${meta.default_pool} for ${meta.season})` : '';
   const prod = meta?.prod_alias?.dirs?.length ? ` (${meta.prod_alias.dirs.join(', ')})` : '';
@@ -273,7 +272,7 @@ export default {
       flash(art);
       ctx.setParams({ flag: dest });
     }
-    // In-page links: scroll here instead of letting the hash router remount the view.
+    // Scroll in place; the hash router would remount the view.
     el.addEventListener('click', (e) => {
       const a = e.target.closest('a[data-flag], a[data-target]');
       if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;

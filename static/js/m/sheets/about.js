@@ -1,23 +1,18 @@
-// Forkcast · About Forkcast (the user, 2026-10-14: "rewrite full why forkcast section so it not look like shit and not
-// sound like shit"; "show this tab at loading - any one want to read will read, others will click find my team"; "STOP
-// USING RANDOM CRAP PICTURES FOR ILLUSTRATIONS"). One page, two homes: under Connect's form for whoever reads on
-// (landing(ctx, {start}): app.js showConnect, Find my team staying at the top, the promise in the wordmark over it) and
-// as a sheet from Help and the You sheet (open). In order:
-//   the promise (COPY.whySub; in the sheet with COPY.whyHero over it);
-//   a question a section, the ones managers ask most first (COPY.whyApp), each answered by a recording of the real app
-//     (clip: static/m/clips, tools/qa/scenarios/about-clips.mjs, its last frame under reduced motion);
-//   the seasons replayed: the final rank, the rank after every GW, the caveats, then the same replays at 1-4 GWs
-//     (static/m/why.json, tools/why_bake.py): ranks inside a season, never points across seasons;
-//   against the scouts: this season live (GET /api/m/scouts, re-baked after every finished GW) and the seasons replayed;
-//   how it works, the plain facts, Find my team (Connect), the legal line.
+// Forkcast · About Forkcast (owner, 2026-10-14). One page, two homes: under Connect's form (landing(ctx, {start}):
+// app.js showConnect) and as a sheet from Help and the You sheet (open). In order: the promise (COPY.whySub;
+// COPY.whyHero over it in the sheet); a question a section, most asked first (COPY.whyApp), each answered by a
+// recording of the real app (clip: static/m/clips, tools/qa/scenarios/about-clips.mjs); the seasons replayed (final
+// rank, rank after every GW, caveats, then replays at 1-4 GWs: static/m/why.json, tools/why_bake.py; ranks inside a
+// season, never points across seasons); against the scouts (this season live, GET /api/m/scouts re-baked after every
+// finished GW, and the seasons replayed); how it works, the plain facts, Find my team, the legal line.
 // Every number is why.json's or the API's; a part whose numbers can't be read is left out, never drawn empty.
-// Sheet module contract: static/js/m/app.js (open(ctx) → sheet, opened with ctx.openSheet('about')).
+// Sheet contract: static/js/m/app.js (open(ctx) → sheet, ctx.openSheet('about')).
 
 import { h, fmt } from '../../ui.js';
 import { COPY } from '../calls.js';
 import { getScouts } from '../api.js';
 
-/** A JSON of static/m, fetched once a page (null when it can't be read; the next call asks again). */
+/** A JSON of static/m, fetched once a page (null when unreadable; the next call asks again). */
 const cached = (url) => {
   let p = null;
   return () => (p ??= fetch(url, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
@@ -26,13 +21,12 @@ const cached = (url) => {
 const record = cached('/m/why.json');
 const sizes = cached('/m/clips/clips.json');
 
-/** A recording of the real app (static/m/clips/<name>.webp, looping), its last frame under reduced motion, its box kept
- *  while it loads (clips.json); Help's sections show them too (sheets/you.js). On one screen with the words around it
- *  (the user, 2026-10-14: "make sure that description plus animation to it fit into screen otherwise I can't see them
- *  both at one time"): no taller than the scrolling page shows (Connect's gate, a sheet's body) less the rest of its
- *  section, narrowed with it; again as either changes size (a rotation, a section's words wrapping). */
-/** The recordings hidden for now (the user, 2026-10-21: "Hide the help clips for now, stop re record them"): Help's and
- *  About's sections show their words alone; true puts them back once they are recorded again from the app. */
+/** A recording of the real app (static/m/clips/<name>.webp, looping; last frame under reduced motion; box kept while
+ *  loading: clips.json); Help's sections show them too (sheets/you.js). Fits one screen with its words (owner,
+ *  2026-10-14): no taller than the scrolling page shows (Connect's gate, a sheet's body) less the rest of its section,
+ *  narrowed with it; refitted when either changes size. */
+/** Clips hidden (owner, 2026-10-21): Help's and About's sections show words alone; true puts them back once re-recorded
+ *  from the app. */
 export const SHOW_CLIPS = false;
 export function clip(name, label) {
   if (!SHOW_CLIPS) return null;
@@ -62,14 +56,12 @@ const FIT_GAP = 16;
 /** The page's nodes inside its wrapper (`start`: Connect's Find my team, at its foot). */
 export function landing(ctx, { start = null } = {}) {
   const rec = h('section.wf-sec.wf-rec', { hidden: true }), scouts = h('section.wf-sec.wf-scouts', { hidden: true });
-  // how it did (the seasons replayed, the scouts) under How it works, a fold (the user, 2026-10-14: "this section with
-  // benchmarks seems odd as continuation of animation - id rather move it to how it works under a collapse"), open
-  // until closed ("this link will go unnoticed, expand it be default"); shown once one of them has filled
+  // how it did (seasons replayed, scouts) under How it works, a fold open until closed (owner, 2026-10-14); shown once
+  // one of them has filled
   const proof = h('details.wf-more', { hidden: true, open: true }, h('summary', null, COPY.whyProof), rec, scouts);
   const page = h('div.wf', null, ...[
     start ? h('p.wf-lead', null, COPY.whySub) : h('header.wf-hero', null, h('h2', null, COPY.whyHero), h('p', null, COPY.whySub)),
-    // how it works and the plain facts first, one list (the user, 2026-10-14: "about the model not go after animations
-    // so hardly anyone list to there"; the facts' own box read as a random indent: "why here random alignment")
+    // how it works and the plain facts first, one list (owner, 2026-10-14)
     h('section.wf-sec.wf-facts', null, h('h3', null, COPY.whyHowHead), factList([...COPY.whyHow, ...COPY.whyFacts]), proof),
     ...COPY.whyApp.map(({ clip: c, ask, text }) => h('section.wf-sec.wf-q', { dataset: { clip: c } }, h('h3', null, ask), h('p', null, text), clip(c, ask))),
     start ? h('button.m-primary.lg.wf-start', { type: 'button', onClick: start }, COPY.whyStart) : null,
@@ -107,8 +99,8 @@ function tabs(labels, name, onPick) {
 
 // ---------------------------------------------------------------- the seasons replayed
 
-/** A season at a time (`recs`, newest first): its final rank big, its rank after every GW, its caveats; under them the
- *  same replays at 1-4 GWs, a column a season, each season's best in bold. */
+/** A season at a time (`recs`, newest first): final rank big, rank after every GW, caveats; under them the replays at
+ *  1-4 GWs, a column a season, each best in bold. */
 function recordSection(recs, hz) {
   const body = h('div.wf-recbody');
   const show = (i) => {
@@ -135,8 +127,8 @@ function recordSection(recs, hz) {
   ];
 }
 
-/** The overall rank after each GW (null: below the table), as FPL draws it: 1st at the top, on a log scale with its
- *  powers of ten marked, the final rank labelled at the line's end. */
+/** Overall rank after each GW (null: below the table), as FPL draws it: 1st on top, log scale with powers of ten
+ *  marked, final rank labelled at the line's end. */
 function rankSvg(ranks) {
   const W = 320, H = 170, L = 34, R = 40, T = 10, B = 18;
   const known = ranks.filter((x) => x > 0);
@@ -158,8 +150,8 @@ function rankSvg(ranks) {
 
 // ---------------------------------------------------------------- against the scouts
 
-/** A table a season (`parts`: this season live first when it is in, then the seasons replayed), one shown by the
- *  switch: a row a scout, the GWs he posted, Forkcast's points and his over those GWs, the higher in bold. */
+/** A table a season (`parts`: this season live first when in, then the seasons replayed), one shown by the switch: a
+ *  row a scout, the GWs he posted, Forkcast's points and his over them, the higher in bold. */
 function scoutsSection(parts, live) {
   const body = h('div.wf-scbody');
   const show = (i) => {

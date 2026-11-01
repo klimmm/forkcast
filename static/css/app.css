@@ -1,22 +1,16 @@
 /* FPL Solver Studio — shell, design tokens and shared components. View sheets live in css/views/.
-
-   DESIGN TOKENS (light-dark(): the system scheme by default, forced by html[data-theme=light|dark])
-   Calm navy base, one accent, colour only where it means something.
-
-   Surfaces    --bg page · --surface cards · --surface-2 wells, inputs, hovers · --surface-3 pressed, chips
-               --surface-elev menus, popovers, toasts · --line hairlines · --line-strong control borders
-   Text        --text · --text-2 secondary · --muted labels, hints
-   Accent      --accent  violet, the ONE accent: selection, current tab, primary action, focus, xPts.
-               --accent-ink text on an --accent fill · --accent-soft tinted backgrounds (selected rows, pills)
-   Meaning     --gain soft green (gain, good, done) · --loss soft red (sell, hit, error) · --warn amber
-               --info blue (neutral notices only)
-   Pitch       --turf-a/--turf-b stripes · --chalk lines · --plate name tags on the turf
-   Charts      --s1…--s8 categorical series · --grid · --axis ;  heat: --heat-good/-mid/-bad, .heat.fdr-1…5
-   Type        --font system stack for everything, numbers set with tabular figures (.num) ·
-               --mono code, commands and logs only · .label = small uppercase label
-   Shape       --r-card 14px cards · --r-ctl 9px controls · pills fully round · --shadow overlays only
-   Layout      --page-w content width · --bar-h top bar · --tabbar-h phone tab bar (≤ 720px)
-*/
+*Tokens use light-dark(): the system scheme, forced by html[data-theme=light|dark]. Calm navy base, one accent, colour
+*only where it means something.
+*Surfaces --bg page · --surface cards · --surface-2 wells, inputs, hovers · --surface-3 pressed, chips ·
+*--surface-elev menus, popovers, toasts · --line hairlines · --line-strong control borders. Text --text · --text-2
+*secondary · --muted labels, hints.
+*Accent --accent violet, the ONE accent (selection, current tab, primary action, focus, xPts) · --accent-ink on it ·
+*--accent-soft tints. Meaning --gain green · --loss red (sell, hit, error) · --warn amber · --info blue (neutral
+*notices only).
+*Also: pitch --turf-*, --chalk, --plate; charts --s1…--s8, --grid, --axis, .heat.fdr-1…5; --mono code, commands, logs
+*only; tabular figures (.num); --r-card 14px, --r-ctl 9px, pills round, --shadow overlays only; --tabbar-h phone tab
+*bar (≤ 720px).
+ */
 
 :root {
   color-scheme: light dark;
@@ -48,7 +42,7 @@
   --log-bg:  light-dark(#f4f6fa, #0a0f1c);
   --log-fg:  light-dark(#26304a, #c5cde0);
 
-  /* charts: validated categorical order (dataviz reference palette), recessive chrome */
+  /* charts: validated categorical order (dataviz palette), recessive chrome */
   --s1: light-dark(#2a78d6, #3987e5);
   --s2: light-dark(#eb6834, #d95926);
   --s3: light-dark(#1baf7a, #199e70);
@@ -180,8 +174,6 @@ html[data-dev="off"] .dev-only { display: none !important; }
 }
 .menu-btn:hover, .menu-btn[aria-expanded="true"] { background: var(--surface-2); color: var(--text); }
 .menu-btn.icon-btn { width: 32px; padding: 0; justify-content: center; border-radius: var(--r-ctl); }
-.dev-btn { border-color: var(--line); }
-.dev-btn.is-active { border-color: color-mix(in oklab, var(--accent) 50%, var(--line)); background: var(--accent-soft); color: var(--accent); }
 .menu-panel {
   position: absolute; z-index: 50; top: calc(100% + 8px); right: 0;
   min-width: 220px; padding: 6px;
@@ -198,25 +190,15 @@ html[data-dev="off"] .dev-only { display: none !important; }
 .menu-item[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
 .menu-item[aria-current="page"] .icon { color: var(--accent); }
 .menu-head { padding: 6px 10px 4px; font-size: 11px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.menu-switch {
-  display: flex; align-items: flex-start; gap: 14px; width: 300px; max-width: calc(100vw - 40px);
-  padding: 8px 10px 10px; border-radius: 8px; cursor: pointer;
-}
-.menu-switch:hover { background: var(--surface-2); }
-.menu-switch-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-.menu-switch-title { font-weight: 620; }
-.menu-switch-sub { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
-.menu-switch .switch { margin-top: 2px; }
 
 /* ------------------------------------------------------------------ shell: page */
 
 .page { width: 100%; max-width: var(--page-w); margin: 0 auto; padding: 24px 24px 64px; }
 .page-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 18px; min-width: 0; }
 .page-head h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
-.dev-tag { align-self: center; background: var(--accent-soft); color: var(--accent); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
 #view-sub { min-width: 0; color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #view-sub:empty { display: none; }
-/* Main tabs name the page already: the heading stays for screen readers, the sub line stays visible. */
+/* Main tabs name the page already: heading for screen readers only, sub line visible. */
 .page-head.quiet h1 {
   position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
 }
@@ -224,25 +206,14 @@ html[data-dev="off"] .dev-only { display: none !important; }
 #view { outline: none; }
 .view { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
-/* Dev route opened with Dev mode off */
-.dev-gate { align-self: center; width: min(460px, 100%); margin-top: 6vh; padding: 32px 28px; text-align: center; }
-.dev-gate-icon {
-  display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 14px;
-  border-radius: 14px; background: var(--accent-soft); color: var(--accent);
-}
-.dev-gate-title { margin: 0 0 6px; font-size: 18px; font-weight: 680; letter-spacing: -.01em; }
-.dev-gate-text { margin: 0 auto 18px; max-width: 46ch; color: var(--text-2); }
-.dev-gate-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-
 /* phone tab bar (≤ 720px) */
 .tabbar { display: none; }
 
 /* ------------------------------------------------------------------ layout utilities */
 
 .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
-.grid-2, .grid-3, .grid-4 { display: grid; gap: 16px; }
+.grid-2, .grid-4 { display: grid; gap: 16px; }
 .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .split { display: grid; gap: 16px; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); align-items: start; }
 .wide { grid-column: 1 / -1; }
@@ -513,7 +484,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 }
 .heat + .heat { margin-left: 3px; }
 .heat.heat-none { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
-:root {  /* the FDR palette as tokens: the heat cells below and the player card's opponent chips (m/sheets/player.js) */
+:root {  /* FDR palette tokens: heat cells below and the player card's opponent chips (m/sheets/player.js) */
   --fdr-1: light-dark(#2b9a62, #2e9a63); --fdr-1-ink: #fff;
   --fdr-2: light-dark(#c7ecd7, #1f553f); --fdr-2-ink: light-dark(#0f3d25, #ccf1dc);
   --fdr-3: light-dark(#e9edf4, #242f4b); --fdr-3-ink: light-dark(#38425c, #c3cbdf);
@@ -774,7 +745,7 @@ dialog.modal::backdrop { background: rgb(6 10 22 / .6); backdrop-filter: blur(2p
   .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .split { grid-template-columns: minmax(0, 1fr); }
 }
-/* Narrower desktops: the tabs centre in the space left between the logo and the tools. */
+/* Narrower desktops: tabs centre between the logo and the tools. */
 @media (max-width: 1080px) {
   .topbar-in { grid-template-columns: auto minmax(0, 1fr) auto; }
   .nav-tabs { justify-self: center; }
@@ -785,15 +756,14 @@ dialog.modal::backdrop { background: rgb(6 10 22 / .6); backdrop-filter: blur(2p
   .nav-tab .icon, .deadline > .icon { display: none; }
   .page { padding: 18px 16px 48px; }
   .nav-tab { padding: 0 10px; }
-  .grid-2, .grid-3 { grid-template-columns: minmax(0, 1fr); }
+  .grid-2 { grid-template-columns: minmax(0, 1fr); }
 }
-/* Phones: the tabs move to a bottom bar; the top bar keeps the logo, Dev ▾, deadline, theme and settings. */
+/* Phones: tabs move to a bottom bar; the top bar keeps logo, Dev ▾, deadline, theme, settings. */
 @media (max-width: 720px) {
   .topbar-in { grid-template-columns: auto minmax(0, 1fr); height: 54px; }
   .nav-tabs { display: none; }
   .deadline { padding: 0 10px; gap: 6px; font-size: 12.5px; }
   .jobs-ind { padding: 0 10px; font-size: 12.5px; }
-  .menu-btn-label { display: none; }
   #dev-menu .menu-panel { right: auto; left: 0; }
   .tabbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;

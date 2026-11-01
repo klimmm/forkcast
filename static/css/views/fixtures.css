@@ -1,10 +1,9 @@
-/* Fixtures view + the ticker pieces the dashboard reuses (prefix tk-). */
+/* Fixtures view + ticker pieces the dashboard reuses (tk-). */
 
 .tk-toolbar { gap: 10px 20px; margin-bottom: 12px; align-items: flex-end; }
 .tk-toolbar .select { min-width: 96px; }
 .tk-toolbar .icon-btn:disabled { opacity: .35; cursor: not-allowed; }
 
-/* table cells */
 .tbl td.tk-gw, .tbl th.tk-gw { text-align: center; }
 .tbl th.tk-gw .th-btn { justify-content: center; }
 .tbl td.tk-gw { padding: 4px 3px; }
@@ -22,7 +21,7 @@
 .tk-mark.dgw { background: color-mix(in oklab, var(--info) 20%, transparent); color: var(--info); }
 .tk-mark.bgw { background: color-mix(in oklab, var(--warn) 20%, transparent); color: var(--warn); }
 
-/* fixture chips: opponent on top, the att/def value under it */
+/* opponent over att/def value */
 .heat.tk-fx { flex-direction: column; gap: 1px; width: 100%; min-width: 64px; height: auto; min-height: 28px; padding: 3px 6px; line-height: 1.1; }
 .tk-opp { font: 650 11.5px var(--mono); }
 .tk-val { font: 500 11px var(--mono); opacity: .82; }
@@ -32,12 +31,10 @@
 .tk-multi .heat.tk-fx { min-height: 22px; padding: 1px 6px; }
 .tbl.dense .heat.tk-fx { min-width: 58px; min-height: 24px; }
 
-/* DGW/BGW banner */
 .tk-banner { margin-bottom: 12px; }
 .tk-banner-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .tk-banner-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
 
-/* legend */
 .tk-legend { display: flex; flex-direction: column; gap: 10px; }
 .tk-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .tk-key .heat + .heat { margin-left: 0; }

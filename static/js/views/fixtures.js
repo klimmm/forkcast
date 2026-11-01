@@ -1,9 +1,8 @@
-// Fixtures: the full ticker (FDR / Attack / Defence) over a GW range, with DGW/BGW handling.
-// The ticker pieces are exported for the dashboard's preview.
-//
-// Data: GET /api/fixtures → teams[].rows[gwIndex] = [{opp, home, fdr, att, def}] (0 = blank, 2 = double).
-// att/def come from api/data.py _ticker: the opponent's realised xG conceded / scored per match
-// over the GWs played before `from` — derived data, not a model rating.
+// Fixtures: the full ticker (FDR / Attack / Defence) over a GW range with DGW/BGW; its pieces are exported for the
+// dashboard's preview.
+// GET /api/fixtures → teams[].rows[gwIndex] = [{opp, home, fdr, att, def}] (0 = blank, 2 = double). att/def
+// (api/data.py _ticker): the opponent's realised xG conceded / scored per match over the GWs before `from`; derived,
+// not a model rating.
 
 import {
   h, append, card, table, heatCell, segmented, icon, fmt, empty, errorCard, loading, fin,
@@ -14,19 +13,19 @@ export const MODES = {
   att: { label: 'Attack', high: true, d: 2, sort: 'sum', what: 'opp. xG conceded / match' },
   def: { label: 'Defence', high: false, d: 2, sort: 'avg', what: 'opp. xG scored / match' },
 };
-const RANGE = [3, 6, 8, 10, 38]; // 38 = rest of the season (the server stops at the last fixture)
+const RANGE = [3, 6, 8, 10, 38]; // 38 = rest of the season (server stops at the last fixture)
 
 const mean = (v) => (v.length ? v.reduce((a, b) => a + b, 0) / v.length : null);
 export const seasonLabel = (s) => (fin(+s) ? `${s}/${String((+s + 1) % 100).padStart(2, '0')}` : '');
 const venue = (f) => (f.home ? 'H' : 'A');
-/** "LEE (H)": a fixture as every chip and export shows it. */
+/** "LEE (H)": a fixture as chips and exports show it. */
 export const fixtureLabel = (f) => `${f.opp} (${venue(f)})`;
-/** "Leeds (home) · FDR 3": a fixture chip's hover text (`opp` = the full club name when known). */
+/** "Leeds (home) · FDR 3": a chip's hover text (`opp`: the full club name if known). */
 export const fixtureTitle = (f, opp = f.opp) => `${opp} (${f.home ? 'home' : 'away'}) · FDR ${f.fdr ?? fmt.dash}`;
-/** A GW's fixtures as text: "LEE (H) + ARS (A)", or "blank". */
+/** A GW's fixtures: "LEE (H) + ARS (A)", or "blank". */
 export const fixtureText = (list) => (list?.length ? list.map(fixtureLabel).join(' + ') : 'blank');
 
-/** A continuous heat scale whose neutral midpoint is the mean of `values` (so colour = vs league average). */
+/** Heat scale centred on the mean of `values` (colour = vs league average). */
 function centred(values, high) {
   const v = values.filter(fin);
   const m = mean(v) ?? 0;
@@ -34,7 +33,7 @@ function centred(values, high) {
   return { min: m - span, max: m + span, reverse: !high };
 }
 
-/** One fixture as a coloured chip: "LEE (H)" (+ the att/def value on a second line). */
+/** A coloured fixture chip "LEE (H)" (+ att/def value below). */
 export function fixtureChip(f, mode = 'fdr', { scale, names = {}, gw } = {}) {
   const v = f?.[mode];
   const opp = names[f.opp] || f.opp;
@@ -52,14 +51,14 @@ export const blankChip = (gw) => {
   return el;
 };
 
-/** A GW cell: blank chip, one fixture, or a double stacked in one cell. */
+/** A GW cell: blank chip, one fixture, or a stacked double. */
 export function gwCell(fixtures, mode, opts = {}) {
   if (!fixtures?.length) return blankChip(opts.gw);
   const chips = fixtures.map((f) => fixtureChip(f, mode, opts));
   return chips.length === 1 ? chips[0] : h('div.tk-multi', { title: `Double gameweek: ${fixtures.length} fixtures` }, chips);
 }
 
-/** "GW26 · double: ARS, WOL" lines for every DGW/BGW in the window, or null when there are none. */
+/** "GW26 · double: ARS, WOL" per DGW/BGW in the window, or null. */
 export function dgwBgwNote({ dgw = {}, bgw = {} } = {}) {
   const items = [
     ...Object.entries(dgw || {}).map(([g, t]) => ({ g: +g, kind: 'double', teams: t })),
@@ -80,8 +79,8 @@ function gwHead(g, data) {
 }
 
 /**
- * The ticker table for one mode. Sum adds every fixture (a double counts twice, a blank adds nothing);
- * Avg is per fixture. Default order: Attack by Sum (more fixtures, more chances), FDR/Defence by Avg.
+ * Ticker table for one mode. Sum adds every fixture (double twice, blank nothing), Avg is per fixture. Default order:
+ * Attack by Sum (more fixtures, more chances), FDR/Defence by Avg.
  */
 export function ticker(data, mode = 'fdr', { compact = false } = {}) {
   const M = MODES[mode] || MODES.fdr;
@@ -97,7 +96,7 @@ export function ticker(data, mode = 'fdr', { compact = false } = {}) {
       ...t, cells,
       sum: vals.length ? vals.reduce((a, b) => a + b, 0) : null,
       avg: mean(vals),
-      // per-GW sort value: sum for Attack (a double is better), mean for FDR / Defence
+      // per-GW sort: sum for Attack (a double is better), mean for FDR / Defence
       gwSort: per.map((v) => (v.length ? (M.high ? v.reduce((a, b) => a + b, 0) : mean(v)) : null)),
     };
   });
@@ -139,7 +138,7 @@ export const modeSwitch = (value, onChange) => segmented({
   items: Object.entries(MODES).map(([key, m]) => ({ key, label: m.label })), value, onChange, label: 'Ticker view',
 });
 
-/** Colour key + what the numbers are; definitions come from the server's `legend`. */
+/** Colour key and number definitions, from the server's `legend`. */
 export function tickerLegend(data, mode) {
   const L = data?.legend || {};
   const M = MODES[mode] || MODES.fdr;
@@ -166,7 +165,7 @@ export function tickerLegend(data, mode) {
 
 /** A whole number from a URL param, else null. */
 export const int = (v) => (fin(v) ? Math.trunc(+v) : null);
-/** A labelled control group (a <div>, not ui.field's <label>, so clicking the text doesn't press a button). */
+/** Labelled control group: a <div>, not ui.field's <label>, so clicking the text presses no button. */
 export const group = (label, ...controls) =>
   h('div.field', { role: 'group', 'aria-label': label }, h('span.field-label', { 'aria-hidden': 'true' }, label), ...controls);
 
@@ -185,7 +184,7 @@ export default {
     const st = {
       season,
       mode: MODES[params.view] ? params.view : 'fdr',
-      // a bad ?from= falls back to the default; a past season starts at GW1, not its last round
+      // a bad ?from= falls back to the default; a past season starts at GW1
       from: (from >= 1 && from <= lastGw ? from : null) ?? (season !== latest ? 1 : null),
       n: RANGE.includes(int(params.n)) ? int(params.n) : 6,
     };

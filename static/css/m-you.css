@@ -1,13 +1,9 @@
-/* Forkcast: the You sheet (static/js/m/sheets/you.js, IPHONE_DESIGN §5.10). Linked by static/m/index.html
-   after m.css; uses m.css tokens only, so light and dark both follow light-dark().
-
-   .y-team .y-avatar .y-name .y-sub    team header (56pt initials avatar)
-   .y-stats .y-rate .y-cheer           rank / points tiles, the points-to-places line, the line every GW
-   .y-label .y-kvbtn .y-center         small labels, a kv row with a button
-   .y-studio                           Open Studio (Dev mode), a local page only (a row: m.css .m-nav)
-   .y-share .y-qr .y-url               Open on iPhone: the QR and the address
-   .y-lead .y-help                     Help: its lead (About Forkcast's row: m.css .m-nav), a task section each (a button head) with its recording
-*/
+/* Forkcast: the You sheet (static/js/m/sheets/you.js, IPHONE_DESIGN §5.10), linked after m.css; m.css tokens only.
+*.y-team .y-avatar .y-name .y-sub team header (56pt initials avatar); .y-stats .y-rate .y-cheer rank / points tiles,
+*points-to-places line, every-GW line; .y-center centred lines; .y-studio Open Studio (Dev mode, local page only; a
+*row: m.css .m-nav); .y-share .y-qr .y-url Open on iPhone; .y-lead .y-help Help: lead, a task section each (button
+*head) with its recording
+ */
 
 /* ------------------------------------------------------------------ team */
 
@@ -16,26 +12,22 @@
   flex: none; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
   font: 600 var(--t-head)/1.3 var(--f-text); color: var(--ink-2); background: var(--track);
 }
-.y-name { margin: 0; font: 600 var(--t-head)/1.2 var(--f-text); overflow-wrap: anywhere; }  /* the sheet's title is "You": one title per sheet (B6) */
+.y-name { margin: 0; font: 600 var(--t-head)/1.2 var(--f-text); overflow-wrap: anywhere; }  /* the sheet's title is "You": one title per sheet */
 .y-sub { margin: 3px 0 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
 .y-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
 .y-stats > div { padding: 10px 12px; border-radius: var(--r-ctl); background: var(--bg); min-width: 0; }
 .y-stats b { display: block; font: 600 var(--t-head)/1.2 var(--f-text); font-variant-numeric: tabular-nums; color: var(--ink); }
 .y-stats span { display: block; margin-top: 2px; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
 .y-rate { margin-top: 8px; }
-/* the line every GW (sheets/you.js paintTeam, COPY.cheerLine): under the tiles, .m-foot's quiet type */
+/* the every-GW line (sheets/you.js paintTeam, COPY.cheerLine): under the tiles, .m-foot's quiet type */
 .y-cheer { margin-top: 8px; }
 
 /* ------------------------------------------------------------------ settings, Dev mode */
 
-.y-label { margin: 14px 0 0; font: 600 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
-.y-label + .m-seg { margin-top: 8px; }
 /* Plan ahead (sheets/you.js weeksCtl): under the hits' line, a locked length's lock before its words */
 .y-hits ~ .m-foot + .ah-optl { margin-top: 16px; }
 .y-weeks > button svg { display: inline-block; margin-right: 3px; vertical-align: -1px; }
 .y-weeks-lock { margin-bottom: 0; }
-.y-kvbtn { align-items: center; padding: 6px 0; }
-.y-kvbtn > span { color: var(--ink); font-variant-numeric: tabular-nums; }
 .y-center { text-align: center; margin-top: 8px; }
 
 /* ------------------------------------------------------------------ Open on iPhone */
@@ -47,13 +39,13 @@
 .y-url { max-width: 100%; font: 600 var(--t-body)/1.3 var(--f-text); color: var(--ink); overflow-wrap: anywhere; user-select: all; -webkit-user-select: all; }
 .y-share .m-foot { margin: 0; overflow-wrap: anywhere; }
 
-/* ------------------------------------------------------------------ Help (the user, 2026-10-13: "rewrite help so it
-   readable"): the lead in body ink, then each task a 44pt row (15/600 ink, a chevron: down shut, up open) over a short
-   list; hairlines between them, Why Forkcast's row after them */
+/* ------------------------------------------------------------------ Help (owner, 2026-10-13): lead in body ink, then
+each task a 44pt row (15/600 ink, chevron: down shut, up open) over a short list; hairlines between, Why Forkcast's
+row after */
 .y-lead { margin: 2px 0 10px; font: 400 var(--t-body)/1.4 var(--f-text); color: var(--ink); }
 .y-help, .wf-more { border-top: 1px solid var(--hair); }
-/* a fold: Help's task sections (their head a button in a heading, aria-expanded: sheets/you.js helpFold), About
-   Forkcast's how it did (sheets/about.js) */
+/* a fold: Help's task sections (head = button in a heading, aria-expanded: sheets/you.js helpFold) and About's how it
+did (sheets/about.js) */
 .y-help > h3 > button, .wf-more > summary {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 0 2px;
   list-style: none; cursor: pointer; font: 600 var(--t-body)/1.3 var(--f-text); color: var(--ink);
@@ -69,7 +61,7 @@
 .y-help > ul { margin: 0 0 12px; padding: 0 0 0 20px; }
 .y-help li { margin: 0 0 6px; font: 400 var(--t-body)/1.4 var(--f-text); color: var(--ink); }
 
-/* Switch team (the shared picker, picker.js) and Sign out (F6b: destructive, the toast has Undo) */
+/* Switch team (the shared picker, picker.js) and Sign out (destructive, the toast has Undo) */
 .y-switch .m-primary { margin-top: 14px; }
-.y-signout { margin-top: 28px; }  /* Birman #17: well apart from Reset plan, never hit for it; its red words: .m-danger */
+.y-signout { margin-top: 28px; }  /* well apart from Reset plan, never hit for it; its red words: .m-danger */
 .y-lead + .m-nav { margin-bottom: 8px; }  /* Help's About Forkcast row, over the first task's hairline */

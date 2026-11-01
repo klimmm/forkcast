@@ -1,7 +1,6 @@
-// Players: every player's projected points per GW (fixtures under each value, seed spread on hover) or
-// season stats. Filters persist in state.playersFilters; sorting runs over the whole filtered list and
-// the table shows it a page at a time. "+" adds to Compare; lock / ban write the planner's
-// --must-have / --exclude values. Also exports the helpers Compare shares.
+// Players: projected points per GW (fixtures under each value, seed spread on hover) or season stats. Filters persist
+// in state.playersFilters; sorting runs over the whole filtered list, paged. "+" adds to Compare; lock / ban write the
+// planner's --must-have / --exclude. Exports helpers Compare shares.
 
 import * as api from '../api.js';
 import {
@@ -12,7 +11,7 @@ import { applyMark, idsOf, DEST } from '../marks.js';
 import { fixtureText, fixtureLabel, fixtureTitle } from './fixtures.js';
 
 export const COMPARE_MAX = 4;
-/** Compare's player ids: whole numbers above 0, each once (the store keeps the newest COMPARE_MAX). */
+/** Compare ids: whole numbers > 0, each once (the store keeps the newest COMPARE_MAX). */
 export const compareIds = (list) => [...new Set((list || []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
 const PAGE = 100;
 const FILTERS = { q: '', pos: 'all', club: '', status: 'any', maxPrice: null, ownMin: null, ownMax: null, buyable: false };
@@ -24,14 +23,14 @@ export const LUCK_FREE = 'Points with finishing luck taken out: goals, assists, 
 
 const round = (v, d) => Math.round(v * 10 ** d) / 10 ** d;
 export const filtersOf = (state) => ({ ...DEFAULTS, ...(state.get('playersFilters') || {}) });
-/** The {season, gw, pool} the Players table shows; Compare reads the same so both agree. */
+/** {season, gw, pool} the table shows; Compare reads it too. */
 export function sourceOf(state) {
   const { season, gw, pool } = filtersOf(state);
   return { season, gw, pool };
 }
 
 
-/** Adds the derived fields both views show (mutates the freshly fetched rows). */
+/** Adds the derived fields both views show (mutates the fetched rows). */
 export function prepRows(d) {
   const clubs = new Map((d.teams || []).map((t) => [t.id, t.name]));
   for (const r of d.players || []) {
@@ -52,13 +51,13 @@ export function describeSource(d) {
 
 export const signedCompact = (v) => (fin(v) ? `${v > 0 ? '+' : ''}${fmt.compact(v)}` : fmt.dash);
 
-/** One FDR-coloured tag per fixture in a GW (two in a double, "blank" in a blank): the ticker's chip text, smaller. */
+/** FDR-coloured tags per fixture: two in a double, "blank" in a blank. */
 export function fixtureTags(list) {
   if (!list?.length) return h('span.pv-fx.blank', { title: 'No fixture (blank gameweek)' }, 'blank');
   return h('span.pv-fx', null, list.map((f) => heatCell(f.fdr, 'fdr', { text: fixtureLabel(f), title: fixtureTitle(f) })));
 }
 
-/** Hover text for one xP value: fixture, xP and the spread across the pool's seed files. */
+/** Hover text: fixture, xP, spread across the pool's seeds. */
 export function xpTitle(r, i, g, nSeeds) {
   const sd = r.xp_sd?.[i];
   return [
@@ -70,14 +69,14 @@ export function xpTitle(r, i, g, nSeeds) {
   ].join(' · ');
 }
 
-// WhoScored's predicted line-up for the first fixture (solver data_io/data.py ws_preview): code → [label, tone].
+// WhoScored's predicted line-up, first fixture (ws_preview): code → [label, tone].
 export const XI = { S: ['start', ''], DS: ['doubt · XI', 'warn'], D: ['doubtful', 'warn'], B: ['bench', 'warn'], O: ['out', 'loss'] };
 const XI_ORDER = { S: 0, DS: 1, D: 2, B: 3, O: 4 };
 export const XI_TITLE = 'WhoScored predicted line-up for the first fixture of the GW';
 export const xiText = (code) => XI[code]?.[0] ?? null;
 const xiTag = (code) => (XI[code] ? h('span.pv-xi', { class: XI[code][1] }, XI[code][0]) : h('span.muted', null, fmt.dash));
 
-/** Add a player to Compare (state.compare); refuses a fifth player, and says so when he is already in. */
+/** Add to Compare (state.compare); refuses a fifth, says so if he is already in. */
 export function addToCompare(state, p, navigate) {
   const ids = state.get('compare', []);
   const id = Number(p.id);
@@ -88,7 +87,7 @@ export function addToCompare(state, p, navigate) {
   toast(`${p.name} added to Compare (${ids.length + 1}/${COMPARE_MAX})`, 'ok', { timeout: 2500, action: open });
 }
 
-/** Remove a player from Compare, or add him (addToCompare). */
+/** Remove from Compare, or add (addToCompare). */
 export function toggleCompare(state, p, navigate) {
   const ids = state.get('compare', []);
   if (ids.includes(Number(p.id))) return state.set('compare', ids.filter((x) => x !== Number(p.id)));
@@ -96,8 +95,7 @@ export function toggleCompare(state, p, navigate) {
 }
 
 // ---------------------------------------------------------------- planner locks / bans
-// state.planner.values is the planner's single source of truth (planner.js header); the lock / ban
-// buttons here edit its --must-have / --exclude there (marks.js).
+// planner.values is the single source of truth (planner.js); lock / ban edit its --must-have / --exclude (marks.js).
 
 export function plannerMarks(state) {
   const values = state.get('planner')?.values || {};
@@ -110,7 +108,7 @@ function setMark(state, id, kind, on) {
 
 // ---------------------------------------------------------------- table
 
-/** ui.table's order over the whole filtered list, so each page is the table's own top slice. */
+/** ui.table's order over the whole list, so each page is its top slice. */
 function sortRows(rows, col, dir) {
   if (!col) return rows;
   const val = typeof col.sort === 'function' ? col.sort : (r) => r[col.key];
@@ -362,7 +360,7 @@ export default {
         maxHeight: 'min(74vh, 980px)', empty: 'No players match these filters.', rowClass, caption: 'Players',
       });
       tbl.classList.add('pv-table');
-      // ui.table sorts only the page it holds: take its new sort and re-page the whole list.
+      // ui.table sorts only the page it holds: take its new sort, re-page the whole list.
       tbl.addEventListener('click', (e) => {
         if (!e.target.closest('.th-btn')) return;
         const th = tbl.querySelector('thead th[aria-sort]');
@@ -405,7 +403,7 @@ export default {
       const csvCols = [
         { key: 'id', label: 'ws_id' }, { key: 'fpl_id', label: 'fpl_id' }, { key: 'club', label: 'Club' },
         ...cols, ...hz.map((g, i) => ({ key: `fx${g}`, label: `GW${g} fixture`, csv: (r) => fixtureText(r.fixtures?.[i]) })),
-        // a detached table only for its CSV writer: drop the cell renderers so it stays cheap
+        // detached table only for CSV: drop cell renderers to stay cheap
       ].map(({ render, fmt: _fmt, ...c }) => c);
       const name = `players_${d.season}_gw${d.gw}${f.mode === 'season' ? '_season' : ''}.csv`;
       download(name, table({ columns: csvCols, rows, csv: false }).toCSV());

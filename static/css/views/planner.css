@@ -1,4 +1,4 @@
-/* Planner view (#/planner). Tokens and components come from app.css; this file only lays them out. */
+/* Layout only; tokens and components are in app.css. */
 
 .pl-layout { display: grid; gap: 16px; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); align-items: start; }
 .pl-side, .pl-main { min-width: 0; }

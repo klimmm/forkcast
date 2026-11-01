@@ -1,23 +1,19 @@
-// Forkcast's team picker (FOLLOWUPS F6, F6b): ONE component for every place a team is chosen, the Connect screen and
-// the Switch team sheet. A text field ("FPL team ID or team name": the text keyboard, never the number pad) with live
-// name search (GET /api/m/search, 150 ms after the last keystroke, 1–40 characters, at most 8 suggestions: flag, the
-// name with the typed part bold, then manager · country · #id) as an accessible combobox (aria-autocomplete list, a listbox, ↑ ↓ Enter
-// Escape, tap); an all-digit entry or a pasted FPL address is the Team ID, its name shown once the search confirms
-// it; the teams opened in this browser as the Recent list (localStorage only: ACCESS_V2), a section of its own that
-// the caller places under its Find my team button (DESIGN_V2 §3 Connect). Among the teams called exactly what was typed, the
-// host's private leagues' teams come first, silently (the server ranks them; the row looks like any other). Search needs the server: offline it says so and
-// the ID still works. A 429 is a quiet "Searching too fast".
-// A11 (the fix pass): while team search is unavailable (a 503 or no answer from it, this page), the field asks for the
-// ID only (placeholderId: no "or Raketa") and Find my team keeps "Team search isn't available. Type your team ID" (never
-// "Pick your team from the list" over a list that can't come).
+// Forkcast's team picker: ONE component wherever a team is chosen (Connect, Switch team). A text field ("FPL team ID or
+// team name": text keyboard, never the number pad) with live name search (GET /api/m/search, 150 ms after the last
+// keystroke, 1–40 characters, at most 8 suggestions: flag, name with the typed part bold, manager · country · #id) as
+// an accessible combobox (↑ ↓ Enter Escape, tap). An all-digit entry or a pasted FPL address is the Team ID, its name
+// shown once the search confirms it. Recent teams (this browser only: ACCESS_V2) are their own section, placed by the
+// caller under its Find my team button. Among teams called exactly what was typed the host's private leagues' teams
+// come first, silently (the server ranks them). Offline the search says so and the ID still works; a 429 is a quiet
+// "Searching too fast". While search is unavailable (503 or silence) the field asks for the ID only (placeholderId) and
+// Find my team keeps "Team search isn't available. Type your team ID".
 //
 // teamPicker(ctx, {value, onPick(id, name), onWhere(id), recent = 3, label}) → {el, recent, field, submit() → bool,
-//   focus(), destroy()}: el is the label, field, suggestions and message; recent the "Recent" section (rows: team
-//   name, manager · ID, points when known; empty with no recent team). submit picks the highlighted suggestion, the
-//   typed ID, or the one suggestion there is.
-// Pure (node: picker.test.mjs): readId(text) → Team ID string | null (digits, or /entry/<id> in a pasted address);
-// fold(text) (case, accents and marks away, as the server's index folds); parts(name, query) → [{text, hit}]: the
-// matched part (at a word start first, as the server ranks); SEARCH (debounce, lengths, limit); COPY.
+// focus(), destroy()}: el is the label, field, suggestions and message; recent the "Recent" section (rows: team name,
+// manager · ID, points when known). submit picks the highlighted suggestion, the typed ID, or the one suggestion.
+// Pure (node: picker.test.mjs): readId(text) → Team ID | null (digits, or /entry/<id> in a pasted address); fold(text)
+// (case, accents, marks away, as the server folds); parts(name, query) → [{text, hit}]; SEARCH (debounce, lengths,
+// limit); COPY.
 
 export const SEARCH = Object.freeze({ debounceMs: 150, min: 1, max: 40, limit: 8 });
 
@@ -28,8 +24,8 @@ export const COPY = Object.freeze({
   where: 'Where do I find my ID?',
   recent: 'Recent',
   none: (q) => `No team called “${q}”. Use your team ID.`,
-  // one character matches whole names only (api/search.py PREFIX_MIN), and thousands share some: only the ID tells
-  // them apart
+  // one character matches whole names only (api/search.py PREFIX_MIN); thousands share some: only the ID tells them
+  // apart
   named: (n, q) => `${n.toLocaleString('en')} teams are called “${q}”. Use your team ID.`,
   tooFast: 'Searching too fast. One moment.',
   offline: "Team search isn't available. Type your team ID.",
@@ -44,11 +40,11 @@ export function readId(text) {
   const s = String(text ?? '').trim();
   const m = s.match(/entry\/(\d{1,10})/);
   const d = m ? m[1] : s.replace(/\s+/g, '');
-  // never 0 (the reviews, 2026-10-11: "0" was looked up as a team): FPL's IDs start at 1
+  // never 0: FPL's IDs start at 1
   return /^\d{1,10}$/.test(d) && Number(d) > 0 ? String(Number(d)) : null;
 }
 
-/** The server's folding, near enough for highlighting (api/search.py fold: NFKD, marks dropped, case-folded). */
+/** Near-enough copy of the server's folding, for highlighting (api/search.py fold: NFKD, marks dropped, case-folded). */
 export const fold = (s) => String(s ?? '').normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
 
 /** name split around the query's match (folded), a word-start match first: [{text, hit}]. */
@@ -76,8 +72,7 @@ export function parts(name, query) {
 }
 
 let seq = 0;
-/** A11: team search answered "unavailable" (or not at all) on this page: every picker asks for the ID only until it
- *  answers again. */
+/** Team search unavailable (or silent) on this page: every picker asks for the ID only until it answers. */
 let searchDown = false;
 
 export function teamPicker(ctx, { value = '', onPick, onWhere = null, recent = 3, label = COPY.label } = {}) {
@@ -192,7 +187,7 @@ export function teamPicker(ctx, { value = '', onPick, onWhere = null, recent = 3
     S.timer = setTimeout(() => search(S.q.slice(0, SEARCH.max)), SEARCH.debounceMs);
   }
 
-  /** Enter / Find my team: the highlighted suggestion, else the typed ID, else the only suggestion. */
+  /** Enter / Find my team: highlighted suggestion, else typed ID, else the only suggestion. */
   function submit() {
     const idv = readId(field.value);
     if (S.active >= 0 && S.results[S.active]) { pick(S.results[S.active]); return true; }
@@ -202,7 +197,7 @@ export function teamPicker(ctx, { value = '', onPick, onWhere = null, recent = 3
     say(!field.value.trim() ? COPY.empty : searchDown ? COPY.offline : COPY.pick, 'bad', where(null));
     return false;
   }
-  /** Team search unavailable (or back): the placeholder asks for the ID only while it is down. */
+  /** Team search down (or back): the placeholder asks for the ID only while it is down. */
   function down(on) {
     searchDown = on;
     field.placeholder = on ? COPY.placeholderId : COPY.placeholder;
@@ -215,8 +210,7 @@ export function teamPicker(ctx, { value = '', onPick, onWhere = null, recent = 3
   field.addEventListener('blur', () => setTimeout(close, 150));
   field.addEventListener('focus', () => { if (S.results.length) paint(); });
 
-  // Recent: a full-width row per team (its name, the manager and the ID under it, its points on the right when the
-  // browser kept them)
+  // Recent: a full-width row per team (name, manager and ID under it, points on the right when kept)
   const rows = ctx.api.recent.list().slice(0, recent);
   const recentEl = h('section.m-recent', { hidden: !rows.length, 'aria-label': COPY.recent },
     h('h3.m-recent-h', null, COPY.recent),

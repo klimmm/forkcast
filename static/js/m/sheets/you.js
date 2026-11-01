@@ -1,22 +1,12 @@
-// Forkcast's You sheet (IPHONE_DESIGN §5.10, DESIGN_V2 §6 copy): your team, rank and the points-to-places rate, the
-// plan's status (forecast runs, when the plan was solved, the connection; no History: the user, 2026-10-08, a list of
-// every pick and lock, repeats and undone ones too, was noise), Help (B76: a sheet opened only when asked, no
-// first-visit tour; its own sheet, open(ctx, 'help'), on Ahead's header from 2026-10-13 to 10-29 (the gear since); rewritten task
-// first the same day, "rewrite help so it readable", with Why Forkcast behind its last row: sheets/about.js), Switch
-// team (the shared picker: name search or ID, ./picker.js), Sign out of the team on this device
-// (F6b), Refresh, Reset plan (ahead.resetPlan: this GW's plan as a new team's, its toast with Undo). Only on a local page (the server's verdict, api.access;
-// ACCESS_V2) a Dev mode section: Open Studio (Dev mode), and Open on iPhone (the address as text and a QR)
-// when the server runs with --lan or --public. A remote page shows nothing dev-related.
-// Settings, open(ctx, 'settings') from Ahead's header gear (the owner, 2026-10-29: "instead of help on top left settings
-// displayed (setting icon …) and have there following setting for the start"): Plan, the hits Forkcast may take a week
-// (the user, 2026-10-12: "auto plan allowed hits must be somewhere in settings"), one setting for every week
-// (ahead.setHitsMaxWithUndo: an edit, its toast with Undo); Plan ahead, how many GWs Forkcast plans, 1 week to 4 (the
-// user, 2026-10-14; ctx.weeks / setWeeks, kept per team in this browser; a length the server locks, meta.locked, shows a
-// lock and can't be picked). The You sheet had them until then.
-// The line every GW (COPY.cheerLine; the user, 2026-10-21): while the bundle's rank.cheer is there, one quiet line under
-// the rank, text only.
-// Sheet module contract: static/js/m/app.js (open(ctx) → sheet, opened with ctx.openSheet('you'); ctx.openSheet('you', 'help')
-// the help sheet alone, ctx.openSheet('you', 'settings') the Settings sheet).
+// Forkcast's You sheet (IPHONE_DESIGN §5.10): your team, rank and the points-to-places rate; the plan's status
+// (forecast runs, when it was solved, the connection); Help (opened only when asked; Why Forkcast behind its last row:
+// sheets/about.js); Switch team; Sign out of the team on this device; Refresh; Reset plan (ahead.resetPlan: this GW's
+// plan as a new team's, toast with Undo). A Dev mode section (Open Studio; Open on iPhone) only on a local page
+// (api.access). Settings, from Ahead's header gear (owner, 2026-10-29): Plan, the hits Forkcast may take a week
+// (ahead.setHitsMaxWithUndo); Plan ahead, 1 to 4 GWs (ctx.weeks / setWeeks, kept per team in this browser; a length the
+// server locks, meta.locked, can't be picked). The line every GW (COPY.cheerLine): one quiet line under the rank while
+// rank.cheer is there.
+// Sheet contract: static/js/m/app.js (open(ctx, what) → sheet; ctx.openSheet('you'[, 'help' | 'settings'])).
 
 import { COPY, horizonFeature } from '../calls.js';
 import { initials, resetPlan, inputsOf, plan, hitsChoices, setHitsMaxWithUndo, showTipsAgain, presolveTaps, planHasYours } from '../ahead.js';
@@ -31,8 +21,8 @@ function when(epoch) {
   return d.toDateString() === new Date().toDateString() ? t : `${new Intl.DateTimeFormat('en-GB', { weekday: 'short' }).format(d)} ${t}`;
 }
 /**
- * When the shown roads were baked: the latest bake job's start plus its run time. Job ids start with the
- * server's local time of submission, "%Y%m%d-%H%M%S" (api/jobs.py:322-324), so a queued wait is not counted.
+ * When the shown roads were baked: the latest bake job's start plus its run time (job ids start with the server's
+ * local submission time, "%Y%m%d-%H%M%S", so a queued wait is not counted).
  */
 function bakedAt(bake) {
   let best = null;
@@ -45,7 +35,7 @@ function bakedAt(bake) {
   return best;
 }
 
-/** The You sheet; `what` 'help': Help alone (its row here); 'settings': the Settings sheet (Ahead's header gear). */
+/** The You sheet; `what` 'help': Help alone; 'settings': the Settings sheet (Ahead's header gear). */
 export function open(ctx, what = null) {
   if (what === 'help') return helpSheet(ctx);
   if (what === 'settings') return settingsSheet(ctx);
@@ -61,8 +51,8 @@ export function open(ctx, what = null) {
       const dev = h('div.m-sec', { hidden: true });
       body.append(team, engine, settings(), dev);
 
-      // Reset plan's tap solved ahead while this is open (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved
-      // and done without no cost"), where it takes something off
+      // Reset plan's tap solved ahead while this is open (presolveTaps; owner, 2026-10-26), where it takes something
+      // off
       function presolveReset() {
         const P = plan(ctx);
         if (P?.editable && planHasYours(P)) presolveTaps(ctx, [{ kind: 'reset' }], { sig: 'reset', owner: offs });
@@ -80,7 +70,7 @@ export function open(ctx, what = null) {
             h('div', null, h('h2.y-name', null, e.team_name || `Team ${e.id ?? ''}`),
               h('p.y-sub', null, [e.manager, e.id ? `Team ID ${e.id}` : null].filter(Boolean).join(' · ')))),
           h('div.y-stats', null,
-            // 1928767 → "1.93M" (§5.10 "2.50M"), 795123 → "795K": fmt.compact, two decimals on the M (B118: one formatter)
+            // 1928767 → "1.93M", 795123 → "795K": fmt.compact, two decimals on the M
             h('div', null, h('b.m-num', null, r.rank ? fmt.compact(r.rank, 2) : '—'), h('span', null, gw ? `overall rank after GW${gw}` : 'overall rank')),
             h('div', null, h('b.m-num', null, r.total ?? e.total ?? '—'), h('span', null, gw ? `points after GW${gw}` : 'points'))),
           // the line every GW (COPY.cheerLine) while the bundle has it
@@ -95,24 +85,23 @@ export function open(ctx, what = null) {
         const f = b?.meta?.forecast || {};
         const bake = b?.bake;
         const baked = when(bakedAt(bake));
-        // plain facts only: the model's internals (runs, pool, noise, scale, solve counts) are Dev mode's (review #3)
+        // plain facts only: the model's internals (runs, pool, noise, scale, solve counts) are Dev mode's
         let plan;
         if (conn.state === 'updating') plan = 'waiting: the forecast is updating';
         else if (conn.state === 'baking') plan = 'planning…';
         else if (conn.state === 'stale') plan = 'new data · re-planning';
         else plan = baked ? `ready since ${baked}` : '—';
-        // A10: while requests fail, said plainly (and the time of the data on screen)
+        // while requests fail, said plainly (and the time of the data on screen)
         const link = conn.state === 'offline' ? `Forkcast server unreachable · data from ${when((conn.at || 0) / 1000) ?? '—'}` : 'online';
         fill(engine, h('h3', null, 'Status'),
           h('div.m-kv', null, h('span', null, 'Forecast'), h('span', null, when(f.updated_epoch) ? `updated ${when(f.updated_epoch)}` : '—')),
           h('div.m-kv', null, h('span', null, 'Plan'), h('span', null, plan)),
           h('div.m-kv', null, h('span', null, 'Connection'), h('span', { class: conn.state === 'offline' ? 'g-loss' : '' }, link)),
-          // the front end's release (the user, 2026-10-13: "is version shown anywhere"; the server's --static release
-          // folder: api.access), "dev" for the tree's own; none until the server has said
+          // the front end's release (api.access), "dev" for the tree's own; none until the server has said
           acc ? h('div.m-kv', null, h('span', null, 'Version'), h('span.m-num', null, acc.release ?? 'dev')) : null,
           // (rows to their sheets, green with ›, not buttons: design 1028d K2)
           h('button.m-nav', { type: 'button', onClick: () => helpSheet(ctx) }, COPY.helpShort),
-          // the pitch of the app, from inside it too (the user, 2026-10-14: Why Forkcast "lost behind the help")
+          // the app's pitch, from inside it too (owner, 2026-10-14)
           h('button.m-nav', { type: 'button', onClick: () => ctx.openSheet('about') }, COPY.whyTitle));
         paintDev();
       }
@@ -128,13 +117,13 @@ export function open(ctx, what = null) {
             refresh.disabled = false;
             refresh.textContent = 'Refresh';
             const conn = ctx.store.get('conn');
-            // A10 / A14: one toast, and "up to date" only after a refresh that worked (refresh() is null when it failed;
-            // off line the banner and this toast say so, any other failure the loader's own toast)
+            // one toast, "up to date" only after a refresh that worked (refresh() is null when it failed; off line the
+            // banner says so, any other failure the loader's own toast)
             if (b) ctx.ui.toast('Your team is up to date. Forkcast re-plans if anything changed.', 'ok');
             else if (conn?.state === 'offline') ctx.ui.toast(ctx.api.plain(conn.error), 'warn');
           },
         }, 'Refresh');
-        // A14: the Team ID is in the header already: Change team… is the section's first button
+        // the Team ID is in the header already: Change team… is the section's first button
         return h('div.m-sec', null, h('h3', null, 'Team'),
           h('button.m-secondary.y-change', { type: 'button', onClick: () => switchTeam(ctx) }, 'Change team…'),
           refresh,
@@ -144,7 +133,7 @@ export function open(ctx, what = null) {
       }
 
       // ---------------------------------------------------------------- Dev mode (a local page only)
-      // the model's diagnostics (forecast runs and pool, noise, the real-points scale, the bake's solves) live here
+      // the model's diagnostics (runs, pool, noise, real-points scale, bake solves) live here
       let acc = null;
       function paintDev() {
         if (!acc?.local || !dev.isConnected) return;
@@ -174,14 +163,14 @@ export function open(ctx, what = null) {
   });
 }
 
-/** The plan's settings into `planSec` (the Settings sheet's; the You sheet's until 2026-10-29): Most hits per GW and Plan
- *  ahead, its other Hits choices solved ahead while it shows (owner `offs`). → paintPlan, to paint it again */
+/** The plan's settings into `planSec` (the Settings sheet's): Most hits per GW and Plan ahead; its other Hits choices
+ *  solved ahead while it shows (owner `offs`). → paintPlan */
 function planSettings(ctx, planSec, offs) {
   const { h, fill } = ctx.ui;
   function paintPlan() {
     const P = plan(ctx);
     // no plan of the length picked (none baked yet: under a data job, or after a deadline): Plan ahead stays, the way
-    // back to one that has (the review, 2026-10-14: the section went, and the pick with it)
+    // back to one that has
     const reach = P?.reach ?? ctx.data?.reach;
     if (!P) { fill(planSec, ...(reach?.length ? [h('h3', null, 'Plan'), ...weeksCtl(reach, true)] : [])); return; }
     const { at, choices } = hitsChoices(P);
@@ -196,17 +185,15 @@ function planSettings(ctx, planSec, offs) {
         }, l))), { pick: (b) => b.click() }),
       h('p.m-foot', null, COPY.hitsNote),
       ...weeksCtl(reach, P.editable));
-    // its taps solved ahead while it is open (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and done
-    // without no cost"): each other Hits choice
+    // its taps solved ahead while it is open (presolveTaps; owner, 2026-10-26): each other Hits choice
     if (P.editable) {
       presolveTaps(ctx, choices.filter(([n]) => n !== at).map(([n]) => ({ kind: 'hits', run: () => setHitsMaxWithUndo(ctx, n) })),
         { sig: `${at}`, owner: offs });
     }
   }
-  /** Plan ahead (the user, 2026-10-14: "to the setting where hit cost are set also add forecast horizon"): 1 week to the
-   *  longest plan's (the bundle's reach), the one asked for checked (ctx.weeks: a locked pick falls back to the longest
-   *  unlocked), a locked length (meta.locked) off with the lock and one line why under them. A pick re-plans at once
-   *  (ctx.setWeeks: the bundle of that plan). `reach`: the longest plan's GWs. */
+  /** Plan ahead: 1 week to the longest plan's (the bundle's reach), the one asked for checked (ctx.weeks: a locked pick
+   *  falls back to the longest unlocked), a locked length (meta.locked) off with a line why. A pick re-plans at once
+   *  (ctx.setWeeks). */
   function weeksCtl(reach, editable) {
     const locked = ctx.bundle?.meta?.locked || [];
     const ns = reach.map((_, k) => k + 1), at = ctx.weeks();
@@ -225,9 +212,8 @@ function planSettings(ctx, planSec, offs) {
   return paintPlan;
 }
 
-/** Settings (Ahead's header gear; the owner, 2026-10-29, "instead of help on top left settings displayed (setting icon …)
- *  and have there following setting for the start"): the plan's settings (planSettings), painted again as the plan and
- *  its memory change (an Undo of a Hits toast puts its choice back). */
+/** Settings (Ahead's header gear; owner, 2026-10-29): the plan's settings (planSettings), painted again as the plan and
+ *  its memory change. */
 function settingsSheet(ctx) {
   const offs = [];
   return ctx.sheets.open({
@@ -243,12 +229,9 @@ function settingsSheet(ctx) {
   });
 }
 
-/** Help (COPY.help; the user, 2026-10-13: "rewrite help so it readable"): its lead, About Forkcast (sheets/about.js;
- *  the user, 2026-10-14: it was "lost behind the help and route is hard to it": first, not last), then one section per
- *  task, folded but the first (helpFold: nothing kept, the first open each time), each a recording of its steps done
- *  on the real app (about.js clip; the user, 2026-10-14: "in help missing illustrations how to actually do it", "STOP
- *  USING RANDOM CRAP PICTURES FOR ILLUSTRATIONS"), over its short list of actions; then the button that shows the first-use hints on the screen again (the books review,
- *  2026-10-13: once learnt they never came back; nothing returns unasked). */
+/** Help (COPY.help): its lead, About Forkcast (sheets/about.js), first; then one section per task, folded but the first
+ *  (helpFold), each a recording of its steps on the real app (about.js clip) over a short list of actions; then the
+ *  button that shows the first-use hints again. */
 function helpSheet(ctx) {
   const { h, uid } = ctx.ui;
   // the charge's points (the forecast noise of GW A: inputsOf), none before a plan
@@ -265,10 +248,9 @@ function helpSheet(ctx) {
   });
 }
 
-/** One Help section (the first-use findings, #10 2026-10-21: a <summary> head was no control to VoiceOver nor the test
- *  phone, so four managers tapped it by position): its head a real button in a heading, aria-expanded turning its
- *  chevron (m-you.css), over its recording and list, shown while open. Both stay the section's own children, so about.js
- *  clip fits the recording on the screen with the rest of its section (fig.parentElement). */
+/** One Help section: its head a real button in a heading (a <summary> was no control to VoiceOver), aria-expanded
+ *  turning its chevron (m-you.css). Recording and list stay the section's own children, so about.js clip fits the
+ *  recording on the screen (fig.parentElement). */
 function helpFold(h, uid, head, body, open) {
   const parts = body.filter(Boolean);
   for (const el of parts) { el.id = uid('help'); el.hidden = !open; }
@@ -283,21 +265,19 @@ function helpFold(h, uid, head, body, open) {
   return h('section.y-help', null, h('h3', null, btn), parts);
 }
 
-/** The team's name for "Sign out of <team>" (the bundle's, else the recent list's, else its ID). */
+/** The team's name for "Sign out of <team>": the bundle's, else the recent list's, else its ID. */
 const teamName = (ctx) => ctx.bundle?.entry?.team_name || ctx.api.recent.list().find((r) => String(r.entry_id) === String(ctx.store.get('entry')))?.team_name
   || `Team ${ctx.store.get('entry') ?? ''}`.trim();
 
-/** F6b: "Sign out of <team>" (destructive, no confirm, no toast since 2026-10-21). This device and the server forget
- *  the team's choices (the user, 2026-10-22: "When you sign out yourself, forget that team's choices too"); the recent
- *  chips keep it for a one-tap return, as a fresh plan (app.js signOut, memory forget). */
+/** "Sign out of <team>" (destructive, no confirm, no toast). This device and the server forget the team's choices
+ *  (owner, 2026-10-22); the recent chips keep it for a one-tap return, as a fresh plan. */
 function signOutButton(ctx) {
   const { h } = ctx.ui;
   return h('button.m-secondary.m-danger.y-signout', { type: 'button', onClick: () => ctx.signOut() }, `Sign out of ${teamName(ctx)}`);
 }
 
-/** Switch team (a second sheet): the shared team picker (./picker.js: a name with live search, the ID or a pasted
- *  FPL address; Find my team right under it, then the Recent list, as on Connect). Closing it without a pick keeps the
- *  current team; Sign out is the way to leave it. */
+/** Switch team (a second sheet): the shared team picker (./picker.js: name search, the ID or a pasted FPL address; Find
+ *  my team, then Recent). Closing it without a pick keeps the current team; Sign out is the way to leave it. */
 function switchTeam(ctx) {
   const { h } = ctx.ui;
   let picker = null;
@@ -313,8 +293,8 @@ function switchTeam(ctx) {
 }
 
 /**
- * Open on iPhone (a local page of a server run with --lan or --public, ACCESS_V2): the address another
- * device opens Forkcast at, as a QR (static/js/vendor/qr.js) and as text. Nothing to enter on the phone.
+ * Open on iPhone (a local page of a server run with --lan or --public): the address another device opens Forkcast at,
+ * as a QR (static/js/vendor/qr.js) and as text.
  */
 function shareSheet(ctx, acc) {
   const { h, fill } = ctx.ui;

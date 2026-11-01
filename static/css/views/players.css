@@ -1,4 +1,4 @@
-/* Players view (#/players). Builds on app.css tokens and .tbl / .heat / .seg / .chip. */
+/* Players view (#/players): app.css tokens, .tbl / .heat / .seg / .chip. */
 
 .pv-filters { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
 .pv-frow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
@@ -48,7 +48,7 @@
 .pv-xi.warn { color: var(--warn); }
 .pv-xi.loss { color: var(--loss); }
 
-/* xP value with the GW's fixture(s) underneath (shared with Compare) */
+/* xP value with the GW fixtures underneath (shared with Compare) */
 .pv-xp { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; cursor: help; }
 .pv-xp-v { font-weight: 600; color: var(--text); }
 .pv-fx { display: inline-flex; gap: 2px; }

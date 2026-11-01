@@ -1,6 +1,5 @@
-// Runs: every job the Studio started (solves, backtests, previews, ratings, data ops) with filters,
-// a detail panel (commands, live log, result, report page) and a per-GW diff of two solve results
-// (#/runs?diff=a,b). The result helpers exported below are shared with the Backtests view.
+// Runs: every job the Studio started, with filters, a detail panel (commands, live log, result, report page) and a
+// per-GW diff of two solves (#/runs?diff=a,b). Result helpers exported below are shared with Backtests.
 
 import * as api from '../api.js';
 import { enc } from '../api.js';
@@ -11,7 +10,7 @@ import {
 
 export const KINDS = ['solve', 'backtest', 'preview', 'rate', 'fetch', 'build', 'infer'];  // api/jobs.py KINDS
 export const KIND_TONE = { solve: 'gain', backtest: 'info', fetch: 'warn', build: 'warn', infer: 'warn' };
-const RESULT_KINDS = new Set(['solve', 'backtest']);  // tap/solve_tap.py writes their result.json
+const RESULT_KINDS = new Set(['solve', 'backtest']);  // solve_tap.py writes their result.json
 const SOLVER_KINDS = new Set(['solve', 'backtest', 'preview', 'rate']);
 const STATUSES = [['active', 'Queued or running'], ['done', 'Done'], ['error', 'Error'], ['cancelled', 'Cancelled']];
 const LOG_CALLS = 16;  // jobs.py serves 256 KB per log call: show up to 4 MB
@@ -20,7 +19,7 @@ const stripAnsi = (s) => String(s || '').replace(/\x1b\[[0-9;]*[A-Za-z]/g, '');
 
 // ---------------------------------------------------------------- shared result helpers
 
-/** "GW6" / "GW1–38" from anything with from/to. */
+/** "GW6" / "GW1–38" from from/to. */
 export const spanText = (s) => (s?.from == null ? '' : s.to == null || +s.to === +s.from ? `GW${s.from}` : `GW${s.from}–${s.to}`);
 
 function movesText(m) {
@@ -30,7 +29,7 @@ function movesText(m) {
   return `${i.join(', ') || '—'} in / ${o.join(', ') || '—'} out`;
 }
 
-/** One line for a job's outcome, from job.summary (api/jobs.py summarize / _finalize). */
+/** A job's outcome in one line, from job.summary (api/jobs.py summarize / _finalize). */
 export function summaryText(job) {
   const s = job?.summary;
   if (api.isActive(job)) return job.status === 'queued' ? 'Waiting for a free slot' : 'Running…';
@@ -38,7 +37,7 @@ export function summaryText(job) {
   if (!s) return '';
   if (RESULT_KINDS.has(job.kind)) {
     if (s.error) return s.error;
-    // --entry runs carry the manager's earlier rounds as history rows, inside total_pred
+    // --entry runs carry the manager's earlier rounds as history rows in total_pred
     const hist = Object.keys(s.captains || {}).some((g) => +g < +s.from);
     const played = fin(s.total_act) && +s.total_act > 0;
     if (job.kind === 'backtest' || (s.to != null && +s.to !== +s.from)) {
@@ -54,7 +53,7 @@ export function summaryText(job) {
   return s.last_line || '';
 }
 
-/** The committed table and its totals: table_cells[meta.committed_table] (api/jobs.py _committed_table). */
+/** table_cells[meta.committed_table] and its totals (api/jobs.py _committed_table). */
 export function committedCells(res) {
   const all = res?.table_cells || [];
   let i = res?.meta?.committed_table;
@@ -62,10 +61,10 @@ export function committedCells(res) {
   return { cells: all[i] || [], totals: res?.table_totals?.[i] || {} };
 }
 
-// Realised columns of a round not played yet hold 0 placeholders: blank them (shown as —).
+// Realised columns of unplayed rounds hold 0 placeholders: blank them (shown as —).
 const REALISED = ['act', 'pred.s', 'avg', 'diff', 'asub', 'ia', 'da', 'fa', 'ca', 'bna', 'dact', 'cap.rk'];
 
-/** Committed rows with `_played`, realised fields of unplayed rounds set to null. */
+/** Committed rows with `_played`; unplayed rounds' realised fields null. */
 export function committedRows(res) {
   const committed = res?.committed || {};
   const last = res?.meta?.last_played;
@@ -82,8 +81,8 @@ export function committedRows(res) {
   });
 }
 
-// The solver's committed-table columns in print order (solver/data_io/results.py _table_spec):
-// [key, label, decimals (null = text), title]. Columns a run did not print are skipped.
+// Committed-table columns in print order (results.py _table_spec): [key, label, decimals (null = text), title]; columns
+// a run did not print are skipped.
 const CELL_COLS = [
   ['GW', 'GW', 0],
   ['CH', 'Chip', null, 'Chip played'],
@@ -115,7 +114,7 @@ const CELL_COLS = [
 ];
 const SIGNED = new Set(['diff', 'dp', 'da', 'dh0', 'dws', 'dact', 'burn']);
 
-/** Sortable per-GW committed table (table_cells) with CSV export. */
+/** Sortable per-GW committed table, CSV export. */
 export function cellsTable(res, { maxHeight = 460, csv = 'committed.csv' } = {}) {
   const rows = committedRows(res);
   if (!rows.length) return empty('This run printed no committed table.');
@@ -141,7 +140,7 @@ export function parseRank(s) {
   return m ? Math.round(parseFloat(m[1]) * ({ k: 1e3, m: 1e6 }[m[2]?.toLowerCase()] || 1)) : null;
 }
 
-/** Cumulative pred and act per GW (act stops at the last played round) and rank per GW. */
+/** Cumulative pred and act per GW (act stops at the last played round), rank per GW. */
 export function cumulative(res) {
   let p = 0, a = 0;
   const pred = [], act = [], rank = [];
@@ -158,7 +157,7 @@ export function cumulative(res) {
   return { pred, act, rank };
 }
 
-/** Rank by GW: ranks span 10 to 10M, so y = −log10(rank) (better ranks sit higher). */
+/** Rank by GW; ranks span 10 to 10M, so y = −log10(rank). */
 export function rankChart(series, opts = {}) {
   return lineChart({
     xFmt: (x) => `GW${x}`, yLabel: 'Overall rank', yZero: false, height: 200, ...opts,
@@ -167,7 +166,7 @@ export function rankChart(series, opts = {}) {
   });
 }
 
-/** Totals: predicted, actual, last rank, hits (+ pool and τ). */
+/** Totals: predicted, actual, last rank, hits (+ pool, τ). */
 export function resultTiles(job, res) {
   const s = job?.summary || {};
   const m = res?.meta || {};
@@ -191,8 +190,8 @@ export function resultTiles(job, res) {
 }
 
 /**
- * A result note's tone (tap/solve_tap.py warnings): a plan that overspends or stops short is a loss; the
- * row caveats and the solver's data notices (no captain poll, no rank rows: [poll] / [rank]) are info.
+ * Tone of a result note (tap/solve_tap.py warnings): an overspending or short plan is a loss; row caveats and data
+ * notices ([poll] / [rank]) are info.
  */
 export const noteTone = (w) => (/NEGATIVE|INCOMPLETE|goes negative/i.test(w) ? 'loss'
   : /not played yet|reuse the anchor|^\s*\[(poll|rank)\] |no manager rows/i.test(w) ? 'info' : 'warn');
@@ -205,7 +204,7 @@ export function warningsBlock(res) {
     callout(t, h('ul.rs-notes', null, xs.map((x) => h('li', null, x)))))) : null;
 }
 
-/** The run's error (job or result), with the traceback behind a disclosure. */
+/** The run's error (job or result), traceback behind a disclosure. */
 export function errorBlock(job, res) {
   const msg = res?.error || (job?.status === 'error' || job?.status === 'cancelled' ? job.error : null);
   if (!msg) return null;
@@ -220,7 +219,7 @@ function cmdLine(label, cmd) {
       icon('copy', { size: 14 }))) : null;
 }
 
-/** The solver command (what to paste in a terminal) and, unless `ran` is false, the command the Studio ran. */
+/** Solver command (to paste in a terminal) and, unless `ran` is false, the one the Studio ran. */
 export const cmdBlock = (job, { ran = true } = {}) => h('div.rs-cmds', null, cmdLine('Solver', job.solver_cmd),
   ran && job.cmd !== job.solver_cmd ? cmdLine('Ran', job.cmd) : null);
 
@@ -236,7 +235,7 @@ async function fetchLog(id) {
   return done ? text : `${text}\n[Studio] log truncated after ${LOG_CALLS} reads`;
 }
 
-/** A finished job's whole log, fetched when the disclosure first opens. */
+/** A finished job's whole log, fetched on first open. */
 export function logBlock(job, { open = false, summary = 'Log' } = {}) {
   const pre = h('pre.log.rs-pre', { tabindex: 0, 'aria-label': 'Job output' });
   let loaded = false;
@@ -258,7 +257,7 @@ export function logBlock(job, { open = false, summary = 'Log' } = {}) {
   return d;
 }
 
-/** Ask, delete, toast. Resolves true when deleted. */
+/** Ask, delete, toast → true when deleted. */
 export async function deleteJobFlow(job) {
   const ok = await confirm({
     title: 'Delete this run?',
@@ -320,8 +319,8 @@ function resultBody(job, result) {
   ];
 }
 
-/** The label of a phone run started again here (QA-7 #4): a Studio run, never the phone's own "phone · …" label:
- *  "phone · bake roll GW6 · 383130" → "Studio re-run · bake roll GW6 · 383130". */
+/** Label for a phone run re-run here, never the phone's own "phone · …": "phone · bake roll GW6 · 383130" → "Studio
+ *  re-run · bake roll GW6 · 383130". */
 export function rerunLabel(job) {
   const what = String(job?.label ?? '').replace(/^phone\s*·\s*/, '').trim();
   return what ? `Studio re-run · ${what}` : 'Studio re-run';
@@ -340,9 +339,9 @@ function detailCard(job, result, { reopen, close }) {
         const btn = e.currentTarget;
         btn.disabled = true;
         try {
-          // its values when it has them (the server rebuilds the argv from them), so the new run keeps them; a phone run
-          // goes again as the exact command it ran (its argv: the tap's own --no-buys-gw of a Roll included, which no
-          // main.py flag in its values is), on the same tap, as a Studio run labelled so (rerunLabel)
+          // a run with values reruns from them (the server rebuilds the argv); a phone run reruns as the exact command
+          // it ran (its argv, incl. the tap's own --no-buys-gw of a Roll, which no main.py flag in its values is), on
+          // the same tap, labelled by rerunLabel
           const out = await api.createJob(job.source === 'phone'
             ? { kind: job.kind, argv: job.argv || [], label: rerunLabel(job) }
             : { kind: job.kind, values: job.values, argv: job.argv || [], label: job.label });
@@ -482,7 +481,7 @@ export default {
     let detailParams = {};  // the open detail in the URL: {job} or {diff}
     let alive = true;
     let seq = 0;
-    // src: '' = the Studio's own runs (Forkcast's phone solves hidden), 'phone', or 'all'
+    // src: '' = the Studio's own runs (phone solves hidden), 'phone', or 'all'
     const filt = { kind: ctx.params.kind || '', status: ctx.params.status || '', q: ctx.params.q || '', src: ctx.params.src || '' };
     const picked = new Set();
 
@@ -638,7 +637,7 @@ export default {
       }
     }
 
-    // The header polls the job list while jobs run and after every change (api.watchJobs).
+    // The header polls the job list while jobs run and on changes (api.watchJobs).
     const unwatch = api.watchJobs((list) => { jobs = list; loaded = true; listErr = null; paint(); },
       (e) => { listErr = e; paint(); });
     const [da, db] = (ctx.params.diff || '').split(',').map((s) => s.trim()).filter(Boolean);

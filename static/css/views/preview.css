@@ -1,4 +1,4 @@
-/* Preview view (#/preview): run forms, the solver's HTML page in a frame, recent runs. */
+/* #/preview: forms, solver frame, runs */
 
 .pv-forms { align-items: start; }
 .pv-forms .card-body { display: flex; flex-direction: column; gap: 12px; }

@@ -1,60 +1,33 @@
-// Forkcast · Bring in a player (the Wish sheet: IPHONE_DESIGN §5.8, M9; B35, 2026-10-10: "Bring in" on every bring-in
-// label, its footer link "Bring in a player…" and its + too). Large detent, the search focused. "Add" asks for each
-// planned GW what it costs to have him from then: the phone's ≈ at once (the best same-position sale that
-// fits the budget), then one solve per week on top of your plan's pins (--must-have id@g-end, and not
-// before g, so each pill is that arrival week). The plan service keeps one speculative solve per client
-// in flight (api/mobile.py solve_post), so the pills are solved one after another, not two at a time: off the hold the
-// selected week first, then the likeliest by its ≈ (B134), the line under them saying which week is out, its place among
-// those to check and the time so far ("Checking GW7 · 2 of 4 weeks · 0:14", B87b).
-// open(ctx, preId?, {gw}?) — a row's + and the Player sheet's "Bring him in…" (preId) work a week out the
-// same way (the user, 2026-10-09: "why 'bring him in', 'find funds' and '+' all do different things"; "Add Groß in GW6"
-// added him at once from a GW's week line and opened the weeks from a card): + and "Bring him in…" open his week pills.
-// A tap on a pill SELECTS that week, never makes it; under the chips the line names the week's own way (its pill's: the
-// sale Forkcast chose for him and what frees the money) and its one button, "Bring in X from GW g", makes that plan, no
-// sale chosen (the owner, 2026-10-29: "why can't i just choose b.fernandes to bring in without choosing the player to
-// replace and let do whats best considering b.fernandes pinned to buy gw10"); a sale chip makes that sale alone (sells),
-// one the bank can't pay for as it is, the plan short of money as FPL's draft is (the owner, 2026-10-28: ahead.saleBuy,
-// memory.holdOf's debts), Forkcast's way to pay it back then the pitch's best (ahead.plansOf, owedRoad). Either, the
-// verdict toast with Undo; closing the sheet is "not now". Opened
-// from a GW's week line (its Bring in… door, {gw}) or a card (its GW, B77: solved first) that week is selected
-// first, else the best week so far (said "Best:" only when it beats the next by more than the noise, "GW6 or GW7: a
-// negligible gap" when it doesn't: bestMark; its pill green (and a chip week's button filled) only for a gain beyond the noise:
-// ahead.clearGain, B1 / B28); a week where nothing works (GW A under way: ahead.inkAt) is disabled with its
-// reason. A player your pins keep out (a veto, Never) is left off the list and marked in search by that rule ("Not Groß
-// · all weeks", ahead.barringRule):
-// bringing him in from a GW it keeps him out lifts it (UX-1; a one-GW veto of another GW stays, F11; A6: its verdict names it).
-// The week's button is his wish from that week and nothing else (the owner, 2026-10-29, after Gabriel from GW10 pinned
-// "Kayode → Gabriel" and "Mbeumo → Rayan from GW10", so Mbeumo was kept and Rayan barred in GW9: "fix so rules only set
-// gabriel to must have gw10 when gabriel brought in not Mbeumo or rayan or even kayode in any of them"): every week is
-// solved with his wish pin (ahead.wishSolve; one sale that fits only its ≈ meanwhile), the button lands that road with
-// the pin alone (ahead.want → holdBuy's 'pick' → bringIn), so the sale for him and the money are the solver's, as a
-// Wildcard's or Free Hit's always were; its pill and line are that road's. A sale chip is a sale you chose, made as your
-// transfer exactly (A1, 2026-10-08: an action does only what it says; B36: in both modes). No hits rule is set.
-// A13: no instruction subtitle; "ARS · £9.6m · 22.2 xP GW6–9"; a small circular + like a choice's.
-// The list (the user, 2026-10-10: "when i replace a player it shows graphics … with tabs … why when i click add player it
-// shows just a few players"): Replace's rows (buylist.js), the week pills (the arrival week, the opened GW first), All /
-// GK / DEF / MID / FWD, each player's forecast bars, and one row of sorts (the user, 2026-10-10: "sorting by 'best for
-// plan' in add player just confusing … just show prediction points there not plan calculations"; "instead of cheapest add
-// sorting by - price, ownership, form, xgi, predicted points etc."; "also defcon, xg conceded"): Predicted GW6–9 (his
-// points from that week to the window's end), GW6, Price, Owned, Form, xGI, xGC, DefCon (FPL's season-to-date per-90
-// rates; a sort shows only while the bundle has its values), each row's number the sort's; a second tap on the chosen
-// sort turns it round. The list is every player you could buy of the position (All: every position; the user,
-// 2026-10-15: "just fix bug so all players are shown"), in the sort's order, with your squad of that week among them
-// where it ranks (the user, 2026-10-10: "see players already in
-// team … so i can see where they stand"): greyed, "In your team", a ⋯ in the +'s place (the columns stay put) opening his
-// card as his shirt does (sell, sub…).
-// No plan estimate and no hit here: his + shows each week's.
-// His sale (the user, 2026-10-10: "when i click sell player - it let me choose to whom with option to let model choose. but
-// when i bring player in - it not let me choose"): under the week pills, Replace's mirror, "Sells: Scott +7.8 · Tavernier
-// +3.9 · Rogers · needs £0.4m more" (ahead.saleOptions), the week's own sale (its solve's, or the one sale that pays) marked.
-// Each chip is the bring-in itself, one tap (the user, 2026-10-13: "why instead of just clicking on player or on forcast
-// chooseing button i need to click twice … this button redundand"): exactly that sale (ahead.saleBuy → bringIn), the money
-// short or not, the sheet closed, the verdict toast with Undo; a sale the club limit can't make says why under the chips
-// instead. Under them the week's one button makes its own way, no sale chosen (its line's moves; the owner, 2026-10-29); a
-// Wildcard or Free Hit week has no sale to choose: its button alone, him into the chip's squad.
-// From a player's place ("Other…", {pos, out}: ahead.drawPlace) the sale is chosen already, as FPL's list after Remove:
-// the list his position's alone (the other tabs off, the search too), and a + makes that swap in the list's week at once
-// (swapIn; the owner, 2026-10-28: "why mids not block when i replacing def", "why isak not added to pitch").
+// Forkcast · Bring in a player (the Wish sheet: IPHONE_DESIGN §5.8, M9). Large detent, the search focused. "Add" asks
+// for each planned GW what it costs to have him from then: the phone's ≈ at once (the best same-position sale that fits
+// the budget), then one solve per week on top of your plan's pins (--must-have id@g-end, and not before g: each pill is
+// that arrival week). The plan service keeps one speculative solve per client in flight (api/mobile.py solve_post), so
+// pills are solved one after another: off the hold the selected week first, then the likeliest by its ≈; the line under
+// them says which week is out, its place among those to check and the time so far ("Checking GW7 · 2 of 4 weeks ·
+// 0:14").
+// open(ctx, preId?, {gw}?): a row's + and the Player sheet's "Bring him in…" (preId) both open his week pills (owner,
+// 2026-10-09). A tap on a pill SELECTS that week; under the chips the line names the week's own way and its one button,
+// "Bring in X from GW g", makes that plan with no sale chosen (owner, 2026-10-29). A sale chip makes that sale alone
+// (sells), as your transfer exactly. Either way the verdict toast with Undo; closing the sheet is "not now". Opened
+// from a week line ({gw}) or a card (its GW, solved first) that week is selected first, else the best so far ("Best:"
+// only beyond the noise: bestMark; green pill / filled button only for a gain beyond it: ahead.clearGain). A week where
+// nothing works (GW A under way: ahead.inkAt) is disabled with its reason. A player your pins keep out (a veto, Never)
+// is left off the list and marked in search ("Not Groß · all weeks", ahead.barringRule); bringing him in from a GW it
+// keeps him out lifts the veto (a one-GW veto of another GW stays; the verdict names it).
+// The week's button is his wish from that week and nothing else (owner, 2026-10-29): every week is solved with his wish
+// pin (ahead.wishSolve), the button lands that road with the pin alone (ahead.want → holdBuy's 'pick' → bringIn), so
+// the sale and the money are the solver's, as a Wildcard's or Free Hit's always were. No hits rule is set.
+// The list (owner, 2026-10-10): Replace's rows (buylist.js), the week pills, All / GK / DEF / MID / FWD, forecast bars,
+// one row of sorts (Predicted GW6–9 = his points from that week to the window's end, GW6, Price, Owned, Form, xGI, xGC,
+// DefCon: season-to-date per-90 rates, shown only while the bundle has them), each row's number the sort's, a second
+// tap turns it round. Every player you could buy of the position (All: every position; owner, 2026-10-15), in the
+// sort's order, with your squad of that week where it ranks (greyed, "In your team", a ⋯ in the +'s place opening his
+// card). No plan estimate or hit: his + shows each week's.
+// His sale: under the week pills, Replace's mirror, "Sells: Scott +7.8 · Tavernier +3.9 · Rogers · needs £0.4m more"
+// (ahead.saleOptions; owner, 2026-10-10), each chip the bring-in itself, one tap (owner, 2026-10-13). A Wildcard or
+// Free Hit week has no sale to choose: its button alone. From a player's place ("Other…", {pos, out}: ahead.drawPlace)
+// the sale is chosen already: the list is his position's alone (other tabs off, search too) and a + swaps in the list's
+// week at once (swapIn; owner, 2026-10-28).
 
 import * as E from '../../plan/engine.js';
 import { h, fmt, fill, norm, icon, xpNum, reduceMotion } from '../../ui.js';
@@ -62,8 +35,8 @@ import { COPY } from '../calls.js';
 import { plan, weekOf, squadBefore, squadWeek, addMove, draftOf, estimate, wishSolve, want, reroute, editable, barred, barringRule, ruleOf, clearGain, inkAt, buyPlan, saleBuy, sayBuyProblem, holdBuy, bringIn, bringInTakes, removesText, inWords, weekWith, saleOptions, solvesRound, problemText, presolveTaps, waitView, paintWaitView, stepShare, PREP_AGAIN_MS } from '../ahead.js';
 import { weekPills, tabs, barTop, bars, shirt, found, SORTS, sortsOf, orderOf, sortChips } from './buylist.js';
 
-/** A row's disclosure: its week pills open under it (down), shut (up). Never a +: a + read as the Week sheet's take, which
- *  makes the transfer at once (design 1028d K1, the owner, 2026-10-28; R9, R12: rows alike answer a tap alike). */
+/** A row's disclosure: its week pills open under it (down), shut (up). Never a +: that read as the Week sheet's take,
+ *  which makes the transfer at once (design 1028d K1, owner, 2026-10-28). */
 const chevGlyph = (up = false) => {
   const ns = 'http://www.w3.org/2000/svg';
   const s = document.createElementNS(ns, 'svg');
@@ -75,34 +48,29 @@ const chevGlyph = (up = false) => {
 };
 
 const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
-/** A week pill no buy fits (a buyPlan 'none'), in its few words: the club limit as Replace's row says it ("3 from
- *  ARS", B30), one the plan already buys by then "in plan" (review 5, 2026-10-12: it read "can't fit"), else "can't fit". */
+/** A week pill no buy fits (a buyPlan 'none'), in few words: the club limit as Replace's row says it ("3 from ARS"),
+ *  one the plan already buys by then "in plan", else "can't fit". */
 const cantFit = (bp) => (bp.problem?.code === 'club' ? COPY.clubFull(bp.problem.club) : bp.problem?.code === 'owned' ? 'in plan' : "can't fit");
-/** A week pill's number, shown and said alike (review 5, 2026-10-12: VoiceOver heard fmt.num's rounding, the screen
- *  fmt.signed's): a ≈ while its solve is out, `unit` under it what it counts, your total (the user, 2026-10-21: fix all
- *  (first-use proposal #1): Alex's "+1.8" tile beside a plan sheet's "+2.0"); "…" while no number is known, never the
- *  money short in the loss colour (the solve may still find the money, B30; the Sells chips carry it). → {shown, said,
- *  unit?} */
+/** A week pill's number, shown and said alike (VoiceOver otherwise hears fmt.num's rounding): a ≈ while its solve is
+ *  out, `unit` under it what it counts, your total (owner, 2026-10-21); "…" while no number is known, never the money
+ *  short in the loss colour (the Sells chips carry it). → {shown, said, unit?} */
 export const pillWords = (o) => (o.delta == null ? { shown: '…', said: 'checking' }
   : { shown: `${o.kind === 'est' ? '≈' : ''}${fmt.signed(o.delta)}`, said: COPY.listTotalSaid(o.delta, o.kind === 'est'), unit: COPY.listTotal });
-/** A sale chip's tail for player `id` in GW g (x: a saleOptions row), shown and said: its points, named as the week pill
- *  over it names the same measure, your total's move (`unit`; the review of the first-use proposals, 2026-10-21); one the money can't
- *  pay alone, the money short, not in the loss colour, its tap the sale all the same (ahead.saleBuy: the plan short of
- *  money as FPL's draft is, the pitch then offering what pays it back); one the club
- *  limit stops, its reason as a week pill says it ("3 from ARS": cantFit), never a bare "can't". → {tail, loss, said, off, unit?} */
+/** A sale chip's tail for player `id` in GW g (x: a saleOptions row), shown and said: its points, named as the week
+ *  pill over it names the same measure, your total's move (`unit`); one the money can't pay alone, the money short, not
+ *  in the loss colour, its tap the sale all the same (ahead.saleBuy); one the club limit stops, its reason as a week
+ *  pill says it (cantFit), never a bare "can't". → {tail, loss, said, off, unit?} */
 export function saleWords(ctx, id, g, x) {
   if (x.cmp) return { tail: fmt.signed(x.cmp.delta), loss: false, said: COPY.listTotalSaid(x.cmp.delta), off: false, unit: COPY.listTotal };
   const short = x.problem?.code === 'budget' ? x.problem.short : null;
   if (short == null) return { tail: cantFit(x), loss: false, said: `can't be made, ${cantFit(x)}`, off: true };
-  // "Groß · needs £5.2m more" (the user, 2026-10-22: "Groß £5.2m short" read as Groß short of money)
+  // "Groß · needs £5.2m more" (not "£5.2m short": that read as Groß short of money; owner, 2026-10-22)
   return { tail: `· ${COPY.moneyNeeds(short)}`, loss: false, said: COPY.moneyNeeds(short), off: false };
 }
 /** A week pill's solve (`ask` → its result), asked again while `live()` holds when the plan service dropped it from a
- *  full queue ('cancelled': api/mobile.py _make_room drops the oldest queued speculative solves first, a Wish's among
- *  them) or another solve took its slot ('superseded'), after `wait()`: the pill checking meanwhile, never left "≈"
- *  for good (QA fold, 2026-10-30, ten teams on one server: Rayan's GW11 pill read "≈+0.6" while GW12's landed; every
- *  week is solved since the owner's 2026-10-29, so more pills met it). A result of the sheet's own cancel (its run
- *  over: `live()` false) is no answer. → the first other result, or null once `live()` fails. */
+ *  full queue ('cancelled': api/mobile.py _make_room drops the oldest queued speculative solves first) or another solve
+ *  took its slot ('superseded'), after `wait()`: the pill checking meanwhile, never left "≈". A result of the sheet's
+ *  own cancel (`live()` false) is no answer. → the first other result, or null once `live()` fails. */
 export async function askAgainWhileDropped(ask, live, wait) {
   for (;;) {
     const res = await ask();
@@ -112,7 +80,7 @@ export async function askAgainWhileDropped(ask, live, wait) {
     if (!live()) return null;
   }
 }
-/** A week pill whose moves are known: its solve came back (road; every week is solved since the owner's 2026-10-29). */
+/** A week pill whose moves are known: its solve came back (road; every week is solved). */
 const works = (o) => o?.kind === 'road';
 /** A known week as ahead.weekWith / inWords take it: the week's own way (bp: his wish with the solved road,
  *  ahead.holdBuy's 'pick'; a sale chip's buy), what its pill counts. */
@@ -124,12 +92,11 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
   // the GW it was opened on (the week line's Bring in… door, his card: {gw}): his pills open on that week
   const G = gw != null && P0.gws.includes(Number(gw)) ? Number(gw) : null;
   // sel: the week the line speaks for; own: you tapped it (a solve landing later never moves it); g: the list's week
-  const live = (g) => !inkAt(ctx, P0, g);  // a week an arrival can still reach (B7: not frozen, not GW A under way)
-  // out: the sale you chose for a player's selected week ({g, out}) that can't be made; need: the weeks his reach sent to
-  // a solve, in its order; wait: the solve out ({g, i, n, t0}, B87b), its line's clock ticking (tick)
-  // (pos: the position its list opens on, a player's place's "Other…": ahead.drawPlace; else all; place: that player,
-  // whose sale the Sells row leads with: sells; lock: opened from his place, the list his position's alone, the other
-  // tabs off and the search finding only his position, the owner, 2026-10-28: "why mids not block when i replacing def")
+  const live = (g) => !inkAt(ctx, P0, g);  // a week an arrival can still reach (not frozen, not GW A under way)
+  // out: the sale you chose for a player's selected week ({g, out}) that can't be made; need: the weeks his reach sent
+  // to a solve, in order; wait: the solve out ({g, i, n, t0}), its line's clock ticking (tick); pos: the position its
+  // list opens on (a player's place's "Other…": ahead.drawPlace), else all; place: that player, whose sale the Sells
+  // row leads with; lock: opened from his place, the list his position's alone
   const st = { q: '', open: null, res: {}, sel: {}, own: {}, out: {}, need: {}, wait: null, tick: null, req: null, run: 0, g: G ?? P0.gws.find(live) ?? P0.A, pos: POSITIONS.includes(pos) ? pos : 'all', place: out != null ? Number(out) : null, lock: out != null && POSITIONS.includes(pos), sort: 'pts', flip: false };
   const no = barred(P0, P0.A);
 
@@ -139,7 +106,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
     title: COPY.bringInSheet, detent: 'large', cls: 'ws',
     onClose: stop,
     build(body) {
-      // B93: the names FPL writes are mostly surnames (a first name finds no one); a club's short name finds its players
+      // the names FPL writes are mostly surnames (a first name finds no one); a club's short name finds its players
       const input = h('input', { type: 'search', placeholder: 'Search by surname', 'aria-label': 'Search by surname', autocomplete: 'off', spellcheck: 'false', enterkeyhint: 'search' });
       const pillsEl = h('div.ah-pills', { role: 'group', 'aria-label': 'From gameweek' });
       const posEl = h('div.m-seg.small', { role: 'radiogroup', 'aria-label': 'Position' });
@@ -151,11 +118,11 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
       const sorts = () => sortsOf(ctx);
       const sortOf = () => sorts().find((x) => x.key === st.sort) ?? SORTS[0];
 
-      /** A player's row: shirt, his name (his card, on the list's week), club and price, his forecast bars and the sort's
-       *  number ("24.8" over "xP GW6–9", "38.2%" over "owned"…), his +. One of your squad then (`mine`): greyed, "In your
-       *  team" (one only the plan buys by then "In your GW8 plan": COPY.inYours), a ⋯ in the +'s place opening his card as his shirt does. One your rules keep out: the rule that does, as
-       *  its chip says it ("Not Groß · all weeks": B90b, one name for one rule). `sub2`: a line in place of club and price
-       *  ("arrives GW8"), no number. */
+      /** A player's row: shirt, his name (his card, on the list's week), club and price, forecast bars and the sort's
+       *  number ("24.8" over "xP GW6–9"), his +. One of your squad then (`mine`): greyed, "In your team" ("In your GW8
+       *  plan" for one only the plan buys by then: COPY.inYours), a ⋯ in the +'s place opening his card. One your rules
+       *  keep out: the rule that does, as its chip says it. `sub2`: a line in place of club and price ("arrives GW8"),
+       *  no number. */
       function row(id, sub2 = null, top = 1, mine = false) {
         const P = plan(ctx);
         const r = ctx.data.byId.get(id);
@@ -173,18 +140,17 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
               h('b', null, name),
               h('span', null, sub2 ?? [mine ? yours : bar ? ruleOf(P, bar).text : no.has(id) ? 'Ruled out by you' : null, r?.club, fmt.money(r?.price)].filter(Boolean).join(' · '))),
             sub2 ? null : bars(P.L, id, P.gws, st.g, top, x.key),
-            // (a forecast sort's number in the forecast's blue, its unit under it naming the weeks: ui.js xpNum; the user,
+            // (a forecast sort's number in the forecast's blue, its unit under it naming the weeks: ui.js xpNum; owner,
             // 2026-10-22)
             sub2 ? null : h('span.rt.m-num', null, v == null ? '—' : x.xp ? xpNum(x.num(v), 'span', null, false) : x.num(v), h('small', null, x.unit(P, st.g))),
-            // his week pills, as "Bring him in…" opens them (the list's week selected first): never a buy at once; opened
-            // from a player's place (st.lock), him in that place at once (swapIn)
-            // its first letter alone lowered: "in your GW8 plan", never "gw8" (review 5, 2026-10-12)
+            // his week pills, as "Bring him in…" opens them (the list's week selected first): never a buy at once; from
+            // a player's place (st.lock), him in that place at once (swapIn)
+            // its first letter alone lowered: "in your GW8 plan", never "gw8"
             mine ? h('button.ws-add.ws-mine', { type: 'button', 'aria-label': `${name}, ${yours[0].toLowerCase()}${yours.slice(1)}: his card`, onClick: () => ctx.openSheet('player', id, { gw: st.g }) }, '⋯')
               // open: its chevron up in its place shuts his row (the columns stay put)
               : open ? h('button.ws-add.ws-mine', { type: 'button', 'aria-expanded': 'true', 'aria-label': `Close ${name}`, onClick: () => { stop(); st.open = null; draw(); } }, chevGlyph(true))
-                // from a player's place (st.lock) its tap swaps him in at once: the take's one mark, "Swap", outlined (no verdict
-                // on it: H2, one filled per view; design 1028d K1);
-                // else it opens his weeks, a chevron (never the take's look)
+                // from a player's place (st.lock) its tap swaps him in at once: the take's one mark, "Swap", outlined
+                // (one filled per view; design 1028d K1); else it opens his weeks, a chevron (never the take's look)
                 : st.lock ? h('button.ws-add.m-swap.quiet', { type: 'button', disabled: !P.editable, 'aria-label': `${COPY.bringIn(name, st.g)} for ${P.L.name(st.place)}`, onClick: () => swapIn(id) }, COPY.placeSwap)
                   : h('button.ws-add', { type: 'button', disabled: !P.editable, 'aria-expanded': 'false', 'aria-label': `Bring in ${name}: pick a week`, onClick: () => reach(id) }, chevGlyph())),
           open ? pills(id) : null);
@@ -196,7 +162,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         const sel = st.sel[id];
         // a Wildcard or Free Hit week has no sale to choose: the chip remakes the squad around him
         const chip = sel != null ? squadWeek(weekOf(P, sel)) : null;
-        // a sale tapped that can't be made (sale: saleBuy found no way): its reason the line's while that week is selected
+        // a sale tapped that can't be made (saleBuy found no way): its reason the line's while that week is selected
         // and it still can't be made, until another chip or a new player
         const mine = st.out[id]?.g === sel && !chip ? st.out[id].out : null;
         const tried = mine != null ? saleBuy(ctx, id, sel, mine) : null;
@@ -207,10 +173,9 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           if (o.kind === 'owned') return h('button.ah-ap.bad', { type: 'button', disabled: true }, h('span.g', null, `GW${g}`), h('span.v', null, 'in team'));
           if (o.kind === 'bad') return h('button.ah-ap.bad', { type: 'button', disabled: true }, h('span.g', null, `GW${g}`), h('span.v', { class: { 'g-loss': o.short } }, o.text));
           const solving = o.kind === 'est';
-          // a tap selects the week (the line under the pills names its moves, the sale chips make them); a ≈ pill too (the
-          // line says it is checking until its solve lands), never one the phone found no sale for. A week he adds a hit
-          // to says what the week then pays in all, the line's own figure (M18; the checker, 2026-10-09: "with −4" over a
-          // line reading "3 transfers, −8")
+          // a tap selects the week (the line under the pills names its moves, the sale chips make them); a ≈ pill too
+          // (the line says it is checking until its solve lands), never one the phone found no sale for. A week he adds
+          // a hit to says what the week then pays in all (M18)
           const all = o.hits ? weekWith(P, g, how(o))?.hits : 0;
           const hit = all ? `−${E.HIT_COST * all}` : '';
           const pw = pillWords(o);
@@ -219,8 +184,8 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
             'aria-label': `GW${g}: ${pw.said}${hit ? `, with ${hit}` : ''}`,
             onClick: () => { st.sel[id] = g; st.own[id] = true; draw(); },
           }, h('span.g', null, `GW${g}`, hit ? [' with ', h('span.m-hit', null, hit)] : ''),
-          // (its number forecast points, blue with "xP" whatever it pays, its sign its direction: ui.js xpNum; the user,
-          // 2026-10-22, after v1.3.68: no green number)
+          // (its number forecast points, blue with "xP" whatever it pays, its sign its direction: ui.js xpNum; owner,
+          // 2026-10-22: no green number)
           h('span.v.m-num', null, o.delta == null ? pw.shown : xpNum(pw.shown, 'span.xp-g')),
           pw.unit ? h('span.u', null, pw.unit) : null);
         };
@@ -233,27 +198,27 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           // the week's every move, its transfers and hit in all (ahead.inWords): what its button makes
           const words = inWords(P, sel, how(o));
           const best = bestMark(id, sel, done);
-          // the rules of yours this arrival takes back (a veto of him from then on; a buy's, a later buy of him and its
-          // funding too: ahead.bringInTakes): the chip or button takes them back (its verdict names them)
+          // your rules this arrival takes back (a veto of him from then on; a buy's, a later buy of him and its
+          // funding: ahead.bringInTakes); the chip or button takes them back, its verdict naming them
           const off = bringInTakes(P, id, sel, o.bp);
-          // B73 (the recorded no-repeat rule): no points where the selected pill or sale shows them (the selected pill shows
-          // the sale you chose too, a funded one's whole number)
+          // no points where the selected pill or sale shows them (the selected pill shows the sale you chose too, a
+          // funded one's whole number)
           // (no words and no claim: no line, never a bare "GW9.")
           const head = words || best ? `${best}GW${sel}${words ? ` · ${words}` : ''}.` : null;
           fund = [head, off.length ? `${head ? ' ' : ''}${removesText(P, off)}` : ''];
-          // the week's one button, its own way made (a Wildcard or Free Hit week's, no sale chips there: him in the chip's
-          // squad), filled only for a gain beyond the noise (B28: a loss or a toss-up is the plain button)
+          // the week's one button, its own way made (a Wildcard or Free Hit week's: him in the chip's squad), filled
+          // only for a gain beyond the noise (a loss or a toss-up is the plain button)
           go = h('div.ah-btnrow', null, h('button', { type: 'button', class: { acc: clearGain(o.cmp) }, disabled: !editable(ctx), onClick: () => take(id, sel, o) },
             chip ? COPY.bringInChip(P.L.name(id), sel, chip) : COPY.bringIn(P.L.name(id), sel)));
         } else if (o?.kind === 'none') {
           const p = o.bp.problem;
-          // the club limit with its reason (review 5, 2026-10-12: was a bare "can't be made"; ahead.problemText)
+          // the club limit with its reason (ahead.problemText)
           // the buy for the sale ("Groß for Rogers can't be made: …")
           const pair = `${P.L.name(id)} for ${P.L.name(mine)}`;
           fund = p?.code === 'club' ? `${pair} can't be made: ${problemText(ctx, p)}` : `${pair} can't be made in GW${sel}.`;
         } else fund = done ? noneWorks(id) : '';
-        // his weeks' checks over his pills, the wait line's look (waitView; design 1028d W2-line: M10, M12, R22), whatever
-        // week is selected (the line under them went with a selection: the film of 2026-10-28, 17 s of "…" pills alone)
+        // his weeks' checks over his pills, the wait line's look (waitView; design 1028d W2-line), whatever week is
+        // selected
         if (st.wait) queueMicrotask(tickWait);
         return h('div.ws-x', null,
           st.wait ? h('div.m-wait', null, wv.t, wv.bar) : null,
@@ -261,13 +226,13 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           sales,
           h('p.ws-fund', { 'aria-live': 'polite' }, fund),
           go,
-          // a plan you can't edit (offline): its chips, button and every + are off, the reason under them, as the player card says it
+          // a plan you can't edit (offline): its chips, button and every + are off, the reason under them
           P.editable ? null : h('p.ps-off', null, P.why));
       }
 
-      /** B51: the line when no week works, every pill done (H16), as the pills say it: the weeks sent to a solve all failed
-       *  to check ("no connection" only when each says offline: a "can't check" is the server's), all came back not
-       *  possible, or else each pill's own reason. */
+      /** The line when no week works, every pill done, as the pills say it: the weeks sent to a solve all failed to
+       *  check ("no connection" only when each says offline), all came back not possible, or else each pill's own
+       *  reason. */
       function noneWorks(id) {
         const said = (st.need[id] || []).map((g) => st.res[id][g]?.text);
         if (said.length && said.every((t) => t === 'offline' || t === "can't check")) return COPY.weeksUnchecked(said.every((t) => t === 'offline'));
@@ -275,17 +240,17 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         return COPY.noWeekWorks;
       }
 
-      /** "Sells:" for player `id` in GW g, each chip the bring-in itself (one tap): each sale of his position with him in
-       *  its place against your plan, best first ("Scott +7.8"; one the money can't pay alone "Rogers · needs £0.4m more",
-       *  made as it is: saleBuy; one the club limit stops greyed, "Rice 3 from ARS": saleWords), the week's own sale (`o0`:
-       *  its solve's, or the one sale that pays) marked. A sale saleBuy can't make says why on the line instead (st.out). */
+      /** "Sells:" for player `id` in GW g, each chip the bring-in itself (one tap): each sale of his position with him
+       *  in its place, best first ("Scott +7.8"; one the money can't pay alone "Rogers · needs £0.4m more", made as it
+       *  is: saleBuy; one the club limit stops greyed, "Rice 3 from ARS"), the week's own sale (`o0`: its solve's, or
+       *  the one sale that pays) marked. A sale saleBuy can't make says why on the line instead (st.out). */
       function sells(id, g, o0) {
         const P = plan(ctx), nm = P.L.name;
         const act = (out) => sale(id, g, out);
         const chip = (label, aria, onClick, cls = '', off = false) => h(`button${cls}`, { type: 'button', disabled: off || !editable(ctx), 'aria-label': aria, onClick }, label);
         const opts = saleOptions(ctx, id, g);
-        // opened from a player's place ("Other…": st.place), the sale is his: his chip first and marked (the owner,
-        // 2026-10-28: Haaland chosen in João Pedro's place came in for Isak); else the week's own sale marked, where known
+        // opened from a player's place ("Other…": st.place), the sale is his: his chip first and marked (owner,
+        // 2026-10-28); else the week's own sale marked, where known
         const his = opts.find((x) => x.out === st.place && !saleWords(ctx, id, g, x).off) ?? null;
         const own = works(o0) ? weekWith(P, g, how(o0))?.moves.find((m) => Number(m.in) === Number(id))?.out ?? null : null;
         const rec = his ?? opts.find((x) => x.out === own && !saleWords(ctx, id, g, x).off) ?? null;
@@ -301,11 +266,9 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           opts.filter((x) => x !== his).map(saleChip));
       }
 
-      /** The list for the week in the sort's order: every player you could buy then (not kept out by a rule of yours) and
-       *  your squad of that week, of the position chosen (All: every position), or by name or club while you search
-       *  (every position: buylist.found). Never a top few (the user, 2026-10-15: "why van Ewijk missing", £3.9m and 51st of
-       *  113 buyable DEFs by the forecast under Price ↑, when each position listed its best ten by it; then "why raya
-       *  missing now in gks sorted by price"; "just fix bug so all players are shown"). → [{row, mine}] */
+      /** The list for the week in the sort's order: every player you could buy then (not kept out by a rule of yours)
+       *  and your squad of that week, of the position chosen (All: every position), or by name or club while you search
+       *  (buylist.found). Never a top few (owner, 2026-10-15). → [{row, mine}] */
       function players(P) {
         const g = st.g;
         const q = norm(st.q.trim());
@@ -332,14 +295,13 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         const top = barTop(L, items, P.gws);
         const later = P.weeks.filter((w) => w.gw > g).flatMap((w) => w.in.map((id) => ({ id, gw: w.gw }))).filter((x) => !st.lock || L.pos(x.id) === st.pos);
         const extra = st.open != null && !ids.includes(st.open) && !later.some((x) => x.id === st.open) ? row(st.open, null, top) : null;
-        // a plan you can't edit (offline): every + is off, the reason once above them (an open row says it under its button)
+        // offline: every + off, the reason once above them (an open row says it under its button)
         fill(main, P.editable || st.open != null ? null : h('p.ps-off', null, P.why), extra,
           h('div.m-sec', null, items.length ? items.map((o) => row(o.id, null, top, o.mine)) : h('p.ah-empty', null, q ? COPY.noneCalled('player', st.q.trim()) : 'No one fits this filter.')),
           !q && later.length ? h('div.m-sec', null, h('h3', null, 'Your plan buys later'),
             later.map(({ id, gw: at }) => row(id, `arrives GW${at} · bring him in earlier`))) : null);
-        // the open player's taps solved ahead (presolveTaps; the owner, 2026-10-26: "fix speed so all pre solved and done
-        // without no cost"): each week's button (take), the selected week's first, then its sale chips (sale: saleBuy
-        // with that sale, the money short or not)
+        // the open player's taps solved ahead (presolveTaps; owner, 2026-10-26): each week's button (take), the
+        // selected week's first, then its sale chips (saleBuy, the money short or not)
         const id = st.open, res = id != null ? st.res[id] || {} : {}, sel = id != null ? st.sel[id] : null;
         const weeks = id == null ? [] : [sel, ...P.gws.filter((x) => x !== sel)].filter((x) => x != null && works(res[x]));
         const sales = sel != null && !squadWeek(weekOf(P, sel)) && res[sel] && !['owned', 'bad'].includes(res[sel].kind)
@@ -352,9 +314,9 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         }
       }
 
-      /** B87b: the time since the first solve went out, the bake's clock, on the wait line over his pills (design 1028d
-       *  W2-line), put in place each second (tickWait), never a whole draw; not read out each second. Its bar by the weeks
-       *  in, the week out creeping on (ahead.stepShare). */
+      /** The time since the first solve went out, the bake's clock, on the wait line over his pills (design 1028d
+       *  W2-line), put in place each second (tickWait), never a whole draw, not read out. Its bar by the weeks in, the
+       *  week out creeping on (ahead.stepShare). */
       const wv = waitView();
       let step = { done: -1, at: 0, max: 0 };
       const tickWait = () => {
@@ -381,14 +343,13 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           // in your team that week: going into it and still there, or in a Wildcard or Free Hit week's squad
           const w = weekOf(P, g);
           if (w?.squad.includes(id) && (squadBefore(P, g).includes(id) || squadWeek(w))) { st.res[id][g] = { kind: 'owned' }; continue; }
-          // GW A under way (FPL has it: B7; inkAt's frozen weeks are none since Freeze went, 2026-10-12)
+          // GW A under way (FPL has it)
           if (inkAt(ctx, P, g)) { st.res[id][g] = { kind: 'bad', text: P.mem?.frozen?.includes(g) ? 'frozen' : 'live' }; continue; }
-          // every week is solved below, its button his wish from it, the sale and the money the solver's (ahead.holdBuy;
-          // the owner, 2026-10-29: "rules only set gabriel to must have gw10"): one sale that fits is only its ≈ meanwhile
-          // (buyPlan 'one'; before, H16 made it at once as your transfer, never solved)
+          // every week is solved below, its button his wish from it, the sale and the money the solver's
+          // (ahead.holdBuy; owner, 2026-10-29): one sale that fits is only its ≈ meanwhile (buyPlan 'one')
           const bp = buyPlan(ctx, id, g);
           if (bp.kind === 'one') { st.res[id][g] = { kind: 'est', delta: bp.cmp.delta }; continue; }
-          // B30: the club limit too (more sales may get round it)
+          // the club limit too (more sales may get round it)
           if (bp.kind === 'none' && !solvesRound(bp)) { st.res[id][g] = { kind: 'bad', text: cantFit(bp) }; continue; }
           // a Wildcard or Free Hit week: no sale's ≈ (the chip remakes the squad), only the solve with him in it
           if (bp.problem?.code === 'chip') { st.res[id][g] = { kind: 'est', delta: null }; continue; }
@@ -398,15 +359,14 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           st.res[id][g] = { kind: 'est', delta: okk ? okk.r.ev.total - ev0.total : null };
         }
         pickBest(id);  // (the list's week, else the best ≈ so far)
-        // the weeks to solve (not in team, live, can fit); the selected week first (the
-        // card's, the week line's: pickBest; B77, the user 2026-10-10: one week carries card → Add a player),
-        // then B134 off the hold by its ≈, largest first and a week with none last, so a better week seldom lands after a
-        // worse one has the line; under the hold in GW order
+        // the weeks to solve (not in team, live, can fit); the selected week first (pickBest), then off the hold by its
+        // ≈, largest first and a week with none last, so a better week seldom lands after a worse one has the line;
+        // under the hold in GW order
         const est = (g) => st.res[id][g].delta, sel = st.sel[id];
         const need = P.gws.filter((g) => st.res[id][g]?.kind === 'est');
         need.sort((a, b) => (b === sel) - (a === sel) || (P.mem?.hold ? 0 : (est(a) == null) - (est(b) == null) || (est(b) ?? 0) - (est(a) ?? 0)));
         st.need[id] = need;
-        // B87b: the line's week out, its place among these, the clock from the first one's start (null once all are in)
+        // the line's week out, its place among these, the clock from the first one's start (null once all are in)
         const onWeek = (i) => { st.wait = i < need.length ? { g: need[i], i: i + 1, n: need.length, t0: st.wait?.t0 ?? Date.now() } : null; };
         onWeek(0);
         if (st.wait) st.tick = setInterval(tickWait, 1000);
@@ -423,12 +383,11 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         }
       }
 
-      /** One arrival week: the solve with your pins plus him from g (F17: under the solver's own default hits, so a
-       *  hit he needs is the solver's call where it pays, and Settings → Hits holds where you set it: memory's derived
-       *  'hits' pin, in every solve's values: withHits; the relief
-       *  ladder charges its own rules.py relief_hit_cost for a hit it forces, rolling.py _solve_relief). `hits`: the hits
-       *  the road takes in GW g more than your plan (a buy's: bp.hits), what the pill's points charge; the pill and the line
-       *  print the week's in all (weekWith). */
+      /** One arrival week: the solve with your pins plus him from g (under the solver's own default hits, so a hit he
+       *  needs is the solver's call where it pays; Settings → Hits holds where you set it: memory's derived 'hits' pin,
+       *  withHits; the relief ladder charges rules.py relief_hit_cost for a hit it forces). `hits`: the hits the road
+       *  takes in GW g more than your plan (bp.hits), what the pill's points charge; the pill and the line print the
+       *  week's in all (weekWith). */
       async function solvePill(id, g, my) {
         try {
           // (dropped or superseded: asked again once the speculative slot is free and a pause has passed)
@@ -449,15 +408,14 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
 
       /** The weeks that work (a solved week's gap, or a week one sale pays for), best first: [[gw, o]]. */
       const ranked = (id) => Object.entries(st.res[id] || {}).filter(([, o]) => works(o)).sort((a, b) => b[1].delta - a[1].delta);
-      /** The best arrival so far, the week first selected when no other is (pickBest; a selection claims nothing). */
+      /** The best arrival so far, the week first selected when no other is (pickBest). */
       function bestWeek(id) {
         const best = ranked(id)[0];
         return best ? Number(best[0]) : null;
       }
-      /** B72b: the line's claim on the selected week `sel`, by chipBests' rule: "Best: " ("Best so far: " until every week
-       *  is in) only when the top week gains beyond the noise (clearGain) and beats the next working week (else 0) by more
-       *  than a toss-up (engine.verdictLabel of the gap); else nothing (the top two's "GW6 or GW7: a negligible gap" went:
-       *  the user, 2026-10-18, "remove 'negligible' … and similiar crap"). */
+      /** The line's claim on the selected week `sel`, by chipBests' rule: "Best: " ("Best so far: " until every week is
+       *  in) only when the top week gains beyond the noise (clearGain) and beats the next working week (else 0) by more
+       *  than a toss-up (engine.verdictLabel of the gap); else nothing (owner, 2026-10-18). */
       function bestMark(id, sel, done) {
         const [top, next] = ranked(id);
         if (!top) return '';
@@ -477,8 +435,8 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
       }
 
       /** A Sells chip for player `id` in GW g tapped (`out`: a sale of his): exactly that sale on the plan as it is now
-       *  (ahead.saleBuy: the money short or not, as FPL makes a draft), the week the one you tapped in (st.own, pickBest);
-       *  one the club limit stops says why on the line instead (st.out). */
+       *  (ahead.saleBuy: the money short or not), the week the one you tapped in (st.own, pickBest); one the club limit
+       *  stops says why on the line instead (st.out). */
       function sale(id, g, out) {
         st.out[id] = null;
         st.own[id] = true;
@@ -486,19 +444,18 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         if (bp.kind === 'none') { st.out[id] = { g, out }; draw(); return; }
         take(id, g, { kind: 'buy', bp });
       }
-      /** Opened from a player's place ("Other…": st.lock), a +: `id` in that place from the list's week at once, as FPL's
-       *  list after Remove and Replace's rows make it (the owner, 2026-10-28: "why isak not added to pitch: i click other
-       *  then '+' next to isak"): exactly that sale, the money short or not (ahead.saleBuy); one the club limit stops says
-       *  why (sayBuyProblem), the later week he fits in with its action. */
+      /** Opened from a player's place ("Other…": st.lock), a +: `id` in that place from the list's week at once (owner,
+       *  2026-10-28): exactly that sale, the money short or not (ahead.saleBuy); one the club limit stops says why
+       *  (sayBuyProblem), the later week he fits in with its action. */
       function swapIn(id) {
         const g = st.g, bp = saleBuy(ctx, id, g, st.place);
         if (bp.kind !== 'one') { sayBuyProblem(ctx, plan(ctx), id, bp, 'info'); return; }
         take(id, g, { kind: 'buy', bp });
       }
-      /** A sale chip's or a chip week's button's bring-in: exactly the moves it names (a sale: bringIn; a Wildcard or Free
-       *  Hit week's solved road: ahead.want, its GW-g moves as your transfers in both modes, B36), a rule of yours it takes
-       *  back named in its verdict (A6); then Ahead on that week, the verdict toast with Undo. Refused (offline, GW A under
-       *  way: the toast says why), the sheet is drawn again, its week picked afresh (pickBest). */
+      /** A sale chip's or a chip week's button's bring-in: exactly the moves it names (a sale: bringIn; a Wildcard or
+       *  Free Hit week's solved road: ahead.want, as your transfers in both modes), a rule of yours it takes back named
+       *  in its verdict; then Ahead on that week, the verdict toast with Undo. Refused (offline, GW A under way: the
+       *  toast says why), the sheet is drawn again, its week picked afresh. */
       function take(id, g, o) {
         if (!(o.kind === 'buy' ? bringIn(ctx, id, g, o.bp) : want(ctx, id, g, o.road))) { pickBest(id); draw(); return; }
         leave(g);
@@ -506,7 +463,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
       function leave(g) {
         stop();
         ctx.sheets.closeAll();  // a player's sheet over this one goes too: nothing stale stays up
-        // the week replaces the address, never a new entry (B45: a later Back never switches the week), Ahead at its top (H1)
+        // the week replaces the address, never a new entry (a later Back never switches the week), Ahead at its top
         ctx.navigate('ahead', { gw: g }, { replace: true, top: true });
         setTimeout(() => reroute(g), 160);
       }
