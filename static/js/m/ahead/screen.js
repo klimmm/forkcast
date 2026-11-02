@@ -176,11 +176,14 @@ export function mount(el, ctx) {
     if (!b) return null;
     // (each of its plans by name: base, rolling, held, a veto's "not Hill", a slide's "Hill from GW11")
     // (the first paint runs before the screen's state is made: a name read then is the id)
-    const nm = (id) => { try { return S.drawn?.L?.name?.(Number(id)) ?? id; } catch { return id; } };
+    // (the team's names and weeks from its data, drawn or not: S.drawn is null between draws; 2026-11-03, "GW · first
+    // plan · 71824 from GW11")
+    const I = (() => { try { return S.drawn ?? info(ctx); } catch { return null; } })();
+    const nm = (id) => { try { return I?.L?.name?.(Number(id)) ?? id; } catch { return id; } };
     // (the bake's keys: "veto:362837", "slide:362837@12")
     const what = (k) => { const v = /^veto[:/](\d+)/.exec(k), sl = /^slide[:/](\d+)@(\d+)/.exec(k);
       return k === 'base' ? 'the plan' : k === 'roll' ? 'rolling' : k === 'hold' ? 'your team held' : v ? `not ${nm(v[1])}` : sl ? `${nm(sl[1])} from GW${sl[2]}` : k; };
-    const gws = (() => { try { return S.drawn?.gws ?? []; } catch { return []; } })();
+    const gws = I?.gws ?? [];
     return { span: gws.length ? `GW${gws[0]}–${gws.at(-1)}` : 'GW', done: b.done, total: b.total, at: Number(b.started) > 0 ? Number(b.started) * 1000 : Date.now(), baking: ctx.store.get('conn')?.state === 'baking', items: (b.items ?? []).map((i) => ({ what: what(i.key), state: i.state, s: i.elapsed, started: i.started })) };
   });
   // the parts' view of this function's scope (live getters) and the parts' functions, by their own names
