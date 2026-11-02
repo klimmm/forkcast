@@ -1296,8 +1296,8 @@ card is under "Keep" */
 
 /* the ?solves=1 panel (ahead/solvelog.js): every fork solve, newest first */
 .ah-solvelog { position: fixed; left: 4px; right: 4px; bottom: 4px; z-index: 9999; max-height: 38vh; overflow: auto; padding: 6px 8px; border-radius: 8px; background: rgb(0 0 0 / .82); color: #FFFFFF; font: 11px/1.35 ui-monospace, Menlo, monospace; }
-.ah-solvelog.folded > div { display: none; }
+.ah-solvelog.folded > div > div { display: none; }
 .ah-solvelog > button { float: right; margin: -2px 0 2px 8px; padding: 2px 10px; border: 1px solid rgb(255 255 255 / .5); border-radius: 6px; background: none; color: #FFFFFF; font: inherit; }
-.ah-solvelog > div { border-top: 1px solid rgb(255 255 255 / .12); padding: 2px 0; }
-.ah-solvelog > .solving { color: #FFD166; }
-.ah-solvelog > :is(.cancelled, .error, .let.go) { color: #FF8A80; }
+.ah-solvelog > div > div { border-top: 1px solid rgb(255 255 255 / .12); padding: 2px 0; }
+.ah-solvelog > div > .solving { color: #FFD166; }
+.ah-solvelog > div > :is(.cancelled, .error, .let.go) { color: #FF8A80; }

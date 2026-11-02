@@ -31,6 +31,9 @@ export function mountSolveLog(team = () => null, server = () => null) {
     if (document.execCommand('copy')) done();
     t.remove();
   };
+  // (the lines redrawn every half second in a list of their own, the button never: a tap spanning a redraw kept)
+  const list = document.createElement('div');
+  el.replaceChildren(copy, list);
   const paint = () => {
     // (the team on screen's alone: another team's from earlier on this page never shown; owner, 2026-11-03). Its first
     // plan's solves too, the ones the server starts itself for a team it hasn't seen ("Planning GW10–13", its bake), in
@@ -49,8 +52,8 @@ export function mountSolveLog(team = () => null, server = () => null) {
     const head = `${running} running · ${since} since your last tap · ${mine.length} in all`;
     const line = (x) => `${typeof x.gw === 'number' ? `GW${x.gw}` : x.gw} · ${x.kind} · ${x.what} · ${ends(x)}`;
     said = [head, ...mine.map(line)];
-    el.replaceChildren(
-      Object.assign(document.createElement('b'), { textContent: head }), copy,
+    list.replaceChildren(
+      Object.assign(document.createElement('b'), { textContent: head }),
       ...mine.slice(0, 30).map((x) => Object.assign(document.createElement('div'), { className: x.state === 'to come' ? 'solving' : x.state, textContent: line(x) })));
   };
   paint();
