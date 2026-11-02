@@ -264,6 +264,9 @@ export function owedRoad(ctx, P, g, { peek = false, prep = false } = {}) {
  *  root first */
 /** Each week's last root (refusalRoads): `${entry}|${g}` → {version, values, road}. */
 const ROOTS = new Map();
+/** GW g's last root road (refusalRoads) on plan P's data: the solver's plan under your rules as they stand, its later
+ *  weeks' transfers (the band's "Next →": tokensOf) → road | null */
+export const rootRoad = (P, g) => { const r = ROOTS.get(`${P.entry}|${g}`); return r?.version === P.b.version ? r.road : null; };
 /** Whether `road`, the solver's best under `was` (solve values), is still its best under `now`: the same data and the
  *  same values but for must-haves and exclusions added, every one of which the road already keeps (a lock of a player
  *  it keeps, a take of its own move: the best of a narrower choice is the same plan). Pure. */

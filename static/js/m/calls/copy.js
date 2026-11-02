@@ -723,6 +723,10 @@ export const COPY = Object.freeze({
    *  better use of the space instead of writing rolling is best"): "Roll → GW13: Gabriel → N.Williams, Dewsbury-Hall
    *  → Rice"; tapped, that week. */
   rollNext: (g, moves) => `Roll → GW${g}: ${moves}`,
+  /** …a week whose own transfers are made (no best left in it): the plan's next ones (owner, 2026-11-02, "why not pill
+   *  moving to next week"). */
+  planNext: (g, moves) => `Next → GW${g}: ${moves}`,
+  planNextSaid: (g, moves) => `Next transfers in GW${g}: ${moves}. Opens GW${g}`,
   rollNextSaid: (g, moves) => `Rolling is best: the plan's next transfers are in GW${g}, ${moves}. Opens GW${g}`,
   /** …and what rolling is, in its spoken label (review 7 B9: "Rolling" defined; Help says it too). Never a second
    *  line on the token: the Reset under the corner's tokens keeps one place in every GW (resetSlot; QA lineup-reset). */

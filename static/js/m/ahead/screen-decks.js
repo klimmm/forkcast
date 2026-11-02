@@ -6,7 +6,7 @@ import { SQUAD_CHIPS, askPlace, failedWords, lineMoves, litShown, multiMove, pla
 import { COPY, shownDelta } from '../calls.js';
 import { plPays } from './pieces.js';
 import * as E from '../../plan/engine.js';
-import { addPlan, planTake } from './presolve.js';
+import { addPlan, planTake, rootRoad } from './presolve.js';
 import { keep, pinOf, removeRule, veto } from './edits.js';
 import { EDGE_MIN, NAME_LEAST, PLATE_MIN, PLATE_TRIMS, ST_TRIMS, boxesMeet, cssPx, fitNum, oneLook, reachOf } from './screen.js';
 
@@ -111,6 +111,8 @@ export function decksPart(V) {
     // owner, 2026-11-02, "Full-width strip" picked: the move whole on one line, each name its ✕, never given way)
     const inBand = (t) => t.matches('.mv, .st.best');
     const stack = () => { let top = 6; for (const t of tk) if (t.isConnected && !inBand(t)) { t.style.top = `${top}px`; top += t.offsetHeight + 8; } };
+    // (an empty band its own height again: the Reset there, placePills)
+    if (!tk.some(inBand) && pitchHost.style.getPropertyValue('--ah-band')) { pitchHost.style.removeProperty('--ah-band'); fitPitch(); return renderDecks(); }
     let top = 6;
     for (const t of tk) {
       // (its height the band's, two lines for a plan's moves: the pitch fitted under it again where that changed; its
@@ -599,14 +601,18 @@ export function decksPart(V) {
     // "Rolling is best" in the best move's place once the week settles with no move its best and its Roll offered
     // (owner, 2026-10-30): ink, flat, its "›" the door to the Week sheet, where every choice is counted against it
     // (openWeek), never given way for room (renderDecks: .st)
-    else if (M?.settled && !lit.best && toks.some(rollOnly)) {
-      // (in the band, why it rolls: the solver's own roll road's next week with transfers, its moves, a tap there
-      // (owner, 2026-11-02, "find better use of the space"); "Rolling is best" and the Week sheet where it makes none)
-      const road = toks.find(rollOnly)?.road, nx = road?.weeks?.filter((x) => Number(x.gw) > g && (x.in || []).length).sort((a, b) => a.gw - b.gw)[0];
-      const ms = nx ? pairedMoves(nx.out || [], nx.in || [], P.L) : [];
-      if (ms.length) out.push(h('button.ah-tok.st.best.next', { type: 'button', dataset: { row: `tok:week:${g}` }, 'aria-label': COPY.rollNextSaid(Number(nx.gw), ms.map((m) => COPY.moveSaid(P.L.name(m.out), P.L.name(m.in))).join(', ')), onClick: () => V.setGw(Number(nx.gw)) },
-        h('span.ah-tl', { 'aria-hidden': 'true' }, COPY.rollNext(Number(nx.gw), ms.map((m) => `${P.L.name(m.out)} → ${P.L.name(m.in)}`).join(', ')))));
-      else out.push(h('button.ah-tok.st.best', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` }, 'aria-label': `${COPY.statusSaid(COPY.rollingBest, g)}: ${COPY.rollingMeans}`, onClick: (ev) => openWeek(ev, g) },
+    // in the band once the week settles with no best left (a week you roll, or one whose transfers you made): why, the
+    // next week with transfers of the plan as it stands, its moves, a tap there (owner, 2026-11-02, "find better use of
+    // the space instead of writing rolling is best", "why not pill moving to next week"): the solver's plan under your
+    // rules (rootRoad), else its roll road; "Rolling is best" and the Week sheet where neither makes one
+    else if (M?.settled && !lit.best) {
+      const rolling = toks.some(rollOnly), road = rootRoad(P, g) ?? (rolling ? toks.find(rollOnly)?.road : null);
+      const nx = road?.weeks?.filter((x) => Number(x.gw) > g && (x.in || []).length).sort((a, b) => a.gw - b.gw)[0];
+      const ms = nx ? pairedMoves(nx.out || [], nx.in || [], P.L) : [], at = Number(nx?.gw);
+      const words = (f) => ms.map((m) => f(P.L.name(m.out), P.L.name(m.in))).join(', ');
+      if (ms.length) out.push(h('button.ah-tok.st.best.next', { type: 'button', dataset: { row: `tok:week:${g}` }, 'aria-label': (rolling ? COPY.rollNextSaid : COPY.planNextSaid)(at, words(COPY.moveSaid)), onClick: () => V.setGw(at) },
+        h('span.ah-tl', { 'aria-hidden': 'true' }, (rolling ? COPY.rollNext : COPY.planNext)(at, words((o, i) => `${o} → ${i}`)))));
+      else if (rolling) out.push(h('button.ah-tok.st.best', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` }, 'aria-label': `${COPY.statusSaid(COPY.rollingBest, g)}: ${COPY.rollingMeans}`, onClick: (ev) => openWeek(ev, g) },
         h('span.ah-tl', { 'aria-hidden': 'true' }, COPY.rollingBest)));
     }
     // (none beside it: each is its place's plate already; owner, 2026-11-02, "stop dublicating black and other pills on

@@ -276,7 +276,13 @@ export function linePart(V) {
   function placePills(b, boxes) { const { RESET_GAPS, S, decks, pdBtn, rsBtn } = V;
     rsBtn.hidden = !S.reset;
     rsBtn.classList.remove('near');
-    if (!rsBtn.hidden) {
+    // (an empty band over the pitch, its week's best and next both none: the Reset there, its middle the band's; owner,
+    // 2026-11-02, "why reset plan low")
+    const host = decks.closest('.ah-pitch'), bh = host?.matches('.band') ? parseFloat(getComputedStyle(host).getPropertyValue('--ah-band')) : 0;
+    if (!rsBtn.hidden && bh && !decks.querySelector(':scope > .ah-tok:is(.mv, .st.best)')) {
+      rsBtn.classList.remove('near');
+      rsBtn.style.top = `${Math.round(-bh + (bh - 8 - rsBtn.offsetHeight) / 2)}px`;
+    } else if (!rsBtn.hidden) {
       const last = [...decks.querySelectorAll(':scope > .ah-tok')].filter((t) => t.isConnected).at(-1) ?? null;
       // (no token and no room at its slot: the corner's top)
       const at = [...RESET_GAPS.map((gap, i) => [resetSlot(last, gap), i > 0]), ...(last ? [] : [[6, false]])]
