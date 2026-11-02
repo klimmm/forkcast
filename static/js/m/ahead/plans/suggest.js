@@ -1,4 +1,4 @@
-// ahead/plans.js: a week's suggested moves: the bake's roads, the engine's top-up, a place's asked buys
+// ahead/plans.js: a week's suggested moves: the bake's roads' moves that week, a place's asked buys
 
 import { bundleRoads } from '../../memory.js';
 import { baseline, compare, draftOf, estimate, movedFrom, pairedMoves, removedAt, squadBefore, weekOf } from '../core.js';
@@ -11,7 +11,7 @@ import { squadWeek } from '../pieces.js';
 
 /**
  * The model's single moves for GW g on your plan (under the hold, memory.holdOf; both modes, owner 2026-10-13): every
- * move of the bundle's roads (whichever GW) that GW g's squad on your plan can make, each measured as that move added
+ * move the bundle's roads make in GW g (never one they plan later: owner, 2026-11-02) that GW g's squad on your plan can make, each measured as that move added
  * to your plan in GW g (addMove's ≈) against your plan: {out, in, cmp {delta, label}, model (the model's own plan
  * makes it in GW g)}. Every one that fits, losers too, before your first transfer of the week as after (owner,
  * 2026-10-21); once your plan uses the week's free transfers (extraWeek) the number is after the −4. Under the hold,
@@ -22,8 +22,7 @@ import { squadWeek } from '../pieces.js';
  * transfer ({gw, out, in}), `hit` (its number is after the hit). Once per plan view and GW.
  */
 const SUGGESTIONS = new WeakMap();
-const SUGGEST_LEAST = 4;   // a week's single moves at least, the roads' first, then the engine's best of each sale's
-const SUGGEST_TRIES = 3;   // …buys measured per sale (buyCandidates' order)
+const SUGGEST_TRIES = 3;   // a sale's buys measured for a place you opened (bestOf: buyCandidates' order)
 export function suggestionsOf(ctx, P, g) {
   if (inkAt(ctx, P, g) || !weekOf(P, g)) return [];
   let by = SUGGESTIONS.get(P);
@@ -53,27 +52,19 @@ export function suggestionsOf(ctx, P, g) {
     const early = earlyOf(ctx, P, g, [m], r.ev, before, d0);
     out.push({ ...m, instead: r.instead, hit: hitsAt(r.ev) > hitsAt(before), ...(early ? { early } : {}), ...(removed ? { removed: true } : {}) });
   };
-  for (const m of modelMoves(P, g).values()) {
+  for (const m of modelMoves(P, g, { now: true }).values()) {
     const x = fits(m) ? measured(m) : null;
     if (x) push(x);
   }
-  // a week the roads' moves don't reach (your plan made them already, and the roads roll it; owner, 2026-10-30): each
-  // sale's best buy of the few his money pays for (buyCandidates' order, as Replace's ownAltsOf), up to SUGGEST_LEAST
-  // moves in all, one a buy, each solved as any (plansOf)
+  // sale o's best buy of the few his money pays for (buyCandidates' order, as Replace's ownAltsOf), measured → [x] | []
+  // (no engine top-up of the week's own moves since owner, 2026-11-02: the solver's, refusal by refusal, refusalRoads)
   const pool = new Map(), bank = w.bank ?? 0;
   const buysOf = (pos) => pool.get(pos) ?? pool.set(pos, buyCandidates(P, { pos, from: g, limit: 80 })).get(pos);
-  // sale o's best buy of the few his money pays for (buyCandidates' order), measured → [x] | []
   const bestOf = (o) => {
     const room = bank + (P.L.price(o) ?? 0) + 1e-6;
     const tries = buysOf(P.L.pos(o)).filter((id) => (P.L.price(id) ?? Infinity) <= room).slice(0, SUGGEST_TRIES).map((id) => ({ out: o, in: id, model: false }));
     return tries.filter(fits).map(measured).filter(Boolean).sort((a, b) => b.cmp.delta - a.cmp.delta).slice(0, 1);
   };
-  const short = SUGGEST_LEAST - out.filter((x) => !x.removed).length;
-  if (short > 0) {
-    const buys = new Set(out.map((x) => x.in));
-    const best = squad.flatMap(bestOf).sort((a, b) => b.cmp.delta - a.cmp.delta);
-    for (const x of best.filter((y) => !buys.has(y.in) && buys.add(y.in)).slice(0, short)) push(x);
-  }
   // a player whose × you tapped (askPlace) and no move here sells: his best sale (`asked`), his place's alone, never
   // a suggestion of the week (plansOf: its card and its other buys; owner, 2026-11-02: every card's × opens his place)
   for (const o of asked.filter((a) => !out.some((x) => x.out === a))) for (const x of bestOf(o)) push({ ...x, asked: true });
@@ -118,14 +109,15 @@ function waitsAWeek(ctx, P, g, ms, ev, before, d0, measure = null) {
   return compare(ctx, measure ? measure(d, g) : estimate(ctx, d, g), ev).delta >= -0.05;
 }
 
-/** Every move of the bundle's roads (whichever GW makes it), and the solver's own moves in a later week of your plan
+/** Every move of the bundle's roads (whichever GW makes it; with `now`, GW g's alone: a move a road plans for a later
+ *  week is never a GW-g suggestion, owner 2026-11-02), and the solver's own moves in a later week of your plan
  *  that a wish of yours makes the planner's (him from then: Add a player's button), the sale that pays for him among
  *  them, so an earlier week offers it too (owner, 2026-10-30), once each: `${out}>${in}` → {out, in, model (the model's
- *  own plan makes it in GW g)}. Source of suggestionsOf and ownAltsOf. */
-export function modelMoves(P, g) {
+ *  own plan makes it in GW g)}. Source of suggestionsOf (`now`) and ownAltsOf. */
+export function modelMoves(P, g, { now = false } = {}) {
   const pool = new Map();
   for (const r of bundleRoads(P.b.roads)) {
-    for (const w of r.weeks || []) {
+    for (const w of (r.weeks || []).filter((x) => !now || Number(x.gw) === g)) {
       for (const m of pairedMoves(w.out, w.in, P.L)) {
         const k = `${m.out}>${m.in}`;
         const model = r === P.base && Number(w.gw) === g;

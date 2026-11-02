@@ -135,7 +135,7 @@ export function forkValues(ctx, P, g, c) {
 }
 
 // (the newest FORK_ROADS_MAX by their last use, keepNewest: a week drawn before an edit asked its solves first, and an
-// Undo back to it needs them all again; twice 48 since every week lists SUGGEST_LEAST moves at least)
+// Undo back to it needs them all again; twice 48)
 const FORK_ROADS = new Map();  // valuesKey → Road | 'infeasible' | {failedAt}
 const FORK_ROADS_MAX = 96;
 /** A fork's solve ({key: valuesKey, values}): its road, 'infeasible' (no plan keeps your rules with the choice: kept
@@ -176,16 +176,20 @@ export function forkPump(ctx, P, ask) {
   if (leftBehind(ctx, P)) return;  // no timer: the new plan's bundle re-draws the choices, which asks its own
   const holder = ctx.api.slotHolder?.('spec') ?? (ctx.api.slotBusy?.('spec') ? 'busy' : null);
   const free = Array.from({ length: (P.b?.meta?.pair_lanes ?? 1) - 1 }, (_, i) => i + 1).find((i) => !FORK_FLIGHTS.has(i));
+  // (refusalRoads' solves, `side`: the lanes 1.. alone where the plan service gives more than one, never lane 0,
+  // whose speculative slot your team's own solves need (core.specRoad: P.bare, the tiles' "without your transfers");
+  // none free: asked again on the next draw)
+  const side = !!ask.side && (P.b?.meta?.pair_lanes ?? 1) > 1;
   // (a viewed ask with every lane busy: another week's flight, the next week's preparation, or a tap's solve asked ahead
   // gives its lane up)
-  const other = !same && !prep && PAIR.flight && free === undefined ? forkFlights().find(([, f]) => (f.gw !== ask.gw || f.ahead) && !aheadWaited(f)) : null;
+  const other = !same && !prep && !side && PAIR.flight && free === undefined ? forkFlights().find(([, f]) => (f.gw !== ask.gw || f.ahead) && !aheadWaited(f)) : null;
   // (a tap's solve asked ahead with every lane busy: the next week's preparation gives its lane up, asked again once
   // the taps' are in: prepNext; then one asked ahead that no source asks any more (its rules replaced: L5); for an open
   // sheet's, a week's tap asked ahead too: the sheet covers its plates)
   const yielded = !same && ask.ahead && free === undefined
     ? forkFlights().find(([, f]) => f.prep && !f.ahead) ?? forkFlights().find(([, f]) => f.ahead && !aheadWaited(f) && !aheadAsks(f, P, ask.gw))
       ?? (ask.src === 'sheet' ? forkFlights().find(([, f]) => f.ahead && f.src === 'week' && !aheadWaited(f)) : null) ?? null : null;
-  const lane = same ? same[0] : prep ? free ?? (!PAIR.flight && !holder && !prepsWaiting(ctx, P) ? 0 : yielded?.[0])
+  const lane = same ? same[0] : side ? free : prep ? free ?? (!PAIR.flight && !holder && !prepsWaiting(ctx, P) ? 0 : yielded?.[0])
     : !PAIR.flight ? 0 : free ?? other?.[0];
   if (lane === undefined) return;  // every lane busy: a landing re-draws the choices, which asks again
   if (holder && !(prep ? PREP_BESIDE : PAIR_TAKES).has(holder)) {
@@ -198,7 +202,7 @@ export function forkPump(ctx, P, ask) {
   if (wait > 0) { forkAgain(ctx, wait); return; }
   if (other) other[1].cancel?.();
   if (yielded && yielded[0] === lane) yielded[1].cancel?.();
-  const flight = { key: ask.key, fork: true, cancel: null, gw: ask.gw, P, prep, ahead: !!ask.ahead, src: ask.src ?? null };
+  const flight = { key: ask.key, fork: true, cancel: null, gw: ask.gw, P, prep, ahead: !!ask.ahead, root: !!ask.root, src: ask.src ?? null };
   if (lane) FORK_FLIGHTS.set(lane, flight); else PAIR.flight = flight;
   const ours = () => (lane ? FORK_FLIGHTS.get(lane) : PAIR.flight) === flight;
   const purpose = ask.ahead ? 'presolve' : prep ? 'pairnext' : 'pair';

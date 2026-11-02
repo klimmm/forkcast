@@ -3,7 +3,7 @@
 import * as E from '../../plan/engine.js';
 import { fmt, chipName } from '../../ui.js';
 import { COPY, hitCap, statusText } from '../calls.js';
-import { attach, pinSell, pinHits, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
+import { attach, pinSell, pinHits, pinKeep, pinVeto, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
 import { MINUS, addMove, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
 import { asksOf, autoRuleName, barred, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
 import { FORK_FLIGHTS, SQUAD_CHIPS, asTaken, byGain, forkAgain, forkAsk, forkFlights, forkKey, forkPump, forkRead, modelMoves, planBaseline, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
@@ -217,6 +217,34 @@ export function owedRoad(ctx, P, g, { peek = false, prep = false } = {}) {
   return { key, road: got?.weeks ? got : null };
 }
 
+/** GW g's moves as the solver ranks them, refusal by refusal (owner, 2026-11-02: "solve ... all possible options for
+ *  this week until rolling is actually best"): your plan solved with GW g on the planner's, as main.py --must-have
+ *  plans it under your rules, its GW-g move on top of yours the week's best; that move refused both ways, its sale
+ *  kept or its buy kept out in GW g alone (the lock's Keep, a veto's "Not … in GW g"), each solved the same way, and
+ *  so on `depth` refusals ahead (2: the next is solved before you refuse); a road with no move of its own in GW g ends
+ *  its branch (rolling is best there). Each asked as a fork is (forkAsk; read only when `peek`). → [{key, road}], the
+ *  root first */
+export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 2 } = {}) {
+  const cap = hitCap(P.b?.meta) ?? 2, on = P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x));
+  const yours = weekOf(P, g)?.moves || [], out = [], seen = new Set();
+  const walk = (extra, d) => {
+    const values = valuesFor(ctx, [...on, ...extra]), key = valuesKey(P, values);
+    if (seen.has(key)) return;
+    seen.add(key);
+    // (the root's flight never let go by a later view: plansOf; an Undo back finds it)
+    const got = peek ? forkRead(key) : forkAsk(ctx, P, { key, values, gw: g, side: true, ...(prep ? { prep } : {}), ...(d === depth ? { root: true } : {}) });
+    const road = got?.weeks ? got : null;
+    out.push({ key, road });
+    const w = road && d > 0 ? road.weeks.find((x) => Number(x.gw) === g) : null;
+    const lead = w ? pairedMoves(w.out || [], w.in || [], P.L).find((m) => !yours.some((y) => sameMove(y, m))) : null;
+    if (!lead) return;
+    walk([...extra, pinKeep(lead.out, g, g, { scope: 'gw' })], d - 1);
+    walk([...extra, pinVeto(lead.in, g, g, { scope: 'gw' })], d - 1);
+  };
+  walk([], depth);
+  return out;
+}
+
 export function extraWeek(P, g) {
   const w = weekOf(P, g);
   if (!w || squadWeek(w)) return false;
@@ -359,7 +387,7 @@ export function otherUseOf(ctx, P, w, m) {
     const no = barred(P, g), kept = keptFrom(P, g), mine = movedFrom(P, g);
     mine.delete(m.out);
     mine.delete(m.in);
-    for (const x of modelMoves(P, g).values()) {
+    for (const x of modelMoves(P, g, { now: true }).values()) {
       if ((x.out === m.out && x.in === m.in) || !into.includes(x.out) || !squad.includes(x.out) || squad.includes(x.in) || mine.has(x.out) || mine.has(x.in) || no.has(x.in) || kept.has(x.out)) continue;
       const r = addYours(ctx, P, g, x.out, x.in, rg.dWithout, takenBy(ctx, P));
       if (r.problem) continue;

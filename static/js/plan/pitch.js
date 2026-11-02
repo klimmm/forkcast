@@ -351,8 +351,8 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
   const bought = o.bought?.[id] ?? null;  // the GW he was bought in, when he is not in the real squad
   const sold = o.sold?.[id] ?? null;  // the GW the plan sells him in, when it does after this one
   const approx = o.approx === true || !!o.approx?.has(id);
-  // the captain's points doubled (tripled with a Triple Captain), as FPL shows them, the C badge saying why (owner,
-  // 2026-10-14); his spoken label says "6.1 times 2"
+  // the captain's points doubled (tripled with a Triple Captain) only with `capPoints`, his spoken label then "6.1
+  // times 2"; off by default (owner, 2026-11-02: his own forecast on his plate, the C badge says he is captain)
   const pts = platePts(xp, mult);
   // the ink plate a buy of this GW only (an earlier week's buy keeps `bought`: an ink ring inside his plain plate);
   // with `inFor` every buy of the week, one of your FPL team bought back too: his name plate ink (`is-in`: no badge, no
@@ -474,7 +474,7 @@ function armbandHop(root, fromRect, captain) {
  * `gw`; `order` makes it a bench card; other options are mountPitch's. → the card's node
  */
 export function pitchCard(id, { players = {}, gw, horizon, second = 'both', bought = null, inFor = null, approx = false, onPlayer = null, order = null, first = false } = {}) {
-  const o = { gw, horizon: horizon ?? gw, first, capPoints: true, onPlayer, bought, inFor, second, captain: null, vice: null,
+  const o = { gw, horizon: horizon ?? gw, first, capPoints: false, onPlayer, bought, inFor, second, captain: null, vice: null,
     approx: approx === true ? true : asSetOrNull(approx), marks: new Map() };
   return card(Number(id), lookup(players), o, { order });
 }
@@ -491,7 +491,7 @@ export function pitchCard(id, { players = {}, gw, horizon, second = 'both', boug
  * <text>")
  *   sold       {id: gw}: players the plan sells after this GW: dark name plate and an "OUT GW8" tag
  *   approx     true or ids: "≈" before the points (an unconfirmed phone estimate)
- *   capPoints  (default true) the captain's plate shows ×2, ×3 under TC
+ *   capPoints  (default false: owner, 2026-11-02, his own forecast) the captain's plate shows ×2, ×3 under TC
  *   animate    ids whose shirt pops in;  flip (default true): a changed slot keeps its place, his shirt fading in
  *   benchRow   the bench panel (benchTag labels)
  * fpl        {xi, bench, captain, vice}: your FPL team, to say where this lineup differs (fplMarks); only for the GW
@@ -504,7 +504,7 @@ export function pitchCard(id, { players = {}, gw, horizon, second = 'both', boug
  */
 export function mountPitch(host, {
   xi = [], bench = [], captain, vice, chip, players = {}, gw, horizon, first = false,
-  bought = null, inFor = null, second = 'both', sold = null, approx = false, capPoints = true, animate, flip = true,
+  bought = null, inFor = null, second = 'both', sold = null, approx = false, capPoints = false, animate, flip = true,
   benchRow = false, fpl = null, onPlayer, onBench = null, label, why = null, gapRows = false,
 } = {}) {
   const P = lookup(players);
