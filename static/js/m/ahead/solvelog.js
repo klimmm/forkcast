@@ -15,6 +15,22 @@ export function mountSolveLog(team = () => null, server = () => null) {
   let acted = 0;
   for (const t of ['pointerdown', 'keydown']) document.addEventListener(t, (e) => { if (!el.contains(e.target)) acted = Date.now(); }, { capture: true, passive: true });
   const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
+  // (a button copies the header and every line, not only the 30 shown, as plain text; owner, 2026-11-03, "add button to
+  // copy logs")
+  let said = [];
+  const copy = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Copy' });
+  copy.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    const text = [`${location.href} · ${new Date().toISOString()}`, ...said].join('\n');
+    const done = () => { copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy'; }, 1500); };
+    navigator.clipboard?.writeText(text).then(done, () => fallback(text, done)) ?? fallback(text, done);
+  });
+  const fallback = (text, done) => {
+    const t = Object.assign(document.createElement('textarea'), { value: text });
+    document.body.append(t); t.select();
+    if (document.execCommand('copy')) done();
+    t.remove();
+  };
   const paint = () => {
     // (the team on screen's alone: another team's from earlier on this page never shown; owner, 2026-11-03). Its first
     // plan's solves too, the ones the server starts itself for a team it hasn't seen ("Planning GW10–13", its bake), in
@@ -30,9 +46,12 @@ export function mountSolveLog(team = () => null, server = () => null) {
     const ends = (x) => (x.state === 'solving' ? `solving, ${secs(now - x.at)}` : x.state === 'to come' ? 'to come'
       // (an answer back within a second is one the server had already: no solve ran)
       : x.state === 'solved' && x.ms != null && x.ms < 1000 ? 'already solved' : x.ms != null ? `${x.state} in ${secs(x.ms)}` : x.state);
+    const head = `${running} running · ${since} since your last tap · ${mine.length} in all`;
+    const line = (x) => `${typeof x.gw === 'number' ? `GW${x.gw}` : x.gw} · ${x.kind} · ${x.what} · ${ends(x)}`;
+    said = [head, ...mine.map(line)];
     el.replaceChildren(
-      Object.assign(document.createElement('b'), { textContent: `${running} running · ${since} since your last tap · ${mine.length} in all` }),
-      ...mine.slice(0, 30).map((x) => Object.assign(document.createElement('div'), { className: x.state === 'to come' ? 'solving' : x.state, textContent: `${typeof x.gw === 'number' ? `GW${x.gw}` : x.gw} · ${x.kind} · ${x.what} · ${ends(x)}` })));
+      Object.assign(document.createElement('b'), { textContent: head }), copy,
+      ...mine.slice(0, 30).map((x) => Object.assign(document.createElement('div'), { className: x.state === 'to come' ? 'solving' : x.state, textContent: line(x) })));
   };
   paint();
   setInterval(paint, 500);

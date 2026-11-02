@@ -280,8 +280,9 @@ export function linePart(V) {
     if (!rsBtn.hidden) {
       // (the corner's stack: never the band's token, over the pitch: renderDecks inBand; QA lineup-reset, 2026-11-03)
       const last = [...decks.querySelectorAll(':scope > .ah-tok:not(.mv, .st.best)')].filter((t) => t.isConnected).at(-1) ?? null;
-      // (no token and no room at its slot: the corner's top)
-      const at = [...RESET_GAPS.map((gap, i) => [resetSlot(last, gap), i > 0]), ...(last ? [] : [[6, false]])]
+      // (no token in the corner: the corner's top first, never a token's room kept empty over it; owner, 2026-11-03, "why
+      // reset plan not on top"; its slots under only where a card takes the top)
+      const at = [...(last ? [] : [[6, false]]), ...RESET_GAPS.map((gap, i) => [resetSlot(last, gap), i > 0])]
         .find(([y, near]) => { rsBtn.style.top = `${y}px`; rsBtn.classList.toggle('near', near); return resetFits(boxOf(rsBtn, b), boxes); });
       // (no slot: a 320 px phone at a large text size with a token in the corner: the Reset goes at the top and the
       // tokens under it give way, the best's plate staying on its player (data-mv-out), every choice the Week sheet's;
