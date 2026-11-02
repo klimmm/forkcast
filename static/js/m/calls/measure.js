@@ -88,15 +88,18 @@ export const POINT_TERMS = ['xi', 'cap', 'hit'];
  * A choice's number (owner, 2026-10-28: the solver's own count, own window): compare's `cmp` with its gap the solver's
  * count over the window it committed GW g from (windowGap), its label that count on the anchor's scale against the
  * noise floor, no per-run votes; the points kept as `pts`. As it was where either road has no window for g. `keep` (a
- * transfer choice's POINT_TERMS): the number is those terms alone; the solver's whole count is its `rank`, which
- * orders and lights the choices (rankOf), so the week's best is the move the solver commits (main.py --show-plan;
- * owner, 2026-10-30). ctx: planInputs.
+ * transfer choice's POINT_TERMS): the number is those terms alone (its whole count where they show no gain and it
+ * does); the solver's whole count is its `rank`, which orders and lights the choices (rankOf), so the week's best is
+ * the move the solver commits (main.py --show-plan; owner, 2026-10-30). ctx: planInputs.
  */
 export function counted(ctx, cmp, a, b, g, keep = null) {
-  const w = cmp ? windowGap(a, b, g, keep) : null;
-  if (!w) return cmp;
+  const pw = cmp ? windowGap(a, b, g, keep) : null;
+  if (!pw) return cmp;
   const of = (x) => ({ delta: x.delta, ref: x.ref, label: E.verdictLabel(x.ref, ctx.noise) });
   const whole = keep && windowGap(a, b, g);
+  // (where its points show no gain, "0.0" or less, and its whole count does, the number is the whole count: the move the
+  // solver commits shows why it does; owner, 2026-11-02, Calvert-Lewin → Evanilson at −0.04 points, +0.21 counted)
+  const w = whole && pw.delta < 0.05 && whole.delta >= 0.05 ? whole : pw;
   return { ...cmp, ...of(w), winner: w.delta > EPS ? 'a' : w.delta < -EPS ? 'b' : null,
     votes: null, against: null, lead: null, count: w.terms, pts: cmp, ...(whole ? { rank: of(whole) } : {}) };
 }
