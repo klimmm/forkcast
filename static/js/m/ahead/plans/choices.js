@@ -13,6 +13,15 @@ import { FORK_MAX, PLACE_ALTS, PLANS, SQUAD_CHIPS, earlyOf, movesSig, placesAske
 import { byGain, fitOf, fitsAt, forkKey, mineAny, rebought } from './lit.js';
 import { FORK_FLIGHTS, FORK_REFS, asTaken, forkAsk, forkFlights, forkKept, forkRead, forkValues, measurePlan, planBaseline, planOfRoad, takenBy } from './forks.js';
 
+/** The weeks whose plain rows (a choice that is no solver road's, roll, ref, part or place's ask) are solved: their
+ *  Week sheet open (rowsWanted). Elsewhere they wait unasked, so a ✕ or a Keep asks only what its next tap needs
+ *  (owner, 2026-11-03: "fix: fires 10-16 background solves"; his 6-a-tap budget, 2026-11-02). */
+const ROWS_WANT = new Set();
+export function rowsWanted(g, on) {
+  if (ROWS_WANT.has(g) === !!on) return;
+  if (on) ROWS_WANT.add(g); else ROWS_WANT.delete(g);
+  PAIR.rev++;  // (plansOf's memo: drawn again with them)
+}
 export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const w = weekOf(P, g);
   // in both modes: the switch only decides who makes the rest of the plan (owner, 2026-10-13)
@@ -491,6 +500,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     const kept = land ? PREPS.get(key) : null;
     const refAt = refs.has(k) ? `${P.entry}|${g}|${k}` : null, last = refAt && FORK_REFS.get(refAt);
     if (last && !forkRead(key) && last.version === P.b.version && rootStill(last.values, ask.values, last.road)) forkKept(key, { ...last.road, key, values: ask.values });
+    // (a plain row while its Week sheet is shut: not asked, not listed, ROWS_WANT; one solved before still shows)
+    if (!peek && !prep && !kept && c.moves.length && !Object.keys(c.chips).length && !refs.has(k) && !parts.has(k) && !placed.has(k) && !roots.has(k) && !ROWS_WANT.has(g) && !forkRead(key)
+      && !forkFlights().some(([, f]) => f.key === key)) return { state: 'idle', choice: c };
     const got = kept?.weeks ? kept : peek ? forkRead(key) : forkAsk(ctx, P, ask);
     if (refAt && got?.weeks) FORK_REFS.set(refAt, { version: P.b.version, values: ask.values, road: got });
     if (land && !peek && got?.weeks && kept !== got) prepKeep(key, got);
@@ -596,7 +608,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     if (ps.some((x) => x.state === 'solving' || (x.state === 'ready' && x.cmp?.delta > 0))) drop.add(k);
     else for (const q of ks) drop.add(q);
   }
-  const all = each.filter((x) => !drop.has(forkKey(x.choice, g)));
+  const all = each.filter((x) => !drop.has(forkKey(x.choice, g)) && x.state !== 'idle');
   const done = all.filter((x) => x.state === 'ready');
   // the Roll row against the hardest of: the best transfer row's plan (Forkcast's later moves on both sides) and the
   // best Wildcard row's (your later weeks kept on both: its held roll) → {vsBest, best, bestFrom (the Roll side's

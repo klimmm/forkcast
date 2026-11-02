@@ -176,6 +176,30 @@ export const forkRead = (key) => { const got = FORK_ROADS.get(key); return got?.
 export const FORK_FLIGHTS = new Map();  // lane (1..) → {key, fork, cancel, gw, P, prep}
 /** Every fork solve in flight as [lane, flight]: lane 0 while a fork holds PAIR.flight, then lanes 1.. */
 export const forkFlights = () => [...(PAIR.flight?.fork ? [[0, PAIR.flight]] : []), ...FORK_FLIGHTS];
+/** Every fork solve this page asked, newest first, in words (the ?solves=1 panel, solvelog.js; owner, 2026-11-03: "show
+ *  me in interface what exactly is solved every time"): {at, gw, kind, what, ms, state}. */
+export const SOLVE_LOG = [];
+// (what a solve asks beyond the plan as it stands: the rules its values add or drop, by player and week)
+function solveWords(ctx, P, ask) {
+  let base = {};
+  try { base = valuesFor(ctx); } catch { /* no plan memory: its rules whole */ }
+  const set = (v) => new Set(String(v ?? '').split(',').filter(Boolean));
+  const nm = (id) => P.L?.name?.(Number(id)) ?? id, squad = new Set((weekOf(P, ask.gw)?.squad ?? []).map(Number));
+  const span = (x) => { const [id, w] = x.split('@'); const [a, b] = (w ?? '').split('-'); return { id, at: a === b || !b ? `GW${a}` : `GW${a}-${b}` }; };
+  const out = [];
+  for (const [k, on, off] of [['must_have', 'keep', 'buy'], ['exclude', 'sell', 'not']]) {
+    const now = set(ask.values?.[k]), was = set(base[k]);
+    for (const x of now) if (!was.has(x)) { const s = span(x); out.push(`${squad.has(Number(s.id)) ? on : off} ${nm(s.id)} ${s.at}`); }
+    for (const x of was) if (!now.has(x)) { const s = span(x); out.push(`drop ${k === 'must_have' ? 'keep' : 'not'} ${nm(s.id)} ${s.at}`); }
+  }
+  const roll = set(ask.values?.no_buys_gw), rolled = set(base.no_buys_gw);
+  for (const g of roll) if (!rolled.has(g)) out.push(`roll GW${g}`);
+  // (a verb's run over one week grouped, its players named up to three: "keep 15 players GW10")
+  const by = new Map();
+  for (const x of out) { const [, v, rest] = /^(\S+(?: \S+)?) (.+) (GW[\d-]+)$/.exec(x) ? [, x.replace(/ .+$/, ''), x] : [, x, x]; const g = /GW[\d-]+$/.exec(x)?.[0] ?? ''; const k = `${v} ${g}`; by.set(k, [...(by.get(k) ?? []), rest]); }
+  const words = [...by].map(([k, xs]) => (xs.length > 3 ? `${k.split(' ')[0]} ${xs.length} players ${k.split(' ').at(-1)}` : xs.join(', ')));
+  return words.length ? words.join(', ') : 'the plan as it stands';
+}
 export function forkPump(ctx, P, ask) {
   const prep = !!ask.prep;
   const same = forkFlights().find(([, f]) => f.key === ask.key);
@@ -223,9 +247,13 @@ export function forkPump(ctx, P, ask) {
   const ours = () => (lane ? FORK_FLIGHTS.get(lane) : PAIR.flight) === flight;
   const purpose = ask.ahead ? 'presolve' : prep ? 'pairnext' : 'pair';
   if (ask.ahead) AHEAD.asked.push({ at: Date.now(), key: ask.key, src: ask.src });
+  const log = { at: Date.now(), gw: ask.gw, kind: ask.ahead ? 'a tap, ahead' : ask.root ? 'the week\'s plan' : side ? 'the next ✕ / Keep' : ask.need ? 'next week: what it draws' : prep ? 'next week' : 'a choice', what: solveWords(ctx, P, ask), ms: null, state: 'solving' };
+  SOLVE_LOG.unshift(log);
+  if (SOLVE_LOG.length > 40) SOLVE_LOG.length = 40;
   const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, lane ? { slot: `fork${lane}` } : undefined);
   flight.cancel = () => p.cancel?.();
   p.then((res) => {
+      log.state = res.road ? 'solved' : res.state ?? (res.error ? 'error' : 'done');
       // a tap's solve asked ahead: its answer memory's for exactly those values (presolve); one that failed for another
       // reason than your rules is never asked again on this page (no cost: the tap heals as before)
       if (ask.ahead && (res.road || res.state === 'error')) {
@@ -245,6 +273,8 @@ export function forkPump(ctx, P, ask) {
       }
     }, () => { if (ours()) PAIR[pause] = Date.now() + PAIR_HOLD_MS; })
     .finally(() => {
+      log.ms = Date.now() - log.at;
+      if (log.state === 'solving') log.state = 'let go';
       if (!ours()) return;
       if (lane) FORK_FLIGHTS.delete(lane); else PAIR.flight = null;
       // (a solve asked ahead changes nothing drawn: the next one asked in its lane, the choices re-drawn only once none

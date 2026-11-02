@@ -5,7 +5,7 @@ export {
 } from './plans/suggest.js';
 export {
   plansOf, settledList, plansListed, choiceVs, yoursAt, chipShown, chipNumber, approxAt, weekRollOf, plansWait,
-  weekWait, lineNotices, planWeeks, countedAfter, squadChanges, litEdges, weekKey, weekSettled, settleDue, settlesAt
+  weekWait, lineNotices, planWeeks, countedAfter, squadChanges, litEdges, weekKey, weekSettled, settleDue, settlesAt, rowsWanted
 } from './plans/choices.js';
 export {
   litOf, weekBest, litShown, rollOnly, planBack, decksOf, benchOnly, takesBack, singleMove, placeDealt, placePages,

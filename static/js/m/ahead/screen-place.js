@@ -1,7 +1,7 @@
 // screen.js mount: a place's cards and the Week sheet's opening
 
 import { weekOf } from './core.js';
-import { PLACE_SLOTS, failedWords, lineMoves, noteOf, placeBuys, placeOrder, placePages, placeSplit, slotsBeside, takesBack } from './plans.js';
+import { PLACE_SLOTS, failedWords, lineMoves, noteOf, placeBuys, placeOrder, placePages, placeSplit, rowsWanted, slotsBeside, takesBack } from './plans.js';
 import { h, reduceMotion } from '../../ui.js';
 import { pinOfMove, presolveTaps, removeMove } from './presolve.js';
 import { COPY } from '../calls.js';
@@ -361,6 +361,9 @@ export function placePart(V) {
   function weekSheet(g, at = null, plan = null) { const { S, ctx, drawWeek, uncovered, weekModel } = V;
     const P = S.drawn, w = P && weekOf(P, g);
     if (!w) return;
+    // (its rows solved while it is open: plans rowsWanted)
+    if (S.week && S.week.g !== g) rowsWanted(S.week.g, false);
+    rowsWanted(g, true);
     if (!S.week) {
       const title = COPY.weekTitle(g);
       ctx.sheets.open({
@@ -370,7 +373,7 @@ export function placePart(V) {
           body.append(S.week.host);
           uncovered.observe(sheet.el, { attributes: true, attributeFilter: ['inert'] });
         },
-        onClose: () => { presolveTaps(ctx, null, { owner: S.week?.sheet }); S.week = null; },
+        onClose: () => { presolveTaps(ctx, null, { owner: S.week?.sheet }); if (S.week) rowsWanted(S.week.g, false); S.week = null; },
       });
     }
     drawWeek(P, w, weekModel(P, w));

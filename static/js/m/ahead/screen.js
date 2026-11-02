@@ -18,6 +18,7 @@ import { placePart } from './screen-place.js';
 import { weekPart } from './screen-week.js';
 import { rowsPart } from './screen-rows.js';
 import { pitchPart } from './screen-pitch.js';
+import { mountSolveLog } from './solvelog.js';
 import { touchPart } from './screen-touch.js';
 
 // ================================================================ THE SCREEN (§5.5)
@@ -167,6 +168,7 @@ export const cssPx = (host, ...lengths) => {
 };
 
 export function mount(el, ctx) {
+  mountSolveLog();  // (?solves=1 only: the fork solves in words)
   // the parts' view of this function's scope (live getters) and the parts' functions, by their own names
   const V = {
     get ADD_HOLD_MS() { return ADD_HOLD_MS; },
