@@ -6,12 +6,12 @@ import { COPY } from '../../calls.js';
 import { bundleRoads } from '../../memory.js';
 import { MINUS, compare, draftOf, flatMoves, isFrozen, ownCount, removedAt, valuesFor, valuesKey, viewOfState, weekOf } from '../core.js';
 import { barred, chainOf, chipEdit, keptCells, keptFrom } from '../edits.js';
-import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, presolveWeek, weekOnto } from '../presolve.js';
+import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, presolveWeek, rootStill, weekOnto } from '../presolve.js';
 import { inkAt } from '../buys.js';
 import { PREP, PREPS, chipPresolves, chipWeekGain, chipWeekOf, chipsAsked, chipsAvail, clearGain, keptBest, plPays, plannedAt, prepItems, prepKeep, squadWeek } from '../pieces.js';
 import { FORK_MAX, PLACE_ALTS, PLANS, SQUAD_CHIPS, earlyOf, movesSig, placesAsked, suggestionsOf } from './suggest.js';
 import { byGain, fitOf, fitsAt, forkKey, mineAny, rebought } from './lit.js';
-import { FORK_FLIGHTS, asTaken, forkAsk, forkFlights, forkRead, forkValues, measurePlan, planBaseline, planOfRoad, takenBy } from './forks.js';
+import { FORK_FLIGHTS, FORK_REFS, asTaken, forkAsk, forkFlights, forkKept, forkRead, forkValues, measurePlan, planBaseline, planOfRoad, takenBy } from './forks.js';
 
 export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const w = weekOf(P, g);
@@ -479,7 +479,10 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // (a row of its preparation: Chips…'s where it has prepared it, else asked here and kept as that preparation, so
     // Chips… and its tap find it: one solve)
     const kept = land ? PREPS.get(key) : null;
+    const refAt = refs.has(k) ? `${P.entry}|${g}|${k}` : null, last = refAt && FORK_REFS.get(refAt);
+    if (last && !forkRead(key) && last.version === P.b.version && rootStill(last.values, ask.values, last.road)) forkKept(key, { ...last.road, key, values: ask.values });
     const got = kept?.weeks ? kept : peek ? forkRead(key) : forkAsk(ctx, P, ask);
+    if (refAt && got?.weeks) FORK_REFS.set(refAt, { version: P.b.version, values: ask.values, road: got });
     if (land && !peek && got?.weeks && kept !== got) prepKeep(key, got);
     if (got && typeof got === 'object') {
       const x = planOfRoad(ctx, P, got, g, d0);
@@ -569,7 +572,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     const adds = x.choice.moves.filter((m) => m.gw === g && !now.some((y) => sameMove(y, m)));
     return adds.length > 0 && adds.every((m) => goneOut.has(String(m.out)) && goneIn.has(String(m.in)));
   };
-  const all = out.map(alone).map(vsRef).map((x) => (rolls(x) ? { ...x, rolls: true } : x)).map((x) => (placeOnly.has(forkKey(x.choice, g)) ? { ...x, placeOnly: true } : x)).map((x) => (yoursAgain(x) ? { ...x, removed: true } : x))
+  // (`solver`: the solver's own move for the week under your rules, refusalRoads' root or owedRoad, or a move of it
+  // offered alone (`parts`): what lights, plPays)
+  const all = out.map(alone).map(vsRef).map((x) => (roots.has(forkKey(x.choice, g)) || parts.has(forkKey(x.choice, g)) ? { ...x, solver: true } : x)).map((x) => (rolls(x) ? { ...x, rolls: true } : x)).map((x) => (placeOnly.has(forkKey(x.choice, g)) ? { ...x, placeOnly: true } : x)).map((x) => (yoursAgain(x) ? { ...x, removed: true } : x))
     // (a row numbered by the solver's own count that beats the roll is no early one: its window counts making it next
     // week instead, so a count past the 0.05 bar says now; owner, 2026-10-28)
     .map((x) => (early.has(forkKey(x.choice, g)) && !(x.cmp?.count && x.cmp.delta > 0.05) ? { ...x, early: early.get(forkKey(x.choice, g)) } : x))

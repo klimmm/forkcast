@@ -19,11 +19,10 @@ export const shirtOf = (L, id, size = 28) => shirt({ club: L.club(id), gk: L.pos
  *  result (its label: engine.verdictLabel against the noise), or a bare gap g as {delta: g, label: E.verdictLabel(g,
  *  noise)}. */
 export const clearGain = (c) => !!c && c.delta > 0 && c.label !== 'coin';
-/** A suggested plan row's green, solid + and filled Why button (plansOf's rows): its number past the noise; the roll's
- *  own row (no number: `refRow`) when its plan beats the best other row's past the noise (`vsBest`); with your
- *  transfer, Wildcard or Free Hit in the week, past your own choice's too (`vsMine`), and a move you took off this
- *  session (`removed`). Never one the 2026-10-18 bars keep from being the week's suggestion (plansOf `early`). */
-export const plPays = (pl) => !pl.early && clearGain(pl.refRow ? pl.vsBest : pl.cmp) && (!pl.vsMine || clearGain(pl.vsMine));
+/** A suggested plan row's green, solid + and filled Why button (plansOf's rows): the solver's own move for the week
+ *  under your rules (plansOf `solver`: refusalRoads' root, or a move of it offered alone), the roll's row where the
+ *  solver rolls; no threshold of any kind (owner, 2026-11-02: "remove all threshold and suggest what solver suggests"). */
+export const plPays = (pl) => pl?.state === 'ready' && !!pl.solver;
 /** What a checked choice's row, its spoken line and its card's note in his place say of the 2026-10-18 bar it doesn't
  *  pass where its number may not show it (plansOf `early`, a GW: "as good in GW9"; one that adds next to nothing when
  *  taken says so by its number, or by its Why sheet's "Your total" where that differs), else null. Pure. */

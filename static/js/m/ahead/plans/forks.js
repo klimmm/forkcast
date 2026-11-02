@@ -157,6 +157,10 @@ export function forkAsk(ctx, P, ask) {
 /** A road kept under `key` as if its solve had answered it (refusalRoads' root still the best under rules it already
  *  keeps: rootStill). */
 export const forkKept = (key, road) => keepNewest(FORK_ROADS, key, road, FORK_ROADS_MAX);
+/** Each week's references' last solves (plansOf: the roll, your transfers'), `${entry}|${g}|${forkKey}` → {version,
+ *  values, road}: a reference under rules its last road already keeps (presolve.rootStill) is that road, no solve
+ *  (2026-11-02: a card's lock in GW13 re-solved the roll that already kept him: 2 s greyed on a cold cache). */
+export const FORK_REFS = new Map();
 export const forkRead = (key) => { const got = FORK_ROADS.get(key); return got?.failedAt != null ? 'error' : got ?? null; };
 /** The on-screen solves, the suggested plans' forks (purpose 'pair': queued above every prefetch, chip preparation and
  *  bake, jobs.VIEWED): lane 0 is PAIR.flight, in the speculative slot; a fork's ask also goes in lanes 1.. up to the
@@ -260,6 +264,7 @@ export function resetForks() {
   clearTimeout(FORK_TIMER);
   FORK_TIMER = null;
   FORK_ROADS.clear();
+  FORK_REFS.clear();
   AHEAD.srcs.clear();
   AHEAD.failed.clear();
   AHEAD.at = null;

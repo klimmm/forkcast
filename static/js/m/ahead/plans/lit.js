@@ -22,7 +22,7 @@ import { litEdges } from './choices.js';
  *  .best (the best choice), .chip (the token's, or null), .move (the best move: its places' `best`) */
 export function litOf(P, w, M, D, toks = []) {
   const at = Object.assign(new Map(), { best: null, chip: null, move: null });
-  const can = litCan(P, w, M);
+  const can = litCan(P, w);
   const best = weekBest(P, w, M, D, toks);
   at.best = best;
   at.chip = best && toks.includes(best) ? best : null;
@@ -40,45 +40,39 @@ export function litOf(P, w, M, D, toks = []) {
   }
   return at;
 }
-/** Whether choice pl beats rolling as litOf counts it: checked, and past 0.05 while the week has no transfer, chip or
- *  Roll of yours (`fresh`), else past the noise against your plan (plPays); where your plan leaves the week short of
- *  money (owedAt), one that pays it back keeping your transfers (paysBack). → (pl) → bool */
-const litCan = (P, w, M) => {
-  const g = w.gw;
-  // a week your plan leaves short of money (owedAt): a choice that keeps your transfers and pays it back, whatever its
-  // number (FPL confirms no team short of money; owner, 2026-10-28)
-  if (owedAt(P, w)) return (pl) => pl?.state === 'ready' && paysBack(w, pl);
-  const fresh = !w.moves.length && !M.sq && !P.pins.some((p) => p.id === `roll:${g}`);
-  return (pl) => pl?.state === 'ready' && (fresh ? pl.cmp.delta > 0.05 : plPays(pl));
-};
+/** Whether litOf lights choice pl: the solver's own move (plPays; owner, 2026-11-02: no threshold); where your plan
+ *  leaves the week short of money (owedAt), one that pays it back keeping your transfers (paysBack). → (pl) → bool */
+const litCan = (P, w) => (owedAt(P, w) ? (pl) => pl?.state === 'ready' && paysBack(w, pl) : plPays);
 /** The places choice pl is drawn at (decksOf): behind each player it replaces; a take-back of a transfer of yours behind
  *  your buy. → [deck] */
 const placesOf = (D, pl) => D.filter((d) => d.entries.some((e) => e.pl === pl));
-/** The week's one best (design_marks/design.md: one ink plate): the choice that beats rolling with the highest number,
- *  single moves and plans of several together (a plan only where its number is higher: owner, 2026-10-22), the
- *  take-back of a transfer of yours too, its plate over your buy naming the player you sold (owner, 2026-10-28), never
- *  one whose take would also take back a buy of yours elsewhere (litEdges: the next best is the best then, a quiet
- *  plate whose place says "instead of …"); a Wildcard or Free Hit beside the goal (`toks`) where its number is higher
- *  still. None until the week settles. Pure. → pl | null */
+/** The week's one best (design_marks/design.md: one ink plate): the solver's own move for the week (litCan: plansOf
+ *  `solver`; owner, 2026-11-02, "remove all threshold and suggest what solver suggests"), the highest of its moves
+ *  offered apart, never one whose take would also take back a buy of yours elsewhere (litEdges); a Wildcard or Free Hit
+ *  beside the goal (`toks`) where its number is higher than that move's, or than rolling where the solver rolls. None
+ *  until the week settles. Pure. → pl | null */
 export function weekBest(P, w, M, D, toks = []) {
   const g = w.gw;
   if (!M.settled) return null;
-  const can = litCan(P, w, M);
-  const ok = (pl) => !pl.refRow && !pl.early && !pl.placeOnly && can(pl);
-  const moves = M.plans.filter((pl) => ok(pl) && placesOf(D, pl).length && !placesOf(D, pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl))));
-  const chips = toks.filter((pl) => ok(pl) && !rollOnly(pl) && !!pl.choice.chips?.[g]);
-  return [...moves, ...chips].reduce((m, pl) => (!m || pl.cmp.delta > m.cmp.delta ? pl : m), null);
+  const can = litCan(P, w);
+  // (the 2026-10-18 bars, `early`, no part of it: the solver's move lights whatever they say; owner, 2026-11-02)
+  const ok = (pl) => !pl.refRow && !pl.placeOnly;
+  const moves = M.plans.filter((pl) => ok(pl) && can(pl) && placesOf(D, pl).length && !placesOf(D, pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl))));
+  const move = moves.reduce((m, pl) => (!m || pl.cmp.delta > m.cmp.delta ? pl : m), null);
+  const chips = toks.filter((pl) => ok(pl) && pl.state === 'ready' && !rollOnly(pl) && !!pl.choice.chips?.[g] && pl.cmp.delta > (move?.cmp.delta ?? 0));
+  return chips.reduce((m, pl) => (!m || pl.cmp.delta > m.cmp.delta ? pl : m), null) ?? move;
 }
 /** The choices the pitch shows lit, green (owner, 2026-10-22: one rule for pitch and Week sheet): those litOf lights
  *  that pay (plPays), and a token beside the goal that pays (`toks`). The Week sheet's rows are green with a solid +
  *  exactly these (planRow), the others neutral with an outlined +. Each other place's plate too (placeFirst), once the
  *  week settles, where it pays (owner, 2026-10-25: every place has a plate; the sheet follows the pitch), never one at
  *  a place the pitch as last drawn gave no plate (`D.drawn`); the best's wherever it is (ringed). Pure. → Set(pl) */
-export function litShown(P, w, M, D, toks = [], lit = litOf(P, w, M, D)) {
+export function litShown(P, w, M, D, toks = [], lit = litOf(P, w, M, D, toks)) {
   const on = (a) => !D.drawn || D.drawn.has(a);
   const first = M.settled ? D.filter((d) => !lit.has(d.a) && on(d.a)).map(placeFirst).filter((e) => e?.pl?.state === 'ready').map((e) => e.pl) : [];
   // (the plates as last drawn, a sentence's sellers' own singles among them: D.drawnPl, renderDecks)
-  return new Set([...[...lit].filter(([a, x]) => x.best || on(a)).map(([, x]) => x.e.pl), ...first, ...(M.settled ? D.drawnPl ?? [] : []), ...toks.filter((pl) => pl.state === 'ready' && !pl.refRow)].filter(plPays));
+  // (a chip's token green where it is the week's best, litOf `chip`: no solver's move of its own)
+  return new Set([...[...lit].filter(([a, x]) => x.best || on(a)).map(([, x]) => x.e.pl), ...first, ...(M.settled ? D.drawnPl ?? [] : []), ...toks.filter((pl) => pl.state === 'ready' && !pl.refRow)].filter((pl) => plPays(pl) || pl === lit.chip));
 }
 /** The Roll of a week you roll (plansOf `rolls`: no transfer, chip or Roll of yours there): its + would only make the
  *  roll one of your rules, changing nothing on screen, so it has none (owner, 2026-10-22): a "Rolling" status beside
