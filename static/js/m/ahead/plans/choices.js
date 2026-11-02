@@ -554,9 +554,11 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const onto = chipMine === 'fh' ? ours ?? (solved.get(yours)?.state === 'failed' ? mineRef : null) : mineRef;
   // (your plan as it is: never dropped for a problem of its own, measurePlan's problemOf)
   if (chipOwn && onto?.state === 'ready') { const p = chipOn(chipMine, onto, { draft: d0 }); list.mine = { ...p, ev: asTaken(ctx, P, p.draft, g, {}, false) }; }
-  // (and, for the week you view, the solver's own plan for it, refusalRoads' root: the week's best is its move, so it
-  // never settles on another before it lands; a week prepared ahead asks it as a lane frees, never waiting on it)
-  list.pending = !followed && ([ref, mineRef, solved.get(yours)].some((x) => x?.state === 'solving') || (!prep && !!tree.length && forkRead(tree[0].key) == null));
+  // (and, for the week you view with no transfer of yours, the solver's own plan for it, refusalRoads' root: the
+  // week's best is its move, so it never settles on another before it lands. Once you have one there the root only
+  // looks for a further move: your numbers stand, nothing waits on it (owner, 2026-11-02: "why it grey out current gw
+  // when solving"). A week prepared ahead asks it as a lane frees, never waiting on it)
+  list.pending = !followed && ([ref, mineRef, solved.get(yours)].some((x) => x?.state === 'solving') || (!prep && !now.length && !!tree.length && forkRead(tree[0].key) == null));
   // a Wildcard or Free Hit the week lists no row of (not its best week, or planned elsewhere) from a plan of it solved
   // apart (chipSource's road: your rules' preparation, the plan its tap lands), counted against the week's roll plan
   // (owner, 2026-10-22) with the same later weeks on both sides, as the week line counts your chip once played
