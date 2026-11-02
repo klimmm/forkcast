@@ -168,7 +168,11 @@ export const cssPx = (host, ...lengths) => {
 };
 
 export function mount(el, ctx) {
-  mountSolveLog(() => String(ctx.store.get('entry') ?? ''));  // (?solves=1 only: the fork solves in words)
+  // (?solves=1 only: the fork solves in words, and the server's planning of a new team while it bakes)
+  mountSolveLog(() => String(ctx.store.get('entry') ?? ''), () => {
+    const b = ctx.bundle?.bake;
+    return ctx.store.get('conn')?.state === 'baking' && b ? { done: b.done, total: b.total, at: Number(b.started) > 0 ? Number(b.started) * 1000 : Date.now() } : null;
+  });
   // the parts' view of this function's scope (live getters) and the parts' functions, by their own names
   const V = {
     get ADD_HOLD_MS() { return ADD_HOLD_MS; },
