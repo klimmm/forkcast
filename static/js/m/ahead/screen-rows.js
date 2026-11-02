@@ -184,15 +184,15 @@ export function rowsPart(V) {
         h('span.ah-bt', { 'aria-hidden': 'true' }, h('span.ah-bn', null, line, h('span.ah-bq2', null, ' · ', s.wait))), off);
     }
     const hit = chipNow ? null : hitTag(pl.hits[g]);
-    // a solid + exactly where the pitch lights it (`lit`: weekModel's litShown, litPays), its Why sheet's Take filled
-    // the same, the others an outlined +; the number blue in every row (gainOf; owner, 2026-10-22: the + alone says
-    // worth doing); the Roll of a week you roll no + at all (rollOnly)
+    // one highlight, the best row's (review 7 B10: a second, filled where the pitch lights it, read as advice on a lower
+    // number), every other row's + outlined; the number blue in every row (gainOf); the Roll of a week you roll no +
+    // at all (rollOnly). `pays` (where the pitch lights it) still fills its Why sheet's Take
     const pays = lit ?? litPays(pl);
     const why = () => openPlanWhy(P, g, pl, pays);
     const gain = pl.refRow ? null : gainOf(pl.cmp);
     const top1 = best ?? S.M?.lit?.move === pl;
     const add = rollOnly(pl) ? null : h('button.ah-add.m-swap', {
-      type: 'button', disabled: frozenAt(P, g), dataset: { add: `plan:${key}` }, class: { best: top1, quiet: !pays && !top1 }, 'aria-label': COPY.planTake(s.head),
+      type: 'button', disabled: frozenAt(P, g), dataset: { add: `plan:${key}` }, class: { best: top1, quiet: !top1 }, 'aria-label': COPY.planTake(s.head),
       onClick: takePlan(P, g, pl, closes ? () => S.week?.sheet.close() : null),
     }, word);
     // the main part is the row's button (whyPart), the + a control of its own

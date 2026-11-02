@@ -584,8 +584,9 @@ export function mount(el, ctx) {
   pitchHost.addEventListener('pointerdown', (e) => {
     // a tab (a bench player's too: the Bench Boost is the empty bench's), a token and an open place have their own taps
     // and hold (renderDecks, drawPlace): no lift, swipe or Bench Boost starts there (a plate's every one: the ⇄ handle
-    // is a plate; owner, 2026-10-25)
-    if (e.button > 0 || e.target.closest('.ah-place, .ah-decks button')) return;
+    // is a plate; owner, 2026-10-25); a card's mark (cardMarks: its 44 px target over the card, review 7 B13) still
+    // starts the pitch's swipe, its tap its own
+    if (e.button > 0 || e.target.closest('.ah-place, .ah-decks button:not(.ah-cm:not(.tno))')) return;
     const P = plan(ctx);
     // the C's armband or the V's
     const badge = e.target.closest('.pm-badge[data-badge="c"], .pm-badge[data-badge="v"]');
@@ -669,7 +670,18 @@ export function mount(el, ctx) {
   globalThis.addEventListener('pointerup', spentUp);
   globalThis.addEventListener('pointerdown', spentDown, true);
   globalThis.addEventListener('click', spentClick, true);
-  const offs = [ctx.store.on('gw', () => schedule()), ctx.store.on('memory', () => schedule('mem')), ctx.store.on('aheadRev', () => schedule()),
+  /** A GW's toast with an Undo while another GW is shown shrinks to its chip, "GW10: Undo" (m.css .toast.away; review 7
+   *  B15: no old news over another week), whole again back on its GW. */
+  const awayToasts = () => {
+    const g = viewedGw(ctx, plan(ctx));
+    for (const t of toastRegion().querySelectorAll('.toast')) {
+      const m = t.querySelector('button.btn') && /\bGW(\d+)\b/.exec(t.querySelector('.toast-msg')?.textContent ?? '');
+      const away = !!m && g != null && Number(m[1]) !== g;
+      t.classList.toggle('away', away);
+      if (away) t.dataset.chip = `GW${m[1]}:`;
+    }
+  };
+  const offs = [ctx.store.on('gw', () => { awayToasts(); schedule(); }), ctx.store.on('memory', () => schedule('mem')), ctx.store.on('aheadRev', () => schedule()),
     ctx.store.on('learnt', () => { S.learnt = new Set(); schedule(); }),
     ctx.store.on('aheadPair', () => schedule('pair'))];
   // (plan memory once the bake's base road is in: renderBaking)

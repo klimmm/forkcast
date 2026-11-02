@@ -5,7 +5,7 @@ import { fmt, chipName } from '../../ui.js';
 import { COPY, hitCap, statusText } from '../calls.js';
 import { attach, pinSell, pinHits, pinKeep, pinVeto, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
 import { MINUS, WHY_SHEET, addMove, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
-import { asksOf, autoRuleName, barred, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
+import { saidNow, sayAgain, asksOf, autoRuleName, barred, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
 import { FORK_FLIGHTS, SQUAD_CHIPS, asTaken, byGain, choiceVs, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
 import { freedBy, lineupMoved, gwMode, inkAt, isLive } from './buys.js';
 import { plPays, squadWeek } from './pieces.js';
@@ -37,7 +37,7 @@ const PRESOLVE_RATE = { all: 30, week: 16 }, PRESOLVE_WINDOW_MS = 60000;
 export let DRY = null;
 // srcs: 'week' | 'sheet' → {P, gw, sig, owner, asks: [ask], made: [ask], tried: Set(tap id)}; failed: keys of failed
 // solves (not your rules'); at: viewed week {P, g} (plansOf); ctx: the page's
-export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map() };
+export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map(), landed: new Set() };
 
 /** The rules tap `run` (an edit call: addPlan, removeRule, keep…) would make, made dry → edit's args {pins, drop,
  *  inPlace, hitsMax, was} | null (changes nothing, or refused: no solve). */
@@ -131,22 +131,37 @@ export function pumpAhead(ctx) {
   const P = plan(ctx), mem = memOf(ctx);
   if (!P || P.healing || leftBehind(ctx, P)) return false;
   let left = false;
+  // (PRESOLVE_RATE a minute: the window's asks, all and the week's, made once a pump and again only when a solve asked
+  // here adds one; each ask's own filter and two Sets were the suites' hottest path)
+  const now = Date.now();
+  AHEAD.asked = AHEAD.asked.filter((x) => x.at > now - PRESOLVE_WINDOW_MS);
+  // (a solve asked here only appends: the Sets take the new asks alone)
+  let seen = 0;
+  const all = new Set(), week = new Set();
+  const counts = () => {
+    for (; seen < AHEAD.asked.length; seen++) {
+      const x = AHEAD.asked[seen];
+      all.add(x.key);
+      if (x.src === 'week') week.add(x.key);
+    }
+  };
   // (sheet first: while it is up its buttons are what a tap can reach)
   for (const src of ['sheet', 'week']) {
     const s = AHEAD.srcs.get(src);
     if (!s || s.P !== P) continue;
     if (src === 'week' && (AHEAD.at?.P !== P || AHEAD.at.g !== s.gw)) continue;
     for (const a of s.asks) {
-      if (AHEAD.failed.has(a.key) || mem.solved(a.values)) continue;
+      // (`landed`: its answer came on this page, for these values on this bundle (the key is the version's): never asked
+      // again even where memory keeps it under the plan service's version, not the bundle's (a re-bake serving the
+      // previous code's roads); else every landing pumped the same solve again at once, 19,000 times in a suite run)
+      if (AHEAD.failed.has(a.key) || AHEAD.landed.has(a.key) || mem.solved(a.values)) continue;
       left = true;
       if (forkFlights().some(([, f]) => f.key === a.key)) continue;
-      // (PRESOLVE_RATE a minute: the rest waits for the window to move on, a re-draw then asks it; one asked again, an
-      // Undo back to its rules, counts once)
-      const now = Date.now();
-      AHEAD.asked = AHEAD.asked.filter((x) => x.at > now - PRESOLVE_WINDOW_MS);
-      const keys = (s0) => new Set(AHEAD.asked.filter((x) => !s0 || x.src === s0).map((x) => x.key));
-      const again = keys().has(a.key);
-      if (!again && (keys().size >= PRESOLVE_RATE.all || (src === 'week' && keys('week').size >= PRESOLVE_RATE.week))) {
+      // (the rest waits for the window to move on, a re-draw then asks it; one asked again, an Undo back to its rules,
+      // counts once)
+      counts();
+      const again = all.has(a.key);
+      if (!again && (all.size >= PRESOLVE_RATE.all || (src === 'week' && week.size >= PRESOLVE_RATE.week))) {
         forkAgain(ctx, AHEAD.asked[0].at + PRESOLVE_WINDOW_MS - now);
         continue;
       }
@@ -587,6 +602,30 @@ export const weekOnto = (base, from, g) => {
  *  Tavernier → Xhaka (−4)"), the chip with the rule it replaces (chipWords), the transfers taken back; no number under
  *  the hold (its row has it; owner, 2026-10-27), with no roll plan the total's (withPoints); your total's change is the
  *  header's (owner, 2026-10-26). One edit, one Undo, Why before it (whyAct). → bool (false: it changes nothing) */
+/** A take's toast with its number: the week line's once your plan and its roll are in (weekRollOf: the take re-solves
+ *  the weeks after it, so its count can part from the choice's own, QA landing: "0.0 vs rolling" under a line's +1.7),
+ *  else the choice's (`cmp`) until then, the toast rewritten in place when the line's lands (sayAgain) while it is the
+ *  one up, for a minute at most. → its words now */
+function takeSaid(ctx, g, head, cmp, tail) {
+  // (as drawn, never a solve asked: plansListed)
+  const line = () => { const Q = plan(ctx), w = Q && weekOf(Q, g); return w ? weekRollOf(ctx, Q, w, (x) => plansListed(ctx, Q, x)) : null; };
+  const now = line();
+  if (now) return `${head}${fmt.signed(now.delta)}${tail}`;
+  // (the toast is made after these words: its handle a task later)
+  setTimeout(() => {
+    const was = saidNow();
+    let off = null;
+    // (unref: in node, the tests', a pending minute never holds the process open)
+    const stop = setTimeout(() => off?.(), 60000);
+    stop.unref?.();
+    off = ctx.store.on('aheadPair', () => {
+      const r = saidNow() === was ? line() : null;
+      if (saidNow() !== was) { off(); clearTimeout(stop); return; }
+      if (r) { off(); clearTimeout(stop); sayAgain(was, `${head}${fmt.signed(r.delta)}${tail}`); }
+    });
+  }, 0);
+  return `${head}${fmt.signed(cmp.delta)}${tail}`;
+}
 export function addPlan(ctx, g, pl) {
   const P = plan(ctx);
   if (pl?.state !== 'ready') return false;
@@ -681,7 +720,7 @@ export function addPlan(ctx, g, pl) {
       // confirmation states what the edit did, with its number", reversing the owner's 2026-10-27 no number): its row
       // beside the buttons (ui.toast .split), the lineup's words in the head, which clips; never what your total moved
       // by (owner, 2026-10-26): that is the header's change (renderTotal)
-      : pl.vsRoll && !pl.refRow ? (Q, prev) => `${what}${lineupMoved(Q, prev, g)} · ${fmt.signed(pl.cmp.delta)} vs ${choiceVs(P, pl)}` : withPoints(ctx, what, (Q, prev) => lineupMoved(Q, prev, g), { total: true }),
+      : pl.vsRoll && !pl.refRow ? (Q, prev) => takeSaid(ctx, g, `${what}${lineupMoved(Q, prev, g)} · `, pl.cmp, ` vs ${choiceVs(P, pl)}`) : withPoints(ctx, what, (Q, prev) => lineupMoved(Q, prev, g), { total: true }),
     more: own.length && WHY_SHEET ? [whyAct(g, own[0].in)] : [],
     // a take's receipt: two rows on a phone, its head one line, "frozen" and the week's count clipping after the sales,
     // anything it takes back whole (ui.toast; owner, 2026-10-26)

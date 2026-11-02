@@ -218,6 +218,7 @@ export function forkPump(ctx, P, ask) {
       // a tap's solve asked ahead: its answer memory's for exactly those values (presolve); one that failed for another
       // reason than your rules is never asked again on this page (no cost: the tap heals as before)
       if (ask.ahead && (res.road || res.state === 'error')) {
+        AHEAD.landed.add(ask.key);
         // (kept for the data version the plan service solved it on, never the one the view was drawn on (an older
         // code's roads could be served while it solved on the newer); none told, none kept)
         if (res.version != null) memOf(ctx).offer(res.road, { values: ask.values, error: res.error, version: res.version });
@@ -261,4 +262,5 @@ export function resetForks() {
   AHEAD.at = null;
   AHEAD.asked = [];
   AHEAD.dropped.clear();
+  AHEAD.landed.clear();
 }

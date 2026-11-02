@@ -333,8 +333,9 @@ export const PREP = { mem: null, flight: null, timer: null, until: 0, gen: 0 }; 
 const PREPS_MAX = 96;
 // your plan healing, this browser's speculative slot busy, a preparation superseded (Add a player's pill dropped too:
 // sheets/wish.js askAgainWhileDropped)
-export const PREP_AGAIN_MS = 1500;
-const PREP_HOLD_MS = 30000;   // the plan service refused one (busy) or was away
+// (an object, as memory.js TIMING: the suites shorten it; again: a Wish took the slot or the queue was full, hold: the
+// plan service refused one, busy, or was away)
+export const PREP_TIMING = { again: 1500, hold: 30000 };
 /** A preparation landed (pumpPreps; a Wildcard or Free Hit row of it, plansOf's `land`): kept, the newest PREPS_MAX,
  *  and chipPreps' views made again (a landing counts only under the rules it was made for). */
 export function prepKeep(key, got) {
@@ -451,7 +452,7 @@ function pumpPreps(ctx, P, items) {
   if (!next) return;
   // your plan's heal first; a Wish this browser is solving keeps the speculative slot (api.solve would
   // supersede it); a refused ask waits
-  const wait = P.healing || ctx.api.slotBusy?.('spec') ? PREP_AGAIN_MS : Math.max(0, PREP.until - Date.now());
+  const wait = P.healing || ctx.api.slotBusy?.('spec') ? PREP_TIMING.again : Math.max(0, PREP.until - Date.now());
   if (wait > 0) { prepAgain(ctx, wait); return; }
   const flight = (PREP.flight = { key: next.key });
   const ours = () => PREP.flight === flight;
@@ -460,8 +461,8 @@ function pumpPreps(ctx, P, items) {
   solveKept(ctx.api, { entry: Number(P.entry), purpose: 'chipprep', values: next.values })
     .then((res) => {
       if (res.road || res.state === 'error') prepKeep(next.key, res.road ?? 'error');
-      else if (ours()) PREP.until = Date.now() + PREP_AGAIN_MS;  // superseded (a Wish took the slot) or cancelled (a full queue)
-    }, () => { if (ours()) PREP.until = Date.now() + PREP_HOLD_MS; })  // busy (429) or away: later
+      else if (ours()) PREP.until = Date.now() + PREP_TIMING.again;  // superseded (a Wish took the slot) or cancelled (a full queue)
+    }, () => { if (ours()) PREP.until = Date.now() + PREP_TIMING.hold; })  // busy (429) or away: later
     .finally(() => {
       if (PREP.flight === flight) PREP.flight = null;
       prepAgain(ctx, 0);  // and asks for the next

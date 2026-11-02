@@ -172,7 +172,8 @@ export const COPY = Object.freeze({
   // the veto's one word, as its Why button and rule chip say it (owner, 2026-10-22)
   hintRow: (name) => `Swipe left: Not ${name}`,
   hintPitch: ['Hold a shirt: sub, sell', 'Hold C or V: move it'],
-  hintChips: ['Hold C still: TC', 'Hold bench: BB'],
+  // the chips' names whole (review 7 B18: no codes in a hint); each line whole or the hint gives way (placeHint)
+  hintChips: ['Hold C: Triple Captain', 'Hold bench: Bench Boost'],
   tipsAgain: 'Show tips on the screen again',
   helpLead: 'Forkcast plans your FPL team up to four gameweeks (GWs) ahead. It can\'t change your FPL team: make your transfers in the FPL app before the deadline. Each change shows a message with Undo.',
   /** → [[head, [bullet], clip?]], in the order a first visit needs them; `clip`: the section's recording on the real
@@ -191,7 +192,7 @@ export const COPY = Object.freeze({
       'Tap the card behind a player to take that transfer.',
       'Stacked cards behind a player are more choices for his place: tap them (or hold the card) to spread them out, each with its +.',
       'In a player\'s place, Keep over his own card keeps him that GW: nothing sells him.',
-      'Roll and chips sit beside the goal.',
+      'Roll and chips sit beside the goal. Rolling is making no transfer: your free transfer carries over to the next GW.',
       // the rule a take adds, by its own word (rollRule; owner, 2026-10-22: never "lock", the plan length's padlock): a
       // transfer's "GW8 frozen", the Roll's "GW8 roll", a Wildcard's or Free Hit's its chip
       'Taken transfers lock their GW (Your rules: locked): Forkcast changes nothing there. Roll adds a roll rule; Wildcard or Free Hit, the chip.',
@@ -206,6 +207,8 @@ export const COPY = Object.freeze({
     ], 'bringin'],
     ['Your players', [
       'Tap a shirt for his card: Keep, or Force out (one week, or sold from a week on).',
+      // the venue's case in words (review 7 B17: never case alone)
+      `Opponents under the shirts: ${COPY.oppCase}.`,
       'Under Force out, From GW… lets you choose who comes in, or Let Forkcast choose.',
       'Hold a shirt, then drop it on an outlined player to swap them, or on a GW to sell him from then.',
       'Tap the C or the V to pick who wears it from a list.',
@@ -716,6 +719,9 @@ export const COPY = Object.freeze({
   /** The ✕ on the best move's token (ahead.js renderDecks; owner, 2026-11-02): its buy refused in this week alone. */
   notBuySaid: (buy, g) => `Not ${buy} in GW${g}: the next best move`,
   rollingBest: 'Rolling is best',
+  /** …and what rolling is, in its spoken label (review 7 B9: "Rolling" defined; Help says it too). Never a second
+   *  line on the token: the Reset under the corner's tokens keeps one place in every GW (resetSlot; QA lineup-reset). */
+  rollingMeans: 'no transfer: your free transfer carries over',
   /** A pair card's note, its other moves (ahead.noteOf): "also Semenyo → Palmer, Cunha → Rice". */
   placeAlso: (moves) => `also ${moves.join(', ')}`,
   placeChoices: (n) => `${plural(n, 'choice')} for his place ›`,

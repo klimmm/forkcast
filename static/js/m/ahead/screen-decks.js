@@ -133,7 +133,7 @@ export function decksPart(V) {
     if (bestTok) {
       const q = boxOf(bestTok, b), m = { gw: g, out: Number(bestTok.dataset.notOut), in: Number(bestTok.dataset.notIn) };
       decks.append(h('button.ah-cm.out.tno', { type: 'button', 'aria-label': COPY.notBuySaid(P.L.name(m.in), g), dataset: { row: `tok:not:${g}` },
-        style: { left: `${q.x + q.w - 8}px`, top: `${q.y - 4}px` }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
+        style: { left: `${q.x + q.w - 8}px`, top: `${q.y - 4}px`, '--hb': '-8px' }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
     }
     // (the best move's token gave way for room, its plate stays on the pitch: flag for the QA)
     decks.toggleAttribute('data-mv-out', tk.some((t) => t.matches('.mv') && !t.isConnected));
@@ -373,15 +373,18 @@ export function decksPart(V) {
     const root = pitchHost.querySelector(':scope > .pm');
     if (!P.editable || !root) return;
     const nm = P.L.name, b = root.getBoundingClientRect();
-    // (the mark's size: m-ahead.css .ah-cm, 12 px)
-    const M = 12;
+    // (the mark's size: m-ahead.css .ah-cm, 12 px; its target's reach past each side, --hit)
+    const M = 12, HIT = 16;
     for (const c of boxes) {
       const a = c.id, pin = pinOf(P, 'keep', a, g);
       const tile = c.n.querySelector('.pm-kit'), t = tile ? boxOf(tile, b) : c;
       // (a tile too short for both, at large text: the lock right of the ×, their 24 px targets apart)
       const tall = t.h >= 2 * M + 8;
-      const xAt = { left: `${t.x + 3}px`, top: `${t.y + 3}px` };
-      const lAt = tall ? { left: `${t.x + 3}px`, top: `${t.y + t.h - 3 - M}px` } : { left: `${t.x + 3 + 2 * M}px`, top: `${t.y + 3}px` };
+      // (each a 44 px target, m-ahead.css .ah-cm::before, split halfway where the two marks' would meet: review 7 B13;
+      // the lock's ends at the tile's foot: under it the name plate's C / V tag, the armband's drag handle)
+      const half = `${Math.max(0, Math.min(HIT, ((tall ? t.h - 6 : 3 * M) - 2 * M) / 2))}px`;
+      const xAt = { left: `${t.x + 3}px`, top: `${t.y + 3}px`, [tall ? '--hb' : '--hr']: half };
+      const lAt = tall ? { left: `${t.x + 3}px`, top: `${t.y + t.h - 3 - M}px`, '--ht': half, '--hb': '3px' } : { left: `${t.x + 3 + 2 * M}px`, top: `${t.y + 3}px`, '--hl': half };
       if (!pin) decks.append(h('button.ah-cm.out', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.cardOutSaid(nm(a), g), dataset: { row: `out:${a}` },
         style: xAt,
         onClick: () => {
@@ -547,7 +550,7 @@ export function decksPart(V) {
     // (owner, 2026-10-30): ink, flat, its "›" the door to the Week sheet, where every choice is counted against it
     // (openWeek), never given way for room (renderDecks: .st)
     else if (M?.settled && !lit.best && toks.some(rollOnly)) {
-      out.push(h('button.ah-tok.st.best', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` }, 'aria-label': COPY.statusSaid(COPY.rollingBest, g), onClick: (ev) => openWeek(ev, g) },
+      out.push(h('button.ah-tok.st.best', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` }, 'aria-label': `${COPY.statusSaid(COPY.rollingBest, g)}: ${COPY.rollingMeans}`, onClick: (ev) => openWeek(ev, g) },
         h('span.ah-tl', { 'aria-hidden': 'true' }, COPY.rollingBest)));
     }
     // …and two moves in the corner in all, the others the best-paying single moves on the pitch's plates once the week

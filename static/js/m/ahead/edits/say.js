@@ -51,6 +51,10 @@ export const vsPrevOr = (ctx, same, drop, changed) => (Q, prev) => {
 /** The shell's toast (ctx.ui; the node tests a recorder); none while a tap's edit is made dry (DRY: presolve). */
 export const toastOf = (ctx) => (DRY ? () => () => {} : ctx.ui?.toast ?? toast);
 let lastSay = null;  // the verdict toast on screen: a newer edit replaces it (UX-7)
+/** The verdict toast on screen (its dismiss, whose .update rewrites its words in place) | null: a toast whose number
+ *  lands after it (addPlan's) keeps it and rewrites it while it is still the one up (sayAgain). */
+export const saidNow = () => lastSay;
+export const sayAgain = (was, text) => { if (was && was === lastSay) was.update?.(text); };
 /** An edit's pending toast while the full plan checks it: {said, toast (its dismiss), text}, for pendingTick. */
 let PENDING = null;
 export function say(ctx, text, undo, kind = 'info', tag = null, more = [], take = null) {

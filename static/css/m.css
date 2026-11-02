@@ -622,6 +622,11 @@ Why and Undo fit one line on a 367 px toast) */
 #toasts .toast.armed:not(.leaving) .btn { pointer-events: auto; }
 #toasts .toast[data-in]:not(.armed) .btn { opacity: .4; }
 #toasts .toast .icon-btn { display: none; }
+/* a GW's toast while another GW is shown (ahead.js awayToasts; review 7 B15): a chip at the right end, "GW10:" and its
+Undo, its words out of sight (still read out) */
+#toasts .toast.away { display: flex; width: auto; align-self: flex-end; padding-inline-start: 10px; }
+#toasts .toast.away .toast-msg { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+#toasts .toast.away::before { content: attr(data-chip); font-variant-numeric: tabular-nums; }
 /* one leaving takes no room (out of flow, it fades where it sat first), so the toast that replaced it is placed where
 it stays, never shifted when the old one goes */
 #toasts .toast.leaving { position: absolute; opacity: 0; transform: translateY(-6px); transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease); }

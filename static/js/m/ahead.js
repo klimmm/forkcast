@@ -86,7 +86,7 @@ export {
 } from './ahead/buys.js';
 export {
   shirtOf, clearGain, plPays, emptyHead, factsWords, itbWords, rollFt, weekFacts, chipsAsked, chipPresolves,
-  chipBests, chipBack, chipsAvail, squadWeek, chipGain, chipWeekGain, xpShown, chipStates, PREP_AGAIN_MS, chipPreps,
+  chipBests, chipBack, chipsAvail, squadWeek, chipGain, chipWeekGain, xpShown, chipStates, PREP_TIMING, chipPreps,
   chipSource
 } from './ahead/pieces.js';
 export {

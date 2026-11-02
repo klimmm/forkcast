@@ -195,7 +195,9 @@ export function pitchPart(V) {
   }, h('span.g', null, h('span.gn', null, `GW${x}`)), h('span.p', null, h('span.ah-tlock', { 'aria-hidden': 'true' }, icon('lock', { size: 13 }))))); };
   const toastOver = () => !!globalThis.document?.querySelector('#toasts:not([data-place="dock"]) > .toast:not(.leaving)');
   function renderTotal(P) { const { S, TOTAL_MS, ctx, el, toastGone, totLine, totSaid } = V;
-    const key = `${P.entry}|${P.A}`;
+    // (its window too: a horizon changed in Settings counts another window, never a change of yours, horizon QA:
+    // "(total −169.7)" one week against four)
+    const key = `${P.entry}|${P.A}|${P.gws.join(',')}`;
     if (!P.healing) {
       // a change an Undo brought (FLASH.undo, the first total drawn since it) in plain ink: no gain or loss of yours;
       // none when it is back where the change it takes back started (totalShift)

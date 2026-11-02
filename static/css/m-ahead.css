@@ -386,11 +386,15 @@ out (.ah-stepout). .ah-ghost the card a take sends behind its buy (ahead.js land
 /* a card's two marks (ahead.js cardMarks; owner, 2026-11-02; design_1102a): × at the tile's top-left (his place), the
 lock at its bottom-left (a GW Keep of him). Idle each is a 12 px disc of the tile's own dark (ink at .5 over it) with a
 white glyph, no ring: the C / V's language at a lower weight, the glyph 10.4:1 on it (7.8:1 on the bench tile); shut,
-the lock is the C / V's own solid ink with its white keyline (a state you set reads as strong as the armband). A 24 px
-target round each (WCAG 2.2 SC 2.5.8) */
-.ah-decks .ah-cm { position: absolute; z-index: 3; width: 12px; height: 12px; padding: 0; border: 0; border-radius: 50%;
-  display: grid; place-items: center; background: rgb(23 25 26 / .5); color: #FFFFFF; box-shadow: none; }
-.ah-decks .ah-cm::before { content: ""; position: absolute; inset: -6px; }
+the lock is the C / V's own solid ink with its white keyline (a state you set reads as strong as the armband). A 44 px
+target round each (below) */
+.ah-decks .ah-cm { position: absolute; z-index: 1; width: 12px; height: 12px; padding: 0; border: 0; border-radius: 50%;
+  display: grid; place-items: center; background: rgb(23 25 26 / .5); color: #FFFFFF; box-shadow: none;
+  touch-action: pan-y; }  /* the pitch's: a swipe started on its target over the card is the pitch's (screen.js) */
+/* …its target 44 px (review 7 B13: WCAG 2.5.5), --ht/--hr/--hb/--hl the reach past each side (ahead.js cardMarks: halved
+where the × and the lock would meet; the token's ✕ none over its token, --hb -8px); under the plates and tokens (z 2),
+so it never takes their taps */
+.ah-decks .ah-cm::before { content: ""; position: absolute; inset: calc(-1 * var(--ht, 16px)) calc(-1 * var(--hr, 16px)) calc(-1 * var(--hb, 16px)) calc(-1 * var(--hl, 16px)); }
 .ah-decks .ah-cm.out svg { width: 6px; height: 6px; }
 .ah-decks .ah-cm.lock svg { width: 7px; height: 8px; }
 .ah-decks .ah-cm.lock.on { background: #17191A; box-shadow: 0 0 0 1.5px #FFFFFF; }
@@ -419,7 +423,7 @@ middle over his card's middle third), its height the room over him (--pm-tab at 
 (11.5 the best's) at the default text size. Its body (.ah-spb) opens his place, whose cards' headers take (owner,
 2026-10-25: "make it always first click on tab and then click swap inside") */
 .ah-sp {
-  position: absolute; z-index: 1; box-sizing: border-box; width: max-content; display: flex; align-items: center;
+  position: absolute; z-index: 2; box-sizing: border-box; width: max-content; display: flex; align-items: center;
   border-radius: calc(var(--pm-tile-r) - 1px); background: var(--sp-alt); color: #FFFFFF; pointer-events: auto;
   font: 600 calc(var(--pm-tab) * .61)/1 var(--f-text); white-space: nowrap; --xp-c: var(--xp-d);
   -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none;
@@ -480,7 +484,7 @@ the chip it plays over it; gone when the finger lifts or moves first */
 /* Reduce Motion keeps the fill's time (app.css cuts every animation short): a ring full before its hold fires would lie */
 @media (prefers-reduced-motion: reduce) { .ah-hold .fl { animation-duration: var(--ms) !important; } }
 .ah-tok {
-  position: absolute; left: 6px; display: flex; align-items: center; gap: 6px; height: var(--pm-pill); max-width: calc(50% - var(--pm-card) / 2 - 14px);
+  position: absolute; z-index: 2; left: 6px; display: flex; align-items: center; gap: 6px; height: var(--pm-pill); max-width: calc(50% - var(--pm-card) / 2 - 14px);
   padding: 0 10px; border: 0; border-radius: 13px; background: var(--plate); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .3);
   font: 600 var(--t-sub)/1.3 var(--f-text); white-space: nowrap;
 }

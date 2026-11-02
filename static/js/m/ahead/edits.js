@@ -1,7 +1,7 @@
 // ahead.js: edits: rules now, the solver's plan, the verdict
 
 export {
-  ovOf, plannerFor, vsPrev, withPoints, toastOf, say, undoOf, subjectOf, pendingTick, pendingAgain, driftSay,
+  ovOf, plannerFor, vsPrev, withPoints, toastOf, say, saidNow, sayAgain, undoOf, subjectOf, pendingTick, pendingAgain, driftSay,
   sayCheer, derivedPin, changedOf, weekChanged, tickWas, totalShift, changedCards, forgetEdit, aboutRules,
   clashParts, clashLine, edit, inPlaceOf, sideEffects, hitsLater
 } from './edits/say.js';

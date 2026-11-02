@@ -9,6 +9,10 @@ import { subOrder } from '../../plan/pitch.js';
 import { shirtOf, squadWeek, xpShown } from './pieces.js';
 import * as E from '../../plan/engine.js';
 
+/** What lies under (x, y) past the cards' marks (screen-decks cardMarks: their 44 px targets reach over the cards; review
+ *  7 B13): a drag's drop finds the card there. */
+const underMarks = (x, y) => document.elementsFromPoint(x, y).find((el) => !el.closest('.ah-cm')) ?? null;
+
 export function touchPart(V) {
   const spend = (e) => { const { spent } = V; return Object.assign(spent, { on: true, x: e.clientX, y: e.clientY }); };
   /** A swipe that acts (the pitch's week, a move row's veto) lets its finger go at once: spent, its click is swallowed
@@ -113,7 +117,7 @@ export function touchPart(V) {
       document.body.append(st.ghost);
     }
     st.ghost.style.transform = `translate(${e.clientX - 12}px, ${e.clientY - 28}px)`;
-    const under = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.pm-pl[data-id]');
+    const under = underMarks(e.clientX, e.clientY)?.closest?.('.pm-pl[data-id]');
     const id = under && pitchHost.contains(under) ? Number(under.dataset.id) : null;
     st.target = id !== null && w.xi.includes(id) ? id : null;
     for (const n of pitchHost.querySelectorAll('.pm-pl.ah-captarget')) n.classList.remove('ah-captarget');
@@ -235,7 +239,7 @@ export function touchPart(V) {
     st.ghost.style.transform = `translate(${e.clientX - 28}px, ${e.clientY - 50}px) scale(1.06)`;
     st.over = null;
     if (st.subs?.size) {
-      const under = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.pm-pl[data-id], .pm-bs[data-id]');
+      const under = underMarks(e.clientX, e.clientY)?.closest?.('.pm-pl[data-id], .pm-bs[data-id]');
       const id = under && pitchHost.contains(under) ? Number(under.dataset.id) : null;
       st.overPl = id !== null && st.subs.has(id) ? id : null;
       for (const n of pitchHost.querySelectorAll('.ah-captarget')) n.classList.toggle('ah-captarget', n === under && st.overPl !== null);
