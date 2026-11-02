@@ -20,7 +20,7 @@ export function mountSolveLog(team = () => null, server = () => null) {
     const e = team(), mine = SOLVE_LOG.filter((x) => !e || x.entry === e);
     const now = Date.now(), running = mine.filter((x) => x.state === 'solving').length;
     el.replaceChildren(
-      Object.assign(document.createElement('b'), { textContent: `Solves for this team: ${running} running · ${acted ? mine.filter((x) => x.at >= acted).length : mine.length} since your last tap · ${mine.length} in all` }),
+      Object.assign(document.createElement('b'), { textContent: `${running} running · ${acted ? mine.filter((x) => x.at >= acted).length : mine.length} since your last tap · ${mine.length} in all` }),
       // (the server's own planning of a team it hasn't seen, "Planning GW10–13": its bake, never a solve this page asks;
       // owner, 2026-11-03, "why it 'planning' but no solves")
       ...(() => { const b = server(); return b ? [Object.assign(document.createElement('div'), { className: 'solving', textContent: `Server: planning this team · ${b.done ?? 0} of ${b.total ?? '?'} plans · ${secs(now - b.at)}…` })] : []; })(),
