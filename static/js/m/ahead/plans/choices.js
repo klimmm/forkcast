@@ -454,7 +454,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // what a choice counts against (refs), nor a place you opened: listed once solved (a road kept, or its solve in
     // flight), never asked, so an action asks only the solver's moves and nothing waits on the rest
     if (!refs.has(k) && !parts.has(k) && !placeOnly.has(k) && !placed.has(k) && c.moves.length && !Object.keys(c.chips).length && !forkRead(key) && !forkFlights().some(([, f]) => f.key === key)) return [];
-    return [{ k, c, roads, ask: { key, values, gw: g, ...(prep ? { prep } : {}) } }];
+    // (a week prepared ahead: its roll and refs, what it needs to draw with nothing grey, `need`: never given up for
+    // another week's refusal or tap ahead, forks.js; owner, 2026-11-03, "when move to gw 11 it grey out")
+    return [{ k, c, roads, ask: { key, values, gw: g, ...(prep ? { prep, ...(refs.has(k) ? { need: true } : {}) } : {}) } }];
   });
   // (stable: choices with no estimate keep their offered order; those the bars keep from being the week's suggestion go
   // after the rest, so a lit-able choice never waits behind one; a pair's move alone after the rest of its pair's kind)
@@ -690,7 +692,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     const adds = best?.choice.moves.filter((m) => (m.gw ?? g) === g && !now.some((y) => sameMove(y, m))) ?? [];
     refusalRoads(ctx, P, g, { prep, depth, lead: adds[0] ?? null, also: adds });
   }
-  if (settledList(list)) prepNext(ctx, P, g);
+  // (the next week prepared once this week's own plan and roll are in, not after every row is checked: the band's
+  // "Next transfers GW11: …" is tapped within seconds of a take; owner, 2026-11-03, "when move to gw 11 it grey out")
+  if (!list.pending) prepNext(ctx, P, g);
   return list;
 }
 /** A week's choices (plansOf's list) settled: none checks, nor what its rows count against. */

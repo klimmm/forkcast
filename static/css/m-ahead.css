@@ -1251,15 +1251,15 @@ above its turf (the pitch fitted under it: fitPitch), never given way (renderDec
 "Cunha ✕ → Palmer ✕ +2.2 xP Swap": each name's ✕ the same 24 px ring (renderDecks .tx), refusing that side, the buy's
 not him, the seller's keeps him; Swap, the one primary act, filled (Material 3 buttons, emphasis); the seller's name
 shortened first; 24 px targets (WCAG 2.2 SC 2.5.8) */
-.ah-pitch.band { --ah-band: 40px; }
+.ah-pitch.band { --ah-band: 64px; }  /* (two lines always: the pitch never moves on a GW switch; QA header, 2026-11-03) */
 .m-screen.ah > .ah-pitch.band { margin-top: calc(6px + var(--ah-band)); }
-.ah-pitch.band .ah-tok:is(.mv, .st.best) { top: calc(-1 * var(--ah-band)); left: 8px; right: 8px; max-width: none; height: 32px; padding: 0 4px 0 12px; border-radius: 16px; }
+.ah-pitch.band .ah-tok:is(.mv, .st.best) { top: calc(-1 * var(--ah-band)); left: 8px; right: 8px; max-width: none; height: auto; min-height: 56px; padding: 0 4px 0 12px; border-radius: 16px; }
 .ah-pitch.band .ah-tok:is(.mv, .st.best)::before { inset: 0; }
 /* a rolling week's band, why it rolls (tokensOf): "Roll → GW13: Gabriel → N.Williams, Dewsbury-Hall → Rice", two lines
 at most, its "›" the door to that week */
 /* (a link, not a move to take: outlined and quiet, the ink and its Swap the move's alone; owner, 2026-11-03,
 design_1103b "Bar and strip words": Johnson, Birman) */
-.ah-pitch.band .ah-tok.st.best.next { height: auto; min-height: 32px; padding-top: 4px; padding-bottom: 4px; background: var(--plate, #FFFFFF); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--sp-ink); }
+.ah-pitch.band .ah-tok.st.best.next { height: auto; min-height: 56px; padding-top: 4px; padding-bottom: 4px; background: var(--plate, #FFFFFF); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--sp-ink); }
 .ah-pitch.band .ah-tok.st.best.next::after { color: var(--muted); }
 .ah-tok.st.best.next > .ah-tl { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; font-weight: 500; line-height: 1.3; }
 .ah-tok.mv.tix .ah-tn { display: flex; align-items: center; flex: 0 1 auto; min-width: 0; gap: .3em; }
@@ -1274,11 +1274,12 @@ design_1103b "Bar and strip words": Johnson, Birman) */
 .ah-tok.mv.tix.close > .ah-tgo.m-swap { background: none; color: #FFFFFF; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .85); }
 /* a plan's moves, one a line, "Gabriel → N.Williams ✕" over "Dewsbury-Hall → Rice +0.4 xP Swap" (owner, 2026-11-02:
 "it must not take more than two lines"): the band as high as they are (renderDecks --ah-band) */
-.ah-pitch.band .ah-tok.mv.tix.multi { flex-wrap: wrap; row-gap: 0; height: auto; min-height: 32px; padding-top: 2px; padding-bottom: 2px; }
+.ah-pitch.band .ah-tok.mv.tix.multi { flex-wrap: wrap; row-gap: 0; height: auto; min-height: 56px; padding-top: 2px; padding-bottom: 2px; }
 .ah-tok.mv.tix.multi > .ah-tl { display: contents; }
 .ah-tok.mv.tix.multi .ah-tn { line-height: 26px; }
-.ah-tok.mv.tix.multi .ah-tn:not(:last-child) { flex-basis: 100%; }
-.ah-tok.mv.tix.multi .ah-tn:last-child { flex: 1 1 0; }  /* (its seller shortened before Swap leaves the line) */
+.ah-tok.mv.tix.multi .ah-tn { flex: 1 1 0; min-width: 0; }
+.ah-tok.mv.tix.multi .ah-brk { flex-basis: 100%; height: 0; }
+
 .ah-tok.mv.tix > .ah-tgo { height: 24px; padding: 0 10px; border-radius: 12px; font-size: var(--t-sub); }
 /* the band's seller on the pitch (renderDecks .ah-sold): framed in the band's ink with a white hairline inside, a
 frame, never the filled ink plate a player coming in has, nor red (flags, losses); one nudge as the band names him

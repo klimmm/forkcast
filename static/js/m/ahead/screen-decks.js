@@ -593,9 +593,10 @@ export function decksPart(V) {
         // (one move its sale and buy, "Murillo → Hill": review 7, 2026-11-02, the net result, not one leg; reversing the
         // owner's 2026-10-26 buy alone; several their buys. The best's, in the band over the pitch, each name with its ✕:
         // renderDecks)
-        // (the best's, in the band, every move, one a line, "Gabriel → N.Williams" over "Dewsbury-Hall → Rice", a ✕ after
-        // every name: .x, renderDecks)
-        h('span.ah-tl', { 'aria-hidden': 'true' }, one ? e.adds.map((m) => h('span.ah-tn', null, h('span.o.x', { dataset: { id: m.out } }, nm(m.out)), ' → ', h('span.i.x', { dataset: { id: m.in } }, nm(m.in))))
+        // (the best's, in the band, its moves on two lines at most, "Gabriel → N.Williams" over "Dewsbury-Hall → Rice", a
+        // third on the first line (.ah-brk after its first half: QA decks, 2026-11-03, 82 px for three); a ✕ after every
+        // name: .x, renderDecks)
+        h('span.ah-tl', { 'aria-hidden': 'true' }, one ? e.adds.flatMap((m, i, all) => [h('span.ah-tn', null, h('span.o.x', { dataset: { id: m.out } }, nm(m.out)), ' → ', h('span.i.x', { dataset: { id: m.in } }, nm(m.in))), all.length > 1 && i === Math.ceil(all.length / 2) - 1 ? h('span.ah-brk') : null])
           : (takesBack(e) || !e.adds.length ? [nm(e.inId)] : e.adds.length === 1 ? [`${nm(e.adds[0].out)} → ${nm(e.adds[0].in)}`] : e.adds.map((m) => nm(m.in))).map((t, i, all) => h('span.ah-tn', null, `${t}${i < all.length - 1 ? ',' : ''}`))),
         // (its number as its plate's: numParts)
         // (its number's scope, the window it counts, "+2.0 xP · 4 GW"; "Close call" where the solver's count of it is inside
@@ -620,7 +621,7 @@ export function decksPart(V) {
       const ms = nx ? pairedMoves(nx.out || [], nx.in || [], P.L) : [], at = Number(nx?.gw);
       const words = (f) => ms.map((m) => f(P.L.name(m.out), P.L.name(m.in))).join(', ');
       if (ms.length) out.push(h('button.ah-tok.st.best.next', { type: 'button', dataset: { row: `tok:week:${g}` }, 'aria-label': (rolling ? COPY.rollNextSaid : COPY.planNextSaid)(at, words(COPY.moveSaid)), onClick: () => V.setGw(at) },
-        h('span.ah-tl', { 'aria-hidden': 'true' }, (rolling ? COPY.rollNext : COPY.planNext)(at, words((o, i) => `${o} → ${i}`)))));
+        h('span.ah-tl', { 'aria-hidden': 'true' }, (rolling ? COPY.rollNext : COPY.planNext)(at, words((o, i) => `${o} → ${i}`.replace(/-/g, '\u2011'))))));
       else if (rolling) out.push(h('button.ah-tok.st.best', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` }, 'aria-label': `${COPY.statusSaid(COPY.rollingBest, g)}: ${COPY.rollingMeans}`, onClick: (ev) => openWeek(ev, g) },
         h('span.ah-tl', { 'aria-hidden': 'true' }, COPY.rollingBest)));
     }
