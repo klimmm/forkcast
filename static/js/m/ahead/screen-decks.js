@@ -2,7 +2,7 @@
 
 import { MINUS, weekOf } from './core.js';
 import { h, svg, fill, append, plural, reduceMotion, toast, xpGain, shownGain } from '../../ui.js';
-import { SQUAD_CHIPS, askPlace, byGain, failedWords, lineMoves, litShown, multiMove, placeFirst, placeOrder, planBack, planWeeks, rollOnly, singleMove, solverCmp, takesBack } from './plans.js';
+import { SQUAD_CHIPS, askPlace, byGain, failedWords, lineMoves, litShown, multiMove, placeFirst, placeOrder, planBack, planWeeks, rollOnly, singleMove, takesBack } from './plans.js';
 import { COPY } from '../calls.js';
 import { plPays } from './pieces.js';
 import * as E from '../../plan/engine.js';
@@ -176,7 +176,7 @@ export function decksPart(V) {
     const under = (x) => !lineBest && span && !x.best && Math.abs(x.c.y - span.y) < 2 && x.c.x >= span.x && x.c.x + x.c.w <= span.x + span.w;
     // (one buy, one plate: of two places offering the same buy, "Truffert +1.3" and "Truffert +1.0", the better keeps
     // it, the other's is in his place)
-    const plateGain = (x) => (x.L.e.pl?.state === 'ready' ? solverCmp(x.L.e.pl.cmp).delta : -Infinity);
+    const plateGain = (x) => (x.L.e.pl?.state === 'ready' ? x.L.e.pl.cmp.delta : -Infinity);
     const byBuy = new Map();
     for (const x of marks) if (!x.best && x.L.e.pl && !takesBack(x.L.e) && (!byBuy.has(x.L.e.inId) || plateGain(x) > plateGain(byBuy.get(x.L.e.inId)))) byBuy.set(x.L.e.inId, x);
     const bestIns = new Set(marks.filter((x) => x.best).map((x) => x.L.e.inId));
@@ -241,7 +241,7 @@ export function decksPart(V) {
     // number)
     const toOnly = (p) => { if (p.el.matches('.bare')) { p.el.classList.add('cut'); return; } p.el.classList.remove('cut'); p.el.style.removeProperty('width'); p.el.classList.add('only'); };
     const yielded = (p) => (p.el.matches('.bare') ? 'cut' : 'only');
-    const gain = (p) => (p.m.L.e.pl?.state === 'ready' ? solverCmp(p.m.L.e.pl.cmp).delta : -Infinity);
+    const gain = (p) => (p.m.L.e.pl?.state === 'ready' ? p.m.L.e.pl.cmp.delta : -Infinity);
     // the nearest cards beside a plate (its span) in his row, each side, whose quiet plate is still named
     const beside = (p) => [boxes.filter((q) => Math.abs(q.y - p.c.y) < 2 && q.x + q.w <= p.c.x + 0.5).sort((a, b) => b.x - a.x)[0],
       boxes.filter((q) => Math.abs(q.y - p.c.y) < 2 && q.x >= p.c.x + p.c.w - 0.5).sort((a, b) => a.x - b.x)[0]]
@@ -439,7 +439,7 @@ export function decksPart(V) {
     const move = !!S.M?.lit?.chip;
     // (a first choice says what his place holds: "none better than rolling" (in a week of yours "than your plan":
     // plansVs) where none gains; a move you removed or one the 2026-10-18 bars hold back says so, as its note)
-    const none = !!first && !back && ready && !d.entries.some((x) => x.pl?.state === 'ready' && (plPays(x.pl) || solverCmp(x.pl.cmp).delta > 0.05));
+    const none = !!first && !back && ready && !d.entries.some((x) => x.pl?.state === 'ready' && (plPays(x.pl) || x.pl.cmp.delta > 0.05));
     const why = first && ready && pl.removed ? `, ${COPY.removedByYou}` : '';
     const said = o.tag != null ? `${COPY.partSaid(moves[0], e.adds.filter((m) => Number(m.in) !== e.inId).map((m) => COPY.moveSaid(nm(m.out), nm(m.in))), move)}. ${places}`
       : back && !best ? `${moves[0]}${v == null ? '' : `, ${num}`}${why}. ${places}`

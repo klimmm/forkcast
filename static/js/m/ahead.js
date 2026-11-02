@@ -70,7 +70,7 @@ export {
   suggestionsOf, listedOf, askPlace, plansOf, chipShown, chipNumber, weekRollOf, plansWait, weekWait, lineNotices,
   planWeeks, countedAfter, squadChanges, litEdges, weekKey, weekSettled, settlesAt, litOf, weekBest, litShown,
   rollOnly, planBack, decksOf, benchOnly, takesBack, singleMove, placeDealt, placePages, placeBuys, placeLine,
-  multiMove, placeSplit, lineMoves, placeOrder, placeFirst, slotsBeside, failedWords, noteOf, solverCmp, planOfRoad,
+  multiMove, placeSplit, lineMoves, placeOrder, placeFirst, slotsBeside, failedWords, noteOf, planOfRoad,
   planBaseline, takenBy, forkValues, resetForks
 } from './ahead/plans.js';
 export {

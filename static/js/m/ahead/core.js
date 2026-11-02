@@ -2,7 +2,7 @@
 
 import * as E from '../../plan/engine.js';
 import { h, chipName } from '../../ui.js';
-import { COPY, planInputs, compare as compareIn, counted as countedIn, POINT_TERMS, rulesCost, hitBook, clockText, waitedText, horizonFeature, waitLines, stepShare } from '../calls.js';
+import { COPY, planInputs, compare as compareIn, counted as countedIn, rulesCost, hitBook, clockText, waitedText, horizonFeature, waitLines, stepShare } from '../calls.js';
 import { attach, makePin, squadInto, composePins, findRoad, optionsRoad, optionsValues, withBank, forcedHits, solveKept, solvedKey } from '../memory.js';
 import { asksOf, changedOf, derivedPin, ovOf } from './edits.js';
 import { SQUAD_CHIPS } from './plans.js';
@@ -446,10 +446,7 @@ export const inputs = inputsOf;
 /** calls.compare: the one measure. */
 export const compare = (ctx, a, b) => compareIn(inputs(ctx), a, b);
 /** calls.counted: a choice's number, the solver's own count over GW g's window where solved roads a and b carry it. */
-export const ownCount = (ctx, cmp, a, b, g, keep = null) => countedIn(inputs(ctx), cmp, a, b, g, keep);
-/** Terms a choice's number counts: a transfer row's its points alone (POINT_TERMS; owner, 2026-10-29), a chip's every
- *  term. */
-export const termsOf = (c, chipMine = false) => (!chipMine && !c?.held && !Object.keys(c?.chips || {}).length ? POINT_TERMS : null);
+export const ownCount = (ctx, cmp, a, b, g) => countedIn(inputs(ctx), cmp, a, b, g);
 
 /** The plan as it stands, estimated from GW `from` (memoised per plan view): what an edit is measured against. */
 const BASELINES = new WeakMap();

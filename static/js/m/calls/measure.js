@@ -56,12 +56,11 @@ export const hitsOf = (plan) => (plan?.weeks ?? plan?.gws ?? []).reduce((n, w) =
  * less b's: hitGap), a, b (unpricedHits)}} | null when either is not a road the solver gave (a phone estimate, an
  * older stored plan). Both must be solved on the same data (the caller checks: the plan's roads version).
  */
-export function plannerOf(a, b, keep = null) {
+export function plannerOf(a, b) {
   const oa = E.objectiveOf(a), ob = E.objectiveOf(b);
   if (!oa || !ob) return null;
   const terms = {};
-  // (`keep`: those terms alone, POINT_TERMS for a transfer choice's number: counted)
-  for (const k of new Set([...Object.keys(oa.terms), ...Object.keys(ob.terms)])) if (!SLACK.includes(k) && (!keep || keep.includes(k))) terms[k] = (oa.terms[k] ?? 0) - (ob.terms[k] ?? 0);
+  for (const k of new Set([...Object.keys(oa.terms), ...Object.keys(ob.terms)])) if (!SLACK.includes(k)) terms[k] = (oa.terms[k] ?? 0) - (ob.terms[k] ?? 0);
   // two roads of the same data are on one scale: a plan stored before plan memory kept its k_h reads its partner's
   const onScale = (r, o) => (r && !Array.isArray(r.k_h) && Array.isArray(o?.k_h) ? { ...r, k_h: o.k_h } : r);
   const ra = E.objectiveOf(onScale(a, b), { atAnchor: true }).terms, rb = E.objectiveOf(onScale(b, a), { atAnchor: true }).terms;
@@ -75,33 +74,25 @@ export function plannerOf(a, b, keep = null) {
 /** Two solved roads' own count over the window the solver committed GW g from (Road.windows[g], on the shown scale):
  *  plannerOf over those windows → {delta, ref, terms} | null where either has no window for g (an estimate, your plan's
  *  ≈, a road stored before). */
-export function windowGap(a, b, g, keep = null) {
+export function windowGap(a, b, g) {
   const win = (r) => (r?.windows?.[g] ? { ...r, objective: r.windows[g], weeks: [] } : null);
   const wa = win(a), wb = win(b);
-  return wa && wb ? plannerOf(wa, wb, keep) : null;
+  return wa && wb ? plannerOf(wa, wb) : null;
 }
-/** The solver's terms that are points you score (engine.objectiveOf): the XI's forecast points, the captain's, the
- *  hits' cost. A transfer choice's number counts these alone over its window (owner, 2026-10-29); bench cover,
- *  per-transfer charge and banked transfers are the planner's own, not points; a chip's keeps every term. */
-export const POINT_TERMS = ['xi', 'cap', 'hit'];
 /**
  * A choice's number (owner, 2026-10-28: the solver's own count, own window): compare's `cmp` with its gap the solver's
  * count over the window it committed GW g from (windowGap), its label that count on the anchor's scale against the
- * noise floor, no per-run votes; the points kept as `pts`. As it was where either road has no window for g. `keep` (a
- * transfer choice's POINT_TERMS): the number is those terms alone (its whole count where they show no gain and it
- * does); the solver's whole count is its `rank`, which orders and lights the choices (rankOf), so the week's best is
- * the move the solver commits (main.py --show-plan; owner, 2026-10-30). ctx: planInputs.
+ * noise floor, no per-run votes; the points kept as `pts`. As it was where either road has no window for g. Every term,
+ * a transfer choice's too: one count numbers, orders and lights the choices, so the week's best is the move the solver
+ * commits (main.py --show-plan; owner, 2026-10-30) and two it counts level read level (owner, 2026-11-02: points alone
+ * left a later move's spent free transfer uncounted, Mbeumo → Rice +1.7 against Calvert-Lewin → Evanilson +0.7, tied).
+ * ctx: planInputs.
  */
-export function counted(ctx, cmp, a, b, g, keep = null) {
-  const pw = cmp ? windowGap(a, b, g, keep) : null;
-  if (!pw) return cmp;
-  const of = (x) => ({ delta: x.delta, ref: x.ref, label: E.verdictLabel(x.ref, ctx.noise) });
-  const whole = keep && windowGap(a, b, g);
-  // (where its points show no gain, "0.0" or less, and its whole count does, the number is the whole count: the move the
-  // solver commits shows why it does; owner, 2026-11-02, Calvert-Lewin → Evanilson at −0.04 points, +0.21 counted)
-  const w = whole && pw.delta < 0.05 && whole.delta >= 0.05 ? whole : pw;
-  return { ...cmp, ...of(w), winner: w.delta > EPS ? 'a' : w.delta < -EPS ? 'b' : null,
-    votes: null, against: null, lead: null, count: w.terms, pts: cmp, ...(whole ? { rank: of(whole) } : {}) };
+export function counted(ctx, cmp, a, b, g) {
+  const w = cmp ? windowGap(a, b, g) : null;
+  if (!w) return cmp;
+  return { ...cmp, delta: w.delta, ref: w.ref, label: E.verdictLabel(w.ref, ctx.noise), winner: w.delta > EPS ? 'a' : w.delta < -EPS ? 'b' : null,
+    votes: null, against: null, lead: null, count: w.terms, pts: cmp };
 }
 /** What a solved road's hits cost in points (HIT_COST a hit: what compare counts) beyond what its planner's count
  *  charged for them (its objective's hit term, −hit_cost a hit: solve.py add_ft): FPL's 4 less the planner's price

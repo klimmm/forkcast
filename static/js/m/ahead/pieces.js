@@ -7,7 +7,7 @@ import { COPY } from '../calls.js';
 import { attach, pinChip, solveKept } from '../memory.js';
 import { asYours, baked, compare, info, inputs, isFrozen, leftBehind, lineups, memOf, plan, valuesFor, valuesKey, weekOf } from './core.js';
 import { asksOf, chipEdit } from './edits.js';
-import { SQUAD_CHIPS, approxAt, chipNumber, chipShown, plansListed, plansOf, solverCmp, weekRollOf } from './plans.js';
+import { SQUAD_CHIPS, approxAt, chipNumber, chipShown, plansListed, plansOf, weekRollOf } from './plans.js';
 import { chipPins } from './screen.js';
 
 // ---------------------------------------------------------------- small shared view pieces (sheets reuse them)
@@ -18,7 +18,7 @@ export const shirtOf = (L, id, size = 28) => shirt({ club: L.club(id), gk: L.pos
 /** A gain that beats the forecast's noise: green, a solid +, a filled button, a "Best". cmp {delta, label}: a compare
  *  result (its label: engine.verdictLabel against the noise), or a bare gap g as {delta: g, label: E.verdictLabel(g,
  *  noise)}. */
-export const clearGain = (cmp) => { const c = solverCmp(cmp); return !!c && c.delta > 0 && c.label !== 'coin'; };
+export const clearGain = (c) => !!c && c.delta > 0 && c.label !== 'coin';
 /** A suggested plan row's green, solid + and filled Why button (plansOf's rows): its number past the noise; the roll's
  *  own row (no number: `refRow`) when its plan beats the best other row's past the noise (`vsBest`); with your
  *  transfer, Wildcard or Free Hit in the week, past your own choice's too (`vsMine`), and a move you took off this

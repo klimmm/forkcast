@@ -172,9 +172,11 @@
   --safe-top: max(env(safe-area-inset-top), 14px);
   --safe-bot: max(env(safe-area-inset-bottom), 8px);
   --col-w: 430px;
-  /* the column's tallest on a larger screen: the largest iPhone's viewport, 430 × 932, as --col-w is its width. Ahead
-  fits its pitch to the column's height (ahead.js fitPitch); past this the window is page */
-  --col-h: 932px;
+  /* the column's tallest on a larger screen: a standard iPhone's viewport height, 844 (390 × 844), where full-size cards
+  (their width the column's: plan-pitch.css --pm-card-w) keep a phone's gaps between the rows; any taller only spread
+  them over empty turf (owner, 2026-11-02, "why shirts so small for this height"). Ahead fits its pitch to the
+  column's height (ahead.js fitPitch); past this the window is page */
+  --col-h: 844px;
   --ease: cubic-bezier(.25, .1, .25, 1);
   --dur: .18s;
   --spring: var(--ease);
@@ -245,8 +247,8 @@ float over the page, so a bottom: 0 column ran under them): Ahead fits it, and a
 @media (min-width: 560px) {
   .m-app { box-shadow: 0 0 0 1px var(--hair); }
 }
-/* …and a narrow window taller than any phone (a desktop browser's side pane: owner, 2026-11-02, "why no limit of
-height"): the same column, its rows never spread past the largest phone's */
+/* …and a narrow window taller than any phone, 932 + 32 (a desktop browser's side pane: owner, 2026-11-02, "why no
+limit of height"): the same column, a phone never framed */
 @media (min-width: 560px) and (min-height: 700px), (min-height: 964px) {
   /* --col-top: the column's top (and its bottom's gap), the toasts' too (#toasts) */
   :root { --col-top: max(16px, calc((100svh - var(--col-h)) / 2)); }

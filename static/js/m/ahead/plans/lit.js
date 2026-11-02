@@ -49,7 +49,7 @@ const litCan = (P, w, M) => {
   // number (FPL confirms no team short of money; owner, 2026-10-28)
   if (owedAt(P, w)) return (pl) => pl?.state === 'ready' && paysBack(w, pl);
   const fresh = !w.moves.length && !M.sq && !P.pins.some((p) => p.id === `roll:${g}`);
-  return (pl) => pl?.state === 'ready' && (fresh ? solverCmp(pl.cmp).delta > 0.05 : plPays(pl));
+  return (pl) => pl?.state === 'ready' && (fresh ? pl.cmp.delta > 0.05 : plPays(pl));
 };
 /** The places choice pl is drawn at (decksOf): behind each player it replaces; a take-back of a transfer of yours behind
  *  your buy. → [deck] */
@@ -67,7 +67,7 @@ export function weekBest(P, w, M, D, toks = []) {
   const ok = (pl) => !pl.refRow && !pl.early && !pl.placeOnly && can(pl);
   const moves = M.plans.filter((pl) => ok(pl) && placesOf(D, pl).length && !placesOf(D, pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl))));
   const chips = toks.filter((pl) => ok(pl) && !rollOnly(pl) && !!pl.choice.chips?.[g]);
-  return [...moves, ...chips].reduce((m, pl) => (!m || solverCmp(pl.cmp).delta > solverCmp(m.cmp).delta ? pl : m), null);
+  return [...moves, ...chips].reduce((m, pl) => (!m || pl.cmp.delta > m.cmp.delta ? pl : m), null);
 }
 /** The choices the pitch shows lit, green (owner, 2026-10-22: one rule for pitch and Week sheet): those litOf lights
  *  that pay (plPays), and a token beside the goal that pays (`toks`). The Week sheet's rows are green with a solid +
@@ -258,7 +258,7 @@ export const lineMoves = (P, e) => {
  *  last; ties as listed. Pure. */
 export const placeOrder = (entries) => {
   const tier = (e) => (takesBack(e) ? 2 : e.pl?.state === 'ready' ? 0 : 1);
-  return entries.map((e, i) => [e, i]).sort(([a, i], [b, j]) => tier(a) - tier(b) || (tier(a) === 0 ? solverCmp(b.pl.cmp).delta - solverCmp(a.pl.cmp).delta : 0) || i - j).map(([e]) => e);
+  return entries.map((e, i) => [e, i]).sort(([a, i], [b, j]) => tier(a) - tier(b) || (tier(a) === 0 ? b.pl.cmp.delta - a.pl.cmp.delta : 0) || i - j).map(([e]) => e);
 };
 /** The most cards a player's place deals beside him (drawPlace: slotsBeside's n). */
 export const PLACE_SLOTS = 4;
@@ -318,12 +318,8 @@ export function noteOf(P, w, e, a = null) {
 /** Your plan has a transfer in some week (every plan keeps the others), so plans count against "your plan", never "no
  *  transfers". */
 export const mineAny = (P) => P.weeks.some((w) => w.moves.length);
-/** A choice's count as the solver ranks it: its whole window count where its number is the points alone (calls.counted
- *  `rank`: a transfer choice's), else its number's own. What orders and lights the choices, so the week's best is the
- *  move main.py --show-plan commits (owner, 2026-10-30); the number drawn stays the points. */
-export const solverCmp = (cmp) => cmp?.rank ?? cmp;
-/** Best first: the higher count (solverCmp), the model's own plan on a tie. */
-export const byGain = (a, b) => solverCmp(b.cmp).delta - solverCmp(a.cmp).delta || b.model - a.model;
+/** Best first: the higher count (calls.counted), the model's own plan on a tie. */
+export const byGain = (a, b) => b.cmp.delta - a.cmp.delta || b.model - a.model;
 
 /** GW g's choice c ({moves, chips}) can be made on your plan as it stands: its moves in place of your GW-g ones, your
  *  other weeks kept (estimate: every move legal, no week's bank or clubs worse off than your plan has them, since the +
