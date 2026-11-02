@@ -134,11 +134,11 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     return groups.length > 1 && groups.every((gr) => gr.length === 1 || fitsAt(ctx, P, g, groupOf(gr), d0)) ? groups : null;
   };
   const split = new Map();  // forkKey → the groups of a choice that splits (splitOf)
-  // (`whole`: the solver's own moves for the week under your rules, refusalRoads' root or owedRoad, never split: the
-  // week shows what the solver does, its moves one take; owner, 2026-11-02)
-  const add = (c, e = null, whole = false) => {
+  // (the solver's own moves for the week split too, each move its own plate and take where it fits alone: owner,
+  // 2026-11-02, "why Rice, Evanilson combined and not independent"; was one take since cb793a4f that morning)
+  const add = (c, e = null) => {
     const k = forkKey(c, g);
-    if ((k !== yours || rollOffered) && squadOk(c) && allowed(c) && !choices.has(k)) { choices.set(k, c); if (e) early.set(k, e); const gs = !whole && splitOf(c); if (gs) split.set(k, gs); }
+    if ((k !== yours || rollOffered) && squadOk(c) && allowed(c) && !choices.has(k)) { choices.set(k, c); if (e) early.set(k, e); const gs = splitOf(c); if (gs) split.set(k, gs); }
   };
   // the groups of a choice that splits (splitOf) the week doesn't list yet, each its choice ({x: a single's suggestion,
   // c}); none for one that doesn't split, nor a move you removed (yours, listed last)
@@ -186,6 +186,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // (your GW-g transfers' own plan, the reference `yours` counts against, where a solver road makes no move beside
   // them: that road, never a fork of its own; owner, 2026-11-02, at most 6 solves after an action)
   const selfRoads = new Map();
+  // (the solver's own week, refusalRoads' root or owedRoad: `roots`; its moves split, each asked as its own move,
+  // `parts`: owner, 2026-11-02, "why Rice, Evanilson transfers combined and not independent")
+  const roots = new Set(), parts = new Set();
   // (the solver's own roads first: a choice it and a bake road both make is counted from its solve, as what it counts
   // against (the roll, a keep) is: one kind of solve on both sides; 2026-11-02, a bake road against the keep's read
   // Murillo → Hill −0.03 where the solver's own read it best)
@@ -197,11 +200,10 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
       const own = !chipMine && movesSig(x.plan.moves) === mineFrom && !Object.keys(x.plan.chips).length, m = own ? null : measurePlan(ctx, P, g, x.plan, asIs, false);
       if (own || m) selfRoads.set(yours, { road: r, m });
     }
-    const whole = r === tree[0]?.road || r === owed?.road;
-    if (whole) split.delete(forkKey(x.choice, g));
+    if (r === tree[0]?.road || r === owed?.road) roots.add(forkKey(x.choice, g));
     if (!choices.has(forkKey(x.choice, g))) {
       const e = earlyAt(x.choice);
-      if (e) late.push({ c: x.choice, e }); else if (r !== P.base && !solverRoads.has(r) && pairLike(x.choice)) pairs.push(x.choice); else add(x.choice, null, whole);
+      if (e) late.push({ c: x.choice, e }); else if (r !== P.base && !solverRoads.has(r) && pairLike(x.choice)) pairs.push(x.choice); else add(x.choice);
     }
     const s = x.plan && `${movesSig(x.plan.moves)}|${JSON.stringify(x.plan.chips)}`;
     if (!s || seen.has(s)) continue;
@@ -250,9 +252,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // a choice that splits offers its groups (groupsOf) in the room it would have taken, or none where the ask budget
   // can't hold them all → whether it could
   const offerGroups = (c) => {
-    const gs = groupsOf(c);
+    const gs = groupsOf(c), own = roots.has(forkKey(c, g));
     if (plain() + gs.length > FORK_MAX - 1) return false;
-    for (const q of gs) { if (q.x) single(q.x); else add(q.c, earlyAt(q.c)); }
+    for (const q of gs) { if (q.x) single(q.x); else add(q.c, earlyAt(q.c)); if (own) parts.add(forkKey(q.c, g)); }
     return true;
   };
   // the roads' choices offered at once (the model's own) that split: their groups first, before your transfers' other
@@ -426,7 +428,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // a transfer choice of the week's own, not the solver's (refusalRoads' roads answer theirs exactly: known), nor
     // what a choice counts against (refs), nor a place you opened: listed once solved (a road kept, or its solve in
     // flight), never asked, so an action asks only the solver's moves and nothing waits on the rest
-    if (!refs.has(k) && !placeOnly.has(k) && !placed.has(k) && c.moves.length && !Object.keys(c.chips).length && !forkRead(key) && !forkFlights().some(([, f]) => f.key === key)) return [];
+    if (!refs.has(k) && !parts.has(k) && !placeOnly.has(k) && !placed.has(k) && c.moves.length && !Object.keys(c.chips).length && !forkRead(key) && !forkFlights().some(([, f]) => f.key === key)) return [];
     return [{ k, c, roads, ask: { key, values, gw: g } }];
   });
   // (stable: choices with no estimate keep their offered order; those the bars keep from being the week's suggestion go
