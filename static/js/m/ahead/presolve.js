@@ -335,7 +335,9 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 2,
     if (!lead) return;
     // (the ✕'s refusal before the lock's Keep: the likelier tap asked first)
     walk([...extra, pinVeto(lead.in, g, g, { scope: 'gw' })], d - 1);
-    if (d === depth) walk([...extra, pinKeep(lead.out, g, g, { scope: 'gw' })], 0);
+    // (its seller's Keep one refusal deep too, as the ✕'s: the ✕ after a Keep draws at once; owner, 2026-11-03, "why
+    // grey out after each keep")
+    if (d === depth) walk([...extra, pinKeep(lead.out, g, g, { scope: 'gw' })], d - 1);
     // (the best's other moves, a plan's: each name's ✕ in the band, its buy refused, its seller kept, solved ahead after
     // the lead's; owner, 2026-11-02, "why only 1 out of four players have cross sign")
     if (d === depth) for (const m of also.filter((x) => Number(x.in) !== Number(lead.in))) {

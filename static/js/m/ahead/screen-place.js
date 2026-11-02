@@ -153,10 +153,12 @@ export function placePart(V) {
     const benched = [...new Set(entries.flatMap((e) => (e.pl ? benchedBuys(P, g, e.pl) : [])))].map(nm);
     const onBench = benched.length ? COPY.onYourBench(benched) : null;
     const walk = h('div.ah-walk', { class: { top: c.bench }, role: 'group', 'aria-label': `${place}, ${COPY.placeAt(i + 1, n)}${onBench ? `. ${onBench}` : ''}` },
-      h('button', { type: 'button', 'aria-label': 'Previous place', dataset: { key: 'prev' }, disabled: n < 2, onClick: () => stepPlace(-1) }, '‹'),
-      h('span.ah-wl', { 'aria-hidden': 'true' }, h('span.ah-wl1', null, `${place} · ${COPY.placeAt(i + 1, n)}`),
+      // (no pager over one place: no "1 of 1", no ‹ ›; owner, 2026-11-03, design_1103b "Place header": Saffer, Birman,
+      // Johnson, Podmajersky)
+      n > 1 ? h('button', { type: 'button', 'aria-label': 'Previous place', dataset: { key: 'prev' }, onClick: () => stepPlace(-1) }, '‹') : null,
+      h('span.ah-wl', { 'aria-hidden': 'true' }, h('span.ah-wl1', null, n > 1 ? `${place} · ${COPY.placeAt(i + 1, n)}` : place),
         h('span.ah-wl2', null, COPY.placeNumbers(plansVs(P, g), P.gws.filter((x) => x >= g))), onBench ? h('span.ah-wl2.ah-wl3', null, onBench) : null),
-      h('button', { type: 'button', 'aria-label': 'Next place', dataset: { key: 'next' }, disabled: n < 2, onClick: () => stepPlace(1) }, '›'),
+      n > 1 ? h('button', { type: 'button', 'aria-label': 'Next place', dataset: { key: 'next' }, onClick: () => stepPlace(1) }, '›') : null,
       h('button', { type: 'button', 'aria-haspopup': 'dialog', dataset: { key: 'all' }, onClick: () => toWeek() }, COPY.placeAll(S.M.plans.filter((x) => !x.needs).length)),
       h('button.m-xbtn', { type: 'button', 'aria-label': 'Close', dataset: { key: 'close' }, onClick: () => closePlace() }, '✕'),
       pline ? planLine(P, g, d, pline) : null);

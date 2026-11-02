@@ -184,18 +184,17 @@ export const COPY = Object.freeze({
   help: (noise = null, gw = null) => [
     ['Plan your transfers', [
       'Pick a GW at the top, or swipe the pitch.',
-      'Forkcast\'s best buy waits behind the player he would replace, once that GW\'s plans are checked.',
-      // plain words for the stacked cards and the take (owner, 2026-10-22: no coined "Edges", "card behind", "bring him
-      // on")
-      // (no Why on its message while the Why sheet is hidden: ahead WHY_SHEET, owner 2026-11-02)
-      'Tap the card behind a player to take that transfer.',
-      'Stacked cards behind a player are more choices for his place: tap them (or hold the card) to spread them out, each with its +.',
+      // (the band, its marks and his place: owner, 2026-11-03, design_1103b "Place header + Help text")
+      'Forkcast\'s best move for a GW is the dark strip above the pitch; the player it sells is framed on the pitch.',
+      'Swap takes it. ✕ by the player coming in: not him this GW, and the next best shows.',
+      'The lock by the player going out: keep him this GW.',
+      'Tap ⇄ on a player\'s card for his place: the choices for his spot, each with its number and Swap.',
       'In a player\'s place, Keep over his own card keeps him that GW: nothing sells him.',
-      'Roll and chips sit beside the goal. Rolling is making no transfer: your free transfer carries over to the next GW.',
+      'When rolling is best, the strip names the plan\'s next transfers; tap it for their GW.',
+      'Rolling is making no transfer: your free transfer carries over to the next GW.',
       // the rule a take adds, by its own word (rollRule; owner, 2026-10-22: never "lock", the plan length's padlock): a
       // transfer's "GW8 frozen", the Roll's "GW8 roll", a Wildcard's or Free Hit's its chip
       'Taken transfers lock their GW (Your rules: locked): Forkcast changes nothing there. Roll adds a roll rule; Wildcard or Free Hit, the chip.',
-      'Tap a choice\'s card, or a player tagged IN, to see why.',
       `Tap the line above the pitch for that GW's transfers, ${COPY.plansHead} and your rules.`,
       // its free transfers in every week, before its transfers (renderLine's weekLead)
       'The line above the pitch shows each GW\'s free transfers (FT) and money in the bank (ITB); with no transfers, the next GW\'s FT too.',
@@ -269,7 +268,7 @@ export const COPY = Object.freeze({
       'Black ring round a name: bought in an earlier GW of your plan, not in your FPL team yet.',
       // (owner, 2026-10-26: struck old points)
       'Struck number on a GW: its points with no transfers of yours, beside its points with them.',
-      'Dot in a GW\'s corner: your own lineup there. Reset lineup (pitch, top right, under Player data) brings the best one back.',
+      'Dot in a GW\'s corner: your own lineup there. Reset (pitch, top left) brings the best one back.',
       `Lock on a GW: past your plan (${COPY.aheadHead}). Tap it to see how to plan it.`,
     ]],
     ['Prices and news', [
@@ -281,7 +280,7 @@ export const COPY = Object.freeze({
     ['Start over', [
       'Tap your initials, then Reset plan.',
       // (the pitch's pill, owner, 2026-10-21; ahead.planHasYours, resetFits)
-      'Reset plan is on the pitch too (top right, where there\'s room) while your plan has a transfer, chip or rule of yours.',
+      'Reset plan is on the pitch too (top left) while your plan has a transfer, chip or rule of yours.',
       `Leave Forkcast for more than ${AWAY} and it signs you out of the team and clears its choices.`,
     ]],
   ],
@@ -333,7 +332,8 @@ export const COPY = Object.freeze({
    *  input); the pool (ml/configs/utils/paths.py PROD_PRED_DIRS) is checkpoint sets of different structure, a dozen or
    *  more seeds each, averaged. Nothing says Forkcast is free. */
   whyHow: [
-    ['It forecasts every player.', 'Several neural networks built for FPL, with different architectures, forecast each player\'s points for his next seven fixtures, and Forkcast averages them. They learned from every Premier League season since 2009/10 and its players\' cup and European matches, and read match data, team news and prices, never ownership.'],
+    // (no model talk: owner, 2026-11-03, design_1103b "Place header + Help text": Podmajersky, Johnson)
+    ['It forecasts every player.', 'Each player\'s points for his next seven fixtures, learned from every Premier League season since 2009/10 and his cup and European matches, from match data, team news and prices, never ownership.'],
     ['It plans four gameweeks at once.', 'Transfers, XI, captain and bench are solved together within FPL\'s rules (your players\' selling prices and your bank, three per club, free transfers banked, −4 hits), around any chip you play.'],
     ['It\'s fresh before every deadline.', 'The data is fetched and the forecast re-run every night and again before each deadline, ready 75 minutes before it for the late team news.'],
   ],
@@ -721,10 +721,11 @@ export const COPY = Object.freeze({
   /** …and in its band, why: the week the solver's plan spends the free transfer, its moves (owner, 2026-11-02, "find
    *  better use of the space instead of writing rolling is best"): "Roll → GW13: Gabriel → N.Williams, Dewsbury-Hall
    *  → Rice"; tapped, that week. */
-  rollNext: (g, moves) => `Roll → GW${g}: ${moves}`,
+  // (→ only between a transfer's names: owner, 2026-11-03, design_1103b "Bar and strip words", Podmajersky)
+  rollNext: (g, moves) => `Roll now · next transfers GW${g}: ${moves}`,
   /** …a week whose own transfers are made (no best left in it): the plan's next ones (owner, 2026-11-02, "why not pill
    *  moving to next week"). */
-  planNext: (g, moves) => `Next → GW${g}: ${moves}`,
+  planNext: (g, moves) => `Next transfers GW${g}: ${moves}`,
   planNextSaid: (g, moves) => `Next transfers in GW${g}: ${moves}. Opens GW${g}`,
   rollNextSaid: (g, moves) => `Rolling is best: the plan's next transfers are in GW${g}, ${moves}. Opens GW${g}`,
   /** …and what rolling is, in its spoken label (review 7 B9: "Rolling" defined; Help says it too). Never a second
@@ -761,9 +762,9 @@ export const COPY = Object.freeze({
   placeMore: (n) => `${n} more ›`,  // "⋯" is a row's menu (Bring in's, his card); a next page reads as the bar's ›
   /** A place's last slot (ahead.drawPlace; owner, 2026-10-27): Bring in… at his position, for a player its cards don't
    *  offer. */
-  placeOther: 'Other…',
+  placeOther: 'Bring in…',
   placeOtherSaid: (name, gw) => `Other players for ${name}'s place: Bring in… in GW${gw}`,
-  placeAll: (n) => `All ${n}`,
+  placeAll: (n) => `All ${n} choices`,
   placeAt: (i, n) => `${i} of ${n}`,
   /** …its bar's second line: what its numbers are, "Gain vs rolling · GW8–11" (owner, 2026-10-22); while what they
    *  count against is still checked (ahead.plansVs null), its weeks alone. */
@@ -788,6 +789,10 @@ export const COPY = Object.freeze({
   ftWithout: (gw, ft, without, n = 1) => `GW${gw}: ${ft} FT (${without} without ${n > 1 ? `these ${n} transfers` : 'this transfer'})`,
   /** …on the pitch the week's status beside the goal (ahead.emptyHead, statusTok), its Week sheet row with no + either. */
   rollingNow: 'Rolling',
+  noTransferYet: 'No transfer yet',
+  /** The band's number's scope and its toss-up (ahead tokensOf; owner, 2026-11-03, design_1103b): "· 4 GW", "Close call". */
+  overGws: (n) => `· ${n} GW`,
+  closeCall: 'Close call',
   /** A lineup of yours that leaves a suggested buy on your bench (the buy takes the slot of the player he replaces:
    *  ahead.asTaken), said in the lineup edit's toast and in his place's bar: "Palmer would start on your bench". */
   onYourBench: (names) => `${andList(names)} would start on your bench`,

@@ -19,6 +19,11 @@ const lockGlyph = (shut) => svg('svg', { viewBox: '0 0 12 14', 'aria-hidden': 't
 const crossGlyph = () => svg('svg', { viewBox: '0 0 10 10', 'aria-hidden': 'true' },
   svg('path', { d: 'M2 2l6 6M8 2l-6 6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round' }));
 
+// (⇄, a card's corner: his place's choices, never ×'s "not him" or close; owner, 2026-11-03, design_1103b: one × meant
+// four things, Saffer, Johnson, Birman, Podmajersky, Johnson's Elements of Choice)
+const swapGlyph = () => svg('svg', { viewBox: '0 0 10 10', 'aria-hidden': 'true' },
+  svg('path', { d: 'M1.5 3.2h6.5M6.2 1.4 8 3.2 6.2 5M8.5 6.8H2M3.8 5 2 6.8l1.8 1.8', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+
 export function decksPart(V) {
   function renderDecks() { const { S, boxOf, cardBoxes, ctx, decks, drawPlace, fitPitch, frozenAt, gwNow, labelWalls, pitchHost, placePills, plansHeading, reachLabels, rsBtn, sideRoom, topRow } = V;
     const root = pitchHost.querySelector(':scope > .pm');
@@ -118,6 +123,9 @@ export function decksPart(V) {
       // (its height the band's, two lines for a plan's moves: the pitch fitted under it again where that changed; its
       // names shortened by its CSS alone, the sellers' first, the corner's trims never: the whole width is its room)
       if (inBand(t)) {
+        // (a name cut: its scope off first, then "Close call" (the outlined Swap still says it), never a name: design_1103b)
+        const cut = () => [...t.querySelectorAll('.ah-tn > .x')].some((x) => x.scrollWidth > x.clientWidth + 0.5);
+        for (const sel of ['.ah-tgw', '.ah-tclose']) { const x = t.querySelector(sel); if (x && cut()) x.hidden = true; }
         const bh = `${t.offsetHeight + 8}px`;
         // (drawn again on the pitch as fitted: every box here was measured on the pitch before)
         if (pitchHost.style.getPropertyValue('--ah-band') !== bh) { pitchHost.style.setProperty('--ah-band', bh); fitPitch(); return renderDecks(); }
@@ -144,9 +152,9 @@ export function decksPart(V) {
     }
     // the best move's token's ✕ on its right (no row, no width of its own; owner, 2026-11-02: "must have fast button
     // 'not hill'"): its buy refused in this week alone (veto, scope 'gw'), the refusal solved ahead (refusalRoads) so the
-    // next best is there at once. On a ticket, the same ✕ after each name (owner, 2026-11-02: "three routes here why
-    // they all designed differently", "Full-width strip" picked): the buy's refuses him, the seller's keeps him, his
-    // card lock's act (lockTap: the next best at once, refusalRoads' Keep)
+    // next best is there at once. On a ticket, a mark after each name (owner, 2026-11-02, "Full-width strip" picked):
+    // the buy's ✕ refuses him, the seller's lock keeps him, his card lock's act and glyph (lockTap: the next best at
+    // once, refusalRoads' Keep; owner, 2026-11-03, design_1103b "One meaning for ×")
     const bestTok = tk.find((t) => t.isConnected && t.matches('.mv') && t.dataset.notIn);
     // (the band's sellers' cards in its ink, so the move reads on the pitch where he stands; owner, 2026-11-02,
     // "highlight in same black style or similiar player it suggesting to sell")
@@ -168,7 +176,7 @@ export function decksPart(V) {
         } else {
           const pk = pinOf(P, 'keep', id, g);
           decks.append(h('button.ah-cm.tlk.tx', { type: 'button', class: { on: !!pk }, 'aria-pressed': String(!!pk), 'aria-label': pk ? COPY.cardLockSaid(nm, g, true) : COPY.placeKeepSaid(nm, g), dataset: { row: `tok:keep:${g}:${id}` },
-            style: after(x), onClick: () => lockTap(P, g, id) }, crossGlyph()));
+            style: after(x), onClick: () => lockTap(P, g, id) }, lockGlyph(!!pk)));
         }
       }
     }
@@ -443,7 +451,7 @@ export function decksPart(V) {
           if (S.decks?.some((d) => d.a === a)) { openPlace(a); return; }
           S.placeWant = { a, g };
           if (!askPlace(ctx, P, g, a)) renderDecks();
-        } }, crossGlyph()));
+        } }, swapGlyph()));
       // (the lock only on a player you locked, its tap unlocking him: owner, 2026-11-02, "remove locks for player plates
       // unless players are locked"; a lock is set from the band's ✕ on the seller or his card's sheet)
       if (pin) decks.append(h('button.ah-cm.lock', { type: 'button', class: { on: !!pin }, 'aria-pressed': String(!!pin), 'aria-label': COPY.cardLockSaid(nm(a), g, !!pin), dataset: { row: `lock:${a}` },
@@ -579,7 +587,8 @@ export function decksPart(V) {
       // (the best's first buy, its ✕ refusing it: renderDecks' notBadge; of several moves the first, the one refused
       // ahead: presolve.refusalRoads' lead)
       const one = best && swap && e.adds.length && !takesBack(e) ? e.adds[0] : null;
-      return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', class: { tix: !!one, multi: !!one && e.adds.length > 1 }, 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(one ? { notOut: one.out, notIn: one.in } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}), ...(!takesBack(e) && e.adds.length === 1 ? { buy: nm(e.adds[0].in) } : {}) },
+      const close = pl.cmp?.label === 'coin', span = Object.keys(pl.road?.windows?.[g]?.xi ?? {}).length || P.gws.filter((x) => x >= g).length;
+      return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', class: { tix: !!one, multi: !!one && e.adds.length > 1, close: !!one && close }, 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(one ? { notOut: one.out, notIn: one.in } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}), ...(!takesBack(e) && e.adds.length === 1 ? { buy: nm(e.adds[0].in) } : {}) },
         // (its verb first where it takes, as drawn: "Swap. Best move this week: …")
         'aria-label': swap ? COPY.bestSwapSaid(said) : `${said}, ${COPY.showsChoices}`,
         // (its "Swap" takes; a tap on its words opens his place, the move among his choices: review 7, 2026-11-02,
@@ -594,7 +603,10 @@ export function decksPart(V) {
         h('span.ah-tl', { 'aria-hidden': 'true' }, one ? e.adds.map((m) => h('span.ah-tn', null, h('span.o.x', { dataset: { id: m.out } }, nm(m.out)), ' → ', h('span.i.x', { dataset: { id: m.in } }, nm(m.in))))
           : (takesBack(e) || !e.adds.length ? [nm(e.inId)] : e.adds.length === 1 ? [`${nm(e.adds[0].out)} → ${nm(e.adds[0].in)}`] : e.adds.map((m) => nm(m.in))).map((t, i, all) => h('span.ah-tn', null, `${t}${i < all.length - 1 ? ',' : ''}`))),
         // (its number as its plate's: numParts)
-        h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, numParts(g, pl)),
+        // (its number's scope, the window it counts, "+2.0 xP · 4 GW"; "Close call" where the solver's count of it is inside
+        // the forecast's noise (counted's label 'coin'), its Swap outlined: owner, 2026-11-03, design_1103b "Number
+        // scope + close call": Saffer, Johnson, Duke, Johnson's Elements of Choice; the lit move stays the solver's)
+        h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, one && close ? h('small.ah-tclose', null, COPY.closeCall) : null, numParts(g, pl), one ? h('small.ah-tgw', null, COPY.overGws(span)) : null),
         // its take's word where its tap takes (owner, 2026-10-28: one act, one word, one look): "Swap" in the mint of
         // its place's best header, a keep-back "Keep"; none where it opens his place
         swap ? h(`span.ah-tgo.m-swap${best ? '.best' : ''}`, { 'aria-hidden': 'true' }, takesBack(e) ? COPY.placeKeep : COPY.placeSwap) : null);

@@ -189,7 +189,9 @@ export function rowsPart(V) {
     // at all (rollOnly). `pays` (where the pitch lights it) still fills its Why sheet's Take
     const pays = lit ?? litPays(pl);
     const why = () => openPlanWhy(P, g, pl, pays);
-    const gain = pl.refRow ? null : gainOf(pl.cmp);
+    // (the Roll its 0.0: the baseline every other row's number counts from; owner, 2026-11-03, design_1103b "Number
+    // scope + close call": Saffer, Johnson's Elements of Choice)
+    const gain = pl.refRow ? gainOf({ delta: 0 }) : gainOf(pl.cmp);
     const top1 = best ?? S.M?.lit?.move === pl;
     const add = rollOnly(pl) ? null : h('button.ah-add.m-swap', {
       type: 'button', disabled: frozenAt(P, g), dataset: { add: `plan:${key}` }, class: { best: top1, quiet: !top1 }, 'aria-label': COPY.planTake(s.head),
