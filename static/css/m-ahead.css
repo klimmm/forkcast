@@ -1243,20 +1243,24 @@ filled mint chip (one primary, one secondary: Material 3 buttons, emphasis); its
 .ah-decks .ah-cm.tno.in { width: 24px; height: 24px; background: none; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .85); }
 .ah-decks .ah-cm.tno.in::before { content: none; }
 .ah-decks .ah-cm.tno.in svg { width: 8px; height: 8px; }
-.ah-tok.mv:is(.nox, .tix) .ah-tgo { height: 24px; padding: 0 8px; border-radius: 12px; font-size: var(--t-sub); }
+.ah-tok.mv.nox .ah-tgo { height: 24px; padding: 0 8px; border-radius: 12px; font-size: var(--t-sub); }
 .ah-tok.mv.nox { padding-right: 32px; height: 32px; padding-left: 10px; border-radius: 16px; }
-/* design_1102b: the ticket: its move whole on line 1, "Murillo → Hill" (the seller's name shortened first, never the
-buy's), its number, "Swap" and ✕ on line 2 */
-.ah-tok.mv.tix { flex-wrap: wrap; row-gap: 4px; height: auto; padding: 6px 4px 4px 10px; border-radius: 12px; }
-.ah-tok.mv.tix > .ah-tl { flex: 1 0 100%; box-sizing: border-box; padding-right: 6px; }
-.ah-tok.mv.tix .ah-tn { display: flex; min-width: 0; gap: .25em; flex: 0 1 auto; }
-.ah-tok.mv.tix .ah-tn > .o { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 400; opacity: .8; }
-.ah-tok.mv.tix .ah-tn > .i { flex: none; }
-.ah-tok.mv.tix > .ah-tgo { margin-left: auto; margin-right: 28px; }
-/* the seller's lock before his name on line 1 (owner, 2026-11-02, "how do i lock cunha"; design_1102b C): his card
-lock's mark, a 24 px ring, idle */
-.ah-tok.mv.tix .ah-tn > .o { padding-left: 22px; }
-.ah-tok.mv.tix > .ah-tl { margin-left: -4px; flex-basis: calc(100% + 4px); }
-.ah-decks .ah-cm.lock.tlk { z-index: 4; width: 24px; height: 24px; background: none; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .5); }
-.ah-decks .ah-cm.lock.tlk::before { content: none; }
-.ah-decks .ah-cm.lock.tlk svg { width: 8px; height: 10px; }
+/* the band over the pitch (owner, 2026-11-02: "three routes here why they all designed differently", "it must not take
+more than two lines", "Full-width strip" picked): the week's best move, or "Rolling is best", the pitch's whole width
+above its turf (the pitch fitted under it: fitPitch), never given way (renderDecks inBand). The move whole on one line,
+"Cunha ✕ → Palmer ✕ +2.2 xP Swap": each name's ✕ the same 24 px ring (renderDecks .tx), refusing that side, the buy's
+not him, the seller's keeps him; Swap, the one primary act, filled (Material 3 buttons, emphasis); the seller's name
+shortened first; 24 px targets (WCAG 2.2 SC 2.5.8) */
+.ah-pitch.band { --ah-band: 40px; }
+.m-screen.ah > .ah-pitch.band { margin-top: calc(6px + var(--ah-band)); }
+.ah-pitch.band .ah-tok:is(.mv, .st.best) { top: calc(-1 * var(--ah-band)); left: 8px; right: 8px; max-width: none; height: 32px; padding: 0 4px 0 12px; border-radius: 16px; }
+.ah-pitch.band .ah-tok:is(.mv, .st.best)::before { inset: 0; }
+.ah-tok.mv.tix .ah-tn { display: flex; align-items: center; flex: 0 1 auto; min-width: 0; gap: .3em; }
+.ah-tok.mv.tix .ah-tn > :is(.o, .i) { min-width: 0; padding-right: 28px; overflow: hidden; text-overflow: ellipsis; }
+.ah-tok.mv.tix .ah-tn > .o { flex: 0 1 auto; font-weight: 400; opacity: .8; }
+.ah-tok.mv.tix .ah-tn > .i { flex: 0 0 auto; }
+.ah-tok.mv.tix > .ah-tnum { margin-left: auto; }
+.ah-tok.mv.tix > .ah-tgo { height: 24px; padding: 0 10px; border-radius: 12px; font-size: var(--t-sub); }
+.ah-decks .ah-cm.tx { z-index: 4; width: 24px; height: 24px; background: none; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .85); }
+.ah-decks .ah-cm.tx::before { content: none; }
+.ah-decks .ah-cm.tx svg { width: 8px; height: 8px; }

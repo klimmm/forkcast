@@ -20,10 +20,13 @@ const crossGlyph = () => svg('svg', { viewBox: '0 0 10 10', 'aria-hidden': 'true
   svg('path', { d: 'M2 2l6 6M8 2l-6 6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round' }));
 
 export function decksPart(V) {
-  function renderDecks() { const { S, boxOf, cardBoxes, ctx, decks, drawPlace, frozenAt, gwNow, labelWalls, pitchHost, placePills, plansHeading, reachLabels, rsBtn, sideRoom, topRow } = V;
+  function renderDecks() { const { S, boxOf, cardBoxes, ctx, decks, drawPlace, fitPitch, frozenAt, gwNow, labelWalls, pitchHost, placePills, plansHeading, reachLabels, rsBtn, sideRoom, topRow } = V;
     const root = pitchHost.querySelector(':scope > .pm');
     const P = S.drawn, w = P && weekOf(P, gwNow(P)), M = S.M;
-    if (!root || !w || !M || frozenAt(P, w.gw) || !decks.isConnected) {
+    // the band over the pitch for the week's best (inBand) while its week can change: the pitch fitted under it
+    const band = !!root && !!w && !!M && !frozenAt(P, w.gw) && decks.isConnected;
+    if (pitchHost.classList.contains('band') !== band) { pitchHost.classList.toggle('band', band); fitPitch(); }
+    if (!band) {
       // (a plan you can't change: its status is on the bar, statusLine)
       decks.removeAttribute('aria-label');
       fill(decks);
@@ -104,9 +107,13 @@ export function decksPart(V) {
     const st = tk.find((t) => t.matches('.st'));
     // (the Reset sits under the last token: resetSlot, placePills)
     rsBtn.hidden = !S.reset;
-    const stack = () => { let top = 6; for (const t of tk) if (t.isConnected) { t.style.top = `${top}px`; top += t.offsetHeight + 8; } };
+    // (the best move's token, or "Rolling is best", in the band over the pitch, the whole width: m-ahead.css .band;
+    // owner, 2026-11-02, "Full-width strip" picked: the move whole on one line, each name its ✕, never given way)
+    const inBand = (t) => t.matches('.mv, .st.best');
+    const stack = () => { let top = 6; for (const t of tk) if (t.isConnected && !inBand(t)) { t.style.top = `${top}px`; top += t.offsetHeight + 8; } };
     let top = 6;
     for (const t of tk) {
+      if (inBand(t)) { fits(t); continue; }
       t.style.top = `${top}px`;
       // (a status that can't fit wider stays in its own room, trimmed as there, words wrapping, never over the keeper's
       // card; trims kept only where they fit, so its "xP" never goes for nothing: oneLook)
@@ -117,7 +124,7 @@ export function decksPart(V) {
     for (;;) {
       const tkIn = tk.filter((t) => t.isConnected), cut = tkIn.findIndex((t) => meetsCard(t, 9));
       if (cut < 0) break;
-      const gone = tkIn.slice(cut).filter((t) => t !== st);
+      const gone = tkIn.slice(cut).filter((t) => t !== st && !inBand(t));
       if (gone.length) for (const t of gone) t.remove();
       else if (tkIn[0] !== st) tkIn[0].remove();
       // (then the status's lineup notice under it goes, to the Week sheet's row: at a large text size it would cover
@@ -126,23 +133,21 @@ export function decksPart(V) {
       else break;
       stack();
     }
-    // the best move's token's ✕ on its top-right corner, overhanging it (no row, no width of its own; owner, 2026-11-02:
-    // "must have fast button 'not hill'", its "Corner ✕ badge" picked): its buy refused in this week alone (veto, scope
-    // 'gw'), the refusal solved ahead (refusalRoads) so the next best is there at once; its target never over its token
-    // (--hb) nor up past the pitch's top (--ht: the week line's doors above it keep their 44 px, QA chips-sheet
-    // 2026-11-02, "Rolling" 34 px to a tap under it)
+    // the best move's token's ✕ on its right (no row, no width of its own; owner, 2026-11-02: "must have fast button
+    // 'not hill'"): its buy refused in this week alone (veto, scope 'gw'), the refusal solved ahead (refusalRoads) so the
+    // next best is there at once. On a ticket, the same ✕ after each name (owner, 2026-11-02: "three routes here why
+    // they all designed differently", "Full-width strip" picked): the buy's refuses him, the seller's keeps him, his
+    // card lock's act (lockTap: the next best at once, refusalRoads' Keep)
     const bestTok = tk.find((t) => t.isConnected && t.matches('.mv') && t.dataset.notIn);
     if (bestTok) {
-      const q = boxOf(bestTok, b), m = { gw: g, out: Number(bestTok.dataset.notOut), in: Number(bestTok.dataset.notIn) };
+      const q = boxOf(bestTok, b), m = { gw: g, out: Number(bestTok.dataset.notOut), in: Number(bestTok.dataset.notIn) }, tix = bestTok.matches('.tix');
+      const rowEnd = (sel) => { const r = boxOf(bestTok.querySelector(`.ah-tn > ${sel}`), b); return { left: `${r.x + r.w - 25}px`, top: `${q.y + q.h / 2 - 12}px` }; };
       decks.append(h('button.ah-cm.out.tno', { type: 'button', 'aria-label': COPY.notBuySaid(P.L.name(m.in), g), dataset: { row: `tok:not:${g}` },
-        class: { in: true }, style: { left: `${q.x + q.w - 28}px`, top: `${q.y + q.h - (bestTok.matches('.tix') ? 28 : q.h / 2 + 12)}px` }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
-      // the seller's lock before his name, in the room his name's padding keeps (m-ahead.css .o) (owner, 2026-11-02: "how do i lock cunha" ... "fix bug"; design_1102b C): his
-      // card lock's own act and look (lockTap), so keeping him shows the next best at once (refusalRoads' Keep)
-      const o = bestTok.querySelector('.ah-tn > .o'), pk = pinOf(P, 'keep', m.out, g);
-      if (o) {
-        const r = boxOf(o, b);
-        decks.append(h('button.ah-cm.lock.tlk', { type: 'button', class: { on: !!pk }, 'aria-pressed': String(!!pk), 'aria-label': COPY.cardLockSaid(P.L.name(m.out), g, !!pk), dataset: { row: `tok:keep:${g}` },
-          style: { left: `${r.x - 2}px`, top: `${r.y + r.h / 2 - 12}px` }, onClick: () => lockTap(P, g, m.out) }, lockGlyph(!!pk)));
+        class: { in: true, tx: tix }, style: tix ? rowEnd('.i') : { left: `${q.x + q.w - 28}px`, top: `${q.y + q.h / 2 - 12}px` }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
+      if (tix) {
+        const pk = pinOf(P, 'keep', m.out, g);
+        decks.append(h('button.ah-cm.tlk.tx', { type: 'button', class: { on: !!pk }, 'aria-pressed': String(!!pk), 'aria-label': pk ? COPY.cardLockSaid(P.L.name(m.out), g, true) : COPY.placeKeepSaid(P.L.name(m.out), g), dataset: { row: `tok:keep:${g}` },
+          style: rowEnd('.o'), onClick: () => lockTap(P, g, m.out) }, crossGlyph()));
       }
     }
     // (the best move's token gave way for room, its plate stays on the pitch: flag for the QA)
@@ -551,7 +556,8 @@ export function decksPart(V) {
         // box its target (::before); a key or a screen reader's press, no point, takes, as its label says)
         onClick: (ev) => (swap && onSwap(ev) ? takeFrom(ev, P, g, pl, ev.currentTarget, a, e.inId) : openPlace(a)) },
         // (one move its sale and buy, "Murillo → Hill": review 7, 2026-11-02, the net result, not one leg; reversing the
-        // owner's 2026-10-26 buy alone; several their buys)
+        // owner's 2026-10-26 buy alone; several their buys. The best's, in the band over the pitch, each name with its ✕:
+        // renderDecks)
         h('span.ah-tl', { 'aria-hidden': 'true' }, (takesBack(e) || !e.adds.length ? [nm(e.inId)] : e.adds.length === 1 ? [`${nm(e.adds[0].out)} → ${nm(e.adds[0].in)}`] : e.adds.map((m) => nm(m.in))).map((t, i, all) => h('span.ah-tn', null, one && all.length === 1 ? [h('span.o', null, nm(one.out)), ' → ', h('span.i', null, nm(one.in))] : `${t}${i < all.length - 1 ? ',' : ''}`))),
         // (its number as its plate's: numParts)
         h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, numParts(g, pl)),

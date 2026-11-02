@@ -222,6 +222,7 @@ export function mount(el, ctx) {
     get forecastLine() { return forecastLine; },
     get frozenAt() { return frozenAt; },
     get ftAfter() { return ftAfter; },
+    get fitPitch() { return fitPitch; },
     get gainOf() { return gainOf; },
     get gwNow() { return gwNow; },
     get gwline() { return gwline; },
