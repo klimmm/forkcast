@@ -703,6 +703,8 @@ export const COPY = Object.freeze({
   /** A buy of yours's plate (ahead.swapPlate; owner, 2026-10-26): the player you sold, said "Keep Gabriel, not Justin,
    *  +0.8 points vs your plan". */
   keepSoldSaid: (sold, buy) => `Keep ${sold}, not ${buy}`,
+  /** The ✕ on the best move's token (ahead.js renderDecks; owner, 2026-11-02): its buy refused in this week alone. */
+  notBuySaid: (buy, g) => `Not ${buy} in GW${g}: the next best move`,
   rollingBest: 'Rolling is best',
   /** A pair card's note, its other moves (ahead.noteOf): "also Semenyo → Palmer, Cunha → Rice". */
   placeAlso: (moves) => `also ${moves.join(', ')}`,

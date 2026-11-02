@@ -7,7 +7,7 @@ import { COPY } from '../calls.js';
 import { plPays } from './pieces.js';
 import * as E from '../../plan/engine.js';
 import { addPlan, planTake } from './presolve.js';
-import { keep, pinOf, removeRule } from './edits.js';
+import { keep, pinOf, removeRule, veto } from './edits.js';
 import { EDGE_MIN, NAME_LEAST, PLATE_MIN, PLATE_TRIMS, ST_TRIMS, boxesMeet, cssPx, fitNum, oneLook, reachOf } from './screen.js';
 
 /** The lock's glyph, shut or open (cardMarks). */
@@ -20,7 +20,7 @@ const crossGlyph = () => svg('svg', { viewBox: '0 0 10 10', 'aria-hidden': 'true
   svg('path', { d: 'M2 2l6 6M8 2l-6 6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round' }));
 
 export function decksPart(V) {
-  function renderDecks() { const { S, boxOf, cardBoxes, decks, drawPlace, frozenAt, gwNow, labelWalls, pitchHost, placePills, plansHeading, reachLabels, rsBtn, sideRoom, topRow } = V;
+  function renderDecks() { const { S, boxOf, cardBoxes, ctx, decks, drawPlace, frozenAt, gwNow, labelWalls, pitchHost, placePills, plansHeading, reachLabels, rsBtn, sideRoom, topRow } = V;
     const root = pitchHost.querySelector(':scope > .pm');
     const P = S.drawn, w = P && weekOf(P, gwNow(P)), M = S.M;
     if (!root || !w || !M || frozenAt(P, w.gw) || !decks.isConnected) {
@@ -121,6 +121,15 @@ export function decksPart(V) {
       else if (st.querySelector(':scope > .ah-tw:not([hidden])')) st.querySelector(':scope > .ah-tw').hidden = true;
       else break;
       stack();
+    }
+    // the best move's token's ✕ on its top-right corner, overhanging it (no row, no width of its own; owner, 2026-11-02:
+    // "must have fast button 'not hill'", its "Corner ✕ badge" picked): its buy refused in this week alone (veto, scope
+    // 'gw'), the refusal solved ahead (refusalRoads) so the next best is there at once
+    const bestTok = tk.find((t) => t.isConnected && t.matches('.mv') && t.dataset.notIn);
+    if (bestTok) {
+      const q = boxOf(bestTok, b), m = { gw: g, out: Number(bestTok.dataset.notOut), in: Number(bestTok.dataset.notIn) };
+      decks.append(h('button.ah-cm.out.tno', { type: 'button', 'aria-label': COPY.notBuySaid(P.L.name(m.in), g), dataset: { row: `tok:not:${g}` },
+        style: { left: `${q.x + q.w - 8}px`, top: `${q.y - 4}px` }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
     }
     // (the best move's token gave way for room, its plate stays on the pitch: flag for the QA)
     decks.toggleAttribute('data-mv-out', tk.some((t) => t.matches('.mv') && !t.isConnected));
@@ -502,7 +511,9 @@ export function decksPart(V) {
       // (the take-back of a transfer of yours "Keep Gabriel, not Hill": weekBest)
       const moves = takesBack(e) ? [COPY.keepSoldSaid(nm(e.inId), nm(a))] : e.adds.map((m) => COPY.moveSaid(nm(m.out), nm(m.in)));
       const swap = pl.state === 'ready' && !frozenAt(P, g), said = (best ? COPY.bestSaid : COPY.nextSaid)(moves, plNumSaid(P, pl), true);
-      return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}) },
+      // (the best's one buy, its ✕ refusing it: renderDecks' notBadge)
+      const one = best && swap && e.adds.length === 1 && !takesBack(e) ? e.adds[0] : null;
+      return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(one ? { notOut: one.out, notIn: one.in } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}) },
         // (its verb first where it takes, as drawn: "Swap. Best move this week: …")
         'aria-label': swap ? COPY.bestSwapSaid(said) : `${said}, ${COPY.showsChoices}`,
         onClick: (ev) => (swap ? takeFrom(ev, P, g, pl, ev.currentTarget, a, e.inId) : openPlace(a)) },

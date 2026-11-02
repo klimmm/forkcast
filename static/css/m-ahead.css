@@ -394,6 +394,9 @@ target round each (WCAG 2.2 SC 2.5.8) */
 .ah-decks .ah-cm.out svg { width: 6px; height: 6px; }
 .ah-decks .ah-cm.lock svg { width: 7px; height: 8px; }
 .ah-decks .ah-cm.lock.on { background: #17191A; box-shadow: 0 0 0 1.5px #FFFFFF; }
+/* the best move's token's ✕ (ahead.js renderDecks; owner, 2026-11-02): over the token's top-right corner, half on its ink,
+half on the turf, so the C / V's look, solid ink with its white keyline, never the grey idle mark (lost on the ink) */
+.ah-decks .ah-cm.tno { z-index: 4; background: #17191A; box-shadow: 0 0 0 1.5px #FFFFFF; }
 /* the C / V as a tag at the left end of his name plate (owner, 2026-11-02: the tile's top-left is the ×'s), the plate's
 height and corner, its name moved past it; still the armband's drag handle (screen-pitch.js .pm-badge[data-badge]) */
 .ah-pitch .pm .pm-badge:is(.c, .v) {
