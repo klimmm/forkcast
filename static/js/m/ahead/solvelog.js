@@ -16,25 +16,23 @@ export function mountSolveLog(team = () => null, server = () => null) {
   for (const t of ['pointerdown', 'keydown']) document.addEventListener(t, (e) => { if (!el.contains(e.target)) acted = Date.now(); }, { capture: true, passive: true });
   const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
   const paint = () => {
-    // (the team on screen's alone: another team's from earlier on this page never shown; owner, 2026-11-03)
-    const e = team(), mine = SOLVE_LOG.filter((x) => !e || x.entry === e);
-    const now = Date.now(), running = mine.filter((x) => x.state === 'solving').length;
+    // (the team on screen's alone: another team's from earlier on this page never shown; owner, 2026-11-03). Its first
+    // plan's solves too, the ones the server starts itself for a team it hasn't seen ("Planning GW10–13", its bake), in
+    // the same list and counts as the page's own (owner, 2026-11-03, "solves showed in one place and all included in
+    // running or in all"): each with its own start, those not started yet "to come"
+    const e = team(), now = Date.now(), b = server();
+    const first = (b?.items ?? []).map((i) => ({ at: Number(i.started) > 0 ? Number(i.started) * 1000 : b.at, gw: b.span, kind: 'first plan', what: i.what,
+      state: i.state === 'done' ? 'solved' : i.state === 'error' ? 'error' : i.started ? 'solving' : 'to come', ms: Number(i.s) > 0 ? Number(i.s) * 1000 : null }));
+    const more = b?.baking ? Math.max(0, (b.total ?? 0) - first.length) : 0;
+    for (let k = 0; k < more; k++) first.push({ at: now, gw: b.span, kind: 'first plan', what: 'one more plan', state: 'to come', ms: null });
+    const mine = [...SOLVE_LOG.filter((x) => !e || x.entry === e), ...first].sort((x, y) => y.at - x.at);
+    const running = mine.filter((x) => x.state === 'solving').length, since = acted ? mine.filter((x) => x.at >= acted).length : mine.length;
+    const ends = (x) => (x.state === 'solving' ? `solving, ${secs(now - x.at)}` : x.state === 'to come' ? 'to come'
+      // (an answer back within a second is one the server had already: no solve ran)
+      : x.state === 'solved' && x.ms != null && x.ms < 1000 ? 'already solved' : x.ms != null ? `${x.state} in ${secs(x.ms)}` : x.state);
     el.replaceChildren(
-      Object.assign(document.createElement('b'), { textContent: `${running} running · ${acted ? mine.filter((x) => x.at >= acted).length : mine.length} since your last tap · ${mine.length} in all` }),
-      // (the server's own planning of a team it hasn't seen, "Planning GW10–13": its bake, never a solve this page asks;
-      // owner, 2026-11-03, "why it 'planning' but no solves")
-      ...(() => {
-        const b = server();
-        if (!b) return [];
-        const more = Math.max(0, (b.total ?? 0) - (b.items?.length ?? 0));
-        return [Object.assign(document.createElement('div'), { className: 'solving', textContent: `Server: planning this team · ${b.done ?? 0} of ${b.total ?? '?'} plans · ${secs(now - b.at)}${more ? ` · ${more} more to come` : ''}` }),
-          ...(b.items ?? []).map((i) => Object.assign(document.createElement('div'), { className: i.state === 'done' ? 'solved' : 'solving', textContent: `Server · ${i.what} · ${i.state === 'done' ? `solved${Number(i.s) > 0 ? ` in ${Number(i.s).toFixed(1)} s` : ''}` : i.state}` }))];
-      })(),
-      ...mine.slice(0, 20).map((x) => Object.assign(document.createElement('div'), {
-        className: x.state,
-        // (an answer back within a second is one the server had already: no solve ran)
-        textContent: `GW${x.gw} · ${x.kind} · ${x.what} · ${x.state === 'solving' ? `solving, ${secs(now - x.at)}` : x.state === 'solved' && x.ms < 1000 ? 'already solved' : `${x.state} in ${secs(x.ms)}`}`,
-      })));
+      Object.assign(document.createElement('b'), { textContent: `${running} running · ${since} since your last tap · ${mine.length} in all` }),
+      ...mine.slice(0, 30).map((x) => Object.assign(document.createElement('div'), { className: x.state === 'to come' ? 'solving' : x.state, textContent: `${typeof x.gw === 'number' ? `GW${x.gw}` : x.gw} · ${x.kind} · ${x.what} · ${ends(x)}` })));
   };
   paint();
   setInterval(paint, 500);
