@@ -1289,7 +1289,6 @@ card is under "Keep" */
 @keyframes ah-sold-nudge { 40% { transform: translateY(-3px); } }
 @media (prefers-reduced-motion: reduce) { .ah-pitch .pm .pm-card.ah-sold { animation: none; } }
 .ah-decks .ah-cm.tlk.tx svg { width: 8px; height: 10px; }
-.ah-decks .ah-cm.out:not(.tno) svg { width: 8px; height: 8px; }
 .ah-decks .ah-cm.tx { z-index: 4; width: 24px; height: 24px; background: none; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .85); }
 .ah-decks .ah-cm.tx::before { content: none; }
 .ah-decks .ah-cm.tx svg { width: 8px; height: 8px; }

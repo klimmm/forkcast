@@ -19,11 +19,6 @@ const lockGlyph = (shut) => svg('svg', { viewBox: '0 0 12 14', 'aria-hidden': 't
 const crossGlyph = () => svg('svg', { viewBox: '0 0 10 10', 'aria-hidden': 'true' },
   svg('path', { d: 'M2 2l6 6M8 2l-6 6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round' }));
 
-// (⇄, a card's corner: his place's choices, never ×'s "not him" or close; owner, 2026-11-03, design_1103b: one × meant
-// four things, Saffer, Johnson, Birman, Podmajersky, Johnson's Elements of Choice)
-const swapGlyph = () => svg('svg', { viewBox: '0 0 10 10', 'aria-hidden': 'true' },
-  svg('path', { d: 'M1.5 3.2h6.5M6.2 1.4 8 3.2 6.2 5M8.5 6.8H2M3.8 5 2 6.8l1.8 1.8', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
-
 export function decksPart(V) {
   function renderDecks() { const { S, boxOf, cardBoxes, ctx, decks, drawPlace, fitPitch, frozenAt, gwNow, labelWalls, pitchHost, placePills, plansHeading, reachLabels, rsBtn, sideRoom, topRow } = V;
     const root = pitchHost.querySelector(':scope > .pm');
@@ -451,7 +446,7 @@ export function decksPart(V) {
           if (S.decks?.some((d) => d.a === a)) { openPlace(a); return; }
           S.placeWant = { a, g };
           if (!askPlace(ctx, P, g, a)) renderDecks();
-        } }, swapGlyph()));
+        } }, crossGlyph()));
       // (the lock only on a player you locked, its tap unlocking him: owner, 2026-11-02, "remove locks for player plates
       // unless players are locked"; a lock is set from the band's ✕ on the seller or his card's sheet)
       if (pin) decks.append(h('button.ah-cm.lock', { type: 'button', class: { on: !!pin }, 'aria-pressed': String(!!pin), 'aria-label': COPY.cardLockSaid(nm(a), g, !!pin), dataset: { row: `lock:${a}` },

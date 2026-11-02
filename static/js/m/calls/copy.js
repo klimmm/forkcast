@@ -188,7 +188,8 @@ export const COPY = Object.freeze({
       'Forkcast\'s best move for a GW is the dark strip above the pitch; the player it sells is framed on the pitch.',
       'Swap takes it. ✕ by the player coming in: not him this GW, and the next best shows.',
       'The lock by the player going out: keep him this GW.',
-      'Tap ⇄ on a player\'s card for his place: the choices for his spot, each with its number and Swap.',
+      // (a card's ×, not ⇄: FPL's substitution sign; owner, 2026-11-03, "Back to ×")
+      'Tap × on a player\'s card for his place: the choices for his spot, each with its number and Swap.',
       'In a player\'s place, Keep over his own card keeps him that GW: nothing sells him.',
       'When rolling is best, the strip names the plan\'s next transfers; tap it for their GW.',
       'Rolling is making no transfer: your free transfer carries over to the next GW.',
