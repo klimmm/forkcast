@@ -227,12 +227,18 @@ export function owedRoad(ctx, P, g, { peek = false, prep = false } = {}) {
 export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 2 } = {}) {
   const cap = hitCap(P.b?.meta) ?? 2, on = P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x));
   const yours = weekOf(P, g)?.moves || [], out = [], seen = new Set();
+  // (a take caps its week at its moves, a Roll of k > 0, addPlan: off here, so the solver may add a move to yours;
+  // your own Roll, no move, stays. 2026-11-02: with it the root after a take was the take's own solve again)
+  const drop = P.pins.filter((p) => p.id === `roll:${g}` && p.caps?.[g] > 0).map((p) => p.id);
   const walk = (extra, d) => {
-    const values = valuesFor(ctx, [...on, ...extra]), key = valuesKey(P, values);
+    const values = valuesFor(ctx, [...on, ...extra], drop), key = valuesKey(P, values);
     if (seen.has(key)) return;
     seen.add(key);
-    // (the root's flight never let go by a later view: plansOf; an Undo back finds it)
-    const got = peek ? forkRead(key) : forkAsk(ctx, P, { key, values, gw: g, side: true, ...(prep ? { prep } : {}), ...(d === depth ? { root: true } : {}) });
+    // (the root's flight never let go by a later view: plansOf; an Undo back finds it. A refusal ahead is the plan
+    // service's lowest priority (prep: 'pairnext'), one at a time: 2026-11-02, five at once beside a take's own solves
+    // slowed each to 20–50 s)
+    const root = d === depth, busy = !root && forkFlights().some(([, f]) => f.side && !f.root && f.key !== key);
+    const got = peek || busy ? forkRead(key) : forkAsk(ctx, P, { key, values, gw: g, side: true, ...(prep || !root ? { prep: true } : {}), ...(root ? { root: true } : {}) });
     const road = got?.weeks ? got : null;
     out.push({ key, road });
     const w = road && d > 0 ? road.weeks.find((x) => Number(x.gw) === g) : null;

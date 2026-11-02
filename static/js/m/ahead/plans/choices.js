@@ -451,7 +451,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const solved = new Map(), byK = new Map(asks.map((a) => [a.k, a]));
   const solveK = (k) => { if (!solved.has(k) && byK.has(k)) solved.set(k, solveOf(byK.get(k))); return solved.get(k); };
   for (const a of [...asks.filter((x) => refs.has(x.k)), ...asks.filter((x) => !refs.has(x.k))]) solveK(a.k);
-  if (!peek && !owed && !followed) refusalRoads(ctx, P, g, { prep, depth });
+  // (its root now, beside the rows; the refusals ahead once the week has settled, below: background work never beside
+  // what you wait on)
+  if (!peek && !owed && !followed) refusalRoads(ctx, P, g, { prep, depth: 0 });
   // (the Roll row of a week you roll stays where rolling, Forkcast's later moves after it, is your plan itself: no move
   // after it)
   const out = asks.filter((a) => choices.has(a.k)).map((a) => solved.get(a.k)).filter((x) => x && (!x.self || rollOffered));
@@ -603,7 +605,10 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // its taps' solves asked ahead as its choices are checked (presolve), in the lanes its checks leave; the week settled
   // (none checks, nor what its rows count against), the next one prepared
   if (!DRY) presolveWeek(ctx, P, g, list);
-  if (settledList(list)) prepNext(ctx, P, g);
+  if (settledList(list)) {
+    if (!peek && !owed && !followed && depth) refusalRoads(ctx, P, g, { prep, depth });
+    prepNext(ctx, P, g);
+  }
   return list;
 }
 /** A week's choices (plansOf's list) settled: none checks, nor what its rows count against. */
@@ -611,16 +616,21 @@ export const settledList = (list) => !list.pending && !list.some((x) => x.state 
 /** The GW after g in the plan's window, or null at its end. */
 const nextGw = (P, g) => P.gws.reduce((m, x) => (x > g && (m === null || x < m) ? x : m), null);
 /**
- * The later weeks' choices solved in the background once the viewed week's have settled, one week at a time (owner,
- * 2026-10-22; every later week since 2026-10-28): plansOf in `prep` mode (as a draw of GW g + 1 asks), at the lowest
- * priority (purpose 'pairnext': the plan service's SPECULATIVE, unmetered), in the fork lanes forkPump leaves free:
+ * The next week's choices solved in the background once the viewed week's have settled and its taps solved ahead
+ * have landed (owner, 2026-10-22; every later week 2026-10-28 to 2026-11-02, the next alone since): plansOf in `prep`
+ * mode (as a draw of GW g + 1 asks), at the lowest priority (purpose 'pairnext': the plan service's SPECULATIVE,
+ * unmetered), in the fork lanes forkPump leaves free:
  * the viewed week's forks first in every lane; chip preparations (chipPreps) keep lane 0, one at a time, beside the
  * next week's forks in lanes 1..; lane 0 goes to the next week only once no chip preparation waits. Switching to GW g
  * + 1 draws what landed (FORK_ROADS) and joins the rest in flight; another week lets them go (plansOf's L5).
  */
 function prepNext(ctx, P, g) {
-  // every later week in turn, the first not settled yet (owner, 2026-10-28)
-  for (let nx = nextGw(P, g); nx !== null; nx = nextGw(P, nx)) if (!settledList(plansOf(ctx, P, nx, { prep: true }))) return;
+  // the next week alone (owner, 2026-11-02: "make only next week prepared after this lands not all 3"; every later
+  // week since 2026-10-28 before), once the viewed week's taps solved ahead have landed too (presolveWeek's, `ahead`):
+  // never beside what you wait on
+  if (forkFlights().some(([, f]) => f.ahead && f.P === P)) return;
+  const nx = nextGw(P, g);
+  if (nx !== null) plansOf(ctx, P, nx, { prep: true });
 }
 /** GW g's choices on plan view P, never a solve asked: as plansOf last listed them (its memo), else as the solves in
  *  stand (plansOf's peek), so the same words whichever week is drawn. */

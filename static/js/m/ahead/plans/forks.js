@@ -184,10 +184,12 @@ export function forkPump(ctx, P, ask) {
   // gives its lane up)
   const other = !same && !prep && !side && PAIR.flight && free === undefined ? forkFlights().find(([, f]) => (f.gw !== ask.gw || f.ahead) && !aheadWaited(f)) : null;
   // (a tap's solve asked ahead with every lane busy: the next week's preparation gives its lane up, asked again once
-  // the taps' are in: prepNext; then one asked ahead that no source asks any more (its rules replaced: L5); for an open
+  // the taps' are in: prepNext; then a refusal solved ahead (refusalRoads, not its root: owner, 2026-11-02, a take's
+  // own solve waited behind them); then one asked ahead that no source asks any more (its rules replaced: L5); for an open
   // sheet's, a week's tap asked ahead too: the sheet covers its plates)
   const yielded = !same && ask.ahead && free === undefined
-    ? forkFlights().find(([, f]) => f.prep && !f.ahead) ?? forkFlights().find(([, f]) => f.ahead && !aheadWaited(f) && !aheadAsks(f, P, ask.gw))
+    ? forkFlights().find(([, f]) => f.prep && !f.ahead) ?? forkFlights().find(([, f]) => f.side && !f.root)
+      ?? forkFlights().find(([, f]) => f.ahead && !aheadWaited(f) && !aheadAsks(f, P, ask.gw))
       ?? (ask.src === 'sheet' ? forkFlights().find(([, f]) => f.ahead && f.src === 'week' && !aheadWaited(f)) : null) ?? null : null;
   const lane = same ? same[0] : side ? free : prep ? free ?? (!PAIR.flight && !holder && !prepsWaiting(ctx, P) ? 0 : yielded?.[0])
     : !PAIR.flight ? 0 : free ?? other?.[0];
@@ -202,7 +204,7 @@ export function forkPump(ctx, P, ask) {
   if (wait > 0) { forkAgain(ctx, wait); return; }
   if (other) other[1].cancel?.();
   if (yielded && yielded[0] === lane) yielded[1].cancel?.();
-  const flight = { key: ask.key, fork: true, cancel: null, gw: ask.gw, P, prep, ahead: !!ask.ahead, root: !!ask.root, src: ask.src ?? null };
+  const flight = { key: ask.key, fork: true, cancel: null, gw: ask.gw, P, prep, ahead: !!ask.ahead, root: !!ask.root, side, src: ask.src ?? null };
   if (lane) FORK_FLIGHTS.set(lane, flight); else PAIR.flight = flight;
   const ours = () => (lane ? FORK_FLIGHTS.get(lane) : PAIR.flight) === flight;
   const purpose = ask.ahead ? 'presolve' : prep ? 'pairnext' : 'pair';

@@ -353,8 +353,17 @@ function optionsRef(ctx, I, pins, road) {
  *  one speculative solve per roads version (specRoad). → Road | null */
 function bareRef(ctx, I, pins) {
   const own = pins.filter((p) => !derivedPin(p));
-  return own.length && specOk(ctx, I) ? specRoad(ctx, I, valuesFor(ctx, [], own.map((p) => p.id))) : null;
+  if (!own.length || !specOk(ctx, I)) return null;
+  const values = valuesFor(ctx, [], own.map((p) => p.id));
+  // (no buy in any week and nothing else: the bake's hold road, your team every week rolled, while its first week is
+  // your team: no solve. 2026-11-02, a take asked this solve again each time)
+  const h = I.b.roads?.hold, w0 = h?.weeks?.find((w) => Number(w.gw) === I.A);
+  const rolled = Object.keys(values).every((k) => BARE_KEYS.has(k)) && String(values.no_buys_gw ?? '') === I.gws.join(',');
+  if (rolled && w0 && I.b.state !== 'stale' && sameSet([...ids(w0.xi), ...ids(w0.bench)], I.owned)) return h;
+  return specRoad(ctx, I, values);
 }
+// (the values every solve carries, and the weeks it rolls: bareRef's hold road)
+const BARE_KEYS = new Set(['season', 'from_r', 'w', 'int_rounds', 'entry', 'no_buys_gw']);
 /** A speculative solve can be asked for these roads (the newest, a solver there, this browser not left behind). */
 const specOk = (ctx, I) => !!ctx.api?.solve && I.b.version === I.b.meta?.roads_version && !leftBehind(ctx, I);
 /** One speculative solve of `values` per roads version (OPTIONS). → Road | null. */

@@ -245,7 +245,9 @@ float over the page, so a bottom: 0 column ran under them): Ahead fits it, and a
 @media (min-width: 560px) {
   .m-app { box-shadow: 0 0 0 1px var(--hair); }
 }
-@media (min-width: 560px) and (min-height: 700px) {
+/* …and a narrow window taller than any phone (a desktop browser's side pane: owner, 2026-11-02, "why no limit of
+height"): the same column, its rows never spread past the largest phone's */
+@media (min-width: 560px) and (min-height: 700px), (min-height: 964px) {
   /* --col-top: the column's top (and its bottom's gap), the toasts' too (#toasts) */
   :root { --col-top: max(16px, calc((100svh - var(--col-h)) / 2)); }
   .m-app { top: var(--col-top); height: min(calc(100svh - 32px), var(--col-h)); border-radius: var(--r-sheet); }
@@ -543,7 +545,7 @@ keeps that place when the sheet rests below it, else (a full-height sheet) it do
 }
 #toasts[data-place="dock"] { top: auto; bottom: calc(100lvh - 100svh + var(--safe-bot) + 8px); left: calc(50% - var(--toast-col) / 2 + 12px); width: calc(var(--toast-col) - 24px); flex-direction: column-reverse; }
 /* the column's own top and foot (.m-app, --col-top) */
-@media (min-width: 560px) and (min-height: 700px) {
+@media (min-width: 560px) and (min-height: 700px), (min-height: 964px) {
   #toasts { --toast-top: var(--col-top); }
   #toasts[data-place="dock"] { bottom: calc(var(--col-top) + var(--safe-bot) + 8px); }
 }
