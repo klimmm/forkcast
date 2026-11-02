@@ -255,10 +255,11 @@ export const placeSplit = (entries, a = null) => {
 /** A multi-move choice as one sentence (design 1026e "line"): its GW-g moves in the order its solved road makes them
  *  (`adds`: planBack's), "Neto → Tavernier, Cunha → Palmer", a take-back's words after them, "instead of Palmer". Never
  *  re-derived on the phone. Pure. → [move words] with `.back` (its "instead of …" | '') */
-export const lineMoves = (P, e) => {
-  const nm = P.L.name;
-  const back = e.gone ? COPY.planInsteadOf(e.gone) : '';
-  return Object.assign(e.adds.map((m) => `${nm(m.out)} → ${nm(m.in)}`), { back: e.adds.length ? back : capFirst(back) });
+export const lineMoves = (P, e, apart = new Set()) => {
+  const nm = P.L.name, own = e.adds.filter((m) => !apart.has(Number(m.out))), buys = e.adds.filter((m) => apart.has(Number(m.out))).map((m) => nm(m.in));
+  // (its moves with plates of their own, `apart`: litOf's, named after the rest, "Calvert-Lewin → Thiago with Rice")
+  const back = [buys.length ? COPY.planWith(buys.join(' and ')) : '', e.gone ? COPY.planInsteadOf(e.gone) : ''].filter(Boolean).join(', ');
+  return Object.assign(own.map((m) => `${nm(m.out)} → ${nm(m.in)}`), { back: own.length ? back : capFirst(back) });
 };
 /** A place's entries (decksOf's) in the order its cards are dealt, nearest his own card first: the checked choices best
  *  first, then those still checking or failed, then what takes a transfer back (the Roll of a week with yours, Remove)
