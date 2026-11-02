@@ -160,7 +160,8 @@ export function decksPart(V) {
     const lineBest = !!lead?.length && multiMove(lead[0].L.e, lead[0].d.a);
     const litAt = (a) => (lineBest && lit.get(a)?.best && !lead.some((x) => x.d.a === a) ? null : lit.get(a));
     // (a buy the sentence names is no other plate's: one name, one number)
-    const lineBuys = new Set(lineBest ? lead[0].L.e.adds.map((m) => Number(m.in)) : []);
+    // (a move of it with its own plate over its seller, litOf's: that plate's, his place not the sentence's)
+    const lineBuys = new Set(lineBest ? lead[0].L.e.adds.filter((m) => lit.get(Number(m.out))?.best !== false).map((m) => Number(m.in)) : []);
     const firstOf = (d) => placeFirst(lineBuys.size ? { ...d, entries: d.entries.filter((e) => !lineBuys.has(e.inId) || takesBack(e)) } : d);
     for (const d of D) {
       const c = boxes.find((x) => x.id === d.a), first = litAt(d.a) ? null : firstOf(d), L = litAt(d.a) ?? (first && { e: first, best: false, first: true });
