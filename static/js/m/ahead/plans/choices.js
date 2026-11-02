@@ -260,6 +260,19 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // the roads' choices offered at once (the model's own) that split: their groups first, before your transfers' other
   // buys and the best two take the room
   for (const c of [...choices.values()]) if (split.has(forkKey(c, g))) offerGroups(c);
+  // the solver's own week that stays one (a move of it paid by another's sale: fundOf) still offers each move of it
+  // that fits alone, asked as its own (owner, 2026-11-02: "why rice and thiago dependable transfers if rice is priority
+  // and can be bought independently from thiago": Calvert-Lewin → Thiago £0.4m short alone, Mbeumo → Rice fits)
+  for (const k of roots) {
+    const c = choices.get(k);
+    if (!c || split.has(k) || unmade(c).length < 2) continue;
+    for (const m of unmade(c)) {
+      const q = groupOf([m]), qk = forkKey(q, g);
+      if (choices.has(qk) || !room() || !fitsAt(ctx, P, g, q, d0)) continue;
+      add(q);
+      if (choices.has(qk)) parts.add(qk);
+    }
+  }
   for (const m of now) otherBuys(m, (inn) => swapIn(m, inn));
   // while the week has a free transfer, the best two suggestions (asked first: litOf lights the best single), then each
   // one's sale with its other buys, as your transfer's are once taken (owner, 2026-10-21), then the rest that pass the
