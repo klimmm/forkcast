@@ -71,7 +71,11 @@ function askOf(ctx, P, t, src) {
   try {
     values = memOf(ctx).values({ extra: a.pins, drop: a.drop, hitsMax: a.hitsMax, order: a.inPlace ? (list) => inPlaceOf(list, a.inPlace, a.was) : null });
   } catch { return null; }
-  return { key: valuesKey(P, values), values, gw: t.gw ?? P.A, kind: t.kind, src, prep: true, ahead: true };
+  // (a take's: the week's choices its plan will ask first, refusalRoads' root under its rules, solved ahead too, so the
+  // pitch after it never waits on a solve: 2026-11-02, Raketa GW10 Murillo → Hill greyed 8 s on a cold cache)
+  let root = null;
+  if (t.kind === 'take') try { const v = rootValues(ctx, P, t.gw ?? P.A, a.pins, a.drop); root = { key: valuesKey(P, v), values: v }; } catch {}
+  return { key: valuesKey(P, values), values, gw: t.gw ?? P.A, kind: t.kind, src, prep: true, ahead: true, root };
 }
 
 /** Source `src`'s taps (most likely first) on plan view P: the first PRESOLVE_MAX[src] that make a solve asked; those
@@ -97,6 +101,8 @@ function presolve(ctx, P, src, taps, { gw = P.A, sig = '', owner = null } = {}) 
       const a = askOf(ctx, P, t, src);
       if (a) cur.made.push(a);  // (every tap's, asked here or not: presolveTaps)
       if (a && !cur.asks.some((x) => x.key === a.key) && !others.includes(a.key) && !memOf(ctx).solved(a.values)) cur.asks.push({ ...a, pri: t.pri ?? cur.asks.length });
+      // (its root after it, just after it: never counted in the source's room)
+      if (a?.root && !cur.asks.some((x) => x.key === a.root.key) && !others.includes(a.root.key) && !forkRead(a.root.key)) cur.asks.push({ ...a, ...a.root, kind: 'root', root: null, pri: (t.pri ?? cur.asks.length) + 0.5 });
     }
     cur.asks.sort((x, y) => x.pri - y.pri);
   }
@@ -277,15 +283,19 @@ export function rootStill(was, now, road) {
   }
   return true;
 }
+/** The values refusalRoads solves GW g's choices under: your rules plus `extra`, less `drop` (ids), the solver's hit cap
+ *  in every week from g, GW g's Roll off (a take's cap at its moves, a Roll of k > 0 (addPlan), and your own Roll
+ *  alike: the solver's moves on top of yours, or in place of your roll, "instead of rolling", are the week's choices;
+ *  with the Roll kept the root after a take was the take's own solve again, and under your Roll no move was offered:
+ *  2026-11-02). With a tap's pins made dry (askOf): the root that tap's plan will ask, solved ahead. */
+function rootValues(ctx, P, g, extra = [], drop = []) {
+  const cap = hitCap(P.b?.meta) ?? 2, roll = `roll:${g}`;
+  return valuesFor(ctx, [...P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x)), ...extra.filter((p) => p.id !== roll)], [...drop, ...P.pins.filter((p) => p.id === roll).map((p) => p.id)]);
+}
 export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 2 } = {}) {
-  const cap = hitCap(P.b?.meta) ?? 2, on = P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x));
   const yours = weekOf(P, g)?.moves || [], out = [], seen = new Set(), d0 = draftOf(ctx);
-  // (GW g's Roll off here, a take's cap at its moves (a Roll of k > 0, addPlan) and your own Roll alike: the solver's
-  // moves on top of yours, or in place of your roll, "instead of rolling", are the week's choices; with the Roll kept
-  // the root after a take was the take's own solve again, and under your Roll no move was offered: 2026-11-02)
-  const drop = P.pins.filter((p) => p.id === `roll:${g}`).map((p) => p.id);
   const walk = (extra, d) => {
-    const values = valuesFor(ctx, [...on, ...extra], drop), key = valuesKey(P, values);
+    const values = rootValues(ctx, P, g, extra), key = valuesKey(P, values);
     if (seen.has(key)) return;
     seen.add(key);
     // (the root's flight never let go by a later view: plansOf; an Undo back finds it. A refusal ahead is the plan
