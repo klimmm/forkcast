@@ -171,7 +171,6 @@ export const COPY = Object.freeze({
    *  tiles' codes: the corner is too narrow for names at 375 px). Help brings them back (tipsAgain). */
   // the veto's one word, as its Why button and rule chip say it (owner, 2026-10-22)
   hintRow: (name) => `Swipe left: Not ${name}`,
-  hintPitch: ['Hold a shirt: sub, sell', 'Hold C or V: move it'],
   // the chips' names whole (review 7 B18: no codes in a hint); each line whole or the hint gives way (placeHint)
   hintChips: ['Hold C: Triple Captain', 'Hold bench: Bench Boost'],
   tipsAgain: 'Show tips on the screen again',

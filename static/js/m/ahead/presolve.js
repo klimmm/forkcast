@@ -699,7 +699,7 @@ export function addPlan(ctx, g, pl) {
   // held only until the GW before that sale (as sellsOn remakes a transfer of yours)
   const later = flatMoves(draftOf(ctx)).filter((x) => x.gw > g && pinOfMove(P, x));
   const pins = own.map((m) => {
-    const p = pinSell(m.out, m.gw, P.end, { in: m.in, funds: funder.get(m) ?? null, label: `${nm(m.out)} → ${nm(m.in)} from GW${m.gw}` });
+    const p = pinSell(m.out, m.gw, P.end, { in: m.in, funds: funder.get(m) ?? null, label: `${nm(m.out)} → ${nm(m.in)} in GW${m.gw}`, week: true });
     const resold = later.find((x) => x.out === m.in);
     return resold ? { ...p, must: p.must.map(([id, a]) => [id, a, resold.gw - 1]) } : p;
   });

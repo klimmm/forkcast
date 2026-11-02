@@ -64,7 +64,7 @@ export function pitchPart(V) {
   /** The pitch on Ahead (pitch.mountPitch), Player data, Reset lineup, Reset plan and the choices on it first
    *  (m-ahead.css: its top-right corner, beside the goal, then the layer the choices are drawn in: renderDecks; read
    *  before the eleven). An open place closes: its cards were the pitch's. */
-  function mountHere(props) { const { S, cardBoxes, cardIn, chipsHint, closePlace, ctx, decks, pdBtn, pitchHint, pitchHost, rsBtn, settle } = V;
+  function mountHere(props) { const { S, cardBoxes, cardIn, chipsHint, closePlace, ctx, decks, pdBtn, pitchHost, rsBtn, settle } = V;
     const pill = [rsBtn, pdBtn].find((b) => b === document.activeElement);
     // a place open with the focus in it: on his card once the pitch is mounted anew (a keyboard's, VoiceOver's)
     const inPlace = S.place && pitchHost.querySelector(':scope > .pm > .ah-place')?.contains(document.activeElement) ? S.place.a : null;
@@ -74,21 +74,20 @@ export function pitchPart(V) {
     S.snap = old ? new Map(cardBoxes(old).map((c) => [c.id, { rect: c.n.getBoundingClientRect(), node: c.n.cloneNode(true) }])) : null;
     ctx.pitch.mountPitch(pitchHost, props);
     if (inPlace) cardIn(pitchHost.querySelector(':scope > .pm'), inPlace)?.focus({ preventScroll: true });
-    pitchHost.querySelector(':scope > .pm')?.prepend(pdBtn, rsBtn, decks, pitchHint);
+    pitchHost.querySelector(':scope > .pm')?.prepend(pdBtn, rsBtn, decks);
     if (pill) (pill.hidden ? pdBtn : pill).focus({ preventScroll: true });  // a corner pill keeps focus over a pitch drawn anew
     pitchHost.querySelector(':scope > .pm > .pm-field')?.append(chipsHint);
     // a swipe's new week comes in from the side the finger went (pitchEnd: S.slide)
     if (S.slide != null) { settle(S.slide); S.slide = null; }
   }
 
-  /** The pitch's hints (HINTS) while each is still to learn on a plan you can change (P, w: the drawn plan view and
-   *  week; none: as last drawn, a resize): the shirt's while the viewed GW's lineup is the plan's (under Player data),
-   *  the chips' while the week can still play a Bench Boost or a Triple Captain; each only where it covers no card and
-   *  no corner pill. */
+  /** The pitch's hint (HINTS) while still to learn on a plan you can change (P, w: the drawn plan view and week; none:
+   *  as last drawn, a resize): the chips' while the week can still play a Bench Boost or a Triple Captain, only where it
+   *  covers no card and no corner pill. */
   function placeHint(P = V.S.hintAt?.P, w = V.S.hintAt?.w) { const { HINTS, S, pitchHost } = V;
     S.hintAt = { P, w };
     for (const [n, k] of HINTS) {
-      n.hidden = !P?.editable || !w || S.learnt.has(k) || (k === 'pitch' ? !!w.lineup : !chipsAvail(P, w.gw).some((c) => c === 'bb' || c === 'tc'));
+      n.hidden = !P?.editable || !w || S.learnt.has(k) || !chipsAvail(P, w.gw).some((c) => c === 'bb' || c === 'tc');
       if (n.hidden || !n.isConnected) continue;
       // a line wider than its room (each kept whole: m-ahead.css) is no hint there either
       if (n.scrollWidth > n.clientWidth + 1) { n.hidden = true; continue; }

@@ -251,7 +251,6 @@ export function mount(el, ctx) {
     get openWhy() { return openWhy; },
     get paintWait() { return paintWait; },
     get pdBtn() { return pdBtn; },
-    get pitchHint() { return pitchHint; },
     get pitchHost() { return pitchHost; },
     get plNumSaid() { return plNumSaid; },
     get placeHint() { return placeHint; },
@@ -389,12 +388,11 @@ export function mount(el, ctx) {
   // one tap where one applies (toast, Undo); where both do, "Reset ⌄" and its tap the choice (resetSheet; the wider
   // wipe never the one a tap lands on)
   const rsBtn = h('button.ah-pp.ah-rsbtn', { type: 'button', hidden: true, onClick: () => { resetTap(); } });
-  // the pitch's first-use hints (LEARN_KEY), each two short lines on the turf (placeHint): the shirt's hold and the C's
-  // drag under Player data while the viewed GW's lineup is the plan's ('pitch'), and the chips' holds in the field's
-  // bottom-left corner ('chips'; owner, 2026-10-13: both at once); the help's Swipes paragraph says them in full
-  const pitchHint = h('div.ah-ph', { 'aria-hidden': 'true', hidden: true }, ...COPY.hintPitch.map((t) => h('span', null, t)));
+  // the pitch's first-use hint (LEARN_KEY), two short lines on the turf (placeHint): the chips' holds in the field's
+  // bottom-left corner ('chips'); the help's Swipes paragraph says the holds in full
   const chipsHint = h('div.ah-ph.chips', { 'aria-hidden': 'true', hidden: true }, ...COPY.hintChips.map((t) => h('span', null, t)));
-  const HINTS = [[pitchHint, 'pitch'], [chipsHint, 'chips']];
+  // (no hint of the shirt's hold: owner, 2026-11-02, its "Hold a shirt: sub, sell" over the turf "remove")
+  const HINTS = [[chipsHint, 'chips']];
   // the line every GW under the status bar, over the GW tiles' top (sayCheer: for as long as it plans, else once a GW)
   const cheerEl = h('div.ah-cheer.m-facts', { role: 'status', hidden: true });
   const ctl = h('div.ah-ctl', null, railWrap, hint, cheerEl);

@@ -148,6 +148,10 @@ export function decksPart(V) {
     // they all designed differently", "Full-width strip" picked): the buy's refuses him, the seller's keeps him, his
     // card lock's act (lockTap: the next best at once, refusalRoads' Keep)
     const bestTok = tk.find((t) => t.isConnected && t.matches('.mv') && t.dataset.notIn);
+    // (the band's sellers' cards in its ink, so the move reads on the pitch where he stands; owner, 2026-11-02,
+    // "highlight in same black style or similiar player it suggesting to sell")
+    const sold = new Set(bestTok ? [...bestTok.querySelectorAll('.ah-tn > .o')].map((x) => Number(x.dataset.id)) : []);
+    for (const c of root.querySelectorAll('.pm-card[data-id]')) c.classList.toggle('ah-sold', sold.has(Number(c.dataset.id)));
     if (bestTok) {
       const q = boxOf(bestTok, b), m = { gw: g, out: Number(bestTok.dataset.notOut), in: Number(bestTok.dataset.notIn) }, tix = bestTok.matches('.tix');
       // (each ✕ at the end of its name's room, .x, every name of a plan's too, each solved ahead (refusalRoads `also`):
@@ -205,12 +209,10 @@ export function decksPart(V) {
     // a plan's plate over its sellers in the top-most of their rows (one there: over him; more: spanning them, its
     // middle over the span), its other sellers each a tag of his buy (DECISION.md), no line to the plate (owner,
     // 2026-10-25); its buys in their sellers' order
-    // (the week's best in the band alone, never again on the pitch, nor its buys on another plate: owner, 2026-11-02,
-    // "stop dublicating black and other pills on pich")
-    if (tk.some((t) => t.matches('.mv'))) {
-      const bandIns = new Set(marks.filter((x) => x.best).flatMap((x) => (x.L.e.adds?.length ? x.L.e.adds.map((m) => Number(m.in)) : [x.L.e.inId])));
-      marks.splice(0, marks.length, ...marks.filter((x) => !x.best && !bandIns.has(x.L.e.inId)));
-    }
+    // (no choice's plate on the pitch: the band holds the week's suggestion, a card's × his place's choices, the Week
+    // sheet every row; owner, 2026-11-02, "stop dublicating black and other pills on pich", "why it still shows
+    // evanilson +0.6")
+    marks.length = 0;
     const [row0, bests] = topRow(marks.filter((x) => x.kind === 'best')), tags = bests.filter((x) => !row0.includes(x));
     const span = !row0.length ? null : lineBest ? { x: 3, y: row0[0].c.y, w: W - 6, h: row0[0].c.h, bench: row0[0].c.bench }
       : (() => { const l = row0[0].c, r = row0.at(-1).c; return { x: l.x, y: l.y, w: r.x + r.w - l.x, h: l.h, bench: l.bench }; })();

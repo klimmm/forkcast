@@ -513,11 +513,14 @@ export function inkRepair(doc, { A, roads, nameOf = (id) => `#${id}` } = {}) {
 export const pinWish = (id, gw, end, { label } = {}) => makePin({ id: `wish:${id}`, kind: 'wish', player: Number(id), label, gw, must: [[id, gw, end]] });
 /** `funds` (a player id) marks a sale made so that buy fits (Ahead's "Do both"): its × takes that buy with it
  *  (ahead.removeMove). */
-export const pinSell = (out, gw, end, { in: inn = null, label, funds = null } = {}) => makePin({
+// (`week`: a take of a suggested move, its transfer binding its week alone, GW gw: the weeks after it are the solver's
+// to plan, a re-buy of the sale or a sale of the buy among them; owner, 2026-11-02, "That week only": Murillo → Hill's
+// take kept Murillo out to GW13, the solver's +2.0 plan buying him back in GW12, the plan after the take +1.0. Else
+// from gw to `end`: a sale you set, "Sell Saka from GW9")
+export const pinSell = (out, gw, end, { in: inn = null, label, funds = null, week = false } = {}) => makePin({
   ...(num(funds) !== null ? { funds: num(funds) } : {}),
-  id: `sell:${out}`, kind: 'sell', player: Number(out), in: num(inn), label, gw, excl: [[out, gw, end]], must: inn == null ? [] : [[inn, gw, end]],
+  id: `sell:${out}`, kind: 'sell', player: Number(out), in: num(inn), label, gw, excl: [[out, gw, week && inn != null ? gw : end]], must: inn == null ? [] : [[inn, gw, week ? gw : end]],
 });
-/** The bake's slide windows (api/mobile.py bake_plan): in held from g, out until g − 1, and neither the other way. */
 export const pinSlide = (inn, out, g, A, end, { label } = {}) => makePin({
   id: `slide:${inn}`, kind: 'slide', player: Number(inn), out: Number(out), label, gw: g,
   must: [[inn, g, end], ...(g > A ? [[out, A, g - 1]] : [])], excl: [...(g > A ? [[inn, A, g - 1]] : []), [out, g, end]],

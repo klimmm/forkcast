@@ -708,10 +708,10 @@ five such cards, a plate more in each row and the foot (ahead.js pitchLeast). Th
 shrinks half as much (--pm-shirt-w: halfway between the card's full shirt and one in its tile's proportions), the
 name plate cutting a little more of it off; the plates and C / V marks keep the card's width */
 .ah-pitch .pm {
-  /* a sub's card behind waits inside the bench's panel, flush on his own card under his label: the gap under each label
-  a card behind's least room, its one line (ahead.js TAB_MIN) and 3 px, at every screen height */
+  /* (no plate rises under a sub's label: the pitch draws no choices' plates, the band holds the week's; owner,
+  2026-11-02, "why so much space in bench between players below 1st - 2nd - .. row": the label's gap plan-pitch.css's
+  4 px) */
   --pm-tab-min: 16px;
-  --pm-bl-gap: calc(var(--pm-tab-min) + 3px);
   /* a sub's label his order alone, "1st", in a smaller type (.pm-bl; owner, 2026-10-22): its line 9 px at the default
   text size (12 px with "1 · DEF") */
   --pm-bl: max(9px, calc(var(--t-cap) * .82));
@@ -1273,6 +1273,9 @@ at most, its "›" the door to that week */
 .ah-tok.mv.tix.multi .ah-tn:not(:last-child) { flex-basis: 100%; }
 .ah-tok.mv.tix.multi .ah-tn:last-child { flex: 1 1 0; }  /* (its seller shortened before Swap leaves the line) */
 .ah-tok.mv.tix > .ah-tgo { height: 24px; padding: 0 10px; border-radius: 12px; font-size: var(--t-sub); }
+/* the band's seller on the pitch (renderDecks .ah-sold): his card ringed in the loss red, FPL's "out", never the ink a
+player coming in has (owner, 2026-11-02: "black is the new player styling", "highlight player properly so it seen") */
+.ah-pitch .pm .pm-card.ah-sold { outline: 3px solid var(--loss); outline-offset: 2px; border-radius: 6px; }
 .ah-decks .ah-cm.tx { z-index: 4; width: 24px; height: 24px; background: none; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .85); }
 .ah-decks .ah-cm.tx::before { content: none; }
 .ah-decks .ah-cm.tx svg { width: 8px; height: 8px; }
