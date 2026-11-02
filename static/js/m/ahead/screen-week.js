@@ -23,6 +23,9 @@ export function weekPart(V) {
     const rows = M.sq ? [h('p.ah-gwnote.m-foot', null, COPY.chipWeek(M.sq, g, M.sq === 'fh' ? ftAfter(P, w) : null)), h('div.ah-moves.sq', null, w.moves.map((m) => changeRow(P, w, m)))]
       : movesInOrder(P, w).map((m, i) => xferRow(P, w, m, i));
     const name = plansHeading(P, g);
+    // (the week's best, the pitch's lit move, its first row: the sheet and the pitch say one best; owner, 2026-11-02, a bake
+    // road's "Vuskovic → N.Williams, Ajayi → Diop, Dewsbury-Hall → Rice +0.3" over the lit Gabriel → N.Williams)
+    const plans = M.lit?.move ? [M.lit.move, ...M.plans.filter((pl) => pl !== M.lit.move)] : M.plans;
     // the week's facts under the title, as the week line's (rollFacts: weekFacts with a short bank's words; "3 FT ·
     // £0.6m ITB · 4 FT in GW9": owner, 2026-10-22, Help's promise), in every week but GW A under way (its sentence)
     const facts = M.live ? null : rollFacts(P, w);
@@ -44,8 +47,8 @@ export function weekPart(V) {
         // held while they check (heldOrder)
         // (never a pair's move the week can't make alone, plansOf `needs`: a dead row whose reason was the phone's sum,
         // fitOf)
-        ...[false, true].map((sh) => ({ sh, grp: M.plans.filter((pl) => !pl.needs && (planBack(P, g, pl).back === M.sharedBack) === sh) }))
-          .filter((x) => x.grp.length).sort((x, y) => M.plans.indexOf(x.grp[0]) - M.plans.indexOf(y.grp[0])).map(({ sh, grp }) => {
+        ...[false, true].map((sh) => ({ sh, grp: plans.filter((pl) => !pl.needs && (planBack(P, g, pl).back === M.sharedBack) === sh) }))
+          .filter((x) => x.grp.length).sort((x, y) => plans.indexOf(x.grp[0]) - plans.indexOf(y.grp[0])).map(({ sh, grp }) => {
             const rows = grp.map((pl) => planRow(P, g, pl, { shared: M.sharedBack, closes: true, lit: litPays(pl, M), best: M.lit?.move === pl }));
             // (rows under it marked data-under="instead": the QA's chip-week-plans reads them)
             if (sh) for (const r of rows) r.dataset.under = 'instead';

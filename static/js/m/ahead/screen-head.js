@@ -105,7 +105,7 @@ export function headPart(V) {
     const W = el.clientWidth, H = el.clientHeight, rem = remProbe.getBoundingClientRect().height;
     const drawn = !!strip.querySelector(':scope > .ah-block > .ah-pbar:not(.ah-pbake)');
     const pm = pitchHost.querySelector(':scope > .pm');
-    const key = `${W}x${H}@${rem}|${head.offsetHeight}|${slot.offsetHeight}|${drawn}|${!!pm}|${pitchHost.classList.contains('band')}`;
+    const key = `${W}x${H}@${rem}|${head.offsetHeight}|${slot.offsetHeight}|${drawn}|${!!pm}|${getComputedStyle(pitchHost).marginTop}`;
     if (!W || !H || ctl.hidden || key === V.fitKey) return;
     V.fitKey = key;
     V.fitDrawn = drawn && !!pm;

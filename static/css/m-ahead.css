@@ -1256,10 +1256,17 @@ shortened first; 24 px targets (WCAG 2.2 SC 2.5.8) */
 .ah-pitch.band .ah-tok:is(.mv, .st.best) { top: calc(-1 * var(--ah-band)); left: 8px; right: 8px; max-width: none; height: 32px; padding: 0 4px 0 12px; border-radius: 16px; }
 .ah-pitch.band .ah-tok:is(.mv, .st.best)::before { inset: 0; }
 .ah-tok.mv.tix .ah-tn { display: flex; align-items: center; flex: 0 1 auto; min-width: 0; gap: .3em; }
-.ah-tok.mv.tix .ah-tn > :is(.o, .i) { min-width: 0; padding-right: 28px; overflow: hidden; text-overflow: ellipsis; }
+.ah-tok.mv.tix .ah-tn > :is(.o, .i) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ah-tok.mv.tix .ah-tn > .x { padding-right: 28px; }
 .ah-tok.mv.tix .ah-tn > .o { flex: 0 1 auto; font-weight: 400; opacity: .8; }
 .ah-tok.mv.tix .ah-tn > .i { flex: 0 0 auto; }
 .ah-tok.mv.tix > .ah-tnum { margin-left: auto; }
+/* a plan's moves, one a line, "Gabriel → N.Williams ✕" over "Dewsbury-Hall → Rice +0.4 xP Swap" (owner, 2026-11-02:
+"it must not take more than two lines"): the band as high as they are (renderDecks --ah-band) */
+.ah-pitch.band .ah-tok.mv.tix.multi { flex-wrap: wrap; row-gap: 0; height: auto; min-height: 32px; padding-top: 2px; padding-bottom: 2px; }
+.ah-tok.mv.tix.multi > .ah-tl { display: contents; }
+.ah-tok.mv.tix.multi .ah-tn { line-height: 26px; }
+.ah-tok.mv.tix.multi .ah-tn:not(:last-child) { flex-basis: 100%; }
 .ah-tok.mv.tix > .ah-tgo { height: 24px; padding: 0 10px; border-radius: 12px; font-size: var(--t-sub); }
 .ah-decks .ah-cm.tx { z-index: 4; width: 24px; height: 24px; background: none; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .85); }
 .ah-decks .ah-cm.tx::before { content: none; }

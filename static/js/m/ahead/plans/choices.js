@@ -223,7 +223,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // most FORK_MAX; a pair's move the week can't make alone, `needs`, is asked nothing), then a roll
   const needs = new Map(), pairOf = new Map();  // pairSingles': forkKey → {ids, problem}; forkKey → its pair's
   const placed = new Set();  // forkKey: a place's other buys asked beside FORK_MAX (placesAsked)
-  const plain = () => [...choices].filter(([k, c]) => c.moves.length && !Object.keys(c.chips).length && !needs.has(k) && !split.has(k) && !placed.has(k)).length;
+  const wholes = new Map();  // forkKey → its parts' forkKeys (the solver's week kept whole: below)
+  const plain = () => [...choices].filter(([k, c]) => c.moves.length && !Object.keys(c.chips).length && !needs.has(k) && !split.has(k) && !placed.has(k) && !wholes.has(k)).length;
   const room = () => plain() < FORK_MAX - 1;
   // sale m's other buys (ownAltsOf: the best two while the week's choices have room), each the choice `choiceOf(buy)`;
   // `alts` and no `cap` for a place you opened (placesAsked: its buys beside FORK_MAX)
@@ -265,17 +266,22 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // solve), never while it may be refused (owner, 2026-11-02: "why rice and thiago dependable transfers if rice is
   // priority and can be bought independently from thiago"; "rice will be either bought or refused so thiago be either
   // offered or not": Calvert-Lewin → Thiago £0.4m short alone, Mbeumo → Rice fits)
+  // A week whose moves that fit alone only fund the others (none of them beats the roll alone: Gabriel → N.Williams
+  // −0.1, there for Dewsbury-Hall → Rice's money) is offered whole, its moves one decision (owner, 2026-11-02: "why
+  // suggesting gabriel to willisms for -0.1"): it stays among the choices (`wholes`, its known road, no solve, no room
+  // taken) until its parts are checked, then goes where one of them pays alone (all), as the Rice above
   for (const k of roots) {
     const c = choices.get(k);
     if (!c || split.has(k) || unmade(c).length < 2) continue;
-    let alone = false;
+    const ks = [];
     for (const m of unmade(c)) {
       const q = groupOf([m]), qk = forkKey(q, g);
       if (!fitsAt(ctx, P, g, q, d0)) continue;
       if (!choices.has(qk) && room()) { add(q); if (choices.has(qk)) parts.add(qk); }
-      alone ||= choices.has(qk);
+      if (choices.has(qk)) ks.push(qk);
     }
-    if (alone) choices.delete(k);
+    if (ks.length === unmade(c).length) choices.delete(k);
+    else if (ks.length) wholes.set(k, ks);
   }
   for (const m of now) otherBuys(m, (inn) => swapIn(m, inn));
   // while the week has a free transfer, the best two suggestions (asked first: litOf lights the best single), then each
@@ -576,11 +582,19 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   };
   // (`solver`: the solver's own move for the week under your rules, refusalRoads' root or owedRoad, or a move of it
   // offered alone (`parts`): what lights, plPays)
-  const all = out.map(alone).map(vsRef).map((x) => (roots.has(forkKey(x.choice, g)) || parts.has(forkKey(x.choice, g)) ? { ...x, solver: true } : x)).map((x) => (rolls(x) ? { ...x, rolls: true } : x)).map((x) => (placeOnly.has(forkKey(x.choice, g)) ? { ...x, placeOnly: true } : x)).map((x) => (yoursAgain(x) ? { ...x, removed: true } : x))
+  const each = out.map(alone).map(vsRef).map((x) => (roots.has(forkKey(x.choice, g)) || parts.has(forkKey(x.choice, g)) ? { ...x, solver: true } : x)).map((x) => (rolls(x) ? { ...x, rolls: true } : x)).map((x) => (placeOnly.has(forkKey(x.choice, g)) ? { ...x, placeOnly: true } : x)).map((x) => (yoursAgain(x) ? { ...x, removed: true } : x))
     // (a row numbered by the solver's own count that beats the roll is no early one: its window counts making it next
     // week instead, so a count past the 0.05 bar says now; owner, 2026-10-28)
     .map((x) => (early.has(forkKey(x.choice, g)) && !(x.cmp?.count && x.cmp.delta > 0.05) ? { ...x, early: early.get(forkKey(x.choice, g)) } : x))
     .map((x) => (placed.has(forkKey(x.choice, g)) ? { ...x, placed: true } : x));
+  // (a week kept whole, `wholes`: its parts while any checks or one beats the roll alone, else the whole in their place)
+  const drop = new Set();
+  for (const [k, ks] of wholes) {
+    const ps = each.filter((x) => ks.includes(forkKey(x.choice, g)));
+    if (ps.some((x) => x.state === 'solving' || (x.state === 'ready' && x.cmp?.delta > 0))) drop.add(k);
+    else for (const q of ks) drop.add(q);
+  }
+  const all = each.filter((x) => !drop.has(forkKey(x.choice, g)));
   const done = all.filter((x) => x.state === 'ready');
   // the Roll row against the hardest of: the best transfer row's plan (Forkcast's later moves on both sides) and the
   // best Wildcard row's (your later weeks kept on both: its held roll) → {vsBest, best, bestFrom (the Roll side's

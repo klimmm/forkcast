@@ -2,7 +2,7 @@
 
 import { MINUS, WHY_SHEET, weekOf } from './core.js';
 import { h, svg, fill, append, plural, reduceMotion, toast, xpGain, shownGain } from '../../ui.js';
-import { SQUAD_CHIPS, askPlace, byGain, failedWords, lineMoves, litShown, multiMove, placeFirst, placeOrder, planBack, planWeeks, rollOnly, singleMove, takesBack } from './plans.js';
+import { SQUAD_CHIPS, askPlace, failedWords, lineMoves, litShown, multiMove, placeFirst, placeOrder, planBack, planWeeks, rollOnly, takesBack } from './plans.js';
 import { COPY, shownDelta } from '../calls.js';
 import { plPays } from './pieces.js';
 import * as E from '../../plan/engine.js';
@@ -113,7 +113,14 @@ export function decksPart(V) {
     const stack = () => { let top = 6; for (const t of tk) if (t.isConnected && !inBand(t)) { t.style.top = `${top}px`; top += t.offsetHeight + 8; } };
     let top = 6;
     for (const t of tk) {
-      if (inBand(t)) { fits(t); continue; }
+      // (its height the band's, two lines for a plan's moves: the pitch fitted under it again where that changed; its
+      // names shortened by its CSS alone, the sellers' first, the corner's trims never: the whole width is its room)
+      if (inBand(t)) {
+        const bh = `${t.offsetHeight + 8}px`;
+        // (drawn again on the pitch as fitted: every box here was measured on the pitch before)
+        if (pitchHost.style.getPropertyValue('--ah-band') !== bh) { pitchHost.style.setProperty('--ah-band', bh); fitPitch(); return renderDecks(); }
+        continue;
+      }
       t.style.top = `${top}px`;
       // (a status that can't fit wider stays in its own room, trimmed as there, words wrapping, never over the keeper's
       // card; trims kept only where they fit, so its "xP" never goes for nothing: oneLook)
@@ -141,13 +148,15 @@ export function decksPart(V) {
     const bestTok = tk.find((t) => t.isConnected && t.matches('.mv') && t.dataset.notIn);
     if (bestTok) {
       const q = boxOf(bestTok, b), m = { gw: g, out: Number(bestTok.dataset.notOut), in: Number(bestTok.dataset.notIn) }, tix = bestTok.matches('.tix');
-      const rowEnd = (sel) => { const r = boxOf(bestTok.querySelector(`.ah-tn > ${sel}`), b); return { left: `${r.x + r.w - 25}px`, top: `${q.y + q.h / 2 - 12}px` }; };
+      // (each ✕ at the end of its name's room, .x; none where its name gave way: "2 transfers", fits)
+      const after = (el) => { const r = boxOf(el, b); return { left: `${r.x + r.w - 25}px`, top: `${r.y + r.h / 2 - 12}px` }; };
+      const xi = tix && bestTok.querySelector('.ah-tn > .i.x'), xo = tix && bestTok.querySelector('.ah-tn > .o.x');
       decks.append(h('button.ah-cm.out.tno', { type: 'button', 'aria-label': COPY.notBuySaid(P.L.name(m.in), g), dataset: { row: `tok:not:${g}` },
-        class: { in: true, tx: tix }, style: tix ? rowEnd('.i') : { left: `${q.x + q.w - 28}px`, top: `${q.y + q.h / 2 - 12}px` }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
-      if (tix) {
+        class: { in: true, tx: !!xi }, style: xi ? after(xi) : { left: `${q.x + q.w - 28}px`, top: `${q.y + q.h / 2 - 12}px` }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
+      if (xo) {
         const pk = pinOf(P, 'keep', m.out, g);
         decks.append(h('button.ah-cm.tlk.tx', { type: 'button', class: { on: !!pk }, 'aria-pressed': String(!!pk), 'aria-label': pk ? COPY.cardLockSaid(P.L.name(m.out), g, true) : COPY.placeKeepSaid(P.L.name(m.out), g), dataset: { row: `tok:keep:${g}` },
-          style: rowEnd('.o'), onClick: () => lockTap(P, g, m.out) }, crossGlyph()));
+          style: after(xo), onClick: () => lockTap(P, g, m.out) }, crossGlyph()));
       }
     }
     // (the best move's token gave way for room, its plate stays on the pitch: flag for the QA)
@@ -187,6 +196,12 @@ export function decksPart(V) {
     // a plan's plate over its sellers in the top-most of their rows (one there: over him; more: spanning them, its
     // middle over the span), its other sellers each a tag of his buy (DECISION.md), no line to the plate (owner,
     // 2026-10-25); its buys in their sellers' order
+    // (the week's best in the band alone, never again on the pitch, nor its buys on another plate: owner, 2026-11-02,
+    // "stop dublicating black and other pills on pich")
+    if (tk.some((t) => t.matches('.mv'))) {
+      const bandIns = new Set(marks.filter((x) => x.best).flatMap((x) => (x.L.e.adds?.length ? x.L.e.adds.map((m) => Number(m.in)) : [x.L.e.inId])));
+      marks.splice(0, marks.length, ...marks.filter((x) => !x.best && !bandIns.has(x.L.e.inId)));
+    }
     const [row0, bests] = topRow(marks.filter((x) => x.kind === 'best')), tags = bests.filter((x) => !row0.includes(x));
     const span = !row0.length ? null : lineBest ? { x: 3, y: row0[0].c.y, w: W - 6, h: row0[0].c.h, bench: row0[0].c.bench }
       : (() => { const l = row0[0].c, r = row0.at(-1).c; return { x: l.x, y: l.y, w: r.x + r.w - l.x, h: l.h, bench: l.bench }; })();
@@ -334,7 +349,8 @@ export function decksPart(V) {
     if (spEl) {
       const sp = { el: spEl };
       sp.el.style.width = 'max-content';
-      const wantOf = () => Math.ceil(sp.el.getBoundingClientRect().width) + 2, mid = (row0[0].c.x + row0.at(-1).c.x + row0.at(-1).c.w) / 2;
+      const wantOf = () => Math.ceil(Math.max(sp.el.getBoundingClientRect().width, sp.el.scrollWidth)) + 2, mid = (row0[0].c.x + row0.at(-1).c.x + row0.at(-1).c.w) / 2;
+      // (its words' width, past any CSS cap on its box: scrollWidth; 2026-11-02, a 350 px sentence read 311 at 320)
       // (wider than the pitch: a plate's own trims first, its "xP" (oneLook) then its smaller type (PLATE_TRIMS); still
       // wider, three moves at 320: two lines, between its moves, up into the turf over them; never a name cut)
       let want = wantOf();
@@ -354,7 +370,9 @@ export function decksPart(V) {
       // (no taller than the turf over it across its own width, never onto a card above, its type smaller as a plate's
       // in less than its least height (swapPlate); .two: its line-height 1.15)
       const lines = sp.el.classList.contains('two') ? 2 : 1, room = span.y - reachOf({ n: sp.el, x: left, y: span.y, w: wd }, walls);
-      if (parseFloat(sp.el.style.height) > room) Object.assign(sp.el.style, { height: `${room}px`, top: `${span.y - room}px`, fontSize: `${Math.floor(room / (lines === 2 ? 2.3 : 1)) - 1}px` });
+      // (smaller only: never a type larger than its own; 2026-11-02, a 17 px room set 16 px type on a 12 px plate, past the
+      // pitch's edge at 320)
+      if (parseFloat(sp.el.style.height) > room) Object.assign(sp.el.style, { height: `${room}px`, top: `${span.y - room}px`, fontSize: `${Math.min(parseFloat(getComputedStyle(sp.el).fontSize), Math.floor(room / (lines === 2 ? 2.3 : 1)) - 1)}px` });
       const top = parseFloat(sp.el.style.top);
       sp.el.style.setProperty('--up', `${Math.max(0, top - Math.max(reachOf({ n: sp.el, x: left, y: top, w: wd }, walls), span.y - 44))}px`);
       for (const q of drawn) {
@@ -415,7 +433,9 @@ export function decksPart(V) {
           S.placeWant = { a, g };
           if (!askPlace(ctx, P, g, a)) renderDecks();
         } }, crossGlyph()));
-      decks.append(h('button.ah-cm.lock', { type: 'button', class: { on: !!pin }, 'aria-pressed': String(!!pin), 'aria-label': COPY.cardLockSaid(nm(a), g, !!pin), dataset: { row: `lock:${a}` },
+      // (the lock only on a player you locked, its tap unlocking him: owner, 2026-11-02, "remove locks for player plates
+      // unless players are locked"; a lock is set from the band's ✕ on the seller or his card's sheet)
+      if (pin) decks.append(h('button.ah-cm.lock', { type: 'button', class: { on: !!pin }, 'aria-pressed': String(!!pin), 'aria-label': COPY.cardLockSaid(nm(a), g, !!pin), dataset: { row: `lock:${a}` },
         style: lAt,
         onClick: () => lockTap(P, g, a) }, lockGlyph(!!pin)));
     }
@@ -548,7 +568,7 @@ export function decksPart(V) {
       // (the best's first buy, its ✕ refusing it: renderDecks' notBadge; of several moves the first, the one refused
       // ahead: presolve.refusalRoads' lead)
       const one = best && swap && e.adds.length && !takesBack(e) ? e.adds[0] : null;
-      return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', class: { tix: !!one }, 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(one ? { notOut: one.out, notIn: one.in } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}), ...(!takesBack(e) && e.adds.length === 1 ? { buy: nm(e.adds[0].in) } : {}) },
+      return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', class: { tix: !!one, multi: !!one && e.adds.length > 1 }, 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(one ? { notOut: one.out, notIn: one.in } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}), ...(!takesBack(e) && e.adds.length === 1 ? { buy: nm(e.adds[0].in) } : {}) },
         // (its verb first where it takes, as drawn: "Swap. Best move this week: …")
         'aria-label': swap ? COPY.bestSwapSaid(said) : `${said}, ${COPY.showsChoices}`,
         // (its "Swap" takes; a tap on its words opens his place, the move among his choices: review 7, 2026-11-02,
@@ -558,7 +578,10 @@ export function decksPart(V) {
         // (one move its sale and buy, "Murillo → Hill": review 7, 2026-11-02, the net result, not one leg; reversing the
         // owner's 2026-10-26 buy alone; several their buys. The best's, in the band over the pitch, each name with its ✕:
         // renderDecks)
-        h('span.ah-tl', { 'aria-hidden': 'true' }, (takesBack(e) || !e.adds.length ? [nm(e.inId)] : e.adds.length === 1 ? [`${nm(e.adds[0].out)} → ${nm(e.adds[0].in)}`] : e.adds.map((m) => nm(m.in))).map((t, i, all) => h('span.ah-tn', null, one && all.length === 1 ? [h('span.o', null, nm(one.out)), ' → ', h('span.i', null, nm(one.in))] : `${t}${i < all.length - 1 ? ',' : ''}`))),
+        // (the best's, in the band, every move, one a line, "Gabriel → N.Williams" over "Dewsbury-Hall → Rice", a ✕ after
+        // the first buy, the one refused ahead, and after the seller of a single move: .x, renderDecks)
+        h('span.ah-tl', { 'aria-hidden': 'true' }, one ? e.adds.map((m, i, all) => h('span.ah-tn', null, h('span.o', { class: { x: all.length === 1 } }, nm(m.out)), ' → ', h('span.i', { class: { x: i === 0 } }, nm(m.in))))
+          : (takesBack(e) || !e.adds.length ? [nm(e.inId)] : e.adds.length === 1 ? [`${nm(e.adds[0].out)} → ${nm(e.adds[0].in)}`] : e.adds.map((m) => nm(m.in))).map((t, i, all) => h('span.ah-tn', null, `${t}${i < all.length - 1 ? ',' : ''}`))),
         // (its number as its plate's: numParts)
         h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, numParts(g, pl)),
         // its take's word where its tap takes (owner, 2026-10-28: one act, one word, one look): "Swap" in the mint of
@@ -573,15 +596,8 @@ export function decksPart(V) {
       out.push(h('button.ah-tok.st.best', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` }, 'aria-label': `${COPY.statusSaid(COPY.rollingBest, g)}: ${COPY.rollingMeans}`, onClick: (ev) => openWeek(ev, g) },
         h('span.ah-tl', { 'aria-hidden': 'true' }, COPY.rollingBest)));
     }
-    // …and two moves in the corner in all, the others the best-paying single moves on the pitch's plates once the week
-    // settles (litOf's, else the place's first choice, placeFirst; plPays), white, never ink, each tap the take as the
-    // best's (owner, 2026-10-29); the Reset under them (resetSlot), given way where they don't fit (renderDecks' fits)
-    // (each a player the corner doesn't name already: the best's buys first)
-    const named = new Set((mv?.choice?.moves || []).filter((m) => (m.gw ?? g) === g).map((m) => Number(m.in)));
-    const singles = !M?.settled ? [] : M.decks.filter((d) => !d.mine && !lit.get(d.a)?.best).map((d) => [d.a, lit.get(d.a)?.e ?? placeFirst(d)])
-      .filter(([, e]) => e && singleMove(e) && plPays(e.pl)).sort(([, p], [, q]) => byGain(p.pl, q.pl))
-      .filter(([, e]) => !named.has(Number(e.inId)) && named.add(Number(e.inId)));
-    for (const [a, e] of singles.slice(0, top ? 1 : 2)) out.push(moveTok(e, a, e.pl, false));
+    // (none beside it: each is its place's plate already; owner, 2026-11-02, "stop dublicating black and other pills on
+    // pich", reversing 2026-10-29's two moves in the corner)
     // (the week's status is on the bar's first line: statusLine)
     for (const pl of toks) {
       // what its take takes back of yours, under its words: never a transfer of yours taken back unsaid
