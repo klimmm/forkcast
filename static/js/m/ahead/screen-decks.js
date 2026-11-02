@@ -1,6 +1,6 @@
 // screen.js mount: the plates, the corner tokens and a take's landing
 
-import { MINUS, WHY_SHEET, weekOf } from './core.js';
+import { MINUS, WHY_SHEET, pairedMoves, weekOf } from './core.js';
 import { h, svg, fill, append, plural, reduceMotion, toast, xpGain, shownGain } from '../../ui.js';
 import { SQUAD_CHIPS, askPlace, failedWords, lineMoves, litShown, multiMove, placeFirst, placeOrder, planBack, planWeeks, rollOnly, takesBack } from './plans.js';
 import { COPY, shownDelta } from '../calls.js';
@@ -148,15 +148,22 @@ export function decksPart(V) {
     const bestTok = tk.find((t) => t.isConnected && t.matches('.mv') && t.dataset.notIn);
     if (bestTok) {
       const q = boxOf(bestTok, b), m = { gw: g, out: Number(bestTok.dataset.notOut), in: Number(bestTok.dataset.notIn) }, tix = bestTok.matches('.tix');
-      // (each ✕ at the end of its name's room, .x; none where its name gave way: "2 transfers", fits)
+      // (each ✕ at the end of its name's room, .x, every name of a plan's too, each solved ahead (refusalRoads `also`):
+      // a buy's refuses him, a seller's keeps him; owner, 2026-11-02, "why only 1 out of four players have cross sign")
       const after = (el) => { const r = boxOf(el, b); return { left: `${r.x + r.w - 25}px`, top: `${r.y + r.h / 2 - 12}px` }; };
-      const xi = tix && bestTok.querySelector('.ah-tn > .i.x'), xo = tix && bestTok.querySelector('.ah-tn > .o.x');
-      decks.append(h('button.ah-cm.out.tno', { type: 'button', 'aria-label': COPY.notBuySaid(P.L.name(m.in), g), dataset: { row: `tok:not:${g}` },
-        class: { in: true, tx: !!xi }, style: xi ? after(xi) : { left: `${q.x + q.w - 28}px`, top: `${q.y + q.h / 2 - 12}px` }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
-      if (xo) {
-        const pk = pinOf(P, 'keep', m.out, g);
-        decks.append(h('button.ah-cm.tlk.tx', { type: 'button', class: { on: !!pk }, 'aria-pressed': String(!!pk), 'aria-label': pk ? COPY.cardLockSaid(P.L.name(m.out), g, true) : COPY.placeKeepSaid(P.L.name(m.out), g), dataset: { row: `tok:keep:${g}` },
-          style: after(xo), onClick: () => lockTap(P, g, m.out) }, crossGlyph()));
+      const xs = tix ? [...bestTok.querySelectorAll('.ah-tn > .x')] : [];
+      if (!xs.length) decks.append(h('button.ah-cm.out.tno', { type: 'button', 'aria-label': COPY.notBuySaid(P.L.name(m.in), g), dataset: { row: `tok:not:${g}` },
+        class: { in: true }, style: { left: `${q.x + q.w - 28}px`, top: `${q.y + q.h / 2 - 12}px` }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
+      for (const x of xs) {
+        const id = Number(x.dataset.id), nm = P.L.name(id);
+        if (x.matches('.i')) {
+          const mi = { gw: g, out: Number(x.parentElement.querySelector('.o').dataset.id), in: id };
+          decks.append(h('button.ah-cm.out.tno.in.tx', { type: 'button', 'aria-label': COPY.notBuySaid(nm, g), dataset: { row: `tok:not:${g}:${id}` }, style: after(x), onClick: () => veto(ctx, mi, { scope: 'gw' }) }, crossGlyph()));
+        } else {
+          const pk = pinOf(P, 'keep', id, g);
+          decks.append(h('button.ah-cm.tlk.tx', { type: 'button', class: { on: !!pk }, 'aria-pressed': String(!!pk), 'aria-label': pk ? COPY.cardLockSaid(nm, g, true) : COPY.placeKeepSaid(nm, g), dataset: { row: `tok:keep:${g}:${id}` },
+            style: after(x), onClick: () => lockTap(P, g, id) }, crossGlyph()));
+        }
       }
     }
     // (the best move's token gave way for room, its plate stays on the pitch: flag for the QA)
@@ -579,8 +586,8 @@ export function decksPart(V) {
         // owner's 2026-10-26 buy alone; several their buys. The best's, in the band over the pitch, each name with its ✕:
         // renderDecks)
         // (the best's, in the band, every move, one a line, "Gabriel → N.Williams" over "Dewsbury-Hall → Rice", a ✕ after
-        // the first buy, the one refused ahead, and after the seller of a single move: .x, renderDecks)
-        h('span.ah-tl', { 'aria-hidden': 'true' }, one ? e.adds.map((m, i, all) => h('span.ah-tn', null, h('span.o', { class: { x: all.length === 1 } }, nm(m.out)), ' → ', h('span.i', { class: { x: i === 0 } }, nm(m.in))))
+        // every name: .x, renderDecks)
+        h('span.ah-tl', { 'aria-hidden': 'true' }, one ? e.adds.map((m) => h('span.ah-tn', null, h('span.o.x', { dataset: { id: m.out } }, nm(m.out)), ' → ', h('span.i.x', { dataset: { id: m.in } }, nm(m.in))))
           : (takesBack(e) || !e.adds.length ? [nm(e.inId)] : e.adds.length === 1 ? [`${nm(e.adds[0].out)} → ${nm(e.adds[0].in)}`] : e.adds.map((m) => nm(m.in))).map((t, i, all) => h('span.ah-tn', null, `${t}${i < all.length - 1 ? ',' : ''}`))),
         // (its number as its plate's: numParts)
         h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, numParts(g, pl)),
@@ -593,7 +600,13 @@ export function decksPart(V) {
     // (owner, 2026-10-30): ink, flat, its "›" the door to the Week sheet, where every choice is counted against it
     // (openWeek), never given way for room (renderDecks: .st)
     else if (M?.settled && !lit.best && toks.some(rollOnly)) {
-      out.push(h('button.ah-tok.st.best', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` }, 'aria-label': `${COPY.statusSaid(COPY.rollingBest, g)}: ${COPY.rollingMeans}`, onClick: (ev) => openWeek(ev, g) },
+      // (in the band, why it rolls: the solver's own roll road's next week with transfers, its moves, a tap there
+      // (owner, 2026-11-02, "find better use of the space"); "Rolling is best" and the Week sheet where it makes none)
+      const road = toks.find(rollOnly)?.road, nx = road?.weeks?.filter((x) => Number(x.gw) > g && (x.in || []).length).sort((a, b) => a.gw - b.gw)[0];
+      const ms = nx ? pairedMoves(nx.out || [], nx.in || [], P.L) : [];
+      if (ms.length) out.push(h('button.ah-tok.st.best.next', { type: 'button', dataset: { row: `tok:week:${g}` }, 'aria-label': COPY.rollNextSaid(Number(nx.gw), ms.map((m) => COPY.moveSaid(P.L.name(m.out), P.L.name(m.in))).join(', ')), onClick: () => V.setGw(Number(nx.gw)) },
+        h('span.ah-tl', { 'aria-hidden': 'true' }, COPY.rollNext(Number(nx.gw), ms.map((m) => `${P.L.name(m.out)} → ${P.L.name(m.in)}`).join(', ')))));
+      else out.push(h('button.ah-tok.st.best', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` }, 'aria-label': `${COPY.statusSaid(COPY.rollingBest, g)}: ${COPY.rollingMeans}`, onClick: (ev) => openWeek(ev, g) },
         h('span.ah-tl', { 'aria-hidden': 'true' }, COPY.rollingBest)));
     }
     // (none beside it: each is its place's plate already; owner, 2026-11-02, "stop dublicating black and other pills on

@@ -67,6 +67,7 @@ export function plannerOf(a, b) {
   return {
     delta: Object.values(terms).reduce((s, x) => s + x, 0), terms,
     ref: Object.keys(terms).reduce((s, k) => s + (ra[k] ?? 0) - (rb[k] ?? 0), 0),
+    pts: Object.keys(terms).filter((k) => POINTS.includes(k)).reduce((s, k) => s + (ra[k] ?? 0) - (rb[k] ?? 0), 0),
     hits: { gap: hitGap(a) - hitGap(b), a: unpricedHits(a), b: unpricedHits(b), n: hitsOf(a) - hitsOf(b) },
   };
 }
@@ -89,19 +90,20 @@ export function windowGap(a, b, g) {
  * The gap is the count on the anchor's scale (`ref`: the solver's own count ×k of GW g's forecast, one factor for
  * every round, so it orders as the solver does), never each round on its own k_h (`delta`): that weighs the later
  * rounds' points more than the free transfers' terms and can turn the solver's pick round (2026-11-02, Murillo → Hill
- * +0.06 to the solver, −0.03 on the rounds' scales: "Rolling is best"). The number drawn is that count too (owner,
- * 2026-11-02, "if tavernier solver pick why evanilson shows higher points - find and fix bug", no solver flag): any
- * points apart from it (the plans' gap, the window's lineup) leave out the bench cover and the later rounds' k_h and
- * read a lower-ranked choice higher (Cherki → Tavernier best on +0.27 bench cover, Havertz → Evanilson +0.6 points).
- * ctx: planInputs.
+ * +0.06 to the solver, −0.03 on the rounds' scales: "Rolling is best"). The number drawn (`shown`) is that count's
+ * points (POINTS: its XI, bench cover, armbands, subs and −4s on the same anchor's scale, so Cherki → Tavernier's bench
+ * cover still counts), never its free-transfer terms (owner, 2026-11-02, "why the move only +0.1 xp": Murillo → Hill
+ * +2.0 points, the count's +0.1 net of the transfer it spends; "Points, FT cost apart" picked, the cost unwritten: a
+ * −4 its mark alone). ctx: planInputs.
  */
 export function counted(ctx, cmp, a, b, g) {
   const w = cmp ? windowGap(a, b, g) : null;
   if (!w) return cmp;
-  return { ...cmp, delta: w.ref, ref: w.ref, label: E.verdictLabel(w.ref, ctx.noise), winner: w.ref > EPS ? 'a' : w.ref < -EPS ? 'b' : null,
+  return { ...cmp, delta: w.ref, ref: w.ref, shown: w.pts, label: E.verdictLabel(w.ref, ctx.noise), winner: w.ref > EPS ? 'a' : w.ref < -EPS ? 'b' : null,
     votes: null, against: null, lead: null, count: w.terms, pts: cmp };
 }
-/** The number a choice's comparison draws: its gap (counted's count where the solver counted it). */
+/** The number a choice's comparison draws: the points of the solver's count where it counted it (counted's `shown`:
+ *  its order and light stay the whole count, `delta`), else its gap. */
 export const shownDelta = (cmp) => cmp?.shown ?? cmp?.delta;
 /** What a solved road's hits cost in points (HIT_COST a hit: what compare counts) beyond what its planner's count
  *  charged for them (its objective's hit term, −hit_cost a hit: solve.py add_ft): FPL's 4 less the planner's price
@@ -144,6 +146,10 @@ const unpricedHits = (road) => (hitBook(road) || []).filter((w) => w.unpriced > 
  *  (−10000 a unit) in the round after a Free Hit; solve.py add_ft rolls free transfers on since, so a road stored
  *  before keeps it out. */
 const SLACK = ['ft_short'];
+/** The count's points (solve.py's own tags): the XI's, the bench's, the armbands', the doubt rule's subs and the hits'
+ *  −4s, on the anchor's scale; never what it charges or credits a free transfer (ft_cost, ft_value) nor its shaping
+ *  terms (owner, 2026-11-02, "why the move only +0.1 xp": Murillo → Hill +2.0 points, −2.1 for the transfer it spends). */
+const POINTS = ['xi', 'bench', 'cap', 'vice', 'doubt_sub', 'hit'];
 
 const LEVEL = 0.005;  // the planner's count rounds to 0.00: level whatever the noise (above it, level is the coin band)
 const CROWD = ['eo', 'own_cal', 'cap_top', 'cap_tie'];

@@ -719,6 +719,11 @@ export const COPY = Object.freeze({
   /** The ✕ on the best move's token (ahead.js renderDecks; owner, 2026-11-02): its buy refused in this week alone. */
   notBuySaid: (buy, g) => `Not ${buy} in GW${g}: the next best move`,
   rollingBest: 'Rolling is best',
+  /** …and in its band, why: the week the solver's plan spends the free transfer, its moves (owner, 2026-11-02, "find
+   *  better use of the space instead of writing rolling is best"): "Roll → GW13: Gabriel → N.Williams, Dewsbury-Hall
+   *  → Rice"; tapped, that week. */
+  rollNext: (g, moves) => `Roll → GW${g}: ${moves}`,
+  rollNextSaid: (g, moves) => `Rolling is best: the plan's next transfers are in GW${g}, ${moves}. Opens GW${g}`,
   /** …and what rolling is, in its spoken label (review 7 B9: "Rolling" defined; Help says it too). Never a second
    *  line on the token: the Reset under the corner's tokens keeps one place in every GW (resetSlot; QA lineup-reset). */
   rollingMeans: 'no transfer: your free transfer carries over',

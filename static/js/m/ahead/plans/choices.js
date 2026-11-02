@@ -687,7 +687,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // number, its ✕ the likeliest tap (asked again with it as its rows land)
   if (!list.pending && !peek && !owed && !followed && depth) {
     const best = list.filter((x) => x.solver && x.state === 'ready' && !x.refRow && !x.placeOnly).reduce((m, x) => (!m || x.cmp.delta > m.cmp.delta ? x : m), null);
-    refusalRoads(ctx, P, g, { prep, depth, lead: best?.choice.moves.find((m) => !now.some((y) => sameMove(y, m))) ?? null });
+    const adds = best?.choice.moves.filter((m) => (m.gw ?? g) === g && !now.some((y) => sameMove(y, m))) ?? [];
+    refusalRoads(ctx, P, g, { prep, depth, lead: adds[0] ?? null, also: adds });
   }
   if (settledList(list)) prepNext(ctx, P, g);
   return list;

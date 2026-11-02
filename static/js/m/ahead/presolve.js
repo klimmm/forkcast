@@ -295,7 +295,7 @@ function rootValues(ctx, P, g, extra = [], drop = []) {
 /** `lead`: the move the week's best token shows (plansOf: the solver's row with the highest number), the one its ✕
  *  refuses, refused first at the root; else, and below the root, the road's first move as the week draws it (owner,
  *  2026-11-02, Boss of the gym GW10: the token Palmer, the refusal solved ahead Hill's, so each ✕ waited on a solve). */
-export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 2, lead: best = null } = {}) {
+export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 2, lead: best = null, also = [] } = {}) {
   const yours = weekOf(P, g)?.moves || [], out = [], seen = new Set(), d0 = draftOf(ctx);
   const walk = (extra, d) => {
     const values = rootValues(ctx, P, g, extra), key = valuesKey(P, values);
@@ -333,6 +333,12 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 2,
     // (the ✕'s refusal before the lock's Keep: the likelier tap asked first)
     walk([...extra, pinVeto(lead.in, g, g, { scope: 'gw' })], d - 1);
     if (d === depth) walk([...extra, pinKeep(lead.out, g, g, { scope: 'gw' })], 0);
+    // (the best's other moves, a plan's: each name's ✕ in the band, its buy refused, its seller kept, solved ahead after
+    // the lead's; owner, 2026-11-02, "why only 1 out of four players have cross sign")
+    if (d === depth) for (const m of also.filter((x) => Number(x.in) !== Number(lead.in))) {
+      walk([...extra, pinVeto(m.in, g, g, { scope: 'gw' })], 0);
+      walk([...extra, pinKeep(m.out, g, g, { scope: 'gw' })], 0);
+    }
   };
   walk([], depth);
   return out;
