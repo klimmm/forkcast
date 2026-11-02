@@ -89,35 +89,19 @@ export function windowGap(a, b, g) {
  * The gap is the count on the anchor's scale (`ref`: the solver's own count ×k of GW g's forecast, one factor for
  * every round, so it orders as the solver does), never each round on its own k_h (`delta`): that weighs the later
  * rounds' points more than the free transfers' terms and can turn the solver's pick round (2026-11-02, Murillo → Hill
- * +0.06 to the solver, −0.03 on the rounds' scales: "Rolling is best"). The number drawn is the points the choice
- * gains on the plans you see (`shown`: cmp's own gap, the GW tiles' difference; owner, 2026-11-02, "points gain", not
- * the count's +0.08), the count still ordering and lighting the choices. Never the window's own points: its later
- * rounds are the solver's draft, which the plans drawn re-solve (2026-11-02, TORPEDO GW10 Calvert-Lewin → Evanilson
- * read 0.0 there, his GW10 start against a GW11 Thiago the draft of rolling bought; +0.43 on the plans drawn). Where
- * either side's solve commits its own week only (values.to: a transfer choice's, forks.forkValues) its later weeks
- * are your plan's, which may make a move it already made (TORPEDO GW11 Mbeumo → Rice alone, your GW12 selling Mbeumo
- * again: −3.4): there the points over the solver's window (windowPoints), its count's own.
+ * +0.06 to the solver, −0.03 on the rounds' scales: "Rolling is best"). The number drawn is that count too (owner,
+ * 2026-11-02, "if tavernier solver pick why evanilson shows higher points - find and fix bug", no solver flag): any
+ * points apart from it (the plans' gap, the window's lineup) leave out the bench cover and the later rounds' k_h and
+ * read a lower-ranked choice higher (Cherki → Tavernier best on +0.27 bench cover, Havertz → Evanilson +0.6 points).
  * ctx: planInputs.
  */
 export function counted(ctx, cmp, a, b, g) {
   const w = cmp ? windowGap(a, b, g) : null;
   if (!w) return cmp;
-  return { ...cmp, delta: w.ref, ref: w.ref, shown: whole(a, g) && whole(b, g) ? cmp.delta : windowPoints(ctx, a, g) - windowPoints(ctx, b, g), label: E.verdictLabel(w.ref, ctx.noise), winner: w.ref > EPS ? 'a' : w.ref < -EPS ? 'b' : null,
+  return { ...cmp, delta: w.ref, ref: w.ref, label: E.verdictLabel(w.ref, ctx.noise), winner: w.ref > EPS ? 'a' : w.ref < -EPS ? 'b' : null,
     votes: null, against: null, lead: null, count: w.terms, pts: cmp };
 }
-/** A solved road planned past GW g (no values.to cutting its plan at or before g's window's start): its weeks after g
- *  its own, not your plan's. */
-const whole = (road, g) => { const to = num(road?.values?.to); return to == null || to > g; };
-/** A solved road's points over the window it committed GW g from (Road.windows[g], on the shown scale): its lineup's
- *  and captain's (xi, cap; its bench cover and free-transfer terms are the planner's, no points), less FPL's 4 a hit
- *  (its hit term, the planner's price on round x's scale k_h, back to a count of hits: ctx.meta.hit_cost a hit). */
-function windowPoints(ctx, road, g) {
-  const o = road.windows[g], at = E.anchorRef(road.k_h, E.roadAnchor(road)), k0 = num(road.k_h?.[0]) ?? 1;
-  const hits = Object.entries(o.hit || {}).reduce((s, [x, v]) => s + (num(v) ?? 0) * (at ? at(x) / k0 : 1), 0) / (num(ctx.meta?.hit_cost) ?? E.HIT_COST);
-  return ['xi', 'cap'].reduce((s, t) => s + Object.values(o[t] || {}).reduce((q, v) => q + (num(v) ?? 0), 0), 0) + E.HIT_COST * hits;
-}
-/** The number a choice's comparison draws: the points it gains on the plans drawn where the solver counted it
- *  (counted's `shown`), else its gap. */
+/** The number a choice's comparison draws: its gap (counted's count where the solver counted it). */
 export const shownDelta = (cmp) => cmp?.shown ?? cmp?.delta;
 /** What a solved road's hits cost in points (HIT_COST a hit: what compare counts) beyond what its planner's count
  *  charged for them (its objective's hit term, −hit_cost a hit: solve.py add_ft): FPL's 4 less the planner's price
