@@ -665,8 +665,6 @@ export const COPY = Object.freeze({
    *  Scott → Dewsbury-Hall instead of Scott → Xhaka", "GW7 roll instead of Scott → Xhaka"; one that only drops some,
    *  "GW7 without Saka → Palmer". */
   planInsteadOf: (moves) => `instead of ${moves}`,
-  // (a several-move best's moves with plates of their own, named after the rest: its sentence needs them)
-  planWith: (names) => `with ${names}`,
   planWithout: (moves) => `without ${moves}`,
   /** Why a plan's moves go together, read off its solved road (ahead.openPlanWhy): "Neto's sale makes room: Palmer is
    *  your 3rd CHE player". */

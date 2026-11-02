@@ -28,14 +28,7 @@ export function litOf(P, w, M, D, toks = []) {
   at.chip = best && toks.includes(best) ? best : null;
   // (the best move, a chip's token aside: weekBest of the moves alone)
   const move = at.move = at.chip ? weekBest(P, w, M, D) : best;
-  // (a move of a several-move best that is a choice of its own, its single checked and worth a plate: its own plate
-  // over its seller, the best's sentence over the sellers that need the rest; owner, 2026-11-02, "why rice and thiago
-  // dependable transfers if rice ... can be bought independently from thiago": Thiago £0.4m short without Rice)
-  const own = (d) => (move?.choice?.moves?.length ?? 0) > 1 ? d.entries.find((x) => singleMove(x) && x.pl !== move && can(x.pl) && x.pl.choice.moves.length === 1
-    && move.choice.moves.some((m) => Number(m.out) === Number(x.pl.choice.moves[0].out) && Number(m.in) === Number(x.pl.choice.moves[0].in))) : null;
-  const places = move ? placesOf(D, move).map((d) => [d, own(d)]) : [];
-  const apart = places.some(([, o]) => !o);
-  for (const [d, o] of places) at.set(d.a, apart && o ? { e: o, best: false } : { e: d.entries.find((x) => x.pl === move), best: true });
+  if (move) for (const d of placesOf(D, move)) at.set(d.a, { e: d.entries.find((x) => x.pl === move), best: true });
   if (!M.settled) return at;
   for (const d of D) {
     // (your own buys get none of litOf's quiet plates: theirs is their take-back's, placeFirst; ink where it is the
@@ -255,11 +248,10 @@ export const placeSplit = (entries, a = null) => {
 /** A multi-move choice as one sentence (design 1026e "line"): its GW-g moves in the order its solved road makes them
  *  (`adds`: planBack's), "Neto → Tavernier, Cunha → Palmer", a take-back's words after them, "instead of Palmer". Never
  *  re-derived on the phone. Pure. → [move words] with `.back` (its "instead of …" | '') */
-export const lineMoves = (P, e, apart = new Set()) => {
-  const nm = P.L.name, own = e.adds.filter((m) => !apart.has(Number(m.out))), buys = e.adds.filter((m) => apart.has(Number(m.out))).map((m) => nm(m.in));
-  // (its moves with plates of their own, `apart`: litOf's, named after the rest, "Calvert-Lewin → Thiago with Rice")
-  const back = [buys.length ? COPY.planWith(buys.join(' and ')) : '', e.gone ? COPY.planInsteadOf(e.gone) : ''].filter(Boolean).join(', ');
-  return Object.assign(own.map((m) => `${nm(m.out)} → ${nm(m.in)}`), { back: own.length ? back : capFirst(back) });
+export const lineMoves = (P, e) => {
+  const nm = P.L.name;
+  const back = e.gone ? COPY.planInsteadOf(e.gone) : '';
+  return Object.assign(e.adds.map((m) => `${nm(m.out)} → ${nm(m.in)}`), { back: e.adds.length ? back : capFirst(back) });
 };
 /** A place's entries (decksOf's) in the order its cards are dealt, nearest his own card first: the checked choices best
  *  first, then those still checking or failed, then what takes a transfer back (the Roll of a week with yours, Remove)

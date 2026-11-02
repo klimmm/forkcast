@@ -160,10 +160,7 @@ export function decksPart(V) {
     const lineBest = !!lead?.length && multiMove(lead[0].L.e, lead[0].d.a);
     const litAt = (a) => (lineBest && lit.get(a)?.best && !lead.some((x) => x.d.a === a) ? null : lit.get(a));
     // (a buy the sentence names is no other plate's: one name, one number)
-    // (a move of it with its own plate over its seller, litOf's: that plate's, his place not the sentence's, which
-    // names it after the rest: lineMoves `apart`)
-    const apart = new Set(lineBest ? lead[0].L.e.adds.filter((m) => lit.get(Number(m.out))?.best === false).map((m) => Number(m.out)) : []);
-    const lineBuys = new Set(lineBest ? lead[0].L.e.adds.filter((m) => !apart.has(Number(m.out))).map((m) => Number(m.in)) : []);
+    const lineBuys = new Set(lineBest ? lead[0].L.e.adds.map((m) => Number(m.in)) : []);
     const firstOf = (d) => placeFirst(lineBuys.size ? { ...d, entries: d.entries.filter((e) => !lineBuys.has(e.inId) || takesBack(e)) } : d);
     for (const d of D) {
       const c = boxes.find((x) => x.id === d.a), first = litAt(d.a) ? null : firstOf(d), L = litAt(d.a) ?? (first && { e: first, best: false, first: true });
@@ -203,7 +200,7 @@ export function decksPart(V) {
     // (a sentence's plate, `line`, is no part of the fit steps: its words are never shortened or dropped; it is sized
     // after them, below)
     let spEl = null;
-    if (span) (lineBest ? (x) => { spEl = x.el; append(decks, x.el); } : (x) => drawn.push(x))({ el: swapPlate(P, g, row0[0].d, row0[0].L, span, Math.min(...row0.map((x) => x.up)), tabH, { buys: [...row0.map((x) => x.L.e.inId), ...rest.map((m) => Number(m.in))], shown: row0.map((x) => x.L.e.inId), sellers: [...row0.map((x) => x.d.a), ...rest.map((m) => Number(m.out))], only: row0.some((x) => x.only), ...(lineBest ? { line: lineMoves(P, row0[0].L.e, apart) } : {}) }), c: span, m: row0[0] });
+    if (span) (lineBest ? (x) => { spEl = x.el; append(decks, x.el); } : (x) => drawn.push(x))({ el: swapPlate(P, g, row0[0].d, row0[0].L, span, Math.min(...row0.map((x) => x.up)), tabH, { buys: [...row0.map((x) => x.L.e.inId), ...rest.map((m) => Number(m.in))], shown: row0.map((x) => x.L.e.inId), sellers: [...row0.map((x) => x.d.a), ...rest.map((m) => Number(m.out))], only: row0.some((x) => x.only), ...(lineBest ? { line: lineMoves(P, row0[0].L.e) } : {}) }), c: span, m: row0[0] });
     for (const m of plates) drawn.push({ el: swapPlate(P, g, m.d, m.L, m.c, m.up, tabH, { ...(m.best ? { tag: bests.find((x) => !tags.includes(x)).d.a } : {}), only: m.only }), c: m.c, m });
     for (const p of drawn) append(decks, p.el);
     // each card's plate (a plan's span: every seller's), and how far a plate takes the gap past its card, centred (as
