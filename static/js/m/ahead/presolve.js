@@ -330,8 +330,9 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 2,
       }
     }
     if (!lead) return;
-    if (d === depth) walk([...extra, pinKeep(lead.out, g, g, { scope: 'gw' })], 0);
+    // (the ✕'s refusal before the lock's Keep: the likelier tap asked first)
     walk([...extra, pinVeto(lead.in, g, g, { scope: 'gw' })], d - 1);
+    if (d === depth) walk([...extra, pinKeep(lead.out, g, g, { scope: 'gw' })], 0);
   };
   walk([], depth);
   return out;

@@ -182,7 +182,9 @@ export function headPart(V) {
   }
   /** A re-plan under way: a bake (baking; stale: a new forecast's) or the forecast updating. The state banner then
    *  speaks to assistive tech alone, the total shimmers (totalNum), the strip's wait line says how far (paintWait). */
-  const replanning = () => { const { ctx } = V; return REPLANNING.has(ctx.store.get('conn')?.state); };
+  // (a first bake with its plan in, the base road: no re-plan any more, its other roads land as choices behind the
+  // pitch; owner, 2026-11-02, "new team cold start": the pitch stayed grey "Planning" 25 s after its best showed)
+  const replanning = () => { const { ctx } = V; const st = ctx.store.get('conn')?.state; return REPLANNING.has(st) && !(st === 'baking' && ctx.bundle?.roads?.base); };
   /** The strip's wait line (paintWait) says how far a re-plan is; the GW line keeps GW A's deadline. → false (none
    *  shows) */
   function paintPlanStatus() { const { gwline } = V;
@@ -551,9 +553,10 @@ export function headPart(V) {
     const all = plansOf(ctx, P, g);
     const plans = ink ? [] : listedOf(heldOrder(P, g, all));
     // none lit on the pitch until none checks (weekSettled, litOf), each behind the card of the player it would replace
-    // (decksOf), for the pitch (renderDecks) and the checking line (never while the story's first plan still bakes: a
-    // landing road can add a choice or take one's room)
-    const settled = weekSettled(P, g, all) && !(S.story && ctx.store.get('conn')?.state === 'baking'), key = weekKey(P, g, all);
+    // (decksOf), for the pitch (renderDecks) and the checking line. Lit while the first plan's other roads still bake
+    // too: what is lit is the solver's own move (plansOf `solver`), which a bake road landing never changes (owner,
+    // 2026-11-02, "new team cold start": the best waited 16 s on the bake's veto roads after the week was in)
+    const settled = weekSettled(P, g, all), key = weekKey(P, g, all);
     const { decks, toks } = decksOf(P, w, { sq, plans });
     const lit = litOf(P, w, { sq, plans, settled }, decks, toks);
     // what the pitch shows lit and green, the Week sheet's green too (litShown), as the pitch last drew this week's
@@ -565,7 +568,10 @@ export function headPart(V) {
     // how far the week's checks are (weekWait); the checks' clock runs from the first draw with a choice or transfer
     // number waiting until none waits (waitClock), from 0:00 again for checks of their own (weekKey)
     const wait = weekWait(all, lit.size);
-    S.wait = wait || weekPending(P, w) ? (S.wait?.key === key ? S.wait : { key, t0: Date.now() }) : null;
+    // (and while the solver's own week or what the rows count against still solves, plansOf's `pending`, a week with no
+    // transfer of yours too: the pitch greys and the line says "Checking", never a blank corner; owner, 2026-11-02,
+    // "why not greyed out when its solving ... and just show nothing instead")
+    S.wait = wait || all.pending || weekPending(P, w) ? (S.wait?.key === key ? S.wait : { key, t0: Date.now() }) : null;
     // the "instead of …" that two or more rows take back, said once over them: the one most rows share
     const backs = new Map();
     for (const pl of plans) { const b = planBack(P, g, pl).back; if (b) backs.set(b, (backs.get(b) ?? 0) + 1); }

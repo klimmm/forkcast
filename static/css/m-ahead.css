@@ -1253,3 +1253,10 @@ buy's), its number, "Swap" and ✕ on line 2 */
 .ah-tok.mv.tix .ah-tn > .o { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 400; opacity: .8; }
 .ah-tok.mv.tix .ah-tn > .i { flex: none; }
 .ah-tok.mv.tix > .ah-tgo { margin-left: auto; margin-right: 28px; }
+/* the seller's lock before his name on line 1 (owner, 2026-11-02, "how do i lock cunha"; design_1102b C): his card
+lock's mark, a 24 px ring, idle */
+.ah-tok.mv.tix .ah-tn > .o { padding-left: 22px; }
+.ah-tok.mv.tix > .ah-tl { margin-left: -4px; flex-basis: calc(100% + 4px); }
+.ah-decks .ah-cm.lock.tlk { z-index: 4; width: 24px; height: 24px; background: none; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .5); }
+.ah-decks .ah-cm.lock.tlk::before { content: none; }
+.ah-decks .ah-cm.lock.tlk svg { width: 8px; height: 10px; }

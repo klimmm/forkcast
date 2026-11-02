@@ -136,6 +136,14 @@ export function decksPart(V) {
       const q = boxOf(bestTok, b), m = { gw: g, out: Number(bestTok.dataset.notOut), in: Number(bestTok.dataset.notIn) };
       decks.append(h('button.ah-cm.out.tno', { type: 'button', 'aria-label': COPY.notBuySaid(P.L.name(m.in), g), dataset: { row: `tok:not:${g}` },
         class: { in: true }, style: { left: `${q.x + q.w - 28}px`, top: `${q.y + q.h - (bestTok.matches('.tix') ? 28 : q.h / 2 + 12)}px` }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
+      // the seller's lock before his name, in the room his name's padding keeps (m-ahead.css .o) (owner, 2026-11-02: "how do i lock cunha" ... "fix bug"; design_1102b C): his
+      // card lock's own act and look (lockTap), so keeping him shows the next best at once (refusalRoads' Keep)
+      const o = bestTok.querySelector('.ah-tn > .o'), pk = pinOf(P, 'keep', m.out, g);
+      if (o) {
+        const r = boxOf(o, b);
+        decks.append(h('button.ah-cm.lock.tlk', { type: 'button', class: { on: !!pk }, 'aria-pressed': String(!!pk), 'aria-label': COPY.cardLockSaid(P.L.name(m.out), g, !!pk), dataset: { row: `tok:keep:${g}` },
+          style: { left: `${r.x - 2}px`, top: `${r.y + r.h / 2 - 12}px` }, onClick: () => lockTap(P, g, m.out) }, lockGlyph(!!pk)));
+      }
     }
     // (the best move's token gave way for room, its plate stays on the pitch: flag for the QA)
     decks.toggleAttribute('data-mv-out', tk.some((t) => t.matches('.mv') && !t.isConnected));
@@ -371,7 +379,15 @@ export function decksPart(V) {
    *  (a tap on a shut lock takes a Keep of this week alone off, a wider one's sheet opens: ruleSheet). The C / V sits on
    *  his name plate (m-ahead.css), so a captain moved on a GW switch moves no mark. A kept player has no × (no transfer
    *  sells him). Never on a week you can't change (renderDecks). */
-  function cardMarks(P, g, boxes) { const { S, boxOf, ctx, decks, pitchHost, ruleSheet } = V;
+  /** Player a's lock in GW g, on his card or the best token's seller: his Keep of this week alone, taken off again; a
+   *  wider one's sheet opens (ruleSheet). */
+  function lockTap(P, g, a) { const { ctx, ruleSheet } = V;
+    const pin = pinOf(P, 'keep', a, g);
+    if (!pin) keep(ctx, a, { gw: g, scope: 'gw' });
+    else if (pin.must?.length === 1 && pin.must[0][1] === g && pin.must[0][2] === g) removeRule(ctx, pin.id);
+    else ruleSheet(pin);
+  }
+  function cardMarks(P, g, boxes) { const { S, boxOf, ctx, decks, pitchHost } = V;
     const root = pitchHost.querySelector(':scope > .pm');
     if (!P.editable || !root) return;
     const nm = P.L.name, b = root.getBoundingClientRect();
@@ -396,11 +412,7 @@ export function decksPart(V) {
         } }, crossGlyph()));
       decks.append(h('button.ah-cm.lock', { type: 'button', class: { on: !!pin }, 'aria-pressed': String(!!pin), 'aria-label': COPY.cardLockSaid(nm(a), g, !!pin), dataset: { row: `lock:${a}` },
         style: lAt,
-        onClick: () => {
-          if (!pin) keep(ctx, a, { gw: g, scope: 'gw' });
-          else if (pin.must?.length === 1 && pin.must[0][1] === g && pin.must[0][2] === g) removeRule(ctx, pin.id);
-          else ruleSheet(pin);
-        } }, lockGlyph(!!pin)));
+        onClick: () => lockTap(P, g, a) }, lockGlyph(!!pin)));
     }
   }
   /** The Week sheet's green follows the pitch as just drawn (owner, 2026-10-25: "Follow the pitch"): the week's `shown`

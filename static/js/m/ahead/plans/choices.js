@@ -667,14 +667,15 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // its taps' solves asked ahead as its choices are checked (presolve), in the lanes its checks leave; the week settled
   // (none checks, nor what its rows count against), the next one prepared
   if (!DRY) presolveWeek(ctx, P, g, list);
-  if (settledList(list)) {
-    if (!peek && !owed && !followed && depth) {
-      // (the best token's move, weekBest's: the solver's row with the highest number, its ✕ the likeliest tap)
-      const best = list.filter((x) => x.solver && x.state === 'ready' && !x.refRow && !x.placeOnly).reduce((m, x) => (!m || x.cmp.delta > m.cmp.delta ? x : m), null);
-      refusalRoads(ctx, P, g, { prep, depth, lead: best?.choice.moves.find((m) => !now.some((y) => sameMove(y, m))) ?? null });
-    }
-    prepNext(ctx, P, g);
+  // the refusals ahead once the solver's own week and what the rows count against are in (`pending`), beside the
+  // week's other checks: the ✕ is there as soon as the best is (owner, 2026-11-02, a new team's first ✕ greyed while
+  // its other choices were still checked); the best token's move, weekBest's: the solver's row with the highest
+  // number, its ✕ the likeliest tap (asked again with it as its rows land)
+  if (!list.pending && !peek && !owed && !followed && depth) {
+    const best = list.filter((x) => x.solver && x.state === 'ready' && !x.refRow && !x.placeOnly).reduce((m, x) => (!m || x.cmp.delta > m.cmp.delta ? x : m), null);
+    refusalRoads(ctx, P, g, { prep, depth, lead: best?.choice.moves.find((m) => !now.some((y) => sameMove(y, m))) ?? null });
   }
+  if (settledList(list)) prepNext(ctx, P, g);
   return list;
 }
 /** A week's choices (plansOf's list) settled: none checks, nor what its rows count against. */

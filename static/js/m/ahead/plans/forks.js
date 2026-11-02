@@ -188,6 +188,10 @@ export function forkPump(ctx, P, ask) {
   // whose speculative slot your team's own solves need (core.specRoad: P.bare, the tiles' "without your transfers");
   // none free: asked again on the next draw)
   const side = !!ask.side && (P.b?.meta?.pair_lanes ?? 1) > 1;
+  // (…with every lane busy, the next week's preparation gives its lane up to them: the viewed week's ✕ first; owner,
+  // 2026-11-02, "why nothing then after wait": Not Gibbs-White's next best asked only after the tap, GW11's
+  // preparation in the lanes)
+  const sideYield = side && free === undefined ? forkFlights().find(([, f]) => f.prep && !f.side && !f.ahead && f.gw !== ask.gw) ?? null : null;
   // (a viewed ask with every lane busy: another week's flight, the next week's preparation, or a tap's solve asked ahead
   // gives its lane up)
   const other = !same && !prep && !side && PAIR.flight && free === undefined ? forkFlights().find(([, f]) => (f.gw !== ask.gw || f.ahead) && !aheadWaited(f)) : null;
@@ -199,7 +203,7 @@ export function forkPump(ctx, P, ask) {
     ? forkFlights().find(([, f]) => f.prep && !f.ahead) ?? forkFlights().find(([, f]) => f.side && !f.root)
       ?? forkFlights().find(([, f]) => f.ahead && !aheadWaited(f) && !aheadAsks(f, P, ask.gw))
       ?? (ask.src === 'sheet' ? forkFlights().find(([, f]) => f.ahead && f.src === 'week' && !aheadWaited(f)) : null) ?? null : null;
-  const lane = same ? same[0] : side ? free : prep ? free ?? (!PAIR.flight && !holder && !prepsWaiting(ctx, P) ? 0 : yielded?.[0])
+  const lane = same ? same[0] : side ? free ?? sideYield?.[0] : prep ? free ?? (!PAIR.flight && !holder && !prepsWaiting(ctx, P) ? 0 : yielded?.[0])
     : !PAIR.flight ? 0 : free ?? other?.[0];
   if (lane === undefined) return;  // every lane busy: a landing re-draws the choices, which asks again
   if (holder && !(prep ? PREP_BESIDE : PAIR_TAKES).has(holder)) {
@@ -212,6 +216,7 @@ export function forkPump(ctx, P, ask) {
   if (wait > 0) { forkAgain(ctx, wait); return; }
   if (other) other[1].cancel?.();
   if (yielded && yielded[0] === lane) yielded[1].cancel?.();
+  if (sideYield && sideYield[0] === lane) sideYield[1].cancel?.();
   const flight = { key: ask.key, fork: true, cancel: null, gw: ask.gw, P, prep, ahead: !!ask.ahead, root: !!ask.root, side, src: ask.src ?? null };
   if (lane) FORK_FLIGHTS.set(lane, flight); else PAIR.flight = flight;
   const ours = () => (lane ? FORK_FLIGHTS.get(lane) : PAIR.flight) === flight;
