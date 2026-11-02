@@ -168,7 +168,7 @@ export const cssPx = (host, ...lengths) => {
 };
 
 export function mount(el, ctx) {
-  mountSolveLog();  // (?solves=1 only: the fork solves in words)
+  mountSolveLog(() => String(ctx.store.get('entry') ?? ''));  // (?solves=1 only: the fork solves in words)
   // the parts' view of this function's scope (live getters) and the parts' functions, by their own names
   const V = {
     get ADD_HOLD_MS() { return ADD_HOLD_MS; },

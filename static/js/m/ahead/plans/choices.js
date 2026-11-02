@@ -190,7 +190,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // ahead), each offered at once (owner, 2026-11-02)
   const owed = owedAt(P, w) ? owedRoad(ctx, P, g, { peek, prep }) : null;
   // (read here; asked after the roll's and the rows' own solves, below: rolling's count first)
-  const depth = prep ? 0 : 2, tree = owed || followed ? [] : refusalRoads(ctx, P, g, { peek: true, depth });
+  // (one refusal ahead, the next tap's: owner, 2026-11-03, "why it running 17 solves on one team just at loading")
+  const depth = prep ? 0 : 1, tree = owed || followed ? [] : refusalRoads(ctx, P, g, { peek: true, depth });
   const solverRoads = new Set([owed?.road, ...tree.map((n) => n.road)].filter(Boolean));
   // (your GW-g transfers' own plan, the reference `yours` counts against, where a solver road makes no move beside
   // them: that road, never a fork of its own; owner, 2026-11-02, at most 6 solves after an action)
