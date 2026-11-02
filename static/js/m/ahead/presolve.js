@@ -6,7 +6,7 @@ import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
 import { attach, pinSell, pinHits, pinKeep, pinVeto, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
 import { MINUS, WHY_SHEET, addMove, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
 import { saidNow, sayAgain, asksOf, autoRuleName, barred, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
-import { FORK_FLIGHTS, SQUAD_CHIPS, asTaken, byGain, choiceVs, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
+import { FORK_FLIGHTS, SQUAD_CHIPS, fitsAt, forkValues, asTaken, byGain, choiceVs, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
 import { freedBy, lineupMoved, gwMode, inkAt, isLive } from './buys.js';
 import { plPays, squadWeek } from './pieces.js';
 import { rulesOf } from './screen.js';
@@ -292,7 +292,10 @@ function rootValues(ctx, P, g, extra = [], drop = []) {
   const cap = hitCap(P.b?.meta) ?? 2, roll = `roll:${g}`;
   return valuesFor(ctx, [...P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x)), ...extra.filter((p) => p.id !== roll)], [...drop, ...P.pins.filter((p) => p.id === roll).map((p) => p.id)]);
 }
-export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 2 } = {}) {
+/** `lead`: the move the week's best token shows (plansOf: the solver's row with the highest number), the one its ✕
+ *  refuses, refused first at the root; else, and below the root, the road's first move as the week draws it (owner,
+ *  2026-11-02, Boss of the gym GW10: the token Palmer, the refusal solved ahead Hill's, so each ✕ waited on a solve). */
+export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 2, lead: best = null } = {}) {
   const yours = weekOf(P, g)?.moves || [], out = [], seen = new Set(), d0 = draftOf(ctx);
   const walk = (extra, d) => {
     const values = rootValues(ctx, P, g, extra), key = valuesKey(P, values);
@@ -312,7 +315,20 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 2 
     out.push({ key, road });
     const w = road && d > 0 ? road.weeks.find((x) => Number(x.gw) === g) : null;
     // (its first move as the week draws it, planOfRoad's: the one the best token's ✕ refuses)
-    const lead = w ? ((planOfRoad(ctx, P, road, g, d0)?.choice.moves ?? pairedMoves(w.out || [], w.in || [], P.L)).find((m) => !yours.some((y) => Number(y.out) === Number(m.out) && Number(y.in) === Number(m.in))) ?? null) : null;
+    const ms = w ? (planOfRoad(ctx, P, road, g, d0)?.choice.moves ?? pairedMoves(w.out || [], w.in || [], P.L)).filter((m) => !yours.some((y) => Number(y.out) === Number(m.out) && Number(y.in) === Number(m.in))) : [];
+    const lead = (root && best && ms.find((m) => Number(m.out) === Number(best.out) && Number(m.in) === Number(best.in))) || ms[0] || null;
+    // (the best's refusal, the likeliest tap: where its road makes two moves or more, each offered alone (plansOf's
+    // `parts`) solved ahead too, under the refusal, so its pitch draws at once; owner, 2026-11-02, "after each refusal
+    // ... have the next choice prepared": Rice and Hill "checking…" after the ✕ of Palmer)
+    if (d === depth - 1 && ms.length >= 2 && !peek) {
+      for (const m of ms) {
+        const c = { moves: [...yours.filter((y) => Number(y.out) !== Number(m.out) && Number(y.in) !== Number(m.in)), { gw: g, out: m.out, in: m.in }], chips: {} };
+        if (!fitsAt(ctx, P, g, c, d0)) continue;
+        const v = forkValues(ctx, P, g, c, extra), k = valuesKey(P, v);
+        if (forkRead(k) || forkFlights().some(([, f]) => f.key === k)) continue;
+        if (!forkFlights().some(([, f]) => f.side && !f.root)) forkAsk(ctx, P, { key: k, values: v, gw: g, side: true, prep: true });
+      }
+    }
     if (!lead) return;
     if (d === depth) walk([...extra, pinKeep(lead.out, g, g, { scope: 'gw' })], 0);
     walk([...extra, pinVeto(lead.in, g, g, { scope: 'gw' })], d - 1);

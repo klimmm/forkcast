@@ -440,13 +440,15 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     if (roads.some((p) => p.exact)) return [{ k, c, roads }];
     // (a week prepared ahead, prepNext: its best alone, refusalRoads' root. Owner, 2026-11-02: "no action in any week
     // can trigger more than 6 solves after it ... nothing is greyed out after any choice made")
-    if (prep) return [];
+    // (and what its rows count against, and the root's moves offered alone, so the week viewed next draws at once:
+    // owner, 2026-11-02, "why gw 11 display not solved on background and grey out when clicked")
+    if (prep && !refs.has(k) && !parts.has(k)) return [];
     const values = forkValues(ctx, P, g, c), key = valuesKey(P, values);
     // a transfer choice of the week's own, not the solver's (refusalRoads' roads answer theirs exactly: known), nor
     // what a choice counts against (refs), nor a place you opened: listed once solved (a road kept, or its solve in
     // flight), never asked, so an action asks only the solver's moves and nothing waits on the rest
     if (!refs.has(k) && !parts.has(k) && !placeOnly.has(k) && !placed.has(k) && c.moves.length && !Object.keys(c.chips).length && !forkRead(key) && !forkFlights().some(([, f]) => f.key === key)) return [];
-    return [{ k, c, roads, ask: { key, values, gw: g } }];
+    return [{ k, c, roads, ask: { key, values, gw: g, ...(prep ? { prep } : {}) } }];
   });
   // (stable: choices with no estimate keep their offered order; those the bars keep from being the week's suggestion go
   // after the rest, so a lit-able choice never waits behind one; a pair's move alone after the rest of its pair's kind)
@@ -666,7 +668,11 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // (none checks, nor what its rows count against), the next one prepared
   if (!DRY) presolveWeek(ctx, P, g, list);
   if (settledList(list)) {
-    if (!peek && !owed && !followed && depth) refusalRoads(ctx, P, g, { prep, depth });
+    if (!peek && !owed && !followed && depth) {
+      // (the best token's move, weekBest's: the solver's row with the highest number, its ✕ the likeliest tap)
+      const best = list.filter((x) => x.solver && x.state === 'ready' && !x.refRow && !x.placeOnly).reduce((m, x) => (!m || x.cmp.delta > m.cmp.delta ? x : m), null);
+      refusalRoads(ctx, P, g, { prep, depth, lead: best?.choice.moves.find((m) => !now.some((y) => sameMove(y, m))) ?? null });
+    }
     prepNext(ctx, P, g);
   }
   return list;
@@ -868,8 +874,11 @@ export function weekSettled(P, g, plans, now = Date.now()) {
   if (SETTLED.last !== k || done > s.done || heal) s.at = now;
   SETTLED.last = k;
   s.done = done;
-  if (done === plans.length || now - s.at >= PAIR_HOLD_MS) s.settled = true;
-  return s.settled && !heal;
+  // (never while the solver's own week or what the rows count against is still solving, plansOf's `pending`: the
+  // rows in then were lit as the best, "Rolling is best" before the solver's move landed; owner, 2026-11-02, "after
+  // silva refused it first showed rolling the best then greyed out and now shows van hecke")
+  if (!plans.pending && (done === plans.length || now - s.at >= PAIR_HOLD_MS)) s.settled = true;
+  return s.settled && !heal && !plans.pending;
 }
 /** When GW g's choices on plan view P settle unless one lands first (weekSettled's bound), for tick() to draw them then
  *  (nothing else draws a week whose solve never ends); null once settled or before its first draw. */

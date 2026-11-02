@@ -102,12 +102,13 @@ export function measurePlan(ctx, P, g, p, before, held = true) {
  *  hits rule's (memory.holdOf), your exact transfers there kept (composePins). A transfer of yours that bought a player
  *  its GW-g moves sell (or `c.ends`'s) held only to g − 1 (chainOf); `c.held`: your later weeks kept (a Wildcard row's
  *  roll). → solve values */
-export function forkValues(ctx, P, g, c) {
+export function forkValues(ctx, P, g, c, more = []) {
   const squad = SQUAD_CHIPS.has(c.chips?.[g]);
   const drop = [...new Set((weekOf(P, g)?.moves || []).map((m) => pinOfMove(P, { ...m, gw: g })?.id).filter(Boolean))];
   if (!squad && repicks(P, g)) drop.push(...P.pins.filter((p) => p.id === `hits:${g}`).map((p) => p.id));
   const held = P.gws.filter((x) => x < g).flatMap((x) => (weekOf(P, x)?.squad ?? []).map((id) => [id, x, x]));
-  const extra = held.length ? [makePin({ id: 'fork:before', kind: 'road', label: 'Your weeks before', gw: P.A, must: held })] : [];
+  // (`more`: rules a tap not yet made adds, its plan view's solve asked ahead: refusalRoads)
+  const extra = [...more, ...(held.length ? [makePin({ id: 'fork:before', kind: 'road', label: 'Your weeks before', gw: P.A, must: held })] : [])];
   // GW g is exactly the choice in both modes (a Roll capping it at the choice's moves, as the + stores it: addPlan):
   // under the hold the derived hold caps it so already; while Forkcast makes your transfers nothing else would, and the
   // solve would add its own GW-g moves (owner, 2026-10-13)

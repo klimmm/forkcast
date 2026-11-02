@@ -10,7 +10,7 @@ export {
 export {
   litOf, weekBest, litShown, rollOnly, planBack, decksOf, benchOnly, takesBack, singleMove, placeDealt, placePages,
   placeBuys, placeLine, multiMove, placeSplit, lineMoves, placeOrder, PLACE_SLOTS, placeFirst, slotsBeside,
-  failedWords, noteOf, mineAny, byGain, forkKey
+  failedWords, noteOf, mineAny, byGain, forkKey, fitsAt
 } from './plans/lit.js';
 export {
   planOfRoad, asTaken, planBaseline, takenBy, forkValues, forkAsk, forkKept, forkRead, FORK_FLIGHTS, forkFlights, forkPump,

@@ -12,8 +12,9 @@
 // from a week line ({gw}) or a card (its GW, solved first) that week is selected first, else the best so far ("Best:"
 // only beyond the noise: bestMark; green pill / filled button only for a gain beyond it: ahead.clearGain). A week where
 // nothing works (GW A under way: ahead.inkAt) is disabled with its reason. A player your pins keep out (a veto, Never)
-// is left off the list and marked in search ("Not Groß · all weeks", ahead.barringRule); bringing him in from a GW it
-// keeps him out lifts the veto (a one-GW veto of another GW stays; the verdict names it).
+// stays on the list, marked with the rule ("Not Groß · all weeks", ahead.barringRule; owner, 2026-11-02: "why players
+// disappear from 'bring in' list when added to exclude this gw list"); bringing him in from a GW it keeps him out
+// lifts the veto (a one-GW veto of another GW stays; the verdict names it).
 // The week's button is his wish from that week and nothing else (owner, 2026-10-29): every week is solved with his wish
 // pin (ahead.wishSolve), the button lands that road with the pin alone (ahead.want → holdBuy's 'pick' → bringIn), so
 // the sale and the money are the solver's, as a Wildcard's or Free Hit's always were. No hits rule is set.
@@ -266,18 +267,17 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           opts.filter((x) => x !== his).map(saleChip));
       }
 
-      /** The list for the week in the sort's order: every player you could buy then (not kept out by a rule of yours)
-       *  and your squad of that week, of the position chosen (All: every position), or by name or club while you search
+      /** The list for the week in the sort's order: every player you could buy then (one a rule of yours keeps out
+       *  too, marked: row) and your squad of that week, of the position chosen (All: every position), or by name or club while you search
        *  (buylist.found). Never a top few (owner, 2026-10-15). → [{row, mine}] */
       function players(P) {
         const g = st.g;
         const q = norm(st.q.trim());
         const squad = new Set(weekOf(P, g)?.squad ?? squadBefore(P, g));
         const mine = (r) => squad.has(Number(r.id));
-        const ruled = barred(P, g);
         // (opened from a player's place, st.lock: of his position, found or not)
         const at = (r) => (!q || found(r, q)) && ((q && !st.lock) || st.pos === 'all' || P.L.pos(Number(r.id)) === st.pos);
-        const ok = (r) => mine(r) || (r.buyable && (q || !ruled.has(Number(r.id))));
+        const ok = (r) => mine(r) || r.buyable;
         return ctx.data.rows.filter((r) => at(r) && ok(r)).sort(orderOf(sortOf(), st.flip, P, g)).map((r) => ({ row: r, mine: mine(r) }));
       }
 
