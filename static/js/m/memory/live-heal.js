@@ -42,8 +42,11 @@ export function healPart(V) {
       }
       return;
     }
-    if (!acc && baseNow()?.sig === sig && baseNow().version === v) return;
-    if (acc?.plan?.sig === sig && [v, ctx.bundle?.version].includes(acc.plan.version) && !brokenCells(acc.plan, c).length) {
+    // (a plan of these rules solved for other GWs is not theirs: 2026-11-02, TORPEDO's plan solved for GW10 alone was
+    // kept once the plan was GW10–13 again, one GW tile, GW13 "past your plan")
+    const gws = gwsNow().join(','), spans = (p) => (p?.weeks || []).map((w) => Number(w.gw)).join(',') === gws;
+    if (!acc && baseNow()?.sig === sig && baseNow().version === v && spans(baseNow())) return;
+    if (acc?.plan?.sig === sig && [v, ctx.bundle?.version].includes(acc.plan.version) && spans(acc.plan) && !brokenCells(acc.plan, c).length) {
       // the plan is already the one for these rules (an Undo took the failing one back): nothing to solve. Never one
       // whose squads break them
       cancelHeal();
