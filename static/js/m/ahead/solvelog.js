@@ -19,18 +19,24 @@ export function mountSolveLog(team = () => null, server = () => null) {
   // copy logs")
   let said = [];
   const copy = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Copy' });
+  // (first the copy inside the tap itself, then the clipboard's; a browser that allows neither, as the Claude app's
+  // pane, gets the text shown selected in the panel, to copy by hand)
+  let shown = null;
   copy.addEventListener('click', (ev) => {
     ev.stopPropagation();
     const text = [`${location.href} · ${new Date().toISOString()}`, ...said].join('\n');
-    const done = () => { copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy'; }, 1500); };
-    navigator.clipboard?.writeText(text).then(done, () => fallback(text, done)) ?? fallback(text, done);
-  });
-  const fallback = (text, done) => {
-    const t = Object.assign(document.createElement('textarea'), { value: text });
+    const t = Object.assign(document.createElement('textarea'), { value: text, readOnly: true });
+    t.addEventListener('click', (e) => e.stopPropagation());
     document.body.append(t); t.select();
-    if (document.execCommand('copy')) done();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
     t.remove();
-  };
+    const flash = (w) => { copy.textContent = w; setTimeout(() => { copy.textContent = 'Copy'; }, 2000); };
+    if (ok) return flash('Copied');
+    const byHand = () => { shown?.remove(); shown = t; el.insertBefore(t, list); t.focus(); t.select(); flash('Selected'); };
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => flash('Copied'), byHand);
+    else byHand();
+  });
   // (the lines redrawn every half second in a list of their own, the button never: a tap spanning a redraw kept)
   const list = document.createElement('div');
   el.replaceChildren(copy, list);

@@ -93,7 +93,10 @@ function presolve(ctx, P, src, taps, { gw = P.A, sig = '', owner = null } = {}) 
     cur.sig = sig;
     // (none another source asks, nor one memory has: a sheet's taps besides the week's)
     const others = [...AHEAD.srcs].filter(([k, x]) => k !== src && x.P === P).flatMap(([, x]) => x.asks.map((a) => a.key));
-    const cap = PRESOLVE_MAX[src], room = (kind) => (typeof cap === 'number' ? cur.asks.length < cap : cur.asks.filter((a) => a.kind === kind).length < (cap[kind] ?? 0));
+    // (the room counts every tap made, its solve asked or memory's already: one solved before never makes room for the
+    // next likeliest; 2026-11-03, a new team's load asked the Swap of Barry and of Hill, the band's best Evanilson's
+    // solved, a new plan view later: 22 solves)
+    const cap = PRESOLVE_MAX[src], room = (kind) => (typeof cap === 'number' ? cur.made.length < cap : cur.made.filter((a) => a.kind === kind).length < (cap[kind] ?? 0));
     for (const t0 of taps) {
       const t = typeof t0 === 'function' ? t0() : t0;
       if (!room(t.kind) || (t.id != null && cur.tried.has(t.id))) continue;
