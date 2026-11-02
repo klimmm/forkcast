@@ -82,7 +82,7 @@ export function decksPart(V) {
       // (one move "Mbeumo → Rice" only whole, on one line with its number and word, nothing shortened; else his buy
       // alone, "Rice", as before: review 7, 2026-11-02, the move's sale where it has room)
       const one = t.dataset.buy && ns.length === 1 ? ns[0] : null;
-      if (one) { if (fitsWith(['noxp', 'nomark', 'tight'])) return true; one.textContent = t.dataset.buy; }
+      if (one) { if (fitsWith(['noxp', 'nomark', 'tight'])) return true; if (!t.matches('.tix')) one.textContent = t.dataset.buy; }
       // (its verb is kept at 320 too, the screen's one primary act: where the name would go under NAME_LEAST beside it,
       // "Swap" takes a line of its own under the name and number (.gol), off only where even that leaves no room)
       // (a plan's, two names or more, always one line: its word goes before a second line; where even names cut to
@@ -135,7 +135,7 @@ export function decksPart(V) {
     if (bestTok) {
       const q = boxOf(bestTok, b), m = { gw: g, out: Number(bestTok.dataset.notOut), in: Number(bestTok.dataset.notIn) };
       decks.append(h('button.ah-cm.out.tno', { type: 'button', 'aria-label': COPY.notBuySaid(P.L.name(m.in), g), dataset: { row: `tok:not:${g}` },
-        style: { left: `${q.x + q.w - 8}px`, top: `${q.y - 4}px`, '--hb': '-8px', '--ht': `${Math.max(0, Math.min(16, q.y - 4))}px` }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
+        class: { in: true }, style: { left: `${q.x + q.w - 28}px`, top: `${q.y + q.h - (bestTok.matches('.tix') ? 28 : q.h / 2 + 12)}px` }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
     }
     // (the best move's token gave way for room, its plate stays on the pitch: flag for the QA)
     decks.toggleAttribute('data-mv-out', tk.some((t) => t.matches('.mv') && !t.isConnected));
@@ -531,7 +531,7 @@ export function decksPart(V) {
       // (the best's first buy, its ✕ refusing it: renderDecks' notBadge; of several moves the first, the one refused
       // ahead: presolve.refusalRoads' lead)
       const one = best && swap && e.adds.length && !takesBack(e) ? e.adds[0] : null;
-      return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(one ? { notOut: one.out, notIn: one.in } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}), ...(!takesBack(e) && e.adds.length === 1 ? { buy: nm(e.adds[0].in) } : {}) },
+      return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', class: { tix: !!one }, 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(one ? { notOut: one.out, notIn: one.in } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}), ...(!takesBack(e) && e.adds.length === 1 ? { buy: nm(e.adds[0].in) } : {}) },
         // (its verb first where it takes, as drawn: "Swap. Best move this week: …")
         'aria-label': swap ? COPY.bestSwapSaid(said) : `${said}, ${COPY.showsChoices}`,
         // (its "Swap" takes; a tap on its words opens his place, the move among his choices: review 7, 2026-11-02,
@@ -540,7 +540,7 @@ export function decksPart(V) {
         onClick: (ev) => (swap && onSwap(ev) ? takeFrom(ev, P, g, pl, ev.currentTarget, a, e.inId) : openPlace(a)) },
         // (one move its sale and buy, "Murillo → Hill": review 7, 2026-11-02, the net result, not one leg; reversing the
         // owner's 2026-10-26 buy alone; several their buys)
-        h('span.ah-tl', { 'aria-hidden': 'true' }, (takesBack(e) || !e.adds.length ? [nm(e.inId)] : e.adds.length === 1 ? [`${nm(e.adds[0].out)} → ${nm(e.adds[0].in)}`] : e.adds.map((m) => nm(m.in))).map((t, i, all) => h('span.ah-tn', null, `${t}${i < all.length - 1 ? ',' : ''}`))),
+        h('span.ah-tl', { 'aria-hidden': 'true' }, (takesBack(e) || !e.adds.length ? [nm(e.inId)] : e.adds.length === 1 ? [`${nm(e.adds[0].out)} → ${nm(e.adds[0].in)}`] : e.adds.map((m) => nm(m.in))).map((t, i, all) => h('span.ah-tn', null, one && all.length === 1 ? [h('span.o', null, nm(one.out)), ' → ', h('span.i', null, nm(one.in))] : `${t}${i < all.length - 1 ? ',' : ''}`))),
         // (its number as its plate's: numParts)
         h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, numParts(g, pl)),
         // its take's word where its tap takes (owner, 2026-10-28: one act, one word, one look): "Swap" in the mint of

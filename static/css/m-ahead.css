@@ -1235,3 +1235,21 @@ provisional, at 400 */
 /* a Wildcard or Free Hit week's line over its changes (the Week sheet, COPY.chipWeek): a second line's look, the rows'
    inset */
 .ah-gwnote { margin: 0; padding: 8px 14px 6px; }
+
+/* design_1102b: the best move's ✕ inside its token, beside "Swap", the same height (owner, 2026-11-02: "why agree have
+large green swap button while disagree have a cross"): a 24 px ring, white on the ink, the outlined partner of the
+filled mint chip (one primary, one secondary: Material 3 buttons, emphasis); its target its own 24 x 24 box
+(WCAG 2.2 SC 2.5.8), never over the token's or the week line's */
+.ah-decks .ah-cm.tno.in { width: 24px; height: 24px; background: none; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .85); }
+.ah-decks .ah-cm.tno.in::before { content: none; }
+.ah-decks .ah-cm.tno.in svg { width: 8px; height: 8px; }
+.ah-tok.mv:is(.nox, .tix) .ah-tgo { height: 24px; padding: 0 8px; border-radius: 12px; font-size: var(--t-sub); }
+.ah-tok.mv.nox { padding-right: 32px; height: 32px; padding-left: 10px; border-radius: 16px; }
+/* design_1102b: the ticket: its move whole on line 1, "Murillo → Hill" (the seller's name shortened first, never the
+buy's), its number, "Swap" and ✕ on line 2 */
+.ah-tok.mv.tix { flex-wrap: wrap; row-gap: 4px; height: auto; padding: 6px 4px 4px 10px; border-radius: 12px; }
+.ah-tok.mv.tix > .ah-tl { flex: 1 0 100%; box-sizing: border-box; padding-right: 6px; }
+.ah-tok.mv.tix .ah-tn { display: flex; min-width: 0; gap: .25em; flex: 0 1 auto; }
+.ah-tok.mv.tix .ah-tn > .o { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 400; opacity: .8; }
+.ah-tok.mv.tix .ah-tn > .i { flex: none; }
+.ah-tok.mv.tix > .ah-tgo { margin-left: auto; margin-right: 28px; }
