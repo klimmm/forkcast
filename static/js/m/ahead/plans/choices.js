@@ -399,7 +399,10 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const fhK = forkKey({ moves: [], chips: { [g]: 'fh' } }, g), fhRow = { moves: [], chips: { [g]: 'fh' } }, fhLater = `${fhK}|later`;
   // (a Free Hit's later weeks solved only once Chips… was opened on g: chipsAsked)
   if (!followed && !chipMine && (!choices.has(fhK) || landOf(choices.get(fhK))) && chipsAvail(P, g).includes('fh') && plannedAt(P, 'fh', g) == null && chipsAsked(ctx).includes(g) && fitsAt(ctx, P, g, fhRow, d0)) apart.push([fhLater, fhRow]);
-  const ready = (list, c) => ({ ...list.sort(byGain)[0], state: 'ready', choice: c });
+  // (a road solved for exactly this choice before one of other rules that makes it too, whatever the phone measures:
+  // 2026-11-02, the roll's own road and a slide's, Murillo kept to GW11 and Hill from GW12, both GW10's roll; the
+  // slide's measured more and the roll counted on it drew Murillo → Hill +2.8 until the keep's road came in, +1.9)
+  const ready = (list, c) => { const ex = list.filter((p) => p.exact); return { ...(ex.length ? ex : list).sort(byGain)[0], state: 'ready', choice: c }; };
   // a reference whose solve makes no move your plan doesn't is your plan itself (never a row: L1)
   // (`counts`: its own solve's road, where it was solved, for the solver's own count against it: countRoad)
   const self = (c, counts = null) => ({ state: 'ready', choice: c, self: true, moves: [], chips: c.chips, draft: d0, ev: asIs, cmp: compare(ctx, asIs, asIs), hits: {}, road: null, model: false, ...(counts ? { counts } : {}) });
