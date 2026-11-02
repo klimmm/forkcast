@@ -47,7 +47,7 @@ export {
   sentence, COPY, liveCheck, driftHeadOf
 } from './calls/copy.js';
 export {
-  planInputs, compare, transfersOf, hitsOf, plannerOf, windowGap, counted, hitBook, changeText,
+  planInputs, compare, transfersOf, hitsOf, plannerOf, windowGap, counted, shownDelta, hitBook, changeText,
   forcedNew, withForced, rulesCost, captainGap, subGap, planFromRoad, handoffMoves
 } from './calls/measure.js';
 export {

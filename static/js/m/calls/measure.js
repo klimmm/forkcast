@@ -86,14 +86,30 @@ export function windowGap(a, b, g) {
  * a transfer choice's too: one count numbers, orders and lights the choices, so the week's best is the move the solver
  * commits (main.py --show-plan; owner, 2026-10-30) and two it counts level read level (owner, 2026-11-02: points alone
  * left a later move's spent free transfer uncounted, Mbeumo → Rice +1.7 against Calvert-Lewin → Evanilson +0.7, tied).
- * ctx: planInputs.
+ * The gap is the count on the anchor's scale (`ref`: the solver's own count ×k of GW g's forecast, one factor for
+ * every round, so it orders as the solver does), never each round on its own k_h (`delta`): that weighs the later
+ * rounds' points more than the free transfers' terms and can turn the solver's pick round (2026-11-02, Murillo → Hill
+ * +0.06 to the solver, −0.03 on the rounds' scales: "Rolling is best"). The number drawn is the points the choice
+ * gains over that window (`shown`: windowPoints; owner, 2026-11-02: Murillo → Hill "+2.0", not the count's +0.08),
+ * the count still ordering and lighting the choices. ctx: planInputs.
  */
 export function counted(ctx, cmp, a, b, g) {
   const w = cmp ? windowGap(a, b, g) : null;
   if (!w) return cmp;
-  return { ...cmp, delta: w.delta, ref: w.ref, label: E.verdictLabel(w.ref, ctx.noise), winner: w.delta > EPS ? 'a' : w.delta < -EPS ? 'b' : null,
+  return { ...cmp, delta: w.ref, ref: w.ref, shown: windowPoints(ctx, a, g) - windowPoints(ctx, b, g), label: E.verdictLabel(w.ref, ctx.noise), winner: w.ref > EPS ? 'a' : w.ref < -EPS ? 'b' : null,
     votes: null, against: null, lead: null, count: w.terms, pts: cmp };
 }
+/** A solved road's points over the window it committed GW g from (Road.windows[g], on the shown scale): its lineup's
+ *  and captain's (xi, cap; its bench cover and free-transfer terms are the planner's, no points), less FPL's 4 a hit
+ *  (its hit term, the planner's price on round x's scale k_h, back to a count of hits: ctx.meta.hit_cost a hit). */
+function windowPoints(ctx, road, g) {
+  const o = road.windows[g], at = E.anchorRef(road.k_h, E.roadAnchor(road)), k0 = num(road.k_h?.[0]) ?? 1;
+  const hits = Object.entries(o.hit || {}).reduce((s, [x, v]) => s + (num(v) ?? 0) * (at ? at(x) / k0 : 1), 0) / (num(ctx.meta?.hit_cost) ?? E.HIT_COST);
+  return ['xi', 'cap'].reduce((s, t) => s + Object.values(o[t] || {}).reduce((q, v) => q + (num(v) ?? 0), 0), 0) + E.HIT_COST * hits;
+}
+/** The number a choice's comparison draws: the points it gains where the solver counted it (counted's `shown`), else
+ *  its gap. */
+export const shownDelta = (cmp) => cmp?.shown ?? cmp?.delta;
 /** What a solved road's hits cost in points (HIT_COST a hit: what compare counts) beyond what its planner's count
  *  charged for them (its objective's hit term, −hit_cost a hit: solve.py add_ft): FPL's 4 less the planner's price
  *  where it priced them (the bundle's meta.hit_charge on the shown scale: above 4 once ×k), all 4 where it never

@@ -3,7 +3,7 @@
 import { MINUS, WHY_SHEET, weekOf } from './core.js';
 import { h, svg, fill, append, plural, reduceMotion, toast, xpGain, shownGain } from '../../ui.js';
 import { SQUAD_CHIPS, askPlace, byGain, failedWords, lineMoves, litShown, multiMove, placeFirst, placeOrder, planBack, planWeeks, rollOnly, singleMove, takesBack } from './plans.js';
-import { COPY } from '../calls.js';
+import { COPY, shownDelta } from '../calls.js';
 import { plPays } from './pieces.js';
 import * as E from '../../plan/engine.js';
 import { addPlan, planTake } from './presolve.js';
@@ -128,12 +128,14 @@ export function decksPart(V) {
     }
     // the best move's token's ✕ on its top-right corner, overhanging it (no row, no width of its own; owner, 2026-11-02:
     // "must have fast button 'not hill'", its "Corner ✕ badge" picked): its buy refused in this week alone (veto, scope
-    // 'gw'), the refusal solved ahead (refusalRoads) so the next best is there at once
+    // 'gw'), the refusal solved ahead (refusalRoads) so the next best is there at once; its target never over its token
+    // (--hb) nor up past the pitch's top (--ht: the week line's doors above it keep their 44 px, QA chips-sheet
+    // 2026-11-02, "Rolling" 34 px to a tap under it)
     const bestTok = tk.find((t) => t.isConnected && t.matches('.mv') && t.dataset.notIn);
     if (bestTok) {
       const q = boxOf(bestTok, b), m = { gw: g, out: Number(bestTok.dataset.notOut), in: Number(bestTok.dataset.notIn) };
       decks.append(h('button.ah-cm.out.tno', { type: 'button', 'aria-label': COPY.notBuySaid(P.L.name(m.in), g), dataset: { row: `tok:not:${g}` },
-        style: { left: `${q.x + q.w - 8}px`, top: `${q.y - 4}px`, '--hb': '-8px' }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
+        style: { left: `${q.x + q.w - 8}px`, top: `${q.y - 4}px`, '--hb': '-8px', '--ht': `${Math.max(0, Math.min(16, q.y - 4))}px` }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
     }
     // (the best move's token gave way for room, its plate stays on the pitch: flag for the QA)
     decks.toggleAttribute('data-mv-out', tk.some((t) => t.matches('.mv') && !t.isConnected));
@@ -579,7 +581,7 @@ export function decksPart(V) {
           // under both across the token's whole width (owner, 2026-10-26: not three lines); never a clock in its
           // number's slot: waitClock
           h('span', null, what),
-          s.wait || pl.refRow ? null : xpGain(pl.cmp.delta, 'span.ah-tnum.m-num'),
+          s.wait || pl.refRow ? null : xpGain(shownDelta(pl.cmp), 'span.ah-tnum.m-num'),
           said ? h('small.ah-tw', null, COPY.planInsteadOf(lost)) : null, pl.state === 'solving' ? h('small.ah-tw', null, COPY.pairChecking) : null)));
     }
     return out;
@@ -589,7 +591,7 @@ export function decksPart(V) {
    *  blue with "xP" (ui.js xpGain; owner, 2026-10-22: sign = direction, never green). */
   const numParts = (g, pl) => {
     const chip = SQUAD_CHIPS.has(pl.choice.chips?.[g]) ? null : pl.choice.chips?.[g], hit = pl.hits?.[g] ?? 0;
-    return [chip ? h('small.ah-dchip', null, chip.toUpperCase()) : null, hit ? h('small.ah-dhit.m-hit', null, `${MINUS}${E.HIT_COST * hit}`) : null, xpGain(pl.cmp.delta)];
+    return [chip ? h('small.ah-dchip', null, chip.toUpperCase()) : null, hit ? h('small.ah-dhit.m-hit', null, `${MINUS}${E.HIT_COST * hit}`) : null, xpGain(shownDelta(pl.cmp))];
   };
   /** Take choice pl (or, with `act`, take a transfer of yours back) from where it is drawn (`from`: its tab, or its
    *  card dealt in a place), through addOnce (one tap; ignored just after a re-flow): the pitch drawn after it lands

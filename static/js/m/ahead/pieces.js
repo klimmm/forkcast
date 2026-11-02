@@ -329,7 +329,7 @@ function chipWait(src, c, here) {
  *  PREP_ASKED: when each was first asked (ms; chipWait's clock). */
 export const PREPS = new Map();
 const PREP_ASKED = new Map();
-export const PREP = { mem: null, flight: null, timer: null, until: 0, gen: 0 };  // gen: bumped by each landing (chipPreps' views)
+export const PREP = { mem: null, flight: null, timer: null, due: 0, until: 0, gen: 0 };  // gen: bumped by each landing (chipPreps' views); due: the timer's
 const PREPS_MAX = 96;
 // your plan healing, this browser's speculative slot busy, a preparation superseded (Add a player's pill dropped too:
 // sheets/wish.js askAgainWhileDropped)
@@ -476,5 +476,6 @@ export const prepsWaiting = (ctx, P) => prepItems(ctx, P).some((x) => !PREPS.has
 /** chipPreps again in `ms`, for this page's memory only (a sign-out, or a test's release, ends the loop). */
 function prepAgain(ctx, ms) {
   clearTimeout(PREP.timer);
+  PREP.due = Date.now() + ms;
   PREP.timer = setTimeout(() => { PREP.timer = null; if (attach()?.ctx === ctx) chipPreps(ctx); }, ms);
 }

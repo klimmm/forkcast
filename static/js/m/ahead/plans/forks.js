@@ -242,11 +242,14 @@ export function forkPump(ctx, P, ask) {
     });
 }
 /** The block re-drawn in `ms` (one timer), so its plans ask their next solve. */
-let FORK_TIMER = null;
+let FORK_TIMER = null, FORK_DUE = 0;
 export function forkAgain(ctx, ms) {
   if (FORK_TIMER) return;
+  FORK_DUE = Date.now() + ms;
   FORK_TIMER = setTimeout(() => { FORK_TIMER = null; if (attach()?.ctx === ctx) pairChanged(ctx); }, ms);
 }
+/** When the block's re-draw (forkAgain) is due, null with none (the QA's solve-budget: the page quiet). */
+export const forkDue = () => (FORK_TIMER ? FORK_DUE : null);
 /** The fork solves' state (flights, landed roads, the pause, the retry timer) cleared: between the node tests
  *  (memory.test.mjs), where a solve one test's shell never answers would hold a lane the next test asks. */
 export function resetForks() {

@@ -1,7 +1,7 @@
 // screen.js mount: transfer rows, the doors and a plan's Why sheet
 
 import { h, fmt, chipName } from '../../ui.js';
-import { COPY } from '../calls.js';
+import { COPY, shownDelta } from '../calls.js';
 import { addPlan, pairOf, pinOfMove, planTake, removeMove, rollingAt, rowGains, takenKeep, whyFacts } from './presolve.js';
 import { WHY_SHEET, capFirst, closedOf, clubCounts, draftOf, ids, plan, removedAt, span, weekOf } from './core.js';
 import { gwMode, inkAt } from './buys.js';
@@ -144,7 +144,7 @@ export function rowsPart(V) {
     // the roll's own row is what the others count against: no number (owner, 2026-10-19); no "as good in GW9" after one
     // worth no less a week later (owner, 2026-10-29)
     const label = wait ? `${who}: ${wait}` : pl.refRow ? `${who}, ${COPY.planRefSaid}`
-      : `${who}, ${fmt.signed(pl.cmp.delta)} points over ${span(P.gws.filter((x) => x >= g))} vs ${pl.vsRoll ? choiceVs(P, pl) : plansVs(P, g)}`;
+      : `${who}, ${fmt.signed(shownDelta(pl.cmp))} points over ${span(P.gws.filter((x) => x >= g))} vs ${pl.vsRoll ? choiceVs(P, pl) : plansVs(P, g)}`;
     return { head, label, wait, pays: !wait && plPays(pl) };
   }
   /** A choice's + (a Week sheet row's, a token's): GW g alone taken (planTake, addPlan) through addOnce; `then` once it
@@ -228,7 +228,7 @@ export function rowsPart(V) {
     // one baseline per sheet (owner, 2026-10-22): a miss set on the header's number where it counts against rolling
     // (onBase), never against your plan under it; a Wildcard or Free Hit says the chip it spends and when the next
     // comes
-    const onHead = best || mine || (pl.vsRoll && !pl.refRow && !pl.vsMine) ? cmp.delta : null;
+    const onHead = best || mine || (pl.vsRoll && !pl.refRow && !pl.vsMine) ? shownDelta(cmp) : null;
     const sqChip = SQUAD_CHIPS.has(pl.chips?.[g]) ? pl.chips[g] : null;
     // why its moves go together, the solver's own: its solved road's GW-g squad (pl.road, never the phone's composed
     // pl.ev) holds a club's most with a buy, a sale of the same club its other move ("Neto's sale makes room: Palmer is
@@ -243,7 +243,7 @@ export function rowsPart(V) {
     });
     const facts = [...new Set([...now.flatMap((m) => whyFacts(ctx, P, g, m, pl.ev, without, { drafts: [pl.taken ?? pl.draft, d0], head: onHead })),
       ...(sqChip ? [COPY.chipUses(chipName(sqChip), chipBack(P, g))] : []),
-      ...(pl.alone && !pl.rolls && Math.abs(pl.alone.delta - cmp.delta) >= 0.05 ? [COPY.planAdds(pl.alone.delta)] : []),
+      ...(pl.alone && !pl.rolls && Math.abs(pl.alone.delta - shownDelta(cmp)) >= 0.05 ? [COPY.planAdds(pl.alone.delta)] : []),
       ...(pl.rolls ? [COPY.rollAlready(g)] : []), ...rollFt(P, g, pl)])];
     const head = planWeeks(P, { ...pl, moves: now }, g).find(([x]) => x === g)?.[1] ?? COPY.planRoll(g);
     // its moves one sentence as on the pitch and in a place, each move unbroken (never split inside a move or a name)
@@ -260,7 +260,7 @@ export function rowsPart(V) {
       b: { road: roadOfEv(other, g), label: short, short },
       // its players each a link to his card where the title names its moves (movesTitle)
       title: several ? movesTitle(P, g, added, { nb: true, tail: undone }) : now.length === 1 && title === `${nm(now[0].out)} → ${nm(now[0].in)}` ? movesTitle(P, g, now) : title,
-      sub: whySub(g, cmp.delta, `over ${span(gws)} vs ${vs}`), gw: g, reason: room.join('. ') || null,
+      sub: whySub(g, shownDelta(cmp), `over ${span(gws)} vs ${vs}`), gw: g, reason: room.join('. ') || null,
       // each GW-g move's two players: a move in place of your buy of the same seller (planBack's `taken`), its buy
       // against YOURS it replaces, each at his buy price (sheets/why.js `yours`; the seller leaves in both plans, so
       // his column answered nothing); any other, its buy against its sale

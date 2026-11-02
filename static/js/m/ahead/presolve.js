@@ -2,7 +2,7 @@
 
 import * as E from '../../plan/engine.js';
 import { fmt, chipName } from '../../ui.js';
-import { COPY, hitCap, statusText } from '../calls.js';
+import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
 import { attach, pinSell, pinHits, pinKeep, pinVeto, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
 import { MINUS, WHY_SHEET, addMove, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
 import { saidNow, sayAgain, asksOf, autoRuleName, barred, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
@@ -37,7 +37,22 @@ const PRESOLVE_RATE = { all: 30, week: 16 }, PRESOLVE_WINDOW_MS = 60000;
 export let DRY = null;
 // srcs: 'week' | 'sheet' → {P, gw, sig, owner, asks: [ask], made: [ask], tried: Set(tap id)}; failed: keys of failed
 // solves (not your rules'); at: viewed week {P, g} (plansOf); ctx: the page's
-export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map(), landed: new Set() };
+export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map(), landed: new Set(), took: null };
+/** A week's moves as one key ("out>in" sorted): the take's (addPlan, AHEAD.took) against the week's (weekRollOf). */
+export const movesKey = (ms) => ms.map((m) => `${m.out}>${m.in}`).sort().join(',');
+/** The take's number for week w while your plan is what the take made (AHEAD.took: its rules landed, none changed
+ *  since, its GW-g moves the week's) → its cmp | null. */
+/** Your rules as one key (the derived hold and Settings → Hits' cap left out: the take's landing re-derives them). */
+const rulesKey = (P) => JSON.stringify(P.pins.filter((p) => p.id !== 'hold' && p.id !== 'hits'));
+export function tookCmp(P, w) {
+  const t = AHEAD.took;
+  if (!t || t.g !== w.gw || t.team !== `${P.entry}|${P.A}` || t.version !== P.b.version) return null;
+  const pins = rulesKey(P);
+  if (pins === t.before) return null;  // not landed yet (or taken back by its Undo)
+  if (t.pins === null) t.pins = pins;
+  if (t.pins !== pins) { AHEAD.took = null; return null; }
+  return movesKey(w.moves) === t.sig ? t.cmp : null;
+}
 
 /** The rules tap `run` (an edit call: addPlan, removeRule, keep…) would make, made dry → edit's args {pins, drop,
  *  inPlace, hitsMax, was} | null (changes nothing, or refused: no solve). */
@@ -610,7 +625,7 @@ function takeSaid(ctx, g, head, cmp, tail) {
   // (as drawn, never a solve asked: plansListed)
   const line = () => { const Q = plan(ctx), w = Q && weekOf(Q, g); return w ? weekRollOf(ctx, Q, w, (x) => plansListed(ctx, Q, x)) : null; };
   const now = line();
-  if (now) return `${head}${fmt.signed(now.delta)}${tail}`;
+  if (now) return `${head}${fmt.signed(shownDelta(now))}${tail}`;
   // (the toast is made after these words: its handle a task later)
   setTimeout(() => {
     const was = saidNow();
@@ -621,10 +636,10 @@ function takeSaid(ctx, g, head, cmp, tail) {
     off = ctx.store.on('aheadPair', () => {
       const r = saidNow() === was ? line() : null;
       if (saidNow() !== was) { off(); clearTimeout(stop); return; }
-      if (r) { off(); clearTimeout(stop); sayAgain(was, `${head}${fmt.signed(r.delta)}${tail}`); }
+      if (r) { off(); clearTimeout(stop); sayAgain(was, `${head}${fmt.signed(shownDelta(r))}${tail}`); }
     });
   }, 0);
-  return `${head}${fmt.signed(cmp.delta)}${tail}`;
+  return `${head}${fmt.signed(shownDelta(cmp))}${tail}`;
 }
 export function addPlan(ctx, g, pl) {
   const P = plan(ctx);
@@ -709,6 +724,10 @@ export function addPlan(ctx, g, pl) {
   // (whether a solve is worth asking; never what is drawn)
   const p = !pl.road && !chips.some(([, c]) => SQUAD_CHIPS.has(c)) ? problemOf(ctx, ev, g) : null;
   if (p) { toastOf(ctx)(problemText(ctx, p), 'warn'); return false; }
+  // the week line keeps the take's number while your plan is what it made (owner, 2026-11-02: "+1.9" after the take
+  // too, not the re-plan's 1.74, a later week solved another way the solver counts the same): weekRollOf, until your
+  // rules change again
+  if (!DRY && pl.vsRoll && !pl.refRow) AHEAD.took = { team: `${P.entry}|${P.A}`, version: P.b.version, g, sig: movesKey(pl.choice.moves.filter((m) => (m.gw ?? g) === g)), cmp: pl.cmp, before: rulesKey(P), pins: null };
   return edit(ctx, {
     pins, drop: [...own.flatMap((m) => wishDrop(P, m.in)), ...drop, ...taken.map((q) => q.id)], road: pl.road, inPlace: chain.keys().next().value ?? null,
     // a GW-g armband the plan moves is said, as every edit's ending says it (B21)

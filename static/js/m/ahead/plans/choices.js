@@ -6,7 +6,7 @@ import { COPY } from '../../calls.js';
 import { bundleRoads } from '../../memory.js';
 import { MINUS, compare, draftOf, flatMoves, isFrozen, ownCount, removedAt, valuesFor, valuesKey, viewOfState, weekOf } from '../core.js';
 import { barred, chainOf, chipEdit, keptCells, keptFrom } from '../edits.js';
-import { AHEAD, DRY, PAIR, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, presolveWeek, weekOnto } from '../presolve.js';
+import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, presolveWeek, weekOnto } from '../presolve.js';
 import { inkAt } from '../buys.js';
 import { PREP, PREPS, chipPresolves, chipWeekGain, chipWeekOf, chipsAsked, chipsAvail, clearGain, keptBest, plPays, plannedAt, prepItems, prepKeep, squadWeek } from '../pieces.js';
 import { FORK_MAX, PLACE_ALTS, PLANS, SQUAD_CHIPS, earlyOf, movesSig, placesAsked, suggestionsOf } from './suggest.js';
@@ -725,7 +725,10 @@ export function weekRollOf(ctx, P, w, listed = (g) => plansOf(ctx, P, g)) {
   if ((!sq && !w.moves.length) || approxAt(P, w.gw)) return null;
   const L = listed(w.gw) ?? {};
   const ref = sq ? L.mineRef : L.ref;
-  return ref && L.mine ? vsRollOf(ctx, L.mine, ref, w.gw, L.mineRoad, L.countRoad?.(ref)) : null;
+  const r = ref && L.mine ? vsRollOf(ctx, L.mine, ref, w.gw, L.mineRoad, L.countRoad?.(ref)) : null;
+  // (the move you took, its number as its token said it, while your plan is what the take made: tookCmp)
+  const took = r && !sq && tookCmp(P, w);
+  return took ? { ...r, delta: took.delta, ref: took.ref, shown: took.shown, label: took.label } : r;
 }
 /** Plan `mine` against roll plan `ref` ({ev, road}), the same later weeks on both sides: the one measure of a week's
  *  number against rolling (weekRollOf: the week line of your transfers, Wildcard or Free Hit; plansOf's chipOf: that

@@ -9,7 +9,7 @@
 // Sheet contract: static/js/m/app.js (open(ctx, {gw}) → sheet, ctx.openSheet('chips', …)).
 
 import { h, fill, fmt, chipName, xpGain, reduceMotion } from '../../ui.js';
-import { COPY } from '../calls.js';
+import { COPY, shownDelta } from '../calls.js';
 import * as AH from '../ahead.js';
 
 export function open(ctx, { gw } = {}) {
@@ -81,11 +81,11 @@ export function open(ctx, { gw } = {}) {
       /** Its number: the gap once known, forecast points blue with "xP" (ui.js xpGain; owner, 2026-10-22: no green or
        *  red), its sign its direction; a Wildcard's or Free Hit's the pitch's number; "checking…" while its solve runs,
        *  else nothing. */
-      const numberOf = (r) => (r.cmp ? [xpGain(r.cmp.delta)]
+      const numberOf = (r) => (r.cmp ? [xpGain(shownDelta(r.cmp))]
         : r.solving ? h('small', null, COPY.chipChecking) : null);
       const saidOf = (r, fact) => {
         const n = chipName(r.chip);
-        const pts = r.cmp ? `: ${fmt.signed(r.cmp.delta)} points over ${COPY.span(P0.gws.filter((x) => x >= g))} vs ${r.vs ?? (r.state === 'swap' ? chipName(r.instead) : COPY.chipNoChip)}` : '';
+        const pts = r.cmp ? `: ${fmt.signed(shownDelta(r.cmp))} points over ${COPY.span(P0.gws.filter((x) => x >= g))} vs ${r.vs ?? (r.state === 'swap' ? chipName(r.instead) : COPY.chipNoChip)}` : '';
         if (r.state === 'on') return `${n} planned for GW${g}${r.mine ? '' : ' by Forkcast'}${pts}. Takes it off.`;
         if (r.state === 'off') return `${n}: ${fact.toLowerCase()}.`;
         if (r.state === 'moved') return `Move ${n} from GW${r.at} to GW${g}.`;

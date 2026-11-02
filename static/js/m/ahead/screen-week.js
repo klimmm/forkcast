@@ -1,6 +1,6 @@
 // screen.js mount: the Week sheet's rows, its words and the Why sheet
 
-import { COPY, priceMorning } from '../calls.js';
+import { COPY, priceMorning, shownDelta } from '../calls.js';
 import { h, fmt, fill, icon, xpGain } from '../../ui.js';
 import { fundingOf, moveTo, movesInOrder, pairOf, pinOfMove, presolveTaps, removeMove, rowGains, weekTaps, whenOf, whenOnBase, whyFacts } from './presolve.js';
 import { asTaken, choiceVs, mineAny, planBack, planBaseline, plansOf, yoursAt } from './plans.js';
@@ -251,7 +251,7 @@ export function weekPart(V) {
     // plan without it, which makes no later transfer; rolling's plan spends the one it saves): that amount and what it
     // counts against, one line (COPY.totalMoved; owner, 2026-10-26)
     const others = P.weeks.some((x) => x.moves.some((y) => !(x.gw === g && y.out === m.out && y.in === m.in)));
-    const moved = vr && !shares && !lead && Math.abs(own.delta - vr.delta) >= 0.05 ? h('span.wy-tot', null, COPY.totalMoved(own.delta, others)) : null;
+    const moved = vr && !shares && !lead && Math.abs(own.delta - shownDelta(vr)) >= 0.05 ? h('span.wy-tot', null, COPY.totalMoved(own.delta, others)) : null;
     return ctx.openSheet('why', {
       a: { road: roadOfEv(vr ? vr.mine : withIt, g), label: `${nm(m.out)} → ${nm(m.in)}` },
       b: { road: vr ? roadOfEv(vr.ev, g) : roadOfEv(without, g), label: vr ? `Roll GW${g}` : `Keeping ${nm(m.out)}`, short: rolls ? 'Rolling' : `Keeping ${nm(m.out)}` },
@@ -261,10 +261,10 @@ export function weekPart(V) {
       pairs: pairs ?? [pairOf(withIt, g, m)],
       // a header against rolling (vr): the facts' ", not X" (the move's own number, `own`) names its baseline (owner,
       // 2026-10-22: one baseline per sheet); its facts' numbers are set on the header's, against rolling (onBase)
-      facts: lead ?? whyFacts(ctx, P, g, m, withIt, without, shares ? { yours: true } : { drafts, c: own, yours: true, head: vr ? vr.delta : null }),
+      facts: lead ?? whyFacts(ctx, P, g, m, withIt, without, shares ? { yours: true } : { drafts, c: own, yours: true, head: vr ? shownDelta(vr) : null }),
       // the same move in each GW (whenOf); a tapped week is chosen, the button under the line moves your transfer there
       // (moveTo: toast and Undo), the sheet closes
-      when: whenSheet(P, g, m, vr ? { head: vr.delta, vs } : null, shares),
+      when: whenSheet(P, g, m, vr ? { head: shownDelta(vr), vs } : null, shares),
       acts: [...(whyActs(P, g, m, c) ?? []), ...placeAct(m.in, g)],
       // presolved taps: its buttons', then your transfer moved to each other week of the When line
       presolve: frozenAt(P, g) ? null : [...whyTaps(P, g, m), ...(pinOfMove(P, { ...m, gw: g }) ? P.gws.filter((x) => x !== g).map((x) => ({ kind: 'move', gw: g, run: () => moveTo(ctx, { ...m, gw: g }, x) })) : [])],
@@ -337,7 +337,7 @@ export function weekPart(V) {
   /** A move's gain: "+6.2 xP", shimmering while the full plan checks an edit (the plan before it: no ≈; owner,
    *  2026-10-26); no weak word after it (owner, 2026-10-18); blue as every forecast number, its sign its direction,
    *  never a verdict's green or red (ui.js xpGain; owner, 2026-10-22). */
-  const gainOf = (cmp, ap = false) => h('span.ah-bg.m-num', { class: { 'm-pending': ap } }, xpGain(cmp.delta, 'span', null, true));
+  const gainOf = (cmp, ap = false) => h('span.ah-bg.m-num', { class: { 'm-pending': ap } }, xpGain(shownDelta(cmp), 'span', null, true));
   /** A Why sheet's headline (openWhy, openPlanWhy): "GW8 · +5.6 xP over GW8–11 vs rolling", its gain blue with "xP" as
    *  the rows' (ui.js xpGain), "points" said for the unspoken marker; `rest` its words after it. */
   const whySub = (g, d, rest) => [`GW${g} · `, xpGain(d), h('span.sr-only', null, ' points'), ` ${rest}`];
@@ -346,7 +346,7 @@ export function weekPart(V) {
    *  tran…" on a 390 px phone), else its gain (gainOf), else nothing; and as its label says it ("checking…", "about
    *  +6.2 points vs rolling": `vs`, true for rolling, else its words, "vs your plan"; VoiceOver reads "versus"). */
   const numOf = (wait, cmp, ap) => { const { waitClock } = V; return (wait ? h('span.ah-bq2', { 'aria-hidden': 'true' }, waitClock('', { late: true, pre: ' · …', sep: ' · ' }) ?? [' · ', COPY.pairChecking]) : cmp ? gainOf(cmp, ap) : null); };
-  const numSaid = (wait, cmp, ap, vs = false) => (wait ? COPY.pairChecking : cmp ? `${ap ? 'about ' : ''}${fmt.signed(cmp.delta)} points${vs ? ` vs ${vs === true ? COPY.planVsRoll : vs}` : ''}` : '');
+  const numSaid = (wait, cmp, ap, vs = false) => (wait ? COPY.pairChecking : cmp ? `${ap ? 'about ' : ''}${fmt.signed(shownDelta(cmp))} points${vs ? ` vs ${vs === true ? COPY.planVsRoll : vs}` : ''}` : '');
   /** …a checked choice's number as a plate, a place's card, a token and a handle say it, against what its row counts
    *  (choiceVs: "vs your plan" in a week of yours; none off the hold). */
   const plNumSaid = (P, pl) => numSaid(false, pl.cmp, false, pl.vsRoll && choiceVs(P, pl));
