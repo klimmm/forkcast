@@ -276,6 +276,12 @@ const sameMemPlan = (a, b) => {
   return keys.length === Object.keys(b).length && keys.every((k) => SAME_SKIP.has(k) || a[k] === b[k] || JSON.stringify(a[k]) === JSON.stringify(b[k]));
 };
 
+/** Plan views a and b for the same team, week, data and rules (pins): a view drawn anew for a bundle sent again (a
+ *  first plan's solve landing, a refresh) is the same one, so a solve in flight for it is never let go and asked
+ *  again (2026-11-03: a new team's load asked GW11's preparation and the ✕'s refusal up to seven times each). */
+export const sameView = (a, b) => a === b || (!!a && !!b && String(a.entry) === String(b.entry) && a.A === b.A && a.b?.version === b.b?.version
+  && (a.pins ?? []).map((p) => p.id).sort().join() === (b.pins ?? []).map((p) => p.id).sort().join());
+
 export function plan(ctx) {
   const I = info(ctx);
   if (!I || !I.base) return null;

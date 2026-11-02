@@ -4,7 +4,7 @@ import * as E from '../../plan/engine.js';
 import { fmt, chipName } from '../../ui.js';
 import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
 import { attach, pinSell, pinHits, pinKeep, pinVeto, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
-import { MINUS, WHY_SHEET, addMove, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
+import { MINUS, WHY_SHEET, addMove, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
 import { saidNow, sayAgain, asksOf, autoRuleName, barred, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
 import { FORK_FLIGHTS, SQUAD_CHIPS, asTaken, byGain, choiceVs, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
 import { freedBy, lineupMoved, gwMode, inkAt, isLive } from './buys.js';
@@ -88,11 +88,11 @@ function presolve(ctx, P, src, taps, { gw = P.A, sig = '', owner = null } = {}) 
   // taps with ids (the week's: a take's choice, a Remove's rule) of the same view add to what it asked as more are
   // ready, each made dry once (tried); another view's are asked afresh
   const grows = taps.every((t) => t.id != null);
-  if (!(cur?.P === P && cur.gw === gw && cur.owner === owner && (cur.sig === sig || grows))) AHEAD.srcs.set(src, (cur = { P, gw, sig: null, owner, asks: [], made: [], tried: new Set() }));
+  if (!(sameView(cur?.P, P) && cur.gw === gw && cur.owner === owner && (cur.sig === sig || grows))) AHEAD.srcs.set(src, (cur = { P, gw, sig: null, owner, asks: [], made: [], tried: new Set() }));
   if (cur.sig !== sig) {
     cur.sig = sig;
     // (none another source asks, nor one memory has: a sheet's taps besides the week's)
-    const others = [...AHEAD.srcs].filter(([k, x]) => k !== src && x.P === P).flatMap(([, x]) => x.asks.map((a) => a.key));
+    const others = [...AHEAD.srcs].filter(([k, x]) => k !== src && sameView(x.P, P)).flatMap(([, x]) => x.asks.map((a) => a.key));
     // (the room counts every tap made, its solve asked or memory's already: one solved before never makes room for the
     // next likeliest; 2026-11-03, a new team's load asked the Swap of Barry and of Hill, the band's best Evanilson's
     // solved, a new plan view later: 22 solves)
@@ -172,8 +172,8 @@ export function pumpAhead(ctx) {
   // (sheet first: while it is up its buttons are what a tap can reach)
   for (const src of ['sheet', 'week']) {
     const s = AHEAD.srcs.get(src);
-    if (!s || s.P !== P) continue;
-    if (src === 'week' && (AHEAD.at?.P !== P || AHEAD.at.g !== s.gw)) continue;
+    if (!s || !sameView(s.P, P)) continue;
+    if (src === 'week' && (!sameView(AHEAD.at?.P, P) || AHEAD.at.g !== s.gw)) continue;
     for (const a of s.asks) {
       // (`landed`: its answer came on this page, for these values on this bundle (the key is the version's): never asked
       // again even where memory keeps it under the plan service's version, not the bundle's (a re-bake serving the

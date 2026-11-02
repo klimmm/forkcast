@@ -14,6 +14,8 @@ export function mountSolveLog(team = () => null, server = () => null) {
   // since last user action")
   let acted = 0;
   for (const t of ['pointerdown', 'keydown']) document.addEventListener(t, (e) => { if (!el.contains(e.target)) acted = Date.now(); }, { capture: true, passive: true });
+  // (a key's short tag: its string hashed, the same key the same tag)
+  const tag = (k) => { let h = 5381; for (const ch of String(k)) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h.toString(36); };
   const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
   // (a button copies the header and every line, not only the 30 shown, as plain text; owner, 2026-11-03, "add button to
   // copy logs")
@@ -57,7 +59,8 @@ export function mountSolveLog(team = () => null, server = () => null) {
       : x.state === 'solved' && x.ms != null && x.ms < 1000 ? 'already solved' : x.ms != null ? `${x.state} in ${secs(x.ms)}` : x.state);
     const head = `${running} running · ${since} since your last tap · ${mine.length} in all`;
     const line = (x) => `${typeof x.gw === 'number' ? `GW${x.gw}` : x.gw} · ${x.kind} · ${x.what} · ${ends(x)}`;
-    said = [head, ...mine.map(line)];
+    // (the copy names each solve's key and lane too: one asked again under the same words told apart)
+    said = [head, ...mine.map((x) => (x.key ? `${line(x)} · lane ${x.lane} · #${tag(x.key)}` : line(x)))];
     list.replaceChildren(
       Object.assign(document.createElement('b'), { textContent: head }),
       ...mine.slice(0, 30).map((x) => Object.assign(document.createElement('div'), { className: x.state === 'to come' ? 'solving' : x.state, textContent: line(x) })));

@@ -4,7 +4,7 @@ import * as E from '../../../plan/engine.js';
 import { chipName } from '../../../ui.js';
 import { COPY } from '../../calls.js';
 import { bundleRoads } from '../../memory.js';
-import { MINUS, compare, draftOf, flatMoves, isFrozen, ownCount, removedAt, valuesFor, valuesKey, viewOfState, weekOf } from '../core.js';
+import { MINUS, compare, draftOf, flatMoves, isFrozen, ownCount, removedAt, sameView, valuesFor, valuesKey, viewOfState, weekOf } from '../core.js';
 import { barred, chainOf, chipEdit, keptCells, keptFrom } from '../edits.js';
 import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, presolveWeek, rootStill, weekOnto } from '../presolve.js';
 import { inkAt } from '../buys.js';
@@ -478,7 +478,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // week since owner, 2026-10-28)
   if (!peek && !prep) AHEAD.at = { P, g };
   for (const [lane, f] of peek || prep ? [] : forkFlights()) {
-    if (asks.some((a) => a.ask?.key === f.key) || f.key === owed?.key || f.root || tree.some((n) => n.key === f.key) || (f.P === P && f.gw > g && !f.ahead) || aheadAsks(f, P, g)) continue;
+    if (asks.some((a) => a.ask?.key === f.key) || f.key === owed?.key || f.root || tree.some((n) => n.key === f.key) || (sameView(f.P, P) && f.gw > g && !f.ahead) || aheadAsks(f, P, g)) continue;
     f.cancel?.();
     if (lane) FORK_FLIGHTS.delete(lane); else PAIR.flight = null;
     letGo = true;
@@ -729,7 +729,7 @@ function prepNext(ctx, P, g) {
   // the next week alone (owner, 2026-11-02: "make only next week prepared after this lands not all 3"; every later
   // week since 2026-10-28 before), once the viewed week's taps solved ahead have landed too (presolveWeek's, `ahead`):
   // never beside what you wait on
-  if (forkFlights().some(([, f]) => f.ahead && f.P === P)) return;
+  if (forkFlights().some(([, f]) => f.ahead && sameView(f.P, P))) return;
   const nx = nextGw(P, g);
   if (nx !== null) plansOf(ctx, P, nx, { prep: true });
 }

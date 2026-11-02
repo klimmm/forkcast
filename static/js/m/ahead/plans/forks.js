@@ -247,7 +247,7 @@ export function forkPump(ctx, P, ask) {
   const ours = () => (lane ? FORK_FLIGHTS.get(lane) : PAIR.flight) === flight;
   const purpose = ask.ahead ? 'presolve' : prep ? 'pairnext' : 'pair';
   if (ask.ahead) AHEAD.asked.push({ at: Date.now(), key: ask.key, src: ask.src });
-  const log = { at: Date.now(), entry: String(P.entry), gw: ask.gw, kind: ask.ahead ? 'a tap, ahead' : ask.root ? 'the week\'s plan' : side ? 'the next ✕ / Keep' : ask.need ? 'next week: what it draws' : prep ? 'next week' : 'a choice', what: solveWords(ctx, P, ask), ms: null, state: 'solving' };
+  const log = { at: Date.now(), entry: String(P.entry), gw: ask.gw, kind: ask.ahead ? 'a tap, ahead' : ask.root ? 'the week\'s plan' : side ? 'the next ✕ / Keep' : ask.need ? 'next week: what it draws' : prep ? 'next week' : 'a choice', what: solveWords(ctx, P, ask), key: ask.key, lane, ms: null, state: 'solving' };
   SOLVE_LOG.unshift(log);
   if (SOLVE_LOG.length > 40) SOLVE_LOG.length = 40;
   const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, lane ? { slot: `fork${lane}` } : undefined);
