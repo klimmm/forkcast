@@ -23,7 +23,13 @@ export function mountSolveLog(team = () => null, server = () => null) {
       Object.assign(document.createElement('b'), { textContent: `${running} running · ${acted ? mine.filter((x) => x.at >= acted).length : mine.length} since your last tap · ${mine.length} in all` }),
       // (the server's own planning of a team it hasn't seen, "Planning GW10–13": its bake, never a solve this page asks;
       // owner, 2026-11-03, "why it 'planning' but no solves")
-      ...(() => { const b = server(); return b ? [Object.assign(document.createElement('div'), { className: 'solving', textContent: `Server: planning this team · ${b.done ?? 0} of ${b.total ?? '?'} plans · ${secs(now - b.at)}…` })] : []; })(),
+      ...(() => {
+        const b = server();
+        if (!b) return [];
+        const more = Math.max(0, (b.total ?? 0) - (b.items?.length ?? 0));
+        return [Object.assign(document.createElement('div'), { className: 'solving', textContent: `Server: planning this team · ${b.done ?? 0} of ${b.total ?? '?'} plans · ${secs(now - b.at)}${more ? ` · ${more} more to come` : ''}` }),
+          ...(b.items ?? []).map((i) => Object.assign(document.createElement('div'), { className: i.state === 'done' ? 'solved' : 'solving', textContent: `Server · ${i.what} · ${i.state === 'done' ? `solved${Number(i.s) > 0 ? ` in ${Number(i.s).toFixed(1)} s` : ''}` : i.state}` }))];
+      })(),
       ...mine.slice(0, 20).map((x) => Object.assign(document.createElement('div'), {
         className: x.state,
         // (an answer back within a second is one the server had already: no solve ran)

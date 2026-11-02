@@ -171,7 +171,13 @@ export function mount(el, ctx) {
   // (?solves=1 only: the fork solves in words, and the server's planning of a new team while it bakes)
   mountSolveLog(() => String(ctx.store.get('entry') ?? ''), () => {
     const b = ctx.bundle?.bake;
-    return ctx.store.get('conn')?.state === 'baking' && b ? { done: b.done, total: b.total, at: Number(b.started) > 0 ? Number(b.started) * 1000 : Date.now() } : null;
+    if (ctx.store.get('conn')?.state !== 'baking' || !b) return null;
+    // (each of its plans by name: base, rolling, held, a veto's "not Hill", a slide's "Hill from GW11")
+    // (the first paint runs before the screen's state is made: a name read then is the id)
+    const nm = (id) => { try { return S.drawn?.L?.name?.(Number(id)) ?? id; } catch { return id; } };
+    const what = (k) => (k === 'base' ? 'the plan' : k === 'roll' ? 'rolling' : k === 'hold' ? 'your team held' : /^veto\/(\d+)/.test(k) ? `not ${nm(/^veto\/(\d+)/.exec(k)[1])}`
+      : /^slide\/(\d+)@(\d+)/.test(k) ? `${nm(/^slide\/(\d+)/.exec(k)[1])} from GW${/@(\d+)/.exec(k)[1]}` : k);
+    return { done: b.done, total: b.total, at: Number(b.started) > 0 ? Number(b.started) * 1000 : Date.now(), items: (b.items ?? []).map((i) => ({ what: what(i.key), state: i.state, s: i.elapsed })) };
   });
   // the parts' view of this function's scope (live getters) and the parts' functions, by their own names
   const V = {
