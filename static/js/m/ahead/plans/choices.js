@@ -707,7 +707,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   }
   // (the next week prepared once this week's own plan and roll are in, not after every row is checked: the band's
   // "Next transfers GW11: …" is tapped within seconds of a take; owner, 2026-11-03, "when move to gw 11 it grey out")
-  if (!list.pending) prepNext(ctx, P, g);
+  // (…and once the solver's own rows, its week's parts, are in too: each one landing can change the week's best, and
+  // the next week prepared under the one before is let go; 2026-11-03, a five-move GW10: GW11's asked seven times)
+  if (!list.pending && !list.some((x) => x.solver && x.state === 'solving')) prepNext(ctx, P, g);
   return list;
 }
 /** A week's choices (plansOf's list) settled: none checks, nor what its rows count against. */
