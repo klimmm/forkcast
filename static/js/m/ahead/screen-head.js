@@ -595,6 +595,6 @@ export function headPart(V) {
   };
   /** What the viewed week's choices count against and over which weeks, "Suggested plans · GW8–11 · vs rolling"
    *  (COPY.suggested): the Week sheet's plans heading and the pitch choices' spoken name (renderDecks). */
-  const plansHeading = (P, g) => { const { plansVs } = V; return COPY.suggested(P.gws.filter((x) => x >= g), plansVs(P, g), COPY.plansHead); };
+  const plansHeading = (P, g) => { const { plansVs } = V; const gws = P.gws.filter((x) => x >= g); return COPY.suggested(gws, plansVs(P, g), COPY.plansHead, gws.length < P.gws.length); };
   return { pageName, resetTap, resetSheet, learn, gwNow, setGw, outerH, fitBlock, fitHead, fitPitch, redeck, schedule, covered, paintAvatar, renderHead, renderGwLine, paintDeadline, replanning, paintPlanStatus, tick, hosts, focusedKeys, keepFocus, renderPair, render, renderBaking, planning, renderRules, ruleSheet, clearAll, driftRoom, owes, priceDrift, heldOrder, renderWeek, tellStory, paintStoryBar, waitNow, paintWait, paintDim, weekModel, waited, clockShown, waitClock, plansHeading };
 }

@@ -100,6 +100,9 @@ export const viewedGw = (ctx, P) => {
   const g = Number(ctx.store?.get?.('gw'));
   return P?.gws.includes(g) ? g : P?.A ?? ctx.data?.gw;
 };
+/** The Why sheet shown (owner, 2026-11-02: "hide Why sheet and its tests"): off, a transfer's or plan's Why opens its
+ *  buy's player sheet and a take's toast has no Why. */
+export const WHY_SHEET = false;
 /** A take's toast action before its Undo (addPlan; owner, 2026-10-21): GW g's buy `id`'s transfer Why sheet; toast and
  *  Undo stay until it closes (ui.toast `keep`). */
 export const whyAct = (g, id) => ({ label: COPY.whyAct, keep: true, onClick: () => TAP_IN?.(g, id) });

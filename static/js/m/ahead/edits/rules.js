@@ -122,8 +122,10 @@ export function veto(ctx, m, { scope = 'gw' } = {}) {
   }
   const taken = clashing(P, pin);
   const what = withTaken(P, said, taken);
-  const text = withFlag(ctx, m.in, vsPrev(ctx, what));
   const drop = [...taken.map((q) => q.id), ...meeting(P, ['veto', 'never'], m.in, pin)];
+  // a veto of a buy your plan doesn't make leaves it as it is: its words alone, no "0.0 pts" (read as a refusal that
+  // costs nothing: review 7, 2026-11-02); the corner shows the next best
+  const text = withFlag(ctx, m.in, vsPrevOr(ctx, () => what, drop, vsPrev(ctx, what)));
   // the bake's veto road is the plan at once when it fits; else the solver plans without him
   const road = baked(ctx, [pin], drop);
   return edit(ctx, { pins: [pin], drop, road, from: road ? P.A : m.gw, text, what, taken });

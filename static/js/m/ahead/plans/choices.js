@@ -183,9 +183,20 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // (read here; asked after the roll's and the rows' own solves, below: rolling's count first)
   const depth = prep ? 0 : 2, tree = owed || followed ? [] : refusalRoads(ctx, P, g, { peek: true, depth });
   const solverRoads = new Set([owed?.road, ...tree.map((n) => n.road)].filter(Boolean));
-  for (const r of [...bundleRoads(P.b.roads), ...solverRoads]) {
+  // (your GW-g transfers' own plan, the reference `yours` counts against, where a solver road makes no move beside
+  // them: that road, never a fork of its own; owner, 2026-11-02, at most 6 solves after an action)
+  const selfRoads = new Map();
+  // (the solver's own roads first: a choice it and a bake road both make is counted from its solve, as what it counts
+  // against (the roll, a keep) is: one kind of solve on both sides; 2026-11-02, a bake road against the keep's read
+  // Murillo → Hill −0.03 where the solver's own read it best)
+  for (const r of [...solverRoads, ...bundleRoads(P.b.roads)]) {
     const x = planOfRoad(ctx, P, r, g, d0);
     if (!x) continue;
+    if (solverRoads.has(r) && forkKey(x.choice, g) === yours && !selfRoads.has(yours) && x.plan) {
+      // (your plan itself where its later moves are yours too, else the plan it is, Forkcast's later moves counted)
+      const own = !chipMine && movesSig(x.plan.moves) === mineFrom && !Object.keys(x.plan.chips).length, m = own ? null : measurePlan(ctx, P, g, x.plan, asIs, false);
+      if (own || m) selfRoads.set(yours, { road: r, m });
+    }
     const whole = r === tree[0]?.road || r === owed?.road;
     if (whole) split.delete(forkKey(x.choice, g));
     if (!choices.has(forkKey(x.choice, g))) {
@@ -197,7 +208,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     seen.add(s);
     const m = measured(x.plan);
     const k = forkKey(x.choice, g);
-    if (m && !heldOf(x.choice)) known.set(k, [...(known.get(k) ?? []), { ...m, road: r, model: r === P.base, exact: exactRoads.has(r) }]);
+    // (a solver road of your plan's, refusalRoads' or owedRoad's, solved on your plan as it stands: its GW-g choice
+    // exactly, in any week; never solved again as a fork)
+    if (m && !heldOf(x.choice)) known.set(k, [...(known.get(k) ?? []), { ...m, road: r, model: r === P.base, exact: exactRoads.has(r) || solverRoads.has(r) }]);
   }
   // a Wildcard and a Free Hit this week when you have them (never crowded out), none planned in their half; add keeps
   // it only in its best week (squadOk)
@@ -216,7 +229,10 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     for (const a of alts) {
       if (cap && !room()) break;
       const c = choiceOf(a.in), k = forkKey(c, g);
-      if (!choices.has(k)) { add(c, earlyAt(c)); if (!cap && choices.has(k)) placed.add(k); }
+      if (!choices.has(k)) add(c, earlyAt(c));
+      // (a place you opened: each buy it deals is its own, one the week listed too: asked, never held back as the
+      // week's own suggestion)
+      if (!cap && choices.has(k)) placed.add(k);
       guess(c, a.cmp?.delta);
     }
   };
@@ -395,10 +411,20 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     if (!fitsAt(ctx, P, g, c, d0)) return needs.has(k) ? [{ k, c, roads: [], need: needs.get(k) }] : [];
     const land = choices.has(k) ? landOf(c) : null;
     if (land) return [{ k, c, roads: [], land, ask: { key: land.key, values: land.values, gw: g, ...(prep ? { prep } : {}) } }];
+    if (selfRoads.has(k)) return [{ k, c, roads: [], counts: selfRoads.get(k) }];
+    // (…its root not in yet: it waits for it, asked below, rather than a solve of its own beside it)
+    if (k === yours && k !== rollK && refs.has(k) && tree[0] && !tree[0].road && !prep) return [{ k, c, roads: [], root: true }];
     const roads = known.get(k === fhLater ? fhK : k) ?? [];
     if (roads.some((p) => p.exact)) return [{ k, c, roads }];
-    const values = forkValues(ctx, P, g, c);
-    return [{ k, c, roads, ask: { key: valuesKey(P, values), values, gw: g, ...(prep ? { prep } : {}) } }];
+    // (a week prepared ahead, prepNext: its best alone, refusalRoads' root. Owner, 2026-11-02: "no action in any week
+    // can trigger more than 6 solves after it ... nothing is greyed out after any choice made")
+    if (prep) return [];
+    const values = forkValues(ctx, P, g, c), key = valuesKey(P, values);
+    // a transfer choice of the week's own, not the solver's (refusalRoads' roads answer theirs exactly: known), nor
+    // what a choice counts against (refs), nor a place you opened: listed once solved (a road kept, or its solve in
+    // flight), never asked, so an action asks only the solver's moves and nothing waits on the rest
+    if (!refs.has(k) && !placeOnly.has(k) && !placed.has(k) && c.moves.length && !Object.keys(c.chips).length && !forkRead(key) && !forkFlights().some(([, f]) => f.key === key)) return [];
+    return [{ k, c, roads, ask: { key, values, gw: g } }];
   });
   // (stable: choices with no estimate keep their offered order; those the bars keep from being the week's suggestion go
   // after the rest, so a lit-able choice never waits behind one; a pair's move alone after the rest of its pair's kind)
@@ -421,8 +447,10 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // (chip plan p on plan r's later weeks: a Free Hit's week alone, its squad reverting after; a Wildcard's plan as it
   // is; chipApart's and a prepared row's on its own solve's)
   const chipOn = (chip, r, p) => (chip === 'fh' ? { ...r, chips: { [g]: chip }, draft: weekOnto(r.draft, p.draft, g) } : p);
-  const solveOf = ({ k, c, roads, ask, same, need, land }) => {
+  const solveOf = ({ k, c, roads, ask, same, need, land, counts, root }) => {
     if (same) return self(c);
+    if (counts) return counts.m ? ready([{ ...counts.m, road: counts.road, model: false, exact: true }], c) : self(c, counts.road);
+    if (root) return { state: 'solving', choice: c, wait: 'flight' };
     if (need) return { state: 'failed', choice: c, why: 'needs', needs: need.ids, problems: need.problems };
     if (!ask) return ready(roads, c);
     const key = ask.key;
@@ -709,7 +737,9 @@ const vsRollOf = (ctx, mine, ref, g, a, b) => ({ ...ownCount(ctx, compare(ctx, m
  *  (COPY.checkingWeek): the one now checked, the rows ready or failed + 1, of them all; null once none waits. Pure. →
  *  {i, n} | null */
 export function plansWait(plans) {
-  const n = plans.length, done = plans.filter((x) => x.state !== 'solving').length;
+  // (a place's own cards, a card's × opened: its sheet's wait, never the week's or the pitch's dim)
+  const of = plans.filter((x) => !x.placeOnly);
+  const n = of.length, done = of.filter((x) => x.state !== 'solving').length;
   return done < n ? { i: done + 1, n } : null;
 }
 /** How far a week's checks are as its week line and Week sheet say them ("Checking GW8 · 3 of 9 plans": renderLine,

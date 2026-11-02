@@ -215,8 +215,8 @@ export function pitchPart(V) {
     fill(totLine, h('span.k', null, `${span(P.gws)} `),
       totalNum(P),
       // the change blue with "xP" as the total, an Undo's too (xpGain; owner, 2026-10-22: no green or red number, its
-      // sign its direction)
-      d ? h('span.ah-tdelta', { style: { '--left': `${TOTAL_MS - (Date.now() - d.at)}ms` } }, ' (', xpGain(d.to - d.from), ')') : null);
+      // sign its direction), named what it is beside a week's "vs rolling" (review 7, 2026-11-02: one baseline each)
+      d ? h('span.ah-tdelta', { style: { '--left': `${TOTAL_MS - (Date.now() - d.at)}ms` } }, ` (${COPY.totalChange} `, xpGain(d.to - d.from), ')') : null);
     clearTimeout(S.totTimer);
     if (d) S.totTimer = setTimeout(() => { S.totDelta = null; fill(totSaid); const Q = plan(ctx); if (Q && el.isConnected) renderTotal(Q); }, TOTAL_MS - (Date.now() - d.at));
     keepGwLine();

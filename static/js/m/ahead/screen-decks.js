@@ -1,6 +1,6 @@
 // screen.js mount: the plates, the corner tokens and a take's landing
 
-import { MINUS, weekOf } from './core.js';
+import { MINUS, WHY_SHEET, weekOf } from './core.js';
 import { h, svg, fill, append, plural, reduceMotion, toast, xpGain, shownGain } from '../../ui.js';
 import { SQUAD_CHIPS, askPlace, byGain, failedWords, lineMoves, litShown, multiMove, placeFirst, placeOrder, planBack, planWeeks, rollOnly, singleMove, takesBack } from './plans.js';
 import { COPY } from '../calls.js';
@@ -79,6 +79,10 @@ export function decksPart(V) {
       // (its take's word first, its name shortened for it; where that leaves the name under NAME_LEAST, the word off
       // and the name whole again)
       const fitsWith = (steps) => (t.classList.remove('gol', 'nogo'), fitNum(t, tw.filter((x) => !x.matches('.ah-tn')), steps) && ns.every((x) => x.scrollWidth <= x.clientWidth + 0.5 || x.clientWidth >= least) && !meetsCard(t, 9, 6));
+      // (one move "Mbeumo → Rice" only whole, on one line with its number and word, nothing shortened; else his buy
+      // alone, "Rice", as before: review 7, 2026-11-02, the move's sale where it has room)
+      const one = t.dataset.buy && ns.length === 1 ? ns[0] : null;
+      if (one) { if (fitsWith(['noxp', 'nomark', 'tight'])) return true; one.textContent = t.dataset.buy; }
       // (its verb is kept at 320 too, the screen's one primary act: where the name would go under NAME_LEAST beside it,
       // "Swap" takes a line of its own under the name and number (.gol), off only where even that leaves no room)
       // (a plan's, two names or more, always one line: its word goes before a second line; where even names cut to
@@ -443,7 +447,7 @@ export function decksPart(V) {
     const why = first && ready && pl.removed ? `, ${COPY.removedByYou}` : '';
     const said = o.tag != null ? `${COPY.partSaid(moves[0], e.adds.filter((m) => Number(m.in) !== e.inId).map((m) => COPY.moveSaid(nm(m.out), nm(m.in))), move)}. ${places}`
       : back && !best ? `${moves[0]}${v == null ? '' : `, ${num}`}${why}. ${places}`
-      : best ? `${COPY.bestSaid(moves, num, move)}. ${o.line ? COPY.showsWhy : places}`
+      : best ? `${COPY.bestSaid(moves, num, move)}. ${o.line && WHY_SHEET ? COPY.showsWhy : places}`
         : `${moves.join('; ')}, ${num}${why}. ${!first ? places : !ready ? placeLabel(P, d) : none ? COPY.placeNoneSaid(nm(d.a), d.entries.length, plansVs(P, g)) : places}`;
     const body = h('button.ah-spb', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': `${said}${o.line?.back ? `, ${o.line.back}` : ''}`, onClick: open },
       // (a multi-move best's sentence, every move named in its road's order)
@@ -506,18 +510,32 @@ export function decksPart(V) {
     // sentence never fits whole in the 149 px beside the goal)
     const mv = lit.move, top = mv && lead?.[0]?.L.e.pl === mv ? lead : null;
     /** A move's token: its place `a`'s entry e of choice pl, the best's ink (.mv) or the runner-up's white (.nx). */
+    // a press on a token's "Swap" (.ah-tgo): a key's or a screen reader's too (no point: detail 0); a tap at or right of
+    // the word's left edge
+    const onSwap = (ev) => {
+      const go = ev.currentTarget.querySelector('.ah-tgo');
+      if (!go || !ev.detail) return true;
+      const r = go.getBoundingClientRect();
+      return ev.clientX >= r.left - 4;
+    };
     const moveTok = (e, a, pl, best) => {
       const nm = P.L.name;
       // (the take-back of a transfer of yours "Keep Gabriel, not Hill": weekBest)
       const moves = takesBack(e) ? [COPY.keepSoldSaid(nm(e.inId), nm(a))] : e.adds.map((m) => COPY.moveSaid(nm(m.out), nm(m.in)));
       const swap = pl.state === 'ready' && !frozenAt(P, g), said = (best ? COPY.bestSaid : COPY.nextSaid)(moves, plNumSaid(P, pl), true);
-      // (the best's one buy, its ✕ refusing it: renderDecks' notBadge)
-      const one = best && swap && e.adds.length === 1 && !takesBack(e) ? e.adds[0] : null;
-      return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(one ? { notOut: one.out, notIn: one.in } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}) },
+      // (the best's first buy, its ✕ refusing it: renderDecks' notBadge; of several moves the first, the one refused
+      // ahead: presolve.refusalRoads' lead)
+      const one = best && swap && e.adds.length && !takesBack(e) ? e.adds[0] : null;
+      return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(one ? { notOut: one.out, notIn: one.in } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}), ...(!takesBack(e) && e.adds.length === 1 ? { buy: nm(e.adds[0].in) } : {}) },
         // (its verb first where it takes, as drawn: "Swap. Best move this week: …")
         'aria-label': swap ? COPY.bestSwapSaid(said) : `${said}, ${COPY.showsChoices}`,
-        onClick: (ev) => (swap ? takeFrom(ev, P, g, pl, ev.currentTarget, a, e.inId) : openPlace(a)) },
-        h('span.ah-tl', { 'aria-hidden': 'true' }, (takesBack(e) || !e.adds.length ? [e.inId] : e.adds.map((m) => m.in)).map((id, i, all) => h('span.ah-tn', null, `${nm(id)}${i < all.length - 1 ? ',' : ''}`))),
+        // (its "Swap" takes; a tap on its words opens his place, the move among his choices: review 7, 2026-11-02,
+        // feedforward, reversing the owner's 2026-10-26 whole-token take. By where the tap lands, the token's whole
+        // box its target (::before); a key or a screen reader's press, no point, takes, as its label says)
+        onClick: (ev) => (swap && onSwap(ev) ? takeFrom(ev, P, g, pl, ev.currentTarget, a, e.inId) : openPlace(a)) },
+        // (one move its sale and buy, "Murillo → Hill": review 7, 2026-11-02, the net result, not one leg; reversing the
+        // owner's 2026-10-26 buy alone; several their buys)
+        h('span.ah-tl', { 'aria-hidden': 'true' }, (takesBack(e) || !e.adds.length ? [nm(e.inId)] : e.adds.length === 1 ? [`${nm(e.adds[0].out)} → ${nm(e.adds[0].in)}`] : e.adds.map((m) => nm(m.in))).map((t, i, all) => h('span.ah-tn', null, `${t}${i < all.length - 1 ? ',' : ''}`))),
         // (its number as its plate's: numParts)
         h('span.ah-tnum.m-num', { 'aria-hidden': 'true' }, numParts(g, pl)),
         // its take's word where its tap takes (owner, 2026-10-28: one act, one word, one look): "Swap" in the mint of
@@ -553,7 +571,7 @@ export function decksPart(V) {
       // takes it (owner, 2026-10-26; as the plates: a tap opens, the take is inside)
       const what = planWeeks(P, { ...pl.choice, moves: [], hits: {} }, g, false).find(([x]) => x === g)?.[1] ?? COPY.planRoll(null);
       out.push(h('span.ah-tok.two', { class: { pays: s.pays, wait: !!s.wait }, dataset: { plan: key } },
-        h('button.ah-tbody', { type: 'button', disabled: !!s.wait, dataset: { row: `tok:${key}` }, 'aria-label': `${s.label}; shows why`, onClick: () => openPlanWhy(P, g, pl) },
+        h('button.ah-tbody', { type: 'button', disabled: !!s.wait, dataset: { row: `tok:${key}` }, 'aria-label': `${s.label}; ${WHY_SHEET ? 'shows why' : COPY.showsWeek}`, onClick: () => openPlanWhy(P, g, pl) },
           // its words and number on one line (number blue with "xP": ui.js xpGain), what it takes back or "checking…"
           // under both across the token's whole width (owner, 2026-10-26: not three lines); never a clock in its
           // number's slot: waitClock

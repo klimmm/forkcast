@@ -76,7 +76,7 @@ export {
 export {
   presolveTaps, owedAt, extraWeek, repicks, addYours, OWN_ALTS, ownAltsOf, tiedBuy, cheaperFirst, otherUseOf, whenOf,
   moveTo, pairMovesOf, planTake, takenKeep, addPlan, yoursTakenBack, rollingAt, pinOfMove, movesInOrder, fundingOf,
-  removeMove, rowGains, onBase, whenOnBase, ifMisses, whyFacts
+  removeMove, rowGains, onBase, whenOnBase, ifMisses, whyFacts, rootStill
 } from './ahead/presolve.js';
 export {
   buyPlan, saleOptions, saleBuy, bringIn, wishSolve, bringInTakes, removesText, holdBuy, weekWith, inWords,

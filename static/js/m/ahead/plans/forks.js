@@ -154,6 +154,9 @@ export function forkAsk(ctx, P, ask) {
   return null;
 }
 /** …as solved so far, never asked (plansOf's peek): its road, 'infeasible', 'error' (failed), or null (not solved). */
+/** A road kept under `key` as if its solve had answered it (refusalRoads' root still the best under rules it already
+ *  keeps: rootStill). */
+export const forkKept = (key, road) => keepNewest(FORK_ROADS, key, road, FORK_ROADS_MAX);
 export const forkRead = (key) => { const got = FORK_ROADS.get(key); return got?.failedAt != null ? 'error' : got ?? null; };
 /** The on-screen solves, the suggested plans' forks (purpose 'pair': queued above every prefetch, chip preparation and
  *  bake, jobs.VIEWED): lane 0 is PAIR.flight, in the speculative slot; a fork's ask also goes in lanes 1.. up to the

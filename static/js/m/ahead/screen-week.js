@@ -4,7 +4,7 @@ import { COPY, priceMorning } from '../calls.js';
 import { h, fmt, fill, icon, xpGain } from '../../ui.js';
 import { fundingOf, moveTo, movesInOrder, pairOf, pinOfMove, presolveTaps, removeMove, rowGains, weekTaps, whenOf, whenOnBase, whyFacts } from './presolve.js';
 import { asTaken, choiceVs, mineAny, planBack, planBaseline, plansOf, yoursAt } from './plans.js';
-import { FLASH, MINUS, NIGHT_KEY, WAIT_KEY, capFirst, compare, draftOf, dropMove, flatMoves, memOf, span, weekOf } from './core.js';
+import { FLASH, MINUS, NIGHT_KEY, WAIT_KEY, WHY_SHEET, capFirst, compare, draftOf, dropMove, flatMoves, memOf, span, weekOf } from './core.js';
 import { freedBy, liftsLive, rowName } from './buys.js';
 import { driftSay, keep, removeRule, toastOf, veto } from './edits.js';
 import { clearGain, itbWords, weekFacts } from './pieces.js';
@@ -211,6 +211,8 @@ export function weekPart(V) {
     return h('span.wy-ttl', null, moves.map((m, i) => [i ? ', ' : null, link(m.out), nb ? ' → ' : ' → ', link(m.in)]), tail ? ` ${tail}` : null);
   }
   function openWhy(P, g, m) { const { ctx, frozenAt, rollOf, rolling, shareWeek } = V;
+    // (hidden: the buy's player sheet: WHY_SHEET)
+    if (!WHY_SHEET) return ctx.openSheet('player', Number(m.in), { gw: g });
     const nm = P.L.name;
     const w = weekOf(P, g);
     let withIt, without, drafts = null, lead = null, label = null, pairs = null;

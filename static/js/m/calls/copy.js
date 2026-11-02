@@ -187,13 +187,14 @@ export const COPY = Object.freeze({
       'Forkcast\'s best buy waits behind the player he would replace, once that GW\'s plans are checked.',
       // plain words for the stacked cards and the take (owner, 2026-10-22: no coined "Edges", "card behind", "bring him
       // on")
-      `Tap the card behind a player to take that transfer; ${COPY.whyAct} on its message shows why.`,
+      // (no Why on its message while the Why sheet is hidden: ahead WHY_SHEET, owner 2026-11-02)
+      'Tap the card behind a player to take that transfer.',
       'Stacked cards behind a player are more choices for his place: tap them (or hold the card) to spread them out, each with its +.',
       'In a player\'s place, Keep over his own card keeps him that GW: nothing sells him.',
       'Roll and chips sit beside the goal.',
       // the rule a take adds, by its own word (rollRule; owner, 2026-10-22: never "lock", the plan length's padlock): a
       // transfer's "GW8 frozen", the Roll's "GW8 roll", a Wildcard's or Free Hit's its chip
-      'Taken transfers freeze their GW (Your rules: frozen): Forkcast changes nothing there. Roll adds a roll rule; Wildcard or Free Hit, the chip.',
+      'Taken transfers lock their GW (Your rules: locked): Forkcast changes nothing there. Roll adds a roll rule; Wildcard or Free Hit, the chip.',
       'Tap a choice\'s card, or a player tagged IN, to see why.',
       `Tap the line above the pitch for that GW's transfers, ${COPY.plansHead} and your rules.`,
       // its free transfers in every week, before its transfers (renderLine's weekLead)
@@ -389,7 +390,8 @@ export const COPY = Object.freeze({
    *  "GW8 roll", the Roll row's and plan row's words (planRoll), or with k moves of yours kept there "GW8 frozen"
    *  (owner, 2026-10-22: not "lock", the plan length's padlock and FPL's price lock). A noun, as named in a toast too
    *  ("Vuskovic in your plan · GW8 roll removed"). */
-  rollRule: (gw, k = 0) => (k ? `GW${gw} frozen` : COPY.planRoll(gw)),
+  // ("locked", the GW tile's lock: review 7, 2026-11-02, "frozen" read as jargon)
+  rollRule: (gw, k = 0) => (k ? `GW${gw} locked` : COPY.planRoll(gw)),
   /** A Roll + in a week with nothing to take back (ahead.addPlan): the rule it made and what it does. */
   rollMade: (gw) => `${COPY.rollRule(gw)} in Your rules: no transfer in GW${gw} until you take one`,
   /** The retired Auto-plan segments (ahead.gwModes): "Off", "FT only", "Up to −4", "Up to −8" (the solver's own cap);
@@ -641,7 +643,9 @@ export const COPY = Object.freeze({
    *  count (gws: valuedOver), "Suggested plans · GW8–9"; then what they count against, `vsPlan` planVs's words ("· vs
    *  no transfers", "· vs your plan"; true / false say "your plan" / "rolling"). Closed: "Suggested plans" alone
    *  (owner, 2026-10-13). */
-  suggested: (gws = null, vsPlan = null, lead = 'Suggested') => `${lead}${gws?.length ? ` · ${COPY.valuedOver(gws)}` : ''}${vsPlan === null ? '' : ` · vs ${typeof vsPlan === 'string' ? vsPlan : vsPlan ? 'your plan' : 'rolling'}`}`,
+  // (`short`: fewer weeks than the plan's window, said so, "GW12–13 only": review 7, 2026-11-02, a GW12 +1.3 next to a
+  // GW10 +1.2 counts fewer weeks)
+  suggested: (gws = null, vsPlan = null, lead = 'Suggested', short = false) => `${lead}${gws?.length ? ` · ${COPY.valuedOver(gws)}${short ? ' only' : ''}` : ''}${vsPlan === null ? '' : ` · vs ${typeof vsPlan === 'string' ? vsPlan : vsPlan ? 'your plan' : 'rolling'}`}`,
   /** The suggested plans (owner, 2026-10-11): each week's choices (ahead.plansOf) under "Suggested plans", ranked by
    *  their numbers, each against rolling (the Roll row, no number); a row is the week's own moves alone ("GW7 Kayode →
    *  Vuskovic", none: "GW7 roll"; the + takes this week only: planTake) and its number; on the pitch, a place's "⋯ N
@@ -694,6 +698,12 @@ export const COPY = Object.freeze({
   /** The week's best move as a token beside the goal, first in its stack (ahead.tokensOf; owner, 2026-10-26):
    *  "Evanilson +1.6", said "Best move this week: …, shows his choices". */
   showsChoices: 'shows his choices',
+  /** Who a take's re-picked lineup benches (ahead lineupMoved). */
+  toBench: (names) => `${names.join(', ')} to bench`,
+  /** The header's total's change after an edit, named apart from a week's "vs rolling" (renderTotal). */
+  totalChange: 'total',
+  /** …a chip's token while the Why sheet is hidden (ahead WHY_SHEET): it opens the Week sheet, its row's + plays it. */
+  showsWeek: 'shows the week\'s plans',
   /** The week's runner-up token's name (ahead.js tokensOf; the owner, 2026-10-29), as bestSaid says the best's. */
   nextSaid: (moves, num) => `Next best this week: ${moves.length > 1 ? `${moves.length} transfers, ${num}: ${moves.join('; ')}` : `${moves[0]}, ${num}`}`,
   /** …a multi-move best's plate: it opens that plan's Why sheet, whose one button takes it. */
@@ -810,7 +820,8 @@ export const COPY = Object.freeze({
   },
   /** …its words alone where the bar's line has no room for what to set (whole, never "Set in FPL: 2 ch…"; the Week
    *  sheet's row says what). */
-  setInFplShort: 'Set in FPL',
+  // (a to-do, never a status: review 7, 2026-11-02)
+  setInFplShort: 'To set in FPL',
   liveHead: (gw) => `GW${gw} is live`,
   nTransfers: (n) => plural(n, 'transfer'),
   /** A take's toast where the week keeps transfers of yours beside its own (ahead.addPlan): the week's count its number

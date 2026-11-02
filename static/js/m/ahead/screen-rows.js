@@ -3,7 +3,7 @@
 import { h, fmt, chipName } from '../../ui.js';
 import { COPY } from '../calls.js';
 import { addPlan, pairOf, pinOfMove, planTake, removeMove, rollingAt, rowGains, takenKeep, whyFacts } from './presolve.js';
-import { capFirst, closedOf, clubCounts, draftOf, ids, plan, removedAt, span, weekOf } from './core.js';
+import { WHY_SHEET, capFirst, closedOf, clubCounts, draftOf, ids, plan, removedAt, span, weekOf } from './core.js';
 import { gwMode, inkAt } from './buys.js';
 import { chipBack, emptyHead, plPays, rollFt, shirtOf, squadWeek, weekFacts } from './pieces.js';
 import { SQUAD_CHIPS, choiceVs, countedAfter, failedWords, mineAny, planBack, planBaseline, planWeeks, plansOf, rollOnly, squadChanges, weekRollOf } from './plans.js';
@@ -207,6 +207,8 @@ export function rowsPart(V) {
    *  One baseline per sheet (owner, 2026-10-22): whyFacts `head`, COPY.chipUses. Read-only: what its number counts
    *  after its week (countedAfter) and a Wildcard's or Free Hit's changes (squadChanges). */
   function openPlanWhy(P, g, pl, lit = litPays(pl)) { const { S, ctx, frozenAt, movesTitle, notAct, roadOfEv, whySub } = V;
+    // (hidden: its first buy's player sheet; a chip's or a roll's the Week sheet, its row's + plays it: WHY_SHEET)
+    if (!WHY_SHEET) { const m = pl.choice.moves.find((x) => x.gw === g); return m ? ctx.openSheet('player', Number(m.in), { gw: g }) : V.weekSheet(g); }
     const nm = P.L.name;
     const without = planBaseline(ctx, P, g);
     const gws = P.gws.filter((x) => x >= g);
@@ -304,7 +306,7 @@ export function rowsPart(V) {
   const rolling = (P, g, ev) => (!ev?.gws.some((x) => x.gw > g && x.moves.some((y) => y.ok)) ? 'rolling, no later transfer' : 'rolling');
   /** The transfer of week w that buys player `id` and has a Why sheet (openWhy), or null: none in a Wildcard or Free
    *  Hit week (its changes are the chip's squad: changeRow). */
-  const whyMove = (P, w, id) => (!w || squadWeek(w) ? null
+  const whyMove = (P, w, id) => (!WHY_SHEET || !w || squadWeek(w) ? null
     : w.moves.find((m) => Number(m.in) === Number(id)) ?? null);
   /** A tap on player `id` of GW g, the plan as it is at the tap: his transfer's Why sheet when the week buys him
    *  (tagged IN), else his sheet. The pitch's (pitchProps) and a take's toast's Why (TAP_IN: whyAct), which may come

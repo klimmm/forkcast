@@ -318,6 +318,13 @@ export const captainMoved = (Q, prev, g) => {
   const c = weekOf(Q, g)?.captain, was = weekOf(prev, g)?.captain;
   return c != null && was != null && c !== was ? ` · ${COPY.captainNow(Q.L.name(c))}` : '';
 };
+/** …and who the re-picked lineup of GW g benches that started before (still in the squad): " · Muharemović to bench"
+ *  (review 7, 2026-11-02: a change the system makes is said), then the armband (captainMoved). */
+export const lineupMoved = (Q, prev, g) => {
+  const w = weekOf(Q, g), was = weekOf(prev, g);
+  const benched = w && was ? (w.bench || []).map(Number).filter((id) => (was.xi || []).map(Number).includes(id)) : [];
+  return `${benched.length ? ` · ${COPY.toBench(benched.map((id) => Q.L.name(id)))}` : ''}${captainMoved(Q, prev, g)}`;
+};
 
 /** "Reset plan" (the You sheet; owner, 2026-10-10; the pitch's pill, 2026-10-21): this GW's plan as a new team's
  *  (memory.reset) and this browser's lineups of the later GWs gone; the bundle's solves stay. At once, its toast with
