@@ -29,7 +29,7 @@ export function healPart(V) {
     // the plan these pins replace, solved on these roads, may be theirs again (a chip taken back off): offered too
     if (acc?.plan?.weeks?.length && acc.plan.version === v) offer(acc.plan);
     const also = S.offered.v === v ? S.offered.roads : [];
-    const hit = findRoad(fitRoads(), c, gwsNow(), also);
+    const hit = findRoad(V.model().road, c, gwsNow(), also);
     if (hit) {
       cancelHeal();
       S.error = null;  // these rules have a plan: an earlier "can't keep them all" is over
@@ -63,12 +63,6 @@ export function healPart(V) {
     // Debounced for an edit; a re-plan of no edit (a team opened, new roads: 'sync') asks at once
     scheduleHeal('heal', { reason: why, now: why === 'sync', ahead: k });
   }
-  /** The bundle's roads a plan may be found in: its hold road (your team, every GW rolled) only on a bundle of this
-   *  data and while its GW-A squad is your team's. */
-  const fitRoads = () => { const { S, ctx, ownedNow } = V;
-    const r = ctx.bundle?.roads, h = r?.hold;
-    return !h || (ctx.bundle?.state !== 'stale' && squadKey(weekAt(h, S.A)) === idsKey(ownedNow())) ? r : { ...r, hold: null };
-  };
   /** The key (solvedKey) of the solve your pins' heal sends now, or null while it can't be made (no bundle yet). */
   const keyNow = () => { const { ctx } = V; try { return solvedKey(ctx.bundle?.version ?? null, values()); } catch { return null; } };
 
@@ -243,9 +237,9 @@ export function healPart(V) {
   function rejudge() { const { S, accNow, cctxNow, ctx, ensure, frozenNow, ideaOf, mutate, pinsNow, roadOf, stamp, versionNow } = V;
     const acc = accNow();
     const version = versionNow();
-    const fresh = ctx.bundle?.state !== 'stale' && version && version === ctx.bundle?.version;
+    const fresh = version && version === ctx.bundle?.version;
     if (!acc?.plan || !fresh) { S.drift = null; return; }
-    const sig = `${version}|${madeOn(acc)}|${acc.plan.key}|${acc.plan.version}|${acc.lineup?.captain}|${JSON.stringify(acc.pins?.items?.map((p) => p.id))}`;
+    const sig = `${version}|${V.model().key}|${!!V.model().road}|${madeOn(acc)}|${acc.plan.key}|${acc.plan.version}|${acc.lineup?.captain}|${JSON.stringify(acc.pins?.items?.map((p) => p.id))}`;
     if (S.judged === sig) return;
     S.judged = sig;
     let d = null;
@@ -264,5 +258,5 @@ export function healPart(V) {
     }
   }
   const round2 = (x) => Math.round(x * 100) / 100;
-  return { replan, fitRoads, keyNow, took, batch, keepBase, baseNow, lastNow, cancelHeal, scheduleHeal, yours, runHeal, settled, values, offer, rejudge, round2 };
+  return { replan, keyNow, took, batch, keepBase, baseNow, lastNow, cancelHeal, scheduleHeal, yours, runHeal, settled, values, offer, rejudge, round2 };
 }

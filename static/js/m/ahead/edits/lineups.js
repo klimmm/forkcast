@@ -7,7 +7,7 @@ import { compare, flashLanding, info, isFrozen, isPick, lineups, memOf, memPlan,
 import { SQUAD_CHIPS, forkKey, planBack, plansListed } from '../plans.js';
 import { goneIds, yoursTakenBack } from '../presolve.js';
 import { isLive } from '../buys.js';
-import { chipCheck, chipSource, chipStates, chipTold, halfBests, halfEnd, honestBest, plannedAt, squadWeek } from '../pieces.js';
+import { chipCheck, chipPreps, chipStates, chipTold, halfBests, halfEnd, honestBest, plannedAt, squadWeek } from '../pieces.js';
 import { chipPins } from '../screen.js';
 import { edit, restore, say, snapshot, toastOf, undoOf, vsPrev } from './say.js';
 import { asksOf, clashing, withTaken } from './rules.js';
@@ -153,7 +153,7 @@ export function chipPlan(ctx, g, chip, road = null, { less = null } = {}) {
   // (the chip it replaces there named in its words, "Bench Boost planned for GW10 in place of Free Hit": no "· +x vs
   // Free Hit" in its toast; owner, 2026-10-27)
   const { what, swap, taken } = chipWords(P, g, chip, drop, { inPlace: true });
-  const row = SQUAD_CHIPS.has(chip) && P.mem?.hold ? chipStates(ctx, P, g, chipSource(ctx, P)).find((x) => x.chip === chip) : null;
+  const row = SQUAD_CHIPS.has(chip) && P.mem?.hold ? chipStates(ctx, P, g, chipPreps(ctx, P)).find((x) => x.chip === chip) : null;
   const gap = row?.cmp && row.best && row.best.gw !== g && row.best.delta != null && row.best.vs === row.vs ? COPY.chipLess(row.best.delta - row.cmp.delta, row.best.gw) : null;
   // the gain is the new plan against the one before, or against the chip it replaces (named as such); then no "less
   // than" the best week
@@ -180,7 +180,7 @@ export function chipOff(ctx, g) {
 }
 /** Chip c played in GW g, or taken off when GW g already plays it (owner, 2026-10-13: from the pitch, the Bench Boost
  *  by holding the bench and the Triple Captain by holding the C still; any chip from Chips…; a Wildcard or Free Hit
- *  also as a suggested plan's +). Its background solve (chipSource) is that plan at once; one not in yet heals. The
+ *  also as a suggested plan's +). Its background solve (chipPreps) is that plan at once; one not in yet heals. The
  *  toast gives the gap against not playing it, and for a week other than its honest best "3.9 less than GW9"
  *  (chipPlan). → bool */
 export function useChip(ctx, c, g) {
@@ -188,7 +188,7 @@ export function useChip(ctx, c, g) {
   if (weekOf(P, g)?.chip === c || chipPins(P).some((x) => x.chip === c && x.gw === g)) return chipOff(ctx, g);
   const check = chipCheck(ctx, P, c, g);
   if (!check.ok) { toastOf(ctx)(check.reason, 'warn'); return false; }
-  const src = chipSource(ctx, P);
+  const src = chipPreps(ctx, P);
   const pre = src.at(c, g);
   const best = honestBest(halfBests(P, src, g), c);
   const less = best && best.gw !== g && pre.state === 'ready' ? COPY.chipLess(best.delta - pre.cmp.delta, best.gw) : null;

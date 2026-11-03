@@ -305,7 +305,7 @@ export function apiPart(V) {
     const last = Math.max(Number(local.get(USED(entry))) || 0, ...docs.map((d) => editedAt(d) * 1000));
     return last > 0 && Date.now() - last > FORGET_MS;
   }
-  function onData() { const { S, archiveRoads, cancelHeal, capFor, ctx, emit, endNow, ensure, flushSoon, loadLocal, local, lookupNow, mutate, rejudge, replan, saveLocal } = V;
+  function onData() { const { S, cancelHeal, capFor, ctx, emit, endNow, ensure, flushSoon, loadLocal, local, lookupNow, mutate, rejudge, replan, saveLocal } = V;
     const b = ctx.bundle;
     if (!b?.entry || !b.meta || !ctx.data) return;
     const entry = String(b.entry.id);
@@ -340,13 +340,12 @@ export function apiPart(V) {
     if (S.dirty) flushSoon();
     // an older document's ticket locked in FPL was GW A's ink; one that lost it (a Switch kept the ticket) is mended,
     // and the read thaws that lock again (accNow: normalizeAccepted)
-    const fix = S.doc ? inkRepair(S.doc, { A, roads: b.roads, nameOf: lookupNow().name }) : null;
+    const fix = S.doc ? inkRepair(S.doc, { A, model: V.model().road, nameOf: lookupNow().name }) : null;
     if (fix) { mutate((doc) => { doc.accepted = fix; }, 'lock'); replan('pins'); }
     // a saved plan's idle hits or Roll rule (Wildcard / Free Hit week, or a hits rule at the solver's default cap)
     // reads without it (normalizeAccepted) and the cleaned document is written back once
     const idle = S.doc?.accepted ? idleRules(S.doc.accepted.pins?.items || [], { from: A, to: endNow(), hitCap: capFor(S.doc.accepted) }) : [];
     if (idle.length) mutate((doc) => { ensure(doc); }, 'pins');
-    if (ctx.bundle?.state !== 'stale') archiveRoads();
     if (!S.doc && S.carried !== A) carryOver(entry, A);
     const before = S.drift;
     rejudge();
@@ -359,7 +358,7 @@ export function apiPart(V) {
    *  with no rule left under it (GW A unlocked, its last rule gone) is the model's again. */
   function syncPlan() { const { S, accNow, baseNow, ctx, holdNow, lockedNow, pinsNow, replan, versionNow } = V;
     const acc = accNow();
-    if (S.drift || S.pending || ctx.bundle?.state === 'stale') return;
+    if (S.drift || S.pending) return;
     // under the hold with no plan the solver returned for your rules yet (a team you only look at, Reset plan, an older
     // app's phone-made plan: normalizeAccepted), or one on older roads: asked (replan)
     if (holdNow() && !acc?.plan && !S.error && (acc || baseNow()?.version !== versionNow())) { replan('sync'); return; }

@@ -3,7 +3,7 @@
 import * as E from '../../plan/engine.js';
 import { h, svg, fmt, fill, append, toast, toastRegion, chipName, plural, icon, statusInfo, roving, reduceMotion, holdTouch, flick, focusKey, refocus, xpNum, xpGain, shownGain } from '../../ui.js';
 import { subOrder, fitFixtures } from '../../plan/pitch.js';
-import { COPY, captainGap, priceMorning, gwFlags, liveCheck, planEta, planShare, steadyEta, clockText, stepShare, leftText } from '../calls.js';
+import { COPY, captainGap, priceMorning, gwFlags, liveCheck, clockText, stepShare } from '../calls.js';
 import { rollKeeps } from '../memory.js';
 import { EDGE_PX, FLASH, GRIP_MS, LEARN_KEY, LONG_MS, MINUS, NIGHT_KEY, SPENT_PX, SWIPE_MS, SWIPE_PX, TC_MS, WAIT_KEY, boughtIn, capFirst, closedOf, clubCounts, compare, draftOf, dropMove, editable, flatMoves, ids, inFor, info, inputs, lockedFrom, memOf, memPlan, num, paintWaitView, plan, removedAt, span, squadBefore, takeRulesAsk, viewedGw, waitView, weekOf } from './core.js';
 import { aboutRules, asksOf, benchedBuys, captain, clashLine, clashParts, driftSay, edit, keep, pendingAgain, pendingTick, removeRule, rescope, resetLineup, ruleOf, sayCheer, scopeLabels, sub, subChoices, tickWas, toastOf, totalShift, useChip, veto, vice, vsPrev } from './edits.js';
@@ -123,10 +123,6 @@ const holdFill = (x, y, ms, word = null) => {
   document.body.append(n);
   return () => n.remove();
 };
-
-/** The shell's states (app.js conn) of a re-plan under way: the bake (baking; stale: a new forecast's roads while the
- *  old ones show) or the forecast updating. Ahead draws them as a thin line under the header, never a row. */
-export const REPLANNING = new Set(['baking', 'stale', 'updating']);
 
 /** How far up a target over card c, `m` px wider on each side, may reach (owner, 2026-10-20): to 44 px over his card,
  *  only over free turf, never onto another card, a corner pill or a token (`walls`), nor above the pitch (the keeper's:
@@ -462,9 +458,8 @@ export function mount(el, ctx) {
   const COPY_FPL_TEAM = 'Your team as set in FPL';
 
   const ap0 = approxAt;
-  /** The story's one bar (on the strip's wait line: paintWait): the bake's share by time (calls.planShare) over its
-   *  first STORY_PLAN, then the viewed week's listed checks over the rest; never back, a sweep while the bake has
-   *  nothing estimated yet; gone with the story. Each second (tick) and each draw. */
+  /** The story's one bar (on the strip's wait line: paintWait): a sweep while the plan solves, then from STORY_PLAN the
+   *  viewed week's listed checks over the rest; never back; gone with the story. Each second (tick) and each draw. */
   const STORY_PLAN = 0.7;
 
   /**
@@ -686,8 +681,8 @@ export function mount(el, ctx) {
   const offs = [ctx.store.on('gw', () => { awayToasts(); schedule(); }), ctx.store.on('memory', () => schedule('mem')), ctx.store.on('aheadRev', () => schedule()),
     ctx.store.on('learnt', () => { S.learnt = new Set(); schedule(); }),
     ctx.store.on('aheadPair', () => schedule('pair'))];
-  // (plan memory once the bake's base road is in: renderBaking)
-  if (ctx.bundle?.roads?.base) memOf(ctx);
+  // (plan memory at once: it asks the plan, renderBaking waits for it)
+  memOf(ctx);
   render();
   return {
     // a bundle or connection change waits as any store change does (schedule: never under a finger or a large sheet)

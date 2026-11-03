@@ -21,18 +21,12 @@ function when(epoch) {
   return d.toDateString() === new Date().toDateString() ? t : `${new Intl.DateTimeFormat('en-GB', { weekday: 'short' }).format(d)} ${t}`;
 }
 /**
- * When the shown roads were baked: the latest bake job's start plus its run time (job ids start with the server's
- * local submission time, "%Y%m%d-%H%M%S", so a queued wait is not counted).
+ * When the model's plan was solved: its job's start plus its run time (job ids start with the server's local
+ * submission time, "%Y%m%d-%H%M%S", so a queued wait is not counted).
  */
-function bakedAt(bake) {
-  let best = null;
-  for (const it of bake?.items || []) {
-    const m = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})/.exec(it.job || '');
-    if (!m || it.state !== 'done') continue;
-    const t = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() / 1000 + (Number(it.elapsed) || 0);
-    if (best === null || t > best) best = t;
-  }
-  return best;
+function solvedAt(road) {
+  const m = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})/.exec(road?.job || '');
+  return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() / 1000 + (Number(road.elapsed) || 0) : null;
 }
 
 /** The You sheet; `what` 'help': Help alone; 'settings': the Settings sheet (Ahead's header gear). */
@@ -83,13 +77,12 @@ export function open(ctx, what = null) {
         const b = ctx.bundle;
         const conn = ctx.store.get('conn') || {};
         const f = b?.meta?.forecast || {};
-        const bake = b?.bake;
-        const baked = when(bakedAt(bake));
+        const model = b?.entry ? inputsOf(ctx)?.model ?? null : null;
+        const baked = when(solvedAt(model));
         // plain facts only: the model's internals (runs, pool, noise, scale, solve counts) are Dev mode's
         let plan;
         if (conn.state === 'updating') plan = 'waiting: the forecast is updating';
-        else if (conn.state === 'baking') plan = 'planning…';
-        else if (conn.state === 'stale') plan = 'new data · re-planning';
+        else if (b?.entry && !model) plan = 'planning…';
         else plan = baked ? `ready since ${baked}` : '—';
         // while requests fail, said plainly (and the time of the data on screen)
         const link = conn.state === 'offline' ? `Forkcast server unreachable · data from ${when((conn.at || 0) / 1000) ?? '—'}` : 'online';
@@ -133,18 +126,16 @@ export function open(ctx, what = null) {
       }
 
       // ---------------------------------------------------------------- Dev mode (a local page only)
-      // the model's diagnostics (runs, pool, noise, real-points scale, bake solves) live here
+      // the model's diagnostics (runs, pool, noise, real-points scale) live here
       let acc = null;
       function paintDev() {
         if (!acc?.local || !dev.isConnected) return;
         const b = ctx.bundle;
         const f = b?.meta?.forecast || {};
-        const bake = b?.bake;
-        const noise = b?.meta?.noise;
+        const noise = b?.entry ? inputsOf(ctx)?.model?.noise : null;
         dev.hidden = false;
         fill(dev, h('h3', null, 'Dev mode'),
           f.runs || f.pool ? h('div.m-kv', null, h('span', null, 'Forecast'), h('span', null, [f.runs ? `${f.runs} runs` : null, f.pool ?? null].filter(Boolean).join(' · '))) : null,
-          bake?.total ? h('div.m-kv', null, h('span', null, 'Bake'), h('span', null, `${bake.done} of ${bake.total} options solved`)) : null,
           Number.isFinite(noise) ? h('div.m-kv', null, h('span', null, COPY.chargeName), h('span', null, COPY.noiseValue(noise, b.meta.gw))) : null,
           b?.meta?.scale ? h('p.m-foot.y-scale', null, COPY.realScale(b.meta.scale)) : null,
           acc.share.length ? h('button.m-nav', { type: 'button', onClick: () => shareSheet(ctx, acc) }, 'Open on iPhone') : null,
@@ -169,7 +160,7 @@ function planSettings(ctx, planSec, offs) {
   const { h, fill } = ctx.ui;
   function paintPlan() {
     const P = plan(ctx);
-    // no plan of the length picked (none baked yet: under a data job, or after a deadline): Plan ahead stays, the way
+    // no plan of the length picked (none solved yet: under a data job, or while it solves): Plan ahead stays, the way
     // back to one that has
     const reach = P?.reach ?? ctx.data?.reach;
     if (!P) { fill(planSec, ...(reach?.length ? [h('h3', null, 'Plan'), ...weeksCtl(reach, true)] : [])); return; }

@@ -233,45 +233,7 @@ export function priceMorning(kept, meta, { now = Date.now() / 1000, prices = {},
 }
 
 
-/**
- * How far a bake is (Ahead's GW line and the shell's bar while it re-plans): bake is the bundle's (api/mobile.py
- * progress: done, total, started, items {state, elapsed, started}; epoch seconds). → {done, total, so: seconds since
- * it started (null: unknown), left: seconds (null while none is done: "estimating…"), late: the estimate ran out
- * ("almost done")}. left = what the running items have left of the average a done item took (an item past it eats into
- * the rest), plus the average per item not started (total counts stages not added yet), ÷ the items running at once:
- * it counts down a second a second between landings, and where it runs out says so, never negative or ever-growing.
- */
-export function planEta(bake, now = Date.now() / 1000) {
-  const items = Array.isArray(bake?.items) ? bake.items : [];
-  const done = Number(bake?.done) || 0, total = Number(bake?.total) || 0;
-  const t0 = Number(bake?.started);
-  const so = t0 > 0 ? Math.max(0, now - t0) : null;
-  const took = items.filter((i) => i.state === 'done' && Number(i.elapsed) > 0).map((i) => Number(i.elapsed));
-  if (!took.length || !total) return { done, total, so, left: null, late: false };
-  const avg = took.reduce((a, b) => a + b, 0) / took.length;
-  const running = items.filter((i) => i.state === 'running');
-  const open = items.filter((i) => i.state === 'queued' || i.state === 'waiting').length + Math.max(0, total - items.length);
-  const ran = (i) => (Number(i.started) > 0 ? Math.max(0, now - Number(i.started)) : 0);
-  const left = (running.reduce((a, i) => a + avg - ran(i), 0) + open * avg) / Math.max(1, running.length);
-  return { done, total, so, left: Math.max(0, left), late: left < 1 };
-}
-/** planEta as the wait's one story says it (Connect's line and Ahead's GW line; owner, 2026-10-27): its time left never
- *  backs up, counting down a second a second from the least it said for this bake; once that ran out with a road still
- *  planned, none is said again for this bake (`spent`: the clock and the bar go on alone). `now` epoch seconds, for the
- *  tests. */
-const LEFTS = new Map();  // `${version}@${started}` → {left, at}: the least said, the newest few bakes
-export function steadyEta(bake, now = Date.now() / 1000) {
-  const e = planEta(bake, now);
-  const k = `${bake?.version}@${bake?.started}`, was = LEFTS.get(k);
-  if (was && was.left - (now - was.at) < 1) return { ...e, left: null, late: false, spent: true };
-  if (e.left == null) return e;
-  const left = was ? Math.min(e.left, was.left - (now - was.at)) : e.left;
-  LEFTS.delete(k);
-  LEFTS.set(k, { left, at: now });
-  if (LEFTS.size > 4) LEFTS.delete(LEFTS.keys().next().value);
-  return { ...e, left, late: left < 1 };
-}
-/** 84 → "1:24", 3725 → "1:02:05": every clock on the phone (the bake's and Add a player's checks); a time before 0 is
+/** 84 → "1:24", 3725 → "1:02:05": every clock on the phone (the plan's and Add a player's checks); a time before 0 is
  *  0:00 (a server's start time read against a phone clock behind it printed "-1:-1:-1"). */
 export const clockText = (s) => {
   const t = Math.max(0, Math.floor(s)), hh = Math.floor(t / 3600), mm = Math.floor((t % 3600) / 60), ss = String(t % 60).padStart(2, '0');
@@ -280,10 +242,6 @@ export const clockText = (s) => {
 /** A check's clock after its line's " · " ("Checking GW8 · 1 of 4 weeks · 0:12"): the time since `t0` (ms), on
  *  clockText (sheets/wish.js, sheets/chips.js). */
 export const waitedText = (t0, now = Date.now()) => ` · ${clockText((now - t0) / 1000)}`;
-/** A time left, rounded as it is meant: "~20 s", "~1 min", "~3 min". */
-export const aboutText = (s) => (s < 55 ? `~${Math.max(10, Math.round(s / 10) * 10)} s` : `~${Math.max(1, Math.round(s / 60))} min`);
-/** What a time left reads (planEta's): "~1 min left", "almost done", "estimating…" before any road is done. */
-export const leftText = (e) => (e.left == null ? 'estimating…' : e.late ? 'almost done' : `${aboutText(e.left)} left`);
 /** The wait line's words after its verb (owner, 2026-10-28), longest first, for ahead.paintWait to show the longest
  *  that fits whole (never an ellipsis): what it works on (`long` "GW10's moves", `scope` "GW10"), how far (`prog` "2 of
  *  6", "~10 s left"), the clock (`so` seconds; past 10 s kept before what it works on); the bar under it says how far
@@ -299,21 +257,6 @@ export function waitLines({ scope = null, long = null, prog = null, so = null })
  *  the steps so far took (`tau` ms each, `since` ms into it), so a 1-of-1 check moves without jumping to full and stops
  *  short of the next mark until it lands. Pure. → 0..1 */
 export const stepShare = (done, n, since = 0, tau = 4000) => (n > 0 ? Math.min(1, (done + 0.8 * (1 - Math.exp(-Math.max(0, since) / Math.max(1000, tau)))) / n) : 0);
-/** A bake's progress as a share of its time, for a bar (owner, 2026-10-13: smooth, based on eta, not 0/6): so far ÷ (so
- *  far + left), from planEta; never back (a landing that lengthens the estimate holds the bar at the most shown for
- *  this bake) and never full while a road is still planned; null while nothing is estimated (no road done yet: the bar
- *  sweeps). */
-const SHARES = new Map();  // `${version}@${started}` → the most shown, the newest few bakes
-export function planShare(bake, now = Date.now() / 1000) {
-  const e = planEta(bake, now);
-  if (e.left == null || !e.so || !e.total) return null;
-  const k = `${bake.version}@${bake.started}`;
-  const p = Math.min(Math.max(SHARES.get(k) ?? 0, e.so / (e.so + e.left)), 1 - 0.5 / e.total);
-  SHARES.delete(k);
-  SHARES.set(k, p);
-  if (SHARES.size > 4) SHARES.delete(SHARES.keys().next().value);
-  return p;
-}
 /** The lines a wait shows (waitFact), true of bundle b: your rank's move over the last GW, then the line every GW
  *  (rank.cheer). Both only once FPL has checked that GW for you: rank.cheer is null until then (api/mobile.py), and the
  *  history's last row holds a provisional rank. Pure. → [[before, number, after]] */

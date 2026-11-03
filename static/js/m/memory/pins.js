@@ -478,10 +478,10 @@ export function frozenSince(frozenOn, g, version = null) {
 /**
  * Ink = what the ticket says: a document with a locked ticket (every step ticked: those transfers are in FPL) but
  * another GW-A squad in its plan, road pin or transfer call → its accepted repaired: the road pin holds the ticket's
- * squad (locked), the call is the bundle road with that GW A (when one has it), the plan that road (else null: it
- * re-plans); null when consistent. roads: the bundle's. The read thaws the lock it writes.
+ * squad (locked), the call is the model's plan when its GW A is that squad, the plan that road (else null: it re-plans);
+ * null when consistent. model: memory's model plan. The read thaws the lock it writes.
  */
-export function inkRepair(doc, { A, roads, nameOf = (id) => `#${id}` } = {}) {
+export function inkRepair(doc, { A, model, nameOf = (id) => `#${id}` } = {}) {
   const acc = doc?.accepted, t = doc?.ticket;
   const squad = ticketSquad(t?.plan);
   if (!acc || !t?.locked || !squad.length || Number(t.plan.gw ?? A) !== A) return null;
@@ -491,9 +491,7 @@ export function inkRepair(doc, { A, roads, nameOf = (id) => `#${id}` } = {}) {
   const pinOk = rp?.locked && heldAt(rp.must, A).sort((a, b) => a - b).join(',') === key;
   const planOk = !acc.plan?.weeks || squadKey(weekAt(acc.plan, A)) === key;
   if (pinOk && planOk && acc.locked_at) return null;
-  const match = Object.entries({ base: roads?.base, roll: roads?.roll,
-    ...Object.fromEntries(Object.entries(roads?.veto || {}).map(([k, r]) => [`veto:${k}`, r])) })
-    .find(([, r]) => r?.weeks && squadKey(weekAt(r, A)) === key);
+  const match = model?.weeks && squadKey(weekAt(model, A)) === key ? ['base', model] : null;
   const call = (acc.roads_taken || []).find((x) => x.call === 'transfer');
   const keyOf = match?.[0] ?? call?.road ?? 'yours';
   const pin = lockPin(rp && heldAt(rp.must, A).sort((a, b) => a - b).join(',') === key ? rp : null, squad, A, keyOf);

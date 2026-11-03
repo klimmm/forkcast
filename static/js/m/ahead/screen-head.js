@@ -3,11 +3,11 @@
 import { h, fill, append, toast, icon, roving, reduceMotion, focusKey, refocus } from '../../ui.js';
 import { aboutRules, clashLine, clashParts, edit, pendingAgain, pendingTick, removeRule, rescope, resetLineup, ruleOf, sayCheer, scopeLabels, toastOf, vsPrev } from './edits.js';
 import { deadlineInfo, fplSets, initials, inkAt, isLive, liftsLive, resetPlan, rowName, watchOf, watchView } from './buys.js';
-import { COPY, liveCheck, planEta, planShare, steadyEta, clockText, stepShare, leftText } from '../calls.js';
+import { COPY, liveCheck, clockText, stepShare } from '../calls.js';
 import { FLASH, LEARN_KEY, WAIT_KEY, editable, info, lockedFrom, memOf, memPlan, num, paintWaitView, plan, span, takeRulesAsk, viewedGw, weekOf } from './core.js';
 import { factsWords, itbWords, squadWeek } from './pieces.js';
 import { decksOf, forkKey, listedOf, litOf, litShown, planBack, plansOf, settleDue, weekKey, weekSettled, weekWait } from './plans.js';
-import { REPLANNING, countdownParts, cssPx, deadlineOf, listedRules, pitchLeast } from './screen.js';
+import { countdownParts, cssPx, deadlineOf, listedRules, pitchLeast } from './screen.js';
 
 export function headPart(V) {
   const pageName = (team) => h('h1.sr-only', null, team ? `${team} · Forkcast` : 'Forkcast');
@@ -180,11 +180,11 @@ export function headPart(V) {
     fill(dlEl, info.date ? [h('b', null, info.left <= 0 ? 'Deadline passed' : [h('span.sr-only', null, 'Deadline '), info.short]), h('span.ah-dl', { class: info.tone }, countdownParts(info))] : null);
     dlEl.title = info.date ? `Gameweek ${A} deadline: ${info.long}` : '';
   }
-  /** A re-plan under way: a bake (baking; stale: a new forecast's) or the forecast updating. The state banner then
-   *  speaks to assistive tech alone, the total shimmers (totalNum), the strip's wait line says how far (paintWait). */
-  // (a first bake with its plan in, the base road: no re-plan any more, its other roads land as choices behind the
-  // pitch; owner, 2026-11-02, "new team cold start": the pitch stayed grey "Planning" 25 s after its best showed)
-  const replanning = () => { const { ctx } = V; const st = ctx.store.get('conn')?.state; return REPLANNING.has(st) && !(st === 'baking' && ctx.bundle?.roads?.base); };
+  /** A re-plan under way: the forecast updating, or the model's plan (memory model) asked and not in yet. The state
+   *  banner then speaks to assistive tech alone, the total shimmers (totalNum), the strip's wait line says how far
+   *  (paintWait). */
+  const planWait = () => { const { ctx } = V; return ctx.bundle?.entry ? memOf(ctx)?.model() ?? null : null; };
+  const replanning = () => { const { ctx } = V; const m = planWait(); return ctx.store.get('conn')?.state === 'updating' || (!!m && !m.road && !m.error); };
   /** The strip's wait line (paintWait) says how far a re-plan is; the GW line keeps GW A's deadline. → false (none
    *  shows) */
   function paintPlanStatus() { const { gwline } = V;
@@ -296,18 +296,17 @@ export function headPart(V) {
     // the first week while planned: the week line says what it waits for, its doors' place held (no control yet), the
     // pitch shows your squad as is with no choice (it keeps its size when the plan lands)
     S.week?.sheet.close();
-    // your team's first plan under the hold is the solver's (memory.keepBase): one it couldn't finish says so, a tap
-    // asks again, never a phone-made plan (owner, 2026-10-26)
-    // Plan memory only once the bake's base road is in (mount; app.js firstLoad): earlier, its heal would ask roads not
-    // baked yet
-    const gp = ctx.bundle?.roads?.base ? memPlan(ctx) : null, failed = !!gp?.hold && !!gp.error && !gp.pending;
+    // your team's first plan under the hold is the solver's (memory.keepBase), as the model's plan is (memory model):
+    // one it couldn't finish says so, a tap asks again, never a phone-made plan (owner, 2026-10-26)
+    const gp = memPlan(ctx), m = planWait(), held = !!gp?.hold && !!gp.error && !gp.pending, failed = held || !!m?.error;
     // …where your rules are what no plan keeps (an older app's phone-made plan dropped on load): the clash row with a
     // Remove on each rule it names, each said with its Undo, never silently
-    const FV = failed ? { ...info(ctx), mem: gp, pins: gp.pins, weeks: [], healing: false, editable: editable(ctx) } : null;
+    const FV = held ? { ...info(ctx), mem: gp, pins: gp.pins, weeks: [], healing: false, editable: editable(ctx) } : null;
     const c = FV && aboutRules(gp.error) ? clashParts(FV, null) : null;
+    const why = (held ? gp.error.plain : null) || COPY.unfinished, again = () => (held ? memOf(ctx).heal({ now: true }) : memOf(ctx).retryModel());
     const off = (p) => { const said = COPY.removed(rowName(FV, p)), r = memOf(ctx).removePin(p.id); toastOf(ctx)(said, 'info', { action: { label: 'Undo', onClick: () => r.undo() } }); };
     fill(strip, h('section.ah-block', { 'aria-label': 'Your plan' }, failed
-      ? barNode({ one: gp.error.plain || COPY.unfinished, two: 'Try again', warn: true, label: `${gp.error.plain || COPY.unfinished} Try again`, onClick: () => memOf(ctx).heal({ now: true }), doors: doorStubs(), cls: '.ah-pbake' })
+      ? barNode({ one: why, two: 'Try again', warn: true, label: `${why} Try again`, onClick: again, doors: doorStubs(), cls: '.ah-pbake' })
       // (in the story the squad drawn is named: FPL's lineup until the plan's comes)
       : S.story ? barNode({ one: h('span.ah-bn', null, COPY_FPL_TEAM), doors: doorStubs(), cls: '.ah-pbake' })
       : barNode({ one: [h('span.ah-spin', { 'aria-hidden': 'true' }), h('span.ah-bn', null, planning(d.horizon))], status: true, doors: doorStubs(), cls: '.ah-pbake' }),
@@ -449,8 +448,8 @@ export function headPart(V) {
   }
   /**
    * The wait's one story (owner, 2026-10-27: planning was told in three places): Connect's planning line (app.js
-   * planning) goes on as "Planning GW9–12 · 0:38 · ~20 s left" (calls.steadyEta) while the bake's roads land, then,
-   * the plan in, "Checking GW9's moves · 1:06 · 5 done" (the plan's clock, from the bake's start) until GW g's choices
+   * planning) goes on as "Planning GW9–12 · 0:38" while the plan solves (memory model), then, the plan in, "Checking
+   * GW9's moves · 1:06 · 5 done" (the plan's clock, from its ask) until GW g's choices
    * are settled (weekModel's M.settled); then the story is over (later checks: renderLine). Told on the strip's wait
    * line (paintWait). Its count is GW g's choices checked so far, every one listed since the plan started (`seen`),
    * never back, no total (a landing road or pre-solve can add a choice or take one's room: plansOf FORK_MAX, rankOf).
@@ -459,8 +458,7 @@ export function headPart(V) {
   function tellStory(g, M) { const { S, ctx } = V;
     const st = S.story;
     if (!st) return;
-    const bake = ctx.bundle?.bake, conn = ctx.store.get('conn')?.state;
-    if (st.t0 == null) st.t0 = conn === 'baking' && Number(bake?.started) > 0 ? Number(bake.started) * 1000 : Date.now();
+    if (st.t0 == null) st.t0 = planWait()?.since ?? Date.now();
     const seen = st.seen.get(g) ?? new Set();
     st.seen.set(g, seen);
     for (const x of M.all) if (x.state !== 'solving') seen.add(forkKey(x.choice, g));
@@ -475,16 +473,14 @@ export function headPart(V) {
     // (share kept for the strip's wait line, which draws it)
     const st = S.story;
     if (st && !ctl.hidden) {
-      const baking = ctx.store.get('conn')?.state === 'baking', share = baking ? planShare(ctx.bundle?.bake) : null;
-      const p = baking ? (share == null ? null : share * STORY_PLAN) : STORY_PLAN + (1 - STORY_PLAN) * st.f;
-      if (p != null) st.p = Math.max(st.p, p);
+      // (while the plan solves, a sweep: one solve has no measure)
+      if (!replanning()) st.p = Math.max(st.p, STORY_PLAN + (1 - STORY_PLAN) * st.f);
     }
     paintWait();
   }
   /**
    * The wait now, as the strip's wait line says it (owner, 2026-10-28): one process at a time, the widest first. The
-   * forecast updating (no measure: a few sweeps); a re-plan or the first plan baking (steadyEta in the story, planEta
-   * else; share planShare's, the story's own st.p); the story's checks of the viewed week (its clock and share); else
+   * forecast updating (no measure: a few sweeps); the plan solving (its clock, a sweep); the story's checks of the viewed week (its clock and share); else
    * the viewed week's own checks (S.wl: renderLine), a take's, an Undo's, a later week's after a change, on
    * waitClock's S.wait, share by the count with the step under way creeping on (calls.stepShare; none counted: a few
    * sweeps). null while nothing waits.
@@ -494,8 +490,8 @@ export function headPart(V) {
     const conn = ctx.store.get('conn')?.state, st = S.story, now = Date.now();
     if (conn === 'updating') return { key: 'updating', word: 'Updating', scope: 'the forecast', p: null };
     if (replanning()) {
-      const bake = ctx.bundle?.bake, e = st ? steadyEta(bake) : planEta(bake), gws = ctx.data?.horizon;
-      return { key: `bake@${bake?.started}`, word: 'Planning', scope: gws?.length ? span(gws) : null, prog: e.left != null ? leftText(e) : null, so: e.so, p: st ? st.p || null : planShare(bake) };
+      const since = planWait()?.since ?? null, gws = ctx.data?.horizon;
+      return { key: `plan@${since}`, word: 'Planning', scope: gws?.length ? span(gws) : null, prog: null, so: since == null ? null : (now - since) / 1000, p: null };
     }
     if (st?.wait) {
       const g = st.wait.g;

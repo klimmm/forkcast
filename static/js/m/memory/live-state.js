@@ -3,16 +3,17 @@
 import { COPY, planInputs, hitCap } from '../calls.js';
 import { LOCAL, TIMING, clone, composePins, frozenWeeks, ids, makePin, num, range, roadWeek, squadInto, squadKey, weekAt, withBank } from './pins.js';
 import { normalizeAccepted, sigOf } from './drift.js';
-import { bundleRoads, holdOf } from './values.js';
+import { holdOf } from './values.js';
 import * as E from '../../plan/engine.js';
-import { ARCHIVE_VERSIONS, ROADS, blankAccepted } from './live.js';
+import { blankAccepted } from './live.js';
 
 export function statePart(V) {
 
   // ---------------------------------------------------------------- inputs
-  // the plan's inputs, from the bank pins `list` (yours) start from (withBank: a "Bank as FPL shows" rule's)
-  const cctxNow = (list = pinsNow()) => { const { ctx } = V; return (ctx.bundle?.entry && ctx.data ? planInputs(ctx.bundle, { ...ctx.data, base: withBank(ctx.data.base, list) }) : null); };
-  const versionNow = () => { const { ctx } = V; return ctx.bundle?.meta?.roads_version ?? ctx.bundle?.version ?? null; };
+  // the plan's inputs, from the bank pins `list` (yours) start from (withBank: a "Bank as FPL shows" rule's), with the
+  // model's plan (model: its noise and hit cap)
+  const cctxNow = (list = pinsNow()) => { const { ctx, model } = V; return (ctx.bundle?.entry && ctx.data ? planInputs(ctx.bundle, { ...ctx.data, base: withBank(ctx.data.base, list) }, model().road) : null); };
+  const versionNow = () => { const { ctx } = V; return ctx.bundle?.version ?? null; };
   const gwsNow = () => { const { ctx } = V; return ids(ctx.data?.horizon ?? ctx.bundle?.meta?.horizon); };
   const endNow = () => { const { S } = V; return gwsNow().at(-1) ?? S.A; };
   const accNow = () => { const { S } = V;
@@ -34,7 +35,7 @@ export function statePart(V) {
   const holdNow = () => { const { S } = V; return holdOn(S.doc?.accepted ?? null); };
   /** A hits rule at the solver's default cap is no rule, except under the hold (there it lifts the hold for its GW: the
    *  planner plans that week). */
-  const capFor = (acc) => { const { ctx } = V; return (holdOn(acc ?? null) ? null : hitCap(ctx.bundle?.meta)); };
+  const capFor = (acc) => (holdOn(acc ?? null) ? null : hitCap(V.model().road));
   /** Your pins as stored, and with the hold first while the plan holds (withHold: the one list everything composes). */
   const storedNow = () => accNow()?.pins?.items || [];
   const withHold = (list) => { const { S } = V;
@@ -49,8 +50,8 @@ export function statePart(V) {
   /** Settings → Hits below the solver's cap (accepted.hits_max; setHitsMax): a derived pin 'hits' (never stored), at
    *  most that many hits in every GW of the window, composed last so it bounds every per-week cap; after the hold is
    *  derived, so it lifts no week of it. */
-  const withHits = (list, most = num(accNow()?.hits_max)) => { const { S, ctx } = V;
-    const cap = hitCap(ctx.bundle?.meta);
+  const withHits = (list, most = num(accNow()?.hits_max)) => { const { S } = V;
+    const cap = hitCap(V.model().road);
     if (most === null || (cap !== null && most >= cap)) return list;
     return [...list.filter((p) => p.id !== 'hits'), makePin({ id: 'hits', kind: 'hits', label: COPY.hitsMax(most), hits: Object.fromEntries(range(S.A, endNow()).map((g) => [g, most])) })];
   };
@@ -70,7 +71,7 @@ export function statePart(V) {
   function getPlan() { const { S, baseNow, ctx, lastNow } = V;
     const acc = accNow();
     const version = versionNow();
-    const model = ctx.bundle?.roads?.base ?? null;
+    const model = V.model().road;
     const hold = holdNow();
     // your plan is the one the solver returned for your rules (a bundle road that fits, or a heal's: replan), never one
     // the phone evaluates (owner, 2026-10-26). Under the hold, before the first lands, none (Ahead waits for it as for
@@ -130,32 +131,17 @@ export function statePart(V) {
     }
   }
 
-  function roadByKey(key) { const { S, ctx } = V;
-    const r = ctx.bundle?.roads || {};
+  function roadByKey(key) { const { S } = V;
     if (!key) return null;
     // your own plan taken as the call (an older document's 'yours'): the plan itself
     if (key === 'yours') return S.doc?.accepted?.plan?.weeks?.length ? S.doc.accepted.plan : null;
-    if (key === 'base' || key === 'roll') return r[key] ?? null;
-    const [kind, id] = String(key).split(':');
-    return (kind === 'veto' ? r.veto?.[id] : kind === 'slide' ? r.slide?.[id] : null) ?? null;
+    // (an older document's taken road: the model's plan, 'base'; its other roads went with the bake, 2026-11-03)
+    return key === 'base' ? V.model().road : null;
   }
-  /** A road by bake key for a roads version: the bundle's, else one this device archived (archiveRoads). */
-  function roadOf(version, key) { const { S, local } = V;
+  /** A road by its taken key for a data version: the model's plan now, else the one this device kept then (modelOn). */
+  function roadOf(version, key) {
     if (!version || version === versionNow()) return roadByKey(key);
-    const a = local.json(ROADS(S.entry));
-    return a?.versions?.find((x) => x.v === version)?.roads?.[key] ?? null;
-  }
-  /** Keep the bundle's roads (weeks and values only) for the last few versions, so a plan taken on older
-   *  roads can still be re-scored when only its key was stored. */
-  function archiveRoads() { const { S, ctx, local } = V;
-    const v = versionNow();
-    const roads = bundleRoads(ctx.bundle?.roads).filter((r) => r.item);
-    if (!S.entry || !v || !roads.length) return;
-    const a = local.json(ROADS(S.entry)) || { versions: [] };
-    const have = a.versions.find((x) => x.v === v);
-    if (have && Object.keys(have.roads).length >= roads.length) return;
-    const entry = { v, roads: Object.fromEntries(roads.map((r) => [r.item, { key: r.key, item: r.item, values: r.values, weeks: r.weeks }])) };
-    local.set(ROADS(S.entry), JSON.stringify({ versions: [entry, ...a.versions.filter((x) => x.v !== v)].slice(0, ARCHIVE_VERSIONS) }));
+    return key === 'base' ? V.modelOn(version) : null;
   }
 
   // ---------------------------------------------------------------- persistence
@@ -251,5 +237,5 @@ export function statePart(V) {
     const c = composePins(items, { from: S.A, to: endNow() });
     acc.pins = { must_have: c.must_have, exclude: c.exclude, items };
   };
-  return { cctxNow, versionNow, gwsNow, endNow, accNow, holdOn, holdNow, capFor, storedNow, withHold, withHits, pinsNow, frozenNow, lockedNow, composeNow, ownedNow, intoNow, lookupNow, getPlan, transferInForce, weekState, emit, roadByKey, roadOf, archiveRoads, saveLocal, loadLocal, flushSoon, flush, samePlan, mutate, op, ensure, stamp, setPins };
+  return { cctxNow, versionNow, gwsNow, endNow, accNow, holdOn, holdNow, capFor, storedNow, withHold, withHits, pinsNow, frozenNow, lockedNow, composeNow, ownedNow, intoNow, lookupNow, getPlan, transferInForce, weekState, emit, roadByKey, roadOf, saveLocal, loadLocal, flushSoon, flush, samePlan, mutate, op, ensure, stamp, setPins };
 }

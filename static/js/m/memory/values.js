@@ -99,11 +99,11 @@ export function holdOf(list = [], { A, end, owned = [] } = {}) {
   return { pin };
 }
 
-/** GW g's lineup as a solve has it for squad `sq` under `chip`: the first bundle road (bundleRoads) whose week g holds
- *  the same 15 and chip → {xi, bench, captain, vice} | null (ahead.js asTaken). */
+/** GW g's lineup as a solve has it for squad `sq` under `chip`: the first of solved `roads` whose week g holds the same
+ *  15 and chip → {xi, bench, captain, vice} | null (ahead.js asTaken). */
 export function solvedLineup(roads, g, sq, chip) {
   const k = idsKey(sq);
-  const w = bundleRoads(roads).map((r) => weekAt(r, g)).find((x) => x && squadKey(x) === k && (x.chip ?? null) === chip);
+  const w = roads.filter((r) => r?.weeks?.length).map((r) => weekAt(r, g)).find((x) => x && squadKey(x) === k && (x.chip ?? null) === chip);
   return w ? { xi: ids(w.xi), bench: ids(w.bench), captain: num(w.captain), vice: num(w.vice) } : null;
 }
 
@@ -112,7 +112,7 @@ export function solvedLineup(roads, g, sq, chip) {
 /**
  * engine.solveValues for your pins over the planned GWs (api/mobile.py clean_values whitelists them): the base values
  * (int_rounds = w, chip defaults '0'), your hit caps per GW where they restrict (--max-hits-gw; elsewhere the solver's
- * default cap, meta.hit_cap), your chips through a draft (setChip), your windows, your Rolls (no_buys_gw "7,8"), the
+ * default cap, hitCap of the model's plan), your chips through a draft (setChip), your windows, your Rolls (no_buys_gw "7,8"), the
  * weeks whose bank may go below 0 (debt_gw "9,10": the hold's) and cash. A Wildcard or Free Hit week sends neither
  * hits cap nor Roll.
  */
@@ -122,7 +122,7 @@ export function planValues(cctx, list) {
   let draft = E.createDraft({ name: 'Your plan' });
   for (const [g, chip] of Object.entries(c.chips)) draft = E.setChip(draft, Number(g), chip);
   const { values } = E.solveValues({
-    base: cctx.base, draft, horizon: gws, maxHitsGw: c.hits, hitCap: hitCap(cctx.meta),
+    base: cctx.base, draft, horizon: gws, maxHitsGw: c.hits, hitCap: hitCap(cctx.model),
     chipDefaults: cctx.meta?.chip_defaults, players: cctx.players,
   });
   if (c.must_have) values.must_have = c.must_have;
@@ -133,12 +133,6 @@ export function planValues(cctx, list) {
   if (c.debts.length) values.debt_gw = c.debts.join(',');
   if (c.cash !== null) values.cash = c.cash;
   return values;
-}
-
-/** The bundle's roads, the model's first: base, roll, vetoes, slides, the chip pre-solves (F12). */
-export function bundleRoads(roads) {
-  const r = roads || {};
-  return [r.base, r.roll, ...Object.values(r.veto || {}), ...Object.values(r.slide || {}), ...Object.values(r.chip || {})].filter((x) => x?.weeks?.length);
 }
 
 /** A road's hit cap per GW of `gws` as solved: {gw: cap} (values.max_hits, or the round's values.max_hits_gw); null
@@ -225,7 +219,7 @@ const ownPins = (v, gws) => (solvedFor(v, gws).own ??= composePins([{ id: 'road'
  */
 // (what each purpose's solve is for, in the ?solves=1 panel's words, where its caller says nothing more: the server
 // logs every ask with them, GET /api/m/solves)
-const SOLVE_KINDS = { heal: 'your plan', chip: 'your chip', cash: 'your bank', wish: 'a wish', speculative: 'without your transfers', chipprep: 'a chip, ahead', pair: 'a choice', pairnext: 'next week', presolve: 'a tap, ahead' };
+const SOLVE_KINDS = { heal: 'your plan', chip: 'your chip', cash: 'your bank', wish: 'a wish', speculative: 'without your transfers', chipprep: 'a chip, ahead', pair: 'a choice', pairnext: 'next week', presolve: 'a tap, ahead', plan: 'the plan' };
 export function solveKept(api, args, opts, said = {}) {
   const p = api.solve({ ...args, said: { gw: said.gw ?? (Number(args.values?.from_r) || null), kind: said.kind ?? SOLVE_KINDS[args.purpose] ?? args.purpose, what: said.what ?? 'your rules as set' } }, opts);
   const q = p.then((r) => {
@@ -350,20 +344,18 @@ function ruleWords(p, nameOf, { end, start, cap = null, hold = false } = {}) {
   }
 }
 
-/** The first bundle road that is your plan (roadFits), the model's road first, then one of `also` (roads this page
- *  solved: Memory.offer); null when it needs a solve. The bake's hold road (your team as it is, no transfer in any GW:
- *  api/mobile.py bake_plan; owner, 2026-10-26) counts here alone: no choice, lineup or chip of Ahead's reads it
- *  (bundleRoads). */
-export function findRoad(roads, c, gws, also = []) {
-  // the bundle's part, once per roads and what the pins ask (sigOf: all roadFits reads): an edit's replan and the plan
+/** The solved road that is your plan (roadFits): the model's plan (memory model) first, then one of `also` (roads
+ *  this page solved: Memory.offer); null when it needs a solve. */
+export function findRoad(model, c, gws, also = []) {
+  // the model's part, once per road and what the pins ask (sigOf: all roadFits reads): an edit's replan and the plan
   // view's options road ask the same
-  let by = BUNDLE_FIT.get(roads ?? BUNDLE_FIT);
-  if (!by) BUNDLE_FIT.set(roads ?? BUNDLE_FIT, (by = new Map()));
+  let by = MODEL_FIT.get(model ?? MODEL_FIT);
+  if (!by) MODEL_FIT.set(model ?? MODEL_FIT, (by = new Map()));
   const k = `${gws.join(',')}#${sigOf(c)}`;
-  if (!by.has(k)) by.set(k, [...bundleRoads(roads), roads?.hold].filter((r) => r?.weeks?.length).find((r) => roadFits(r, c, gws)) ?? null);
+  if (!by.has(k)) by.set(k, model?.weeks?.length && roadFits(model, c, gws) ? model : null);
   return by.get(k) ?? also.filter((r) => r?.weeks?.length).find((r) => roadFits(r, c, gws)) ?? null;
 }
-const BUNDLE_FIT = new WeakMap();
+const MODEL_FIT = new WeakMap();
 
 /** Whether a road was solved (values v) for the same GWs and the same options as composed pins c: hit caps per GW,
  *  chips, cash (what a plan may do, as against the windows that hold it in). */
@@ -405,12 +397,12 @@ function chipsAsked(c) {
 export const optionPins = (list = []) => (list || []).filter((p) => (p.id === 'road' && !!p.locked) || ['chip', 'cash'].includes(kindOf(p)));
 
 /**
- * The planner's best plan with your options and a locked GW A (optionPins) and none of your rules: the bundle road (or
+ * The planner's best plan with your options and a locked GW A (optionPins) and none of your rules: the model's plan (or
  * one of `also`) that is that plan (findRoad: solved for the same options under no window but the lock's), else null.
  * Your rules' cost is measured against it (≥ 0 by construction). optionsValues(cctx, list): the solve values of those
  * pins alone.
  */
-export function optionsRoad(roads, list, gws, also = []) {
-  return findRoad(roads, composePins(optionPins(list), { from: gws[0], to: gws.at(-1) }), gws, also);
+export function optionsRoad(model, list, gws, also = []) {
+  return findRoad(model, composePins(optionPins(list), { from: gws[0], to: gws.at(-1) }), gws, also);
 }
 export const optionsValues = (cctx, list) => planValues(cctx, optionPins(list));

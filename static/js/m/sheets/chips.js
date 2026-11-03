@@ -5,7 +5,7 @@
 // in the fact (none before that solve is in, "checking…" while it or the week's roll plan runs). A tap plays the chip,
 // moves it here, swaps it in or takes it off (ahead.useChip, toast with Undo; a refusal says why in its toast, the
 // sheet stays open). The first draw has no numbers and asks for no solve; the next, after one paint, reads the
-// preparations (ahead.chipSource) and redraws as they land.
+// preparations (ahead.chipPreps) and redraws as they land.
 // Sheet contract: static/js/m/app.js (open(ctx, {gw}) → sheet, ctx.openSheet('chips', …)).
 
 import { h, fill, fmt, chipName, xpGain, reduceMotion } from '../../ui.js';
@@ -96,7 +96,7 @@ export function open(ctx, { gw } = {}) {
       function draw(numbers) {
         const P = AH.plan(ctx);
         if (!P) return;
-        const src = numbers ? AH.chipSource(ctx, P) : null;
+        const src = numbers ? AH.chipPreps(ctx, P) : null;
         const rows = AH.chipStates(ctx, P, g, src);
         if (numbers) drawn = [P, src, clocksOf(rows)];
         const can = P.editable && !AH.inkAt(ctx, P, g);
@@ -136,7 +136,7 @@ export function open(ctx, { gw } = {}) {
       // else the checks' clocks move on (clockOf)
       tick = setInterval(() => {
         const P = AH.plan(ctx);
-        const src = P ? AH.chipSource(ctx, P) : null;
+        const src = P ? AH.chipPreps(ctx, P) : null;
         const rows = P ? AH.chipStates(ctx, P, g, src) : null;
         if (P && (!drawn || drawn[0] !== P || drawn[1] !== src || drawn[2] !== clocksOf(rows))) draw(true);
         else if (rows) paintWait(rows);

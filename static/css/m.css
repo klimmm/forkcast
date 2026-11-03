@@ -281,14 +281,10 @@ row; the dot is the only colour */
 .m-banner .m-banner-ic { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 .m-banner.offline { color: var(--loss); }
 .m-banner.offline .m-banner-ic { background: transparent; box-shadow: inset 0 0 0 1.5px var(--loss); }
-.m-banner.updating, .m-banner.stale { color: var(--ink-2); }
-.m-banner.updating .m-banner-ic, .m-banner.stale .m-banner-ic { background: var(--warn-mark); }
-.m-banner.baking .m-banner-ic { background: var(--acc-bg); }
-.m-banner .m-banner-bar { flex: none; width: 54px; height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
-.m-banner .m-banner-bar i { display: block; height: 100%; width: 0; border-radius: 2px; background: var(--acc-bg); transition: width var(--dur) var(--ease); }
-/* a bake's bar by time (app.js etaBar): drawn every second, eased over it; a sweep while nothing is estimated yet */
-.m-banner .m-banner-bar i.m-eta, .m-bar i.m-eta { transition: width 1s linear; }
-.m-banner .m-banner-bar i.m-eta.sweep, .m-bar i.m-eta.sweep { width: 30%; border-radius: 2px; animation: m-sweep 1.4s linear infinite; }
+.m-banner.updating { color: var(--ink-2); }
+.m-banner.updating .m-banner-ic { background: var(--warn-mark); }
+/* the first load's bar while the forecast updates or the team is found (app.js firstLoad): a sweep */
+.m-bar i.m-eta.sweep { width: 30%; border-radius: 2px; animation: m-sweep 1.4s linear infinite; }
 @keyframes m-sweep { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
 /* the wait line (ahead.js waitView; design 1028d W2-line, owner, 2026-10-28): ONE look for every wait (the strip's,
 Chips…'s, Bring in's): its verb in ink 600, then what, how far, the clock in ink 400, one line whose words shorten

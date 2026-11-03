@@ -3,11 +3,12 @@
 import * as E from '../../plan/engine.js';
 import { COPY, planInputs, planFromRoad, compare as compareIn, changeText, transfersOf, withForced, hitCap, FORGET_MS } from '../calls.js';
 import { EDIT, FORGET, LOCAL, OFFERED_MAX, SEEN, SOLVED_MAX, TIMING, USED, carryPins, changesGwA, clone, composePins, deadlinePassed, frozenClash, frozenOnOf, frozenSince, frozenWeeks, heldAt, ids, idsKey, inkRepair, isRoll, kindOf, makePin, nowS, num, pinConflicts, pinVeto, pinsAfter, range, roadWeek, rollKeeps, squadInto, squadKey, weekAt, withBank } from './pins.js';
-import { brokenCells, bundleRoads, findRoad, forcedHits, holdOf, idleRules, planValues, ruleText, solveKept } from './values.js';
+import { brokenCells, findRoad, forcedHits, holdOf, idleRules, planValues, ruleText, solveKept } from './values.js';
 import { detectDrift, freshOf, isNews, journalRows, madeOn, movesChanged, normalizeAccepted, pencilChanges, planOfRoad, sigOf, solvedKey } from './drift.js';
 import { statePart } from './live-state.js';
 import { healPart } from './live-heal.js';
 import { apiPart } from './live-api.js';
+import { modelPart } from './live-model.js';
 
 // ================================================================ the live memory
 
@@ -35,7 +36,6 @@ export function createMemory(ctx) {
     get S() { return S; },
     get accMemo() { return accMemo; }, set accMemo(v) { accMemo = v; },
     get accNow() { return accNow; },
-    get archiveRoads() { return archiveRoads; },
     get baseNow() { return baseNow; },
     get cancelHeal() { return cancelHeal; },
     get capFor() { return capFor; },
@@ -58,6 +58,9 @@ export function createMemory(ctx) {
     get lockedNow() { return lockedNow; },
     get lookupNow() { return lookupNow; },
     get markSeen() { return markSeen; },
+    get model() { return model; },
+    get modelOn() { return modelOn; },
+    get landed() { return landed; },
     get mutate() { return mutate; },
     get op() { return op; },
     get ownedNow() { return ownedNow; },
@@ -67,6 +70,7 @@ export function createMemory(ctx) {
     get replan() { return replan; },
     get roadByKey() { return roadByKey; },
     get roadOf() { return roadOf; },
+    get syncPlan() { return syncPlan; },
     get round2() { return round2; },
     get saveLocal() { return saveLocal; },
     get scheduleHeal() { return scheduleHeal; },
@@ -79,14 +83,23 @@ export function createMemory(ctx) {
     get withHits() { return withHits; },
     get withHold() { return withHold; },
   };
-  const { cctxNow, versionNow, gwsNow, endNow, accNow, holdOn, holdNow, capFor, storedNow, withHold, withHits, pinsNow, frozenNow, lockedNow, composeNow, ownedNow, intoNow, lookupNow, getPlan, transferInForce, weekState, emit, roadByKey, roadOf, archiveRoads, saveLocal, loadLocal, flushSoon, flush, samePlan, mutate, op, ensure, stamp, setPins } = statePart(V);
-  const { replan, fitRoads, keyNow, took, batch, keepBase, baseNow, lastNow, cancelHeal, scheduleHeal, yours, runHeal, settled, values, offer, rejudge, round2 } = healPart(V);
+  const { cctxNow, versionNow, gwsNow, endNow, accNow, holdOn, holdNow, capFor, storedNow, withHold, withHits, pinsNow, frozenNow, lockedNow, composeNow, ownedNow, intoNow, lookupNow, getPlan, transferInForce, weekState, emit, roadByKey, roadOf, saveLocal, loadLocal, flushSoon, flush, samePlan, mutate, op, ensure, stamp, setPins } = statePart(V);
+  const { replan, keyNow, took, batch, keepBase, baseNow, lastNow, cancelHeal, scheduleHeal, yours, runHeal, settled, values, offer, rejudge, round2 } = healPart(V);
   const { ideaOf, keepMine, adoptDrift, inkOf, inkClash, changesLiveA, addPin, clashText, dropPins, removePin, reset, setHitsMax, setLineup, setPlan, heal, compare, evalOf, lite, noteEdit, claimEdit, receipt, restorePins, pencilDiff, markSeen, forecastChange, loadAll, journal, unused, onData, syncPlan, carryOver } = apiPart(V);
   const S = {
     entry: null, A: null, doc: null, docs: null, dirty: false, seq: 0, inflight: null, flushTimer: null,
     drift: null, judged: null, pending: null, healTimer: null, healSeq: 0, queued: null, error: null, carried: null, notice: null,
-    offered: { v: null, roads: [], solved: new Map() }, reopened: null, base: null, last: null, batch: null, aheadSig: null,
+    offered: { v: null, roads: [], solved: new Map() }, reopened: null, base: null, last: null, batch: null, aheadSig: null, model: null,
   };
+  const { model, retryModel, modelOn } = modelPart(V);
+  /** The model's plan landed (memory model): what the bundle's roads were judged on is judged again (drift, the plan's
+   *  sync), and the screen hears it. */
+  function landed() {
+    const before = S.drift;
+    rejudge();
+    syncPlan();
+    emit(S.drift !== before ? 'drift' : 'model');
+  }
   const subs = new Set();
   const store = ctx.store;
   const local = ctx.api.local;
@@ -97,6 +110,7 @@ export function createMemory(ctx) {
     store.on('data', onData),
     store.on('conn', (c) => {
       if (c?.state === 'offline') return;
+      model();  // (back on line, or a warm start's live bundle: the model's plan asked if none is in)
       if (S.dirty) flushSoon(0);
       if (S.queued && S.pending?.state === 'offline') scheduleHeal(S.queued, { now: true });
     }),
@@ -104,14 +118,14 @@ export function createMemory(ctx) {
   onData();
 
   return {
-    ctx, getPlan, onChange(fn) { subs.add(fn); return () => subs.delete(fn); },
+    ctx, getPlan, onChange(fn) { subs.add(fn); return () => subs.delete(fn); }, model, retryModel,
     inkOf, inkClash, addPin, removePin, restorePins, batch, setHitsMax, reset, setLineup, setPlan, values, offer, heal, settled, compare,
     // whether a solve of exactly these values was offered (offer `values`): ahead.js presolve asks it no more
     solved: (vals) => S.offered.v === versionNow() && S.offered.solved.has(solvedKey(ctx.bundle?.version ?? null, vals)),
     pencilDiff, markSeen, forecastChange, keepMine, adoptDrift, journal, noteEdit, claimEdit,
     // detached: a save still in flight lands without writing this device's mirror (sign-out cleared it) → that save
     // (forget waits for it, so it never lands over the forgetting)
-    flush, detach() { offs.forEach((f) => f()); subs.clear(); cancelHeal(); clearTimeout(S.flushTimer); S.entry = null; return S.inflight; },
+    flush, detach() { offs.forEach((f) => f()); subs.clear(); cancelHeal(); S.model?.p?.cancel?.(); S.model = null; clearTimeout(S.flushTimer); S.entry = null; return S.inflight; },
   };
 }
 

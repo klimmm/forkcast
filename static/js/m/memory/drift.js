@@ -113,17 +113,17 @@ export const isNews = (cctx, fc) => fc != null && fc.ref > (cctx?.noise ?? 0) &&
  * choices, else null (unknown: 'kept').
  */
 export function detectDrift(cctx, accepted, version, { frozen = null, locked = false, now, before = null, hold = null } = {}) {
-  if (!accepted?.plan?.weeks?.length || !cctx?.roads?.base || !version || madeOn(accepted) === version) return null;
+  if (!accepted?.plan?.weeks?.length || !cctx?.model?.weeks?.length || !version || madeOn(accepted) === version) return null;
   const L = E.playerLookup({ base: cctx.base, players: cctx.players });
   const mine = planFromRoad(cctx, { weeks: accepted.plan.weeks }, accepted.lineup || {});
-  const bestPlan = planFromRoad(cctx, cctx.roads.base);
+  const bestPlan = planFromRoad(cctx, cctx.model);
   const cmp = compareIn(cctx, bestPlan.evaluation, mine.evaluation);
   const pinList = accepted.pins?.items || [];
   const ink = frozen?.length ? frozen : locked ? [cctx.A] : [];
-  const reach = ink.every((g) => squadKey(weekAt(cctx.roads.base, g)) === squadKey(weekAt(accepted.plan, g)));
+  const reach = ink.every((g) => squadKey(weekAt(cctx.model, g)) === squadKey(weekAt(accepted.plan, g)));
   // the hold is kept as your rules are: a new best that moves where it rolls ignores it, so its action re-plans with
   // it; never named as yours (ruleNames)
-  const broken = rulesBroken(cctx.roads.base, [...(hold ? [hold] : []), ...pinList.filter((p) => p.id !== 'road' && p.id !== 'hold')], { from: cctx.A, to: cctx.gws.at(-1) });
+  const broken = rulesBroken(cctx.model, [...(hold ? [hold] : []), ...pinList.filter((p) => p.id !== 'road' && p.id !== 'hold')], { from: cctx.A, to: cctx.gws.at(-1) });
   // a pencil GW the model's own new plan breaks the same way is no news about yours: the solver prices it on its data's
   // prices and a later solve re-plans it. Only as far as the model's own; a bigger shortfall of yours still counts. GW
   // A always counts.

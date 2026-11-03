@@ -74,9 +74,9 @@ export const rankShort = (n) => (n < 1e4 ? fmt.int(n) : fmt.compact(n, 2));
 /** [{gw}] → "GW7" | "GW7 and GW8". */
 export const gwsWords = (list) => list.map((x) => `GW${x.gw}`).join(' and ');
 export const hitsWords = (n) => (n > 1 ? `${WORDS[n] ?? n} hits (${MINUS}${E.HIT_COST * n})` : `a ${MINUS}${E.HIT_COST}`);
-/** The solver's hit cap per GW (bundle meta.hit_cap, from the base road's Rules): what a GW with no hits rule of yours
- *  allows; null before the plan service has one. */
-export const hitCap = (meta) => num(meta?.hit_cap);
+/** The solver's hit cap per GW (its Rules' hit_rule, as the model's plan was solved under: memory model): what a GW
+ *  with no hits rule of yours allows; null before that plan is in. */
+export const hitCap = (model) => num(model?.hit_rule?.cap);
 /** A plan length's feature as the server names it when locking it (meta.locked; api/mobile.py horizon_feature):
  *  "horizon:2". */
 export const horizonFeature = (n) => `horizon:${n}`;

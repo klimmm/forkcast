@@ -3,13 +3,13 @@
 // stay in ../plan/engine.js; the phone's copy lives here once, in COPY.
 //
 // ---------------------------------------------------------------- inputs
-// ctx = planInputs(bundle, data?) (GET /api/m/bundle data; `data` = app.js's derived ctx.data, whose base / players /
-// seeds / noise are reused) or the same shape built by hand:
+// ctx = planInputs(bundle, data?, model?) (GET /api/m/bundle data; `data` = app.js's derived ctx.data, whose base /
+// players / seeds / noise are reused; `model` memory's model plan) or the same shape built by hand:
 // {A (the next GW), gws (planned GWs), meta, base (engine base), players (engine players form), seeds (decoded), noise,
-// roads {base, roll, veto: {id: Road}, slide, chip}, bake, rank}
+// model (the solver's plan with none of your rules), rank}
 //
 // ---------------------------------------------------------------- exports
-// planInputs(bundle, data?) → ctx
+// planInputs(bundle, data?, model?) → ctx
 // compare(ctx, a, b) → engine.compareRoads in the one measure: forecast points minus hits (what you score), labelled
 // against the noise floor
 // plannerOf(a, b) → {delta, terms, hits} | null: the planner's own count (engine.objectiveOf of two solved roads) and
@@ -18,7 +18,7 @@
 // the planner's word where it parts from them
 // withForced(line, now, was) → that verdict plus the hits its new plan takes that its rules don't allow or its planner
 // never priced (memory.forcedHits); forcedNew(now, was): those the plan before didn't take
-// hitCap(meta) → the solver's hit cap per GW | null; transfersOf(plan), hitsOf(plan) → n
+// hitCap(model) → the solver's hit cap per GW (the model's plan's hit_rule) | null; transfersOf(plan), hitsOf(plan) → n
 // rulesCost(ctx, yours, model) → {cost (≥ 0), label, points, transfers} | null: what your rules cost, never your lineup
 // captainGap(ctx, week, c, vs), subGap(ctx, week, s) → compare: a captain against another in one week, a sub against
 // the lineup now
@@ -52,6 +52,6 @@ export {
 } from './calls/measure.js';
 export {
   PRICE_WORD, priceSaid, priceNights, shownPlayers, withPrices, priceOutlook, nightWords, pricePlate, priceWatch,
-  priceMorning, planEta, steadyEta, clockText, waitedText, aboutText, leftText, waitLines, stepShare, planShare,
+  priceMorning, clockText, waitedText, waitLines, stepShare,
   waitFacts, waitFact
 } from './calls/prices.js';

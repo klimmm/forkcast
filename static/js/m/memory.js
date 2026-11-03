@@ -98,7 +98,7 @@
 // frozenOnOf, frozenSince, inkRepair, pinWish, pinSell, pinSlide, pinVeto, pinNever, pinKeep, pinChip, pinCash,
 // withBank,
 // pinHits, squadInto, movesIn, pinRoll, isRoll, isExact, exactAt, scopeOf, carryPins, planValues, roadCaps, forcedHits,
-// idleRules, bundleRoads, roadFits, optionPins, optionsRoad,
+// idleRules, roadFits, optionPins, optionsRoad,
 // optionsValues, brokenCells, rulesBroken, ruleText, findRoad, legality,
 // detectDrift, sinceText, planDiff, diffWords, pencilChanges, movesChanged, journalRows, madeOn, normalizeAccepted,
 // createMemory
@@ -111,7 +111,7 @@ export {
   pinRoll, carryPins
 } from './memory/pins.js';
 export {
-  holdOf, solvedLineup, planValues, bundleRoads, roadCaps, forcedHits, idleRules, roadFits, solveKept, brokenCells,
+  holdOf, solvedLineup, planValues, roadCaps, forcedHits, idleRules, roadFits, solveKept, brokenCells,
   rulesBroken, ruleText, findRoad, optionPins, optionsRoad, optionsValues
 } from './memory/values.js';
 export {
@@ -119,5 +119,5 @@ export {
   normalizeAccepted
 } from './memory/drift.js';
 export {
-  editedAt, createMemory, attach, release, forget, planWithout, switchWithUndo
+  editedAt, createMemory, attach, release, forget, planWithout, switchWithUndo, ROADS
 } from './memory/live.js';

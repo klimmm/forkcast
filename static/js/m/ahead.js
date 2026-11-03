@@ -35,10 +35,10 @@
 // approx, lineup (a phone lineup of yours), lineupDelta}
 // inFor(P, week) → {id: 'Scott'} · clearGain(cmp) (a gain beyond the noise: the one test for green, a solid +, a filled
 // button, a "Best") · baseOf(ctx) → the engine base GW A starts from · asYours(ctx, road) → {weeks} · baked(ctx,
-// extraPins) → the bundle road that already is the plan with those pins, or null ·
+// extraPins) → the model's plan when it already is the plan with those pins, or null ·
 // gwMode(P, gw) → 'roll' | 'free' | 'h<n>' | 'auto' ·
-// chipWeek(P, gw) → 'wc' | 'fh' | null (COPY.chipWeek) · chipSource(ctx) → each chip × GW's plan (chipPreps: prepared
-// with your rules; chipPresolves: the bake's) · buyCandidates(P, {pos, from, not, limit}) → [id] ·
+// chipWeek(P, gw) → 'wc' | 'fh' | null (COPY.chipWeek) · chipPreps(ctx) → each chip × GW's plan, prepared with your
+// rules · buyCandidates(P, {pos, from, not, limit}) → [id] ·
 // watchOf(ctx) → price watch (calls.priceWatch) | null · inkAt(ctx, P,
 // g) (GW A under way: no edit reaches GW g). Edits (rules only; false with a toast when blocked): sellFrom, sellAny,
 // sellOut, moveTo, veto, want, keep, never, rescope, liftAsk, removeRule, captain, vice, sub, resetLineup, resetPlan,
@@ -71,7 +71,7 @@ export {
   planWeeks, countedAfter, squadChanges, litEdges, weekKey, weekSettled, settlesAt, litOf, weekBest, litShown,
   rollOnly, planBack, decksOf, benchOnly, takesBack, singleMove, placeDealt, placePages, placeBuys, placeLine,
   multiMove, placeSplit, lineMoves, placeOrder, placeFirst, slotsBeside, failedWords, noteOf, planOfRoad,
-  planBaseline, takenBy, forkValues, resetForks
+  planBaseline, takenBy, forkValues, forkFlights, resetForks
 } from './ahead/plans.js';
 export {
   presolveTaps, owedAt, extraWeek, repicks, addYours, OWN_ALTS, ownAltsOf, tiedBuy, cheaperFirst, otherUseOf, whenOf,
@@ -85,9 +85,8 @@ export {
   liftsLive, initials, reroute
 } from './ahead/buys.js';
 export {
-  shirtOf, clearGain, plPays, emptyHead, factsWords, itbWords, rollFt, weekFacts, chipsAsked, chipPresolves,
-  chipBests, chipBack, chipsAvail, squadWeek, chipGain, chipWeekGain, xpShown, chipStates, PREP_TIMING, chipPreps,
-  chipSource
+  shirtOf, clearGain, plPays, emptyHead, factsWords, itbWords, rollFt, weekFacts, chipsAsked,
+  chipBests, chipBack, chipsAvail, squadWeek, chipGain, chipWeekGain, xpShown, chipStates, PREP_TIMING, chipPreps
 } from './ahead/pieces.js';
 export {
   rulesOf, listedRules, oneLook, headScale, reachOf, TAB_MIN, EDGE_MIN, GAP_MAX, PLATE_MIN, boxesMeet, resetFits,

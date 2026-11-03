@@ -252,7 +252,7 @@ export const withTaken = (P, what, pins, gone = []) => {
 };
 /** A rule in words (memory.ruleText) as the plan's chips say it, scoped against the planned GWs (P: a plan view or
  *  info). */
-export const ruleOf = (P, p) => ruleText(p, P.L.name, { end: P.end, start: P.A, cap: hitCap(P.b?.meta), hold: !!P.mem?.hold });
+export const ruleOf = (P, p) => ruleText(p, P.L.name, { end: P.end, start: P.A, cap: hitCap(P.base), hold: !!P.mem?.hold });
 /** Your pin of `kind` about player `id` (a veto, Never, Keep, sale or wish) — one whose window covers GW `gw` when
  *  given — or null. */
 export const pinOf = (P, kind, id, gw = null) => pinsOf(P, kind, id).find((p) => gw == null || overlaps(p, { player: id, must: [[Number(id), gw, gw]] })) ?? null;

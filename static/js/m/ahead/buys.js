@@ -351,7 +351,7 @@ export const planHasYours = (P) => (P?.pins || []).some((p) => !derivedPin(p)) |
  *  label]]: None, then each cap up to the solver's own (meta.hit_cap: "−4", "−8"), and the one in force (`at`: memory's
  *  Plan.hitsMax, else the solver's cap; none known, None and −4). */
 export function hitsChoices(P) {
-  const cap = hitCap(P?.b?.meta);
+  const cap = hitCap(P?.base);
   const top = cap ?? 1;
   const at = P?.mem?.hitsMax ?? top;
   return { at: Math.min(at, top), choices: Array.from({ length: top + 1 }, (_, n) => [n, COPY.hitsSeg(n)]) };
@@ -362,7 +362,7 @@ export function setHitsMaxWithUndo(ctx, n) {
   const P = plan(ctx);
   const { at } = hitsChoices(P);
   if (n === at) return false;
-  const cap = hitCap(P?.b?.meta);
+  const cap = hitCap(P?.base);
   const what = COPY.hitsMax(n);
   return edit(ctx, { from: info(ctx)?.A, what, text: vsPrev(ctx, what), hitsMax: cap !== null && n >= cap ? null : n });
 }
@@ -389,7 +389,7 @@ export function gwMode(P, g) {
   // …and one it caps at your moves after a week the planner chose (holdOf's caps): 'roll' too
   if (!mine && P.pins.some((p) => p.id === 'hold' && p.caps?.[g] != null)) return 'roll';
   const n = composePins(P.pins, { from: g, to: g }).hits[g];
-  const cap = hitCap(P.b?.meta);
+  const cap = hitCap(P.base);
   if (n === undefined || (cap !== null && n >= cap)) return 'auto';
   return n === 0 ? 'free' : `h${n}`;
 }

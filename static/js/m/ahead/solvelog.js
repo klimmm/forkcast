@@ -37,9 +37,14 @@ export function mountSolveLog(ctx) {
     if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => flash('Copied'), byHand);
     else byHand();
   });
-  // (the lines redrawn every half second in a list of their own, the button never: a tap spanning a redraw kept)
+  // (Clear: the team's list emptied where it is kept, on the server, so a reload starts from it too; owner, 2026-11-03,
+  // "add button clear next to copy", "why it increased to 15 after i cleared and reload")
+  let cleared = 0;
+  const clear = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Clear' });
+  clear.addEventListener('click', (ev) => { ev.stopPropagation(); cleared = Date.now(); acted = 0; shown?.remove(); shown = null; paint(); const e = ctx.store.get('entry'); if (e != null) ctx.api.clearSolves(e).catch(() => {}); });
+  // (the lines redrawn every half second in a list of their own, the buttons never: a tap spanning a redraw kept)
   const list = document.createElement('div');
-  el.replaceChildren(copy, list);
+  el.replaceChildren(copy, clear, list);
   // (the server's list, asked again each second; its times on this device's clock)
   let got = { solves: [], skew: 0 }, asking = false;
   const ask = () => {
@@ -49,14 +54,29 @@ export function mountSolveLog(ctx) {
     ctx.api.getSolves(e).then((r) => { got = { solves: r?.solves ?? [], skew: Date.now() - Number(r?.now ?? 0) * 1000 }; }, () => {}).finally(() => { asking = false; paint(); });
   };
   const paint = () => {
-    const now = Date.now(), mine = got.solves.map((x) => ({ ...x, at: Number(x.at) * 1000 + got.skew, ms: x.ms == null ? null : Number(x.ms) }));
+    const now = Date.now(), asks = got.solves.map((x) => ({ ...x, at: Number(x.at) * 1000 + got.skew, ms: x.ms == null ? null : Number(x.ms) })).filter((x) => x.at >= cleared);
     const live = (x) => x.state === 'running' || x.state === 'queued';
-    const running = mine.filter(live).length, since = acted ? mine.filter((x) => x.at >= acted).length : mine.length;
+    // (one line a solve, its key's: every asker of it named and how many asks, the one that ran it its state and time;
+    // an answer the server already had, "cached", ran nothing; owner, 2026-11-03, "why these are different solves": the
+    // roll and your plan one solve, the same refusals again after a reload)
+    const by = new Map();
+    for (const x of asks) {
+      const g = by.get(x.key) ?? { ...x, kinds: [], n: 0 };
+      if (!by.has(x.key)) by.set(x.key, g);
+      g.n++;
+      // (each asker by its newest words only: an ask logged before a solve's words changed never names it twice)
+      const who = /^the next /.test(x.kind) ? 'the next' : x.kind;
+      if (!g.kinds.some((k) => (/^the next /.test(k) ? 'the next' : k) === who)) g.kinds.push(x.kind);
+      if (x.state !== 'already solved' && (g.state === 'already solved' || x.at < g.at)) Object.assign(g, { at: x.at, state: x.state, ms: x.ms, what: x.what, gw: x.gw });
+    }
+    const mine = [...by.values()].sort((x, y) => y.at - x.at), ran = (xs) => xs.filter((x) => x.state !== 'already solved');
+    const running = mine.filter(live).length, after = acted ? mine.filter((x) => x.at >= acted) : mine;
     const ends = (x) => (x.state === 'running' ? `solving, ${secs(now - x.at)}` : x.state === 'queued' ? `waiting, ${secs(now - x.at)}`
-      : x.state === 'already solved' ? x.state : x.state === 'done' ? `solved in ${secs(x.ms ?? 0)}` : x.ms != null ? `${x.state} in ${secs(x.ms)}` : x.state);
-    const head = `${running} running · ${since} since your last tap · ${mine.length} in all`;
-    const line = (x) => `${x.gw != null ? `GW${x.gw}` : 'GW?'} · ${x.kind} · ${x.what} · ${ends(x)}`;
-    // (the copy names each solve's key too: one asked again under the same words told apart)
+      : x.state === 'already solved' ? 'cached' : x.state === 'done' ? `solved in ${secs(x.ms ?? 0)}` : x.ms != null ? `${x.state} in ${secs(x.ms)}` : x.state);
+    const head = `${running} running · ${ran(after).length} since tap · ${ran(mine).length} solved · ${mine.length - ran(mine).length} cached · ${asks.length} asks`;
+    // (each line starts "•", a wrapped one indented under it: where a line starts is seen at once; owner, 2026-11-03)
+    const line = (x) => `• ${x.gw != null ? `GW${x.gw}` : 'GW?'} · ${x.kinds.join(' + ')} · ${x.what} · ${ends(x)}${x.n > 1 ? ` · asked ${x.n}×` : ''}`;
+    // (the copy names each solve's key too)
     said = [head, ...mine.map((x) => `${line(x)} · #${x.key}`)];
     list.replaceChildren(
       Object.assign(document.createElement('b'), { textContent: head }),

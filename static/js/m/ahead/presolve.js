@@ -6,7 +6,7 @@ import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
 import { attach, pinSell, pinHits, pinKeep, pinVeto, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
 import { MINUS, WHY_SHEET, addMove, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
 import { saidNow, sayAgain, asksOf, autoRuleName, barred, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
-import { FORK_FLIGHTS, SQUAD_CHIPS, asTaken, byGain, choiceVs, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
+import { FORK_FLIGHTS, SQUAD_CHIPS, answeredBy, asTaken, byGain, choiceVs, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
 import { freedBy, lineupMoved, gwMode, inkAt, isLive } from './buys.js';
 import { plPays, squadWeek } from './pieces.js';
 import { rulesOf } from './screen.js';
@@ -179,6 +179,13 @@ export function pumpAhead(ctx) {
       // again even where memory keeps it under the plan service's version, not the bundle's (a re-bake serving the
       // previous code's roads); else every landing pumped the same solve again at once, 19,000 times in a suite run)
       if (AHEAD.failed.has(a.key) || AHEAD.landed.has(a.key) || mem.solved(a.values)) continue;
+      // (one a road in hand answers already, no solve: answeredBy)
+      const sent = answeredBy(P, a.key, a.values);
+      if (sent) {
+        if (a.kind === 'root') forkKept(a.key, sent); else mem.offer(sent, { values: a.values, version: P.b?.version });
+        AHEAD.landed.add(a.key);
+        continue;
+      }
       left = true;
       if (forkFlights().some(([, f]) => f.key === a.key)) continue;
       // (the rest waits for the window to move on, a re-draw then asks it; one asked again, an Undo back to its rules,
@@ -252,7 +259,7 @@ export const paysBack = (w, pl) => {
  *  asked as a fork is (forkAsk; read only when `peek`) → {key, road: its road once solved, else null}. Its moves on top
  *  of yours are the week's choices (plansOf). */
 export function owedRoad(ctx, P, g, { peek = false, prep = false } = {}) {
-  const values = valuesFor(ctx, [pinHits(hitCap(P.b?.meta) ?? 2, g)]);
+  const values = valuesFor(ctx, [pinHits(hitCap(P.base) ?? 2, g)]);
   const key = valuesKey(P, values);
   const got = peek ? forkRead(key) : forkAsk(ctx, P, { key, values, gw: g, ...(prep ? { prep } : {}) });
   return { key, road: got?.weeks ? got : null };
@@ -267,6 +274,8 @@ export function owedRoad(ctx, P, g, { peek = false, prep = false } = {}) {
  *  root first */
 /** Each week's last root (refusalRoads): `${entry}|${g}` → {version, values, road}. */
 const ROOTS = new Map();
+/** …cleared with the fork solves' state (forks.resetForks: between the node tests). */
+export const clearRoots = () => ROOTS.clear();
 /** GW g's last root road (refusalRoads) on plan P's data: the solver's plan under your rules as they stand, its later
  *  weeks' transfers (the band's "Next →": tokensOf) → road | null */
 export const rootRoad = (P, g) => { const r = ROOTS.get(`${P.entry}|${g}`); return r?.version === P.b.version ? r.road : null; };
@@ -295,7 +304,7 @@ export function rootStill(was, now, road) {
  *  with the Roll kept the root after a take was the take's own solve again, and under your Roll no move was offered:
  *  2026-11-02). With a tap's pins made dry (askOf): the root that tap's plan will ask, solved ahead. */
 function rootValues(ctx, P, g, extra = [], drop = []) {
-  const cap = hitCap(P.b?.meta) ?? 2, roll = `roll:${g}`;
+  const cap = hitCap(P.base) ?? 2, roll = `roll:${g}`;
   return valuesFor(ctx, [...P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x)), ...extra.filter((p) => p.id !== roll)], [...drop, ...P.pins.filter((p) => p.id === roll).map((p) => p.id)]);
 }
 /** `lead`: the move the week's best token shows (plansOf: the solver's row with the highest number), the one its ✕
@@ -303,7 +312,8 @@ function rootValues(ctx, P, g, extra = [], drop = []) {
  *  2026-11-02, Boss of the gym GW10: the token Palmer, the refusal solved ahead Hill's, so each ✕ waited on a solve). */
 export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1, lead: best = null, also = [] } = {}) {
   const yours = weekOf(P, g)?.moves || [], out = [], seen = new Set(), d0 = draftOf(ctx);
-  const walk = (extra, d) => {
+  // (`tap`: the tap a refusal prepares, the ✕'s 'x' or the lock's 'keep': the ?solves=1 panel names it)
+  const walk = (extra, d, tap = null) => {
     const values = rootValues(ctx, P, g, extra), key = valuesKey(P, values);
     if (seen.has(key)) return;
     seen.add(key);
@@ -315,7 +325,7 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1,
     // greyed out after any choice made")
     const last = root ? ROOTS.get(`${P.entry}|${g}`) : null;
     if (last && !forkRead(key) && last.version === P.b.version && rootStill(last.values, values, last.road)) forkKept(key, { ...last.road, key, values });
-    const got = peek || busy ? forkRead(key) : forkAsk(ctx, P, { key, values, gw: g, side: true, ...(prep || !root ? { prep: true } : {}), ...(root ? { root: true } : {}) });
+    const got = peek || busy ? forkRead(key) : forkAsk(ctx, P, { key, values, gw: g, side: true, tap, ...(prep || !root ? { prep: true } : {}), ...(root ? { root: true } : {}) });
     const road = got?.weeks ? got : null;
     if (root && road) ROOTS.set(`${P.entry}|${g}`, { version: P.b.version, values, road });
     out.push({ key, road });
@@ -325,15 +335,15 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1,
     const lead = (root && best && ms.find((m) => Number(m.out) === Number(best.out) && Number(m.in) === Number(best.in))) || ms[0] || null;
     if (!lead) return;
     // (the ✕'s refusal before the lock's Keep: the likelier tap asked first)
-    walk([...extra, pinVeto(lead.in, g, g, { scope: 'gw' })], d - 1);
+    walk([...extra, pinVeto(lead.in, g, g, { scope: 'gw' })], d - 1, 'x');
     // (its seller's Keep one refusal deep too, as the ✕'s: the ✕ after a Keep draws at once; owner, 2026-11-03, "why
     // grey out after each keep")
-    if (d === depth) walk([...extra, pinKeep(lead.out, g, g, { scope: 'gw' })], d - 1);
+    if (d === depth) walk([...extra, pinKeep(lead.out, g, g, { scope: 'gw' })], d - 1, 'keep');
     // (the best's other moves, a plan's: each name's ✕ in the band, its buy refused, its seller kept, solved ahead after
     // the lead's; owner, 2026-11-02, "why only 1 out of four players have cross sign")
     if (d === depth) for (const m of also.filter((x) => Number(x.in) !== Number(lead.in))) {
-      walk([...extra, pinVeto(m.in, g, g, { scope: 'gw' })], 0);
-      walk([...extra, pinKeep(m.out, g, g, { scope: 'gw' })], 0);
+      walk([...extra, pinVeto(m.in, g, g, { scope: 'gw' })], 0, 'x');
+      walk([...extra, pinKeep(m.out, g, g, { scope: 'gw' })], 0, 'keep');
     }
   };
   walk([], depth);
@@ -372,7 +382,7 @@ export function addYours(ctx, P, g, out, inn, d0 = draftOf(ctx), measure = null)
   for (const x of P.gws.filter((y) => y >= g && repicks(P, y))) {
     if (hitsAt(r.ev, x) <= hitsAt(before, x)) continue;
     const mode = gwMode(P, x);
-    const room = mode === 'free' ? 0 : mode.startsWith('h') ? Number(mode.slice(1)) : hitCap(P.b?.meta) ?? Infinity;
+    const room = mode === 'free' ? 0 : mode.startsWith('h') ? Number(mode.slice(1)) : hitCap(P.base) ?? Infinity;
     const drops = new Map();
     for (const m of weekOf(P, x).moves.filter((y) => !pinOfMove(P, { ...y, gw: x }) && (x !== g || y.out !== out))) {
       const dm = flatMoves(r.draft).find((y) => y.gw === x && y.out === m.out && y.in === m.in);

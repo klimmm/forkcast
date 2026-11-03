@@ -73,11 +73,11 @@ made by dropping, in order: the change's "xP" (.ah-nomark), the window's label (
 (.ah-nototal). .ah-bare is the line without them, as fitPitch measures it */
 .ah-gwline.ah-bare .ah-tdelta, .ah-gwline.ah-tight .ah-tot .k, .ah-gwline.ah-nomark .ah-tdelta .xp-u { display: none; }
 
-/* the shell's state banner (app.js, slot under the header): a re-plan under way (baking, stale, updating) has no row or
+/* the shell's state banner (app.js, slot under the header): the forecast updating has no row or
 bar on Ahead (owner, 2026-10-08; the strip's wait line tells it), its words for assistive tech only (role=status,
 aria-live). One that needs you (offline, with Retry) keeps its row; fitPitch counts it */
 .m-screen.ah [data-banner-slot] { position: relative; }
-.m-screen.ah .m-banner:is(.baking, .stale, .updating) {
+.m-screen.ah .m-banner.updating {
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }
 
@@ -1299,6 +1299,6 @@ card is under "Keep" */
 .ah-solvelog.folded > div > div { display: none; }
 .ah-solvelog > textarea { display: block; box-sizing: border-box; width: 100%; height: 30vh; margin: 2px 0 4px; background: #111; color: #FFFFFF; font: inherit; }
 .ah-solvelog > button { float: right; margin: -2px 0 2px 8px; padding: 2px 10px; border: 1px solid rgb(255 255 255 / .5); border-radius: 6px; background: none; color: #FFFFFF; font: inherit; }
-.ah-solvelog > div > div { border-top: 1px solid rgb(255 255 255 / .12); padding: 2px 0; }
+.ah-solvelog > div > div { border-top: 1px solid rgb(255 255 255 / .12); padding: 2px 0 2px 1.2em; text-indent: -1.2em; }
 .ah-solvelog > div > .solving { color: #FFD166; }
 .ah-solvelog > div > :is(.cancelled, .error, .superseded) { color: #FF8A80; }

@@ -8,18 +8,19 @@ import { shownPlayers } from './prices.js';
 // ---------------------------------------------------------------- inputs
 
 /**
- * GET /api/m/bundle data → ctx (the engine's base / players / seeds plus the roads and noise). Pass app.js's derived
- * `data` ({base, players, seeds, noise, gw, horizon}) to reuse it as is.
+ * GET /api/m/bundle data → ctx (the engine's base / players / seeds plus the model's plan and noise). Pass app.js's
+ * derived `data` ({base, players, seeds, noise, gw, horizon}) to reuse it as is; `model`: the solver's plan with none of
+ * your rules (memory model), whose noise is the plan's and whose hit rule the cap (hitCap).
  */
-export function planInputs(bundle, data) {
+export function planInputs(bundle, data, model = null) {
   if (!bundle) return null;
   const meta = bundle.meta || {}, entry = bundle.entry || {};
   const A = num(meta.gw ?? meta.next_gw);
-  const rest = { meta, roads: bundle.roads || {}, bake: bundle.bake || null, rank: bundle.rank || null };
+  const rest = { meta, model, rank: bundle.rank || null };
   if (data?.base && data?.players) {
     return {
       ...rest, A, gws: ids(data.horizon).length ? ids(data.horizon) : ids(meta.horizon), base: data.base, players: data.players,
-      seeds: E.decodeSeeds(data.seeds ?? bundle.seeds), noise: num(data.noise) ?? E.noiseFloor(meta, A) ?? 0,
+      seeds: E.decodeSeeds(data.seeds ?? bundle.seeds), noise: num(model?.noise) ?? num(data.noise) ?? E.noiseFloor(meta, A) ?? 0,
     };
   }
   const cols = shownPlayers(bundle) || {};
@@ -34,7 +35,7 @@ export function planInputs(bundle, data) {
   };
   return {
     ...rest, A, gws: ids(meta.horizon).length ? ids(meta.horizon) : E.planGws(base, 4), base, players,
-    seeds: E.decodeSeeds(bundle.seeds), noise: E.noiseFloor(meta, A) ?? 0,
+    seeds: E.decodeSeeds(bundle.seeds), noise: num(model?.noise) ?? E.noiseFloor(meta, A) ?? 0,
   };
 }
 

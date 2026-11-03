@@ -9,20 +9,19 @@
 //   export const css = '/css/…'                optional; linked once, before the first mount
 // el      the screen's empty <section class="m-screen">; it owns its children and scrolls. Put <div
 // data-banner-slot></div> under the header for the state banner (else it goes first in el).
-// handle  {update?(why), show?(), hide?(), unmount?()}: update gets why = 'bundle' (new bundle or baking step) or
+// handle  {update?(why), show?(), hide?(), unmount?()}: update gets why = 'bundle' (a new bundle), 'chips' or
 // 'conn'; show once laid out; unmount before the shell drops the screen (team switch, re-mount: without update the
 // shell re-mounts on 'bundle').
-// mount runs once a bundle exists (any state: the screen draws its own baking/skeleton state from ctx.bundle.state and
-// .bake). Shared state (selected GW…) goes through ctx.store.
+// mount runs once a bundle exists (any state: the screen draws its own planning/skeleton state while the plan memory
+// asks its plan). Shared state (selected GW…) goes through ctx.store.
 //
 // SHEET MODULES static/js/m/sheets/<name>.js (you, why, player, replace, wish, chips, about):
 // export function open(ctx, ...args) → sheet      via ctx.openSheet(name, ...args); built with ctx.sheets.open();
 // #/player/<id> calls openSheet('player', id).
 //
 // ctx (one live object; getters return current values)
-// bundle     GET /api/m/bundle data (§7.4 shape) or null. While its roads are from an older data version
-// (meta.roads_version ≠ version: re-baking), their weeks lose `pred`, so every score of them uses today's forecast
-// (PC-3)
+// bundle     GET /api/m/bundle data (§7.4 shape) or null: the team, players and forecast; no plan (the page asks its
+// own: memory model)
 // data       derived from bundle in derive() (null with it): {rows, byId: Map(id → row), players (/api/players-shaped:
 // {horizon: xpGws, players: rows}), base (engine `base`: season, entry_id, gw, squad [row + sell_price,
 // purchase_price], bank, ft, chips_available, chips_used, horizon), lineup ({xi, bench, captain, vice}: the entry's FPL
@@ -30,9 +29,9 @@
 // ([gw…gw+3], the longest plan's), xpGws ([gw…forecast_edge]), noise, seeds (or null), receivedAt (ms)}
 // store      get(key), set(key, value) | set({k: v}), on(key, fn(value, prev)) → off, persist(key, fallback)
 // (localStorage fc:s:<key>). Shell keys: entry (connected team ID, string); gw (selected GW: #/ahead?gw=; none = GW A,
-// the next deadline); conn {state: 'ok'|'baking'|'stale'|'updating'|'offline-data'|'offline', at (ms this phone first
-// got the plan it shows), bake: {done, total} | null, error | null}. bundle.state 'offline-data' = no next GW
-// (pre-season / season over): no entry, players or roads; the screen says "No deadline coming up".
+// the next deadline); conn {state: 'ok'|'updating'|'offline-data'|'offline', at (ms this phone first got the data it
+// shows), error | null}. bundle.state 'offline-data' = no next GW (pre-season / season over): no entry or players; the
+// screen says "No deadline coming up".
 //   api        static/js/m/api.js (request, getBundle, solve with 700 ms polling, putMemory, plain …)
 // sheets     open({title, sub, detent: 'small'|'medium'|'large', detents, build(body, sheet), onClose, label, cls,
 // close: true, fit: false}) → sheet {el, body, detent, setDetent(d), close()}; closeAll(), depth(), top(),
@@ -44,7 +43,7 @@
 //   kits       static/js/plan/kits.js        pitch   static/js/plan/pitch.js (mountPitch for phones)
 //   ui         static/js/ui.js (h, svg, fmt, toast …; m.css restyles toasts for the phone)
 //   status()   {tone: 'fresh'|'amber'|'none', text}: the avatar dot
-// refresh({hard}) → Promise<bundle|null>   re-fetch (hard = ?refresh=1: refetch the entry and re-bake); failures show
+// refresh({hard}) → Promise<bundle|null>   re-fetch (hard = ?refresh=1: refetch the entry); failures show
 // as banner or toast, never reject
 //   connect(entry)                      switch team: first load for that ID
 // signOut() → {name} | null           this device forgets the team (entry, local mirror; server plan memory stays,
@@ -75,7 +74,7 @@ const SCREEN = 'ahead';
 
 // ================================================================ store
 
-const store = createStore({ bundle: null, data: null, gw: null, conn: { state: 'ok', at: NaN, bake: null, error: null } });
+const store = createStore({ bundle: null, data: null, gw: null, conn: { state: 'ok', at: NaN, error: null } });
 store.persist('entry', null);
 
 /** Settings → Plan ahead (owner, 2026-10-14): the weeks picked for team `entry`, in localStorage (the bundle request
@@ -85,35 +84,8 @@ const HORIZON_KEY = (entry) => `fc:horizon:${entry}`;
  *  alike); null without a pick and a bundle. */
 const weeksOf = (entry, b = store.get('bundle')) => calls.planWeeks(api.local.get(HORIZON_KEY(entry)), b?.meta?.locked, b?.meta ? reachOf(b.meta).length : null);
 
-/** Plan progress in one line: "Planning GW6–9 · ~1 min left" (calls.planEta; no road count: owner, 2026-10-13),
- *  "Planning GW6–9" before any road is done, "Planning…" before the GWs are known. Bar: etaBar. */
-function planning(gws, bake) {
-  if (!gws?.length) return 'Planning…';
-  const e = calls.planEta(bake);
-  return `Planning ${calls.COPY.span(gws)}${e.left == null ? '' : ` · ${calls.leftText(e)}`}`;
-}
-
-/** A bake's bar (`tag`: banner 'span.m-banner-bar' or first load 'div.m-bar'; `full`: done): its share by time
- *  (calls.planShare; owner, 2026-10-13), redrawn every second, eased over it (m.css .m-eta: 1 s linear width); a sweep
- *  while nothing is estimated. */
-let etaTimer = null;
-function etaBar(tag, bake, full = false) {
-  const i = h('i.m-eta', { dataset: { eta: '' } });
-  Object.assign(i, { _bake: bake, _full: full });
-  paintEta(i);
-  etaTimer ??= setInterval(() => {
-    // only bars made here: Ahead's story bar (i.m-eta too) is painted by ahead.js paintStoryBar (owner, 2026-10-28)
-    const bars = document.querySelectorAll('i.m-eta[data-eta]');
-    if (!bars.length) { clearInterval(etaTimer); etaTimer = null; }
-    bars.forEach(paintEta);
-  }, 1000);
-  return h(tag, { 'aria-hidden': 'true' }, i);
-}
-function paintEta(i) {
-  const p = i._full ? 1 : calls.planShare(i._bake);
-  i.classList.toggle('sweep', p == null);
-  i.style.width = p == null ? '' : `${(100 * p).toFixed(2)}%`;
-}
+/** Plan progress in one line: "Planning GW6–9", "Planning…" before the GWs are known. */
+const planning = (gws) => (gws?.length ? `Planning ${calls.COPY.span(gws)}` : 'Planning…');
 
 // ================================================================ small shared pieces
 
@@ -181,16 +153,16 @@ const ctx = {
   teamPicker: (opts) => teamPicker(ctx, opts),
   status,
   weeks: () => weeksOf(store.get('entry')),
-  // the weeks picked: kept, and the bundle asked for that plan now (a bake, with the banner, if none yet)
+  // the weeks picked: kept, and the bundle asked for that plan now
   setWeeks: (n) => { api.local.set(HORIZON_KEY(store.get('entry')), String(n)); return ctx.refresh(); },
-  // Chips… opened on GW g: its chips are solved now, the server's (the bundle's cg) and your rules' (ahead.chipPreps);
-  // none before, none of a GW never opened (owner, 2026-10-28); kept for the team until sign-out
+  // Chips… opened on GW g: its chips are solved now (ahead.chipPreps); none before, none of a GW never opened (owner,
+  // 2026-10-28); kept for the team until sign-out
   askChips: (g) => {
     const entry = String(store.get('entry')), was = store.get('chipsAt');
     const gws = String(was?.entry) === entry ? was.gws : [];
     if (gws.includes(Number(g))) return;
     store.set('chipsAt', { entry, gws: [...gws, Number(g)] });
-    loader.load().catch(() => {});
+    notify('chips');
   },
 };
 
@@ -361,12 +333,6 @@ function renderBanner() {
   } else if (c.state === 'updating') {
     kind = 'updating';
     text = calls.COPY.updating;
-  } else if (c.state === 'stale' || c.state === 'baking') {
-    // the bake's progress (a new forecast's roads while the old show, stale; or the first): bar by time
-    const bake = store.get('bundle')?.bake;
-    kind = c.state;
-    text = kind === 'stale' ? calls.COPY.replanning(at) : planning(store.get('data')?.horizon, bake);
-    extra = bake?.total ? etaBar('span.m-banner-bar', bake) : null;
   }
   banner.className = `m-banner ${kind || ''}`;
   banner.hidden = !kind;
@@ -383,9 +349,9 @@ store.on('conn', () => { renderBanner(); notify('conn'); });
 
 // ================================================================ bundle loader
 
-const POLL_MS = { baking: 1500, stale: 5000, updating: 5000, 'offline-data': 60000, ready: 120000, chips: 4000 };
-/** The next poll by bundle state; a ready one whose chips still pre-solve comes back sooner. */
-const pollMs = (b) => (b.state === 'ready' && b.bake?.chips?.pending ? POLL_MS.chips : POLL_MS[b.state] ?? POLL_MS.ready);
+const POLL_MS = { updating: 5000, 'offline-data': 60000, ready: 120000 };
+/** The next poll by bundle state. */
+const pollMs = (b) => POLL_MS[b.state] ?? POLL_MS.ready;
 const BACKOFF_MS = [5000, 10000, 20000, 30000];
 
 /** GET the bundle. With the same entry's previous bundle: ?have=<its version> (unchanged data version: no players or
@@ -399,8 +365,7 @@ async function fetchBundle(entry, { refresh = false, prev = null } = {}) {
   // a bundle held from before (snapshot, loader) brings its cards: their stamp is asked again, not the cards
   if (same && prev.cards && String(held.entry) !== String(entry)) Object.assign(held, { entry: String(entry), cards: prev.cards, v: prev.cards_v ?? null, version: prev.version ?? null, key: null, at: 0 });
   const w = weeksOf(entry, prev ?? undefined);
-  const asked = store.get('chipsAt');
-  const b = await api.getBundle(entry, { refresh, have, hl, w, cl: true, cg: String(asked?.entry) === String(entry) ? asked.gws : null });
+  const b = await api.getBundle(entry, { refresh, have, hl, w, cl: true });
   askCards(entry, b, w);
   // only cards asked after a bundle of this data version (else the GW before's cards); none meanwhile, and a card
   // opened asks GET /api/m/player
@@ -418,14 +383,14 @@ async function fetchBundle(entry, { refresh = false, prev = null } = {}) {
  *  they slowed a new team's first bundle, and the pitch draws without them): cards, their stamp `v` (?hc=v: same cards
  *  come back as none), `key` the bundle asked after, `at` when. A card opened before they land asks GET /api/m/player. */
 const held = { entry: null, cards: null, v: null, version: null, key: null, at: 0, asking: false };
-/** Asked once the plan is in (its base road, or none coming: firstLoad's wait), again after a bundle whose players may
- *  have changed (data version, roads or state) or CARDS_AGAIN_MS (plan memory's own players), never two at once;
- *  `version`: the data version they were asked after, `w` its weeks. */
+/** Asked once the forecast is not updating (firstLoad's wait), again after a bundle whose players may have changed
+ *  (data version or state) or CARDS_AGAIN_MS (plan memory's own players), never two at once; `version`: the data
+ *  version they were asked after, `w` its weeks. */
 const CARDS_AGAIN_MS = 120000;
 function askCards(entry, b, w) {
-  if (!b?.entry || (!b.roads?.base && (b.state === 'baking' || b.state === 'updating')) || held.asking && String(held.entry) === String(entry)) return;
+  if (!b?.entry || b.state === 'updating' || held.asking && String(held.entry) === String(entry)) return;
   if (String(held.entry) !== String(entry)) Object.assign(held, { entry: String(entry), cards: null, v: null, version: null, key: null, at: 0 });
-  const key = [b.version, b.meta?.roads_version, b.state].join('|');
+  const key = [b.version, b.state].join('|');
   if (held.key === key && Date.now() - held.at < CARDS_AGAIN_MS) return;
   const hc = held.cards ? held.v : null;
   held.asking = true;
@@ -444,7 +409,7 @@ function landCards(entry) {
   const was = loader.last === JSON.stringify(b);
   Object.assign(b, { cards: held.cards, cards_v: held.v });
   if (was) loader.last = JSON.stringify(b);
-  if (store.get('conn')?.state !== 'offline' && !store.get('conn')?.snapshot && b.roads?.base) api.saveSnapshot(entry, b);
+  if (store.get('conn')?.state !== 'offline' && !store.get('conn')?.snapshot) api.saveSnapshot(entry, b);
 }
 
 const loader = {
@@ -485,29 +450,16 @@ const loader = {
   },
 };
 
-/** older roads rescored on today's forecast (their stored pred is old: ctx.bundle) */
-function todaysRoads(b) {
-  const v = b?.version, rv = b?.meta?.roads_version;
-  if (!b?.roads || !v || !rv || rv === v) return b;
-  const strip = (r) => (r?.weeks ? { ...r, weeks: r.weeks.map(({ pred, ...w }) => w) } : r);
-  const each = (o) => Object.fromEntries(Object.entries(o || {}).map(([k, r]) => [k, strip(r)]));
-  const R = b.roads;
-  return { ...b, roads: { ...R, base: strip(R.base), roll: strip(R.roll), veto: each(R.veto), slide: each(R.slide), chip: each(R.chip) } };
-}
-
 /** Take a bundle into the store and offline snapshot; screens hear 'bundle' when it changed. */
-function accept(entry, raw, { at = Date.now(), offline = false, snapshot = false } = {}) {
-  const b = todaysRoads(raw);
+function accept(entry, b, { at = Date.now(), offline = false, snapshot = false } = {}) {
   const sig = JSON.stringify(b);
   const changed = sig !== loader.last;
   loader.last = sig;
-  const total = Number(b.bake?.total) || 0;
-  const plan = b.meta?.roads_version ?? b.version ?? null;
+  const plan = b.version ?? null;
   if (plan !== loader.plan.v || snapshot) loader.plan = { v: plan, at };
   const conn = {
     state: offline ? 'offline' : b.state === 'ready' || !b.state ? 'ok' : b.state,
     at: loader.plan.at,
-    bake: total ? { done: Number(b.bake.done) || 0, total } : null,
     error: null,
     // the saved bundle of a warm start, until a live one lands (ahead.sayCheer)
     snapshot: !!snapshot,
@@ -518,7 +470,7 @@ function accept(entry, raw, { at = Date.now(), offline = false, snapshot = false
     if (wantA || !Number.isFinite(gw) || !data.horizon.includes(gw)) store.set('gw', data.gw);
     wantA = false;
     store.set({ bundle: b, data });
-    if (!offline && !snapshot && b.roads?.base) api.saveSnapshot(entry, b);
+    if (!offline && !snapshot) api.saveSnapshot(entry, b);
   }
   store.set('conn', conn);
   if (changed) notify('bundle');
@@ -786,8 +738,8 @@ function factPanel(el, lines, one = lines?.at(-1)) {
 }
 
 /** First load of a team (Connect, Switch team, a recent row): the form stays dimmed with "Finding team 3604308…" until
- *  found; then Ahead, its squad on the pitch while the plan bakes (ahead.js tellStory; owner, 2026-10-27). Only a
- *  forecast still updating keeps the form, with "Planning GW6–9" and a thin bar (etaBar). */
+ *  found; then Ahead, its squad on the pitch while the plan solves (ahead.js tellStory; owner, 2026-10-27). Only a
+ *  forecast still updating keeps the form, with "Planning GW6–9" and a sweeping bar. */
 async function firstLoad(entry) {
   const my = ++loading;
   clearTimeout(loader.timer);
@@ -802,12 +754,11 @@ async function firstLoad(entry) {
   const prog = $('.m-prog', gate);
   // the wait's line under the bar (factPanel), its room kept from the tap on (m.css): nothing under moves
   const facts = h('div.m-facts');
-  /** Line and bar for bundle b (none yet: "Finding team 3604308…"; then "Planning GW6–9"): the bake's bar (etaBar),
-   *  full once the base road is in; then b's wait line. */
+  /** Line and bar for bundle b (none yet: "Finding team 3604308…"; then "Planning GW6–9"), then b's wait line. */
   const show = (b) => {
-    fill(prog, h('p.m-prog-t.m-num', null, b ? planning(b?.meta ? horizonOf(b.meta) : null, b?.bake) : `Finding team ${entry}…`),
-      etaBar('div.m-bar', b?.bake, !!b?.roads?.base),
-      b?.state === 'updating' && !b.roads?.base ? h('p.m-prog-t.warn', null, calls.COPY.updating) : null, facts);
+    fill(prog, h('p.m-prog-t.m-num', null, b ? planning(b?.meta ? horizonOf(b.meta) : null) : `Finding team ${entry}…`),
+      h('div.m-bar', { 'aria-hidden': 'true' }, h('i.m-eta.sweep')),
+      b?.state === 'updating' ? h('p.m-prog-t.warn', null, calls.COPY.updating) : null, facts);
     factPanel(facts, calls.waitFacts(b), calls.waitFact(b));
   };
   const back = (e) => {
@@ -839,9 +790,8 @@ async function firstLoad(entry) {
   } catch (e) { return back(e); } finally { clearTimeout(slow); }
   if (my !== loading) return;
   if (b.state === 'offline-data' || !b.entry) return enter(entry, b);  // no next GW: nothing to plan
-  // in at once while it bakes (Ahead says how far); with the forecast still updating, wait for the base road; a bundle
-  // that will never have one (GW under way with nothing baked, or a failed base solve) goes in and shows its own state
-  while (!b.roads?.base && b.state === 'updating') {
+  // in at once (Ahead asks the plan and says how far); with the forecast still updating, wait for it
+  while (b.state === 'updating') {
     show(b);
     await wait(POLL_MS.updating);
     if (my !== loading) return;
@@ -854,7 +804,7 @@ async function firstLoad(entry) {
 /** Into Ahead at GW A (the next deadline): mount behind the gate, then cross-fade (reveal: after Connect's first load,
  *  ctx.reveal). */
 async function enter(entry, b, { reveal = false } = {}) {
-  // the plan landing is a use (a first load can bake for minutes untouched), but not yet of the team, whose last use
+  // the team landing is a use (a first load can wait for minutes untouched), but not yet of the team, whose last use
   // decides whether its choices stand (memory USED)
   seen(true, false);
   store.set('entry', entry);

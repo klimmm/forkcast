@@ -53,15 +53,16 @@ export const capFirst = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 // ---------------------------------------------------------------- context
 
-/** The bundle-derived facts every plan function needs (null before a bundle with an entry). */
+/** The bundle-derived facts every plan function needs (null before a bundle with an entry); base: the solver's plan with
+ *  none of your rules (memory model), null until it lands, its noise the plan's. */
 export function info(ctx) {
   const b = ctx.bundle, d = ctx.data;
   if (!b?.entry || !d?.base) return null;
-  const gws = d.horizon;
+  const gws = d.horizon, base = (ctx.store.get('memory') ?? memPlan(ctx))?.model ?? null;
   return {
     // reach: the GWs the longest plan reaches; those past gws show locked (Settings → Plan ahead)
     b, d, A: d.gw, gws, reach: d.reach ?? gws, end: gws[gws.length - 1], L: E.playerLookup({ base: d.base, players: d.players }),
-    seeds: d.seeds, noise: d.noise ?? 0, base: b.roads?.base ?? null, entry: String(b.entry.id),
+    seeds: d.seeds, noise: num(base?.noise) ?? d.noise ?? 0, base, entry: String(b.entry.id),
     owned: ids(d.base.squad.map((s) => s.id)), season: d.base.season,
   };
 }
@@ -293,7 +294,7 @@ export function plan(ctx) {
     memo.key = key;
     return memo.P;
   }
-  // under the hold, until the solver's first plan for your rules there is nothing to draw: Ahead waits as for the bake
+  // under the hold, until the solver's first plan for your rules there is nothing to draw: Ahead waits as for the model's plan
   // (renderBaking), never showing the phone's evaluation (owner, 2026-10-26)
   if (gp?.hold && !gp.road?.weeks?.length) return null;
   const ov = ovOf(ctx, I);
@@ -303,7 +304,7 @@ export function plan(ctx) {
   // after a reload, the week the edit being checked changes (memory's pending.edit), not the earliest pin's
   const pendFrom = gp?.pending ? gp.pending.edit?.gw ?? Math.min(I.end, ...pins.map((p) => num(p.gw) ?? I.A)) : null;
   const from = ov?.from ?? pendFrom;
-  // every week is the solver's returned plan (memory's: a fitting bundle road, or a heal's) with your lineups; while an
+  // every week is the solver's returned plan (memory's: the model's plan where it fits, or a heal's) with your lineups; while an
   // edit plans, the plan before it with the edit's weeks waiting (shimmer). The phone's own ≈ is never drawn (owner,
   // 2026-10-26)
   const approx = new Set(from == null ? [] : I.gws.filter((g) => g >= from));
@@ -350,11 +351,11 @@ export const valuesKey = (I, values) => solvedKey(I.b.version, values);
 
 /**
  * What your rules' cost is measured against: the planner's best with your options (chips, hit caps, cash) and none of
- * your rules (memory.optionsRoad, a bundle road, or your plan's road when it has none). Else one speculative solve of
+ * your rules (memory.optionsRoad: the model's plan, or your plan's road when it has none). Else one speculative solve of
  * those pins (memory.optionsValues). → Road | null.
  */
 function optionsRef(ctx, I, pins, road) {
-  const found = optionsRoad(I.b.roads, pins, I.gws, [road]);
+  const found = optionsRoad(I.base, pins, I.gws, [road]);
   if (found || !specOk(ctx, I)) return found;
   return specRoad(ctx, I, optionsValues(inputs(ctx), pins));
 }
@@ -363,18 +364,10 @@ function optionsRef(ctx, I, pins, road) {
 function bareRef(ctx, I, pins) {
   const own = pins.filter((p) => !derivedPin(p));
   if (!own.length || !specOk(ctx, I)) return null;
-  const values = valuesFor(ctx, [], own.map((p) => p.id));
-  // (no buy in any week and nothing else: the bake's hold road, your team every week rolled, while its first week is
-  // your team: no solve. 2026-11-02, a take asked this solve again each time)
-  const h = I.b.roads?.hold, w0 = h?.weeks?.find((w) => Number(w.gw) === I.A);
-  const rolled = Object.keys(values).every((k) => BARE_KEYS.has(k)) && String(values.no_buys_gw ?? '') === I.gws.join(',');
-  if (rolled && w0 && I.b.state !== 'stale' && sameSet([...ids(w0.xi), ...ids(w0.bench)], I.owned)) return h;
-  return specRoad(ctx, I, values);
+  return specRoad(ctx, I, valuesFor(ctx, [], own.map((p) => p.id)));
 }
-// (the values every solve carries, and the weeks it rolls: bareRef's hold road)
-const BARE_KEYS = new Set(['season', 'from_r', 'w', 'int_rounds', 'entry', 'no_buys_gw']);
-/** A speculative solve can be asked for these roads (the newest, a solver there, this browser not left behind). */
-const specOk = (ctx, I) => !!ctx.api?.solve && I.b.version === I.b.meta?.roads_version && !leftBehind(ctx, I);
+/** A speculative solve can be asked (a solver there, this browser not left behind). */
+const specOk = (ctx, I) => !!ctx.api?.solve && !leftBehind(ctx, I);
 /** One speculative solve of `values` per roads version (OPTIONS). → Road | null. */
 function specRoad(ctx, I, values) {
   const key = valuesKey(I, values);
@@ -446,9 +439,9 @@ export function estimate(ctx, draft, from) {
  *  derived data and base. */
 const INPUTS = new WeakMap();
 export function inputsOf(ctx) {
-  const base = baseOf(ctx);
+  const base = baseOf(ctx), model = info(ctx)?.base ?? null;
   let c = INPUTS.get(ctx.data);
-  if (!c || c.b !== ctx.bundle || c.base !== base) INPUTS.set(ctx.data, (c = { b: ctx.bundle, base, inputs: planInputs(ctx.bundle, { ...ctx.data, base }) }));
+  if (!c || c.b !== ctx.bundle || c.base !== base || c.model !== model) INPUTS.set(ctx.data, (c = { b: ctx.bundle, base, model, inputs: planInputs(ctx.bundle, { ...ctx.data, base }, model) }));
   return c.inputs;
 }
 export const inputs = inputsOf;
@@ -613,9 +606,9 @@ export function solveFor(ctx, extra, purpose, drop = []) {
   return p;
 }
 
-/** The bundle road that already is your plan with `extra` pinned too and the pins `drop` (ids) taken off
+/** The model's plan when it already is your plan with `extra` pinned too and the pins `drop` (ids) taken off
  *  (memory.findRoad), else null. */
 export function baked(ctx, extra = [], drop = [], P = plan(ctx)) {
   const c = composePins([...P.pins.filter((p) => !drop.includes(p.id)), ...extra], { from: P.A, to: P.end });
-  return findRoad(P.b.roads, c, P.gws);
+  return findRoad(P.base, c, P.gws);
 }

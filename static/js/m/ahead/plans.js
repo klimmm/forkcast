@@ -13,6 +13,6 @@ export {
   failedWords, noteOf, mineAny, byGain, forkKey, fitsAt
 } from './plans/lit.js';
 export {
-  planOfRoad, asTaken, planBaseline, takenBy, forkValues, forkAsk, forkKept, forkRead, FORK_FLIGHTS, forkFlights, forkPump,
+  planOfRoad, asTaken, planBaseline, takenBy, forkValues, forkAsk, forkKept, forkRead, FORK_FLIGHTS, forkFlights, forkPump, answeredBy,
   forkAgain, resetForks
 } from './plans/forks.js';

@@ -3,9 +3,9 @@
 import * as E from '../../../plan/engine.js';
 import { hitCap } from '../../calls.js';
 import { attach, makePin, pinSell, pinHits, pinRoll, isRoll, isExact, rulesBroken, solveKept, solvedLineup } from '../../memory.js';
-import { baseOf, compare, draftOf, flatMoves, info, inputs, leftBehind, memOf, num, problemOf, roadDraft, sameMove, valuesFor, weekOf, withMoves } from '../core.js';
-import { chainOf, chipBackOf, chipEdit, chipOffParts } from '../edits.js';
-import { AHEAD, PAIR, PAIR_AGAIN_MS, PAIR_HOLD_MS, PAIR_TAKES, PREP_BESIDE, aheadAsks, aheadWaited, madeEarlier, pairChanged, pinOfMove, pumpAhead, repicks } from '../presolve.js';
+import { baseOf, compare, draftOf, flatMoves, info, inputs, leftBehind, memOf, num, problemOf, roadDraft, sameMove, valuesFor, valuesKey, weekOf, withMoves } from '../core.js';
+import { chainOf, chipBackOf, chipEdit, chipOffParts, derivedPin } from '../edits.js';
+import { AHEAD, PAIR, PAIR_AGAIN_MS, PAIR_HOLD_MS, PAIR_TAKES, PREP_BESIDE, aheadAsks, aheadWaited, clearRoots, madeEarlier, pairChanged, pinOfMove, pumpAhead, repicks, rootStill } from '../presolve.js';
 import { prepsWaiting, squadWeek } from '../pieces.js';
 import { SQUAD_CHIPS, ownAfter } from './suggest.js';
 import { keepNewest } from './choices.js';
@@ -51,7 +51,7 @@ export function planOfRoad(ctx, P, r, g, d0) {
 const roadLast = (r) => num(r?.values?.to) ?? Math.max(...(r?.weeks || []).map((w) => Number(w.gw)), -Infinity);
 /** Draft d played as taking a plan makes it, from GW `from` on: the engine's best XI in each week, your saved lineup
  *  (engine.applyLineup) where you made one. Under the hold (`held`) a week's XI, bench and armband the solve's where a
- *  bundle road holds that week's squad, as the plan a take lands plays them (memory.holdRoad's solvedLineup; owner,
+ *  model's plan holds that week's squad, as the plan a take lands plays them (memory.holdRoad's solvedLineup; owner,
  *  2026-10-23), else a + says less than it gave. `held` false: the xP order. `score`: evaluate's {xp, fixedLineups}. →
  *  evaluate's state */
 export function asTaken(ctx, P, d, from, score = {}, held = true) {
@@ -63,8 +63,8 @@ export function asTaken(ctx, P, d, from, score = {}, held = true) {
   if (!held || !P.mem?.hold) return ev;
   let y = x;
   for (const s of ev.gws) {
-    // the solve's lineup for that squad: your plan's own road first (the solver's, memory's), then a bundle road's
-    const lu = s.gw >= from && P.gws.includes(s.gw) && !weekOf(P, s.gw)?.lineup ? solvedLineup({ base: P.road }, s.gw, s.squad, s.chip ?? null) ?? solvedLineup(inputs(ctx).roads, s.gw, s.squad, s.chip ?? null) : null;
+    // the solve's lineup for that squad: your plan's own road first (the solver's, memory's), then the model's plan's
+    const lu = s.gw >= from && P.gws.includes(s.gw) && !weekOf(P, s.gw)?.lineup ? solvedLineup([P.road, P.base], s.gw, s.squad, s.chip ?? null) : null;
     if (lu) y = E.setLineup(y, s.gw, lu);
   }
   return y === x ? ev : run(y);
@@ -119,7 +119,7 @@ export function forkValues(ctx, P, g, c, more = []) {
   for (const [x, chip] of Object.entries(c.chips || {})) { const e = chipEdit(P, Number(x), chip); extra.push(...e.pins); drop.push(...e.drop); }
   // your Wildcard or Free Hit there, a choice that plays none: taken off as chipOff takes it (chipBackOf)
   if (chipBackOf(P, g, c)) { const o = chipOffParts(P, g, { locked: true }); extra.push(...o.pins); drop.push(...o.drop); }
-  const cap = hitCap(P.b?.meta) ?? 2;
+  const cap = hitCap(P.base) ?? 2;
   // a later week with a hits rule of yours keeps it (the bake's cap has the same id, so it would replace "FT only" in
   // the fork's solve and the + take it back)
   const ruled = (y) => P.pins.some((p) => p.id === `hits:${y}`);
@@ -142,8 +142,22 @@ const FORK_ROADS_MAX = 96;
 /** A fork's solve ({key: valuesKey, values}): its road, 'infeasible' (no plan keeps your rules with the choice: kept
  *  for the forecast), 'error' (it failed, or no solve service / offline: the road plans stand), or null while it is
  *  asked (forkPump). A failure is asked again PAIR_HOLD_MS after it, the choices re-drawn then. */
+/** A road already in hand that answers an ask of `values` (key `key`) with no solve: the model's plan (P.base) or one
+ *  this page's solves brought (FORK_ROADS, the same data version), solved for exactly those values, or for fewer rules
+ *  that it keeps already (rootStill: the best under looser rules that keeps the
+ *  stricter ones is their best too) → road | null. 2026-11-03: the week's plan asked again as "already solved"; a
+ *  Swap's "buy Evanilson, sell João Pedro GW10" solved though the plan makes that move; GW11's preparation solved again
+ *  after each ✕ in GW10 though its GW10 squad, all 15 kept, had neither player ("why they not hit cache"). */
+export function answeredBy(P, key, values) {
+  const v = `${P.b?.version}|`, solved = [...FORK_ROADS].filter(([k, r]) => k.startsWith(v) && r?.weeks?.length && r.values).map(([, r]) => r);
+  const model = P.base?.weeks?.length && P.base.values ? [P.base] : [];
+  const r = model.find((x) => valuesKey(P, x.values) === key) ?? [...model, ...solved].find((x) => rootStill(x.values, values, x));
+  return r ? { ...r, key, values } : null;
+}
 export function forkAsk(ctx, P, ask) {
   const { key } = ask;
+  const sent = !FORK_ROADS.has(key) && answeredBy(P, key, ask.values);
+  if (sent) return keepNewest(FORK_ROADS, key, sent, FORK_ROADS_MAX);
   const got = FORK_ROADS.get(key);
   if (got?.failedAt != null) {
     const left = got.failedAt + PAIR_HOLD_MS - Date.now();
@@ -176,26 +190,35 @@ export const forkRead = (key) => { const got = FORK_ROADS.get(key); return got?.
 export const FORK_FLIGHTS = new Map();  // lane (1..) → {key, fork, cancel, gw, P, prep}
 /** Every fork solve in flight as [lane, flight]: lane 0 while a fork holds PAIR.flight, then lanes 1.. */
 export const forkFlights = () => [...(PAIR.flight?.fork ? [[0, PAIR.flight]] : []), ...FORK_FLIGHTS];
-// (what a solve asks beyond the plan as it stands: the rules its values add or drop, by player and week)
-function solveWords(ctx, P, ask) {
-  let base = {};
-  try { base = valuesFor(ctx); } catch { /* no plan memory: its rules whole */ }
+// (a solve's rules in words: what its values ask beyond `base`'s, by player and week)
+function rulesWords(P, gw, values, base) {
   const set = (v) => new Set(String(v ?? '').split(',').filter(Boolean));
-  const nm = (id) => P.L?.name?.(Number(id)) ?? id, squad = new Set((weekOf(P, ask.gw)?.squad ?? []).map(Number));
+  const nm = (id) => P.L?.name?.(Number(id)) ?? id, squad = new Set((weekOf(P, gw)?.squad ?? []).map(Number));
   const span = (x) => { const [id, w] = x.split('@'); const [a, b] = (w ?? '').split('-'); return { id, at: a === b || !b ? `GW${a}` : `GW${a}-${b}` }; };
   const out = [];
   for (const [k, on, off] of [['must_have', 'keep', 'buy'], ['exclude', 'sell', 'not']]) {
-    const now = set(ask.values?.[k]), was = set(base[k]);
+    const now = set(values?.[k]), was = set(base?.[k]);
     for (const x of now) if (!was.has(x)) { const s = span(x); out.push(`${squad.has(Number(s.id)) ? on : off} ${nm(s.id)} ${s.at}`); }
     for (const x of was) if (!now.has(x)) { const s = span(x); out.push(`drop ${k === 'must_have' ? 'keep' : 'not'} ${nm(s.id)} ${s.at}`); }
   }
-  const roll = set(ask.values?.no_buys_gw), rolled = set(base.no_buys_gw);
+  const roll = set(values?.no_buys_gw), rolled = set(base?.no_buys_gw);
   for (const g of roll) if (!rolled.has(g)) out.push(`roll GW${g}`);
   // (a verb's run over one week grouped, its players named up to three: "keep 15 players GW10")
   const by = new Map();
   for (const x of out) { const [, v, rest] = /^(\S+(?: \S+)?) (.+) (GW[\d-]+)$/.exec(x) ? [, x.replace(/ .+$/, ''), x] : [, x, x]; const g = /GW[\d-]+$/.exec(x)?.[0] ?? ''; const k = `${v} ${g}`; by.set(k, [...(by.get(k) ?? []), rest]); }
-  const words = [...by].map(([k, xs]) => (xs.length > 3 ? `${k.split(' ')[0]} ${xs.length} players ${k.split(' ').at(-1)}` : xs.join(', ')));
-  return words.length ? words.join(', ') : 'the plan as it stands';
+  return [...by].map(([k, xs]) => (xs.length > 3 ? `${k.split(' ')[0]} ${xs.length} players ${k.split(' ').at(-1)}` : xs.join(', '))).join(', ');
+}
+// (what a solve asks beyond the plan as it stands, then your own rules it is solved under, apart: two lines in the same
+// words the same solve; owner, 2026-11-03, "why these are different solves": GW11's preparation after each ✕ of yours
+// read alike, the ✕ hidden in the plan as it stands)
+function solveWords(ctx, P, ask) {
+  let now = {}, free = {};
+  try {
+    now = valuesFor(ctx);
+    free = memOf(ctx).values({ drop: P.pins.filter((p) => !derivedPin(p)).map((p) => p.id) });
+  } catch { /* no plan memory: its rules whole */ }
+  const asked = rulesWords(P, ask.gw, ask.values, now) || 'the plan as it stands', yours = rulesWords(P, ask.gw, now, free);
+  return yours ? `${asked} · your rules: ${yours}` : asked;
 }
 export function forkPump(ctx, P, ask) {
   const prep = !!ask.prep;
@@ -245,7 +268,7 @@ export function forkPump(ctx, P, ask) {
   const purpose = ask.ahead ? 'presolve' : prep ? 'pairnext' : 'pair';
   if (ask.ahead) AHEAD.asked.push({ at: Date.now(), key: ask.key, src: ask.src });
   const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, lane ? { slot: `fork${lane}` } : undefined,
-    { gw: ask.gw, kind: ask.ahead ? 'a tap, ahead' : ask.root ? 'the week\'s plan' : side ? 'the next ✕ / Keep' : ask.need ? 'next week: what it draws' : prep ? 'next week' : 'a choice', what: solveWords(ctx, P, ask), key: ask.key });
+    { gw: ask.gw, kind: ask.ahead ? 'a tap, ahead' : ask.root ? 'the week\'s plan' : side ? (ask.tap === 'keep' ? 'the next Keep' : 'the next ✕') : ask.need ? 'next week: what it draws' : prep ? 'next week' : 'a choice', what: solveWords(ctx, P, ask), key: ask.key });
   flight.cancel = () => p.cancel?.();
   p.then((res) => {
       // a tap's solve asked ahead: its answer memory's for exactly those values (presolve); one that failed for another
@@ -294,6 +317,7 @@ export function resetForks() {
   FORK_TIMER = null;
   FORK_ROADS.clear();
   FORK_REFS.clear();
+  clearRoots();
   AHEAD.srcs.clear();
   AHEAD.failed.clear();
   AHEAD.at = null;

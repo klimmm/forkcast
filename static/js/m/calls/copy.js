@@ -894,7 +894,6 @@ export const COPY = Object.freeze({
   /** The quiet note while the plan on screen is a saved copy (the server away). */
   offline: (time) => `Offline · data from ${time}`,
   updating: 'The forecast is updating. Your plan refreshes in a minute.',
-  replanning: (time) => `New forecast: re-planning. Showing your ${time} plan.`,
   preseason: 'No deadline coming up. Plans start before GW1.',
   // GW A under way says only what is true: what FPL published against your plan (liveCheck), or the next plan, which
   // starts the moment FPL publishes your GW A team (api/mobile.py live_week: the bundle moves to GW A+1)

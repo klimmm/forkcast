@@ -3,12 +3,11 @@
 import * as E from '../../../plan/engine.js';
 import { chipName } from '../../../ui.js';
 import { COPY } from '../../calls.js';
-import { bundleRoads } from '../../memory.js';
 import { MINUS, compare, draftOf, flatMoves, isFrozen, ownCount, removedAt, sameView, valuesFor, valuesKey, viewOfState, weekOf } from '../core.js';
 import { barred, chainOf, chipEdit, keptCells, keptFrom } from '../edits.js';
 import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, presolveWeek, rootStill, weekOnto } from '../presolve.js';
 import { inkAt } from '../buys.js';
-import { PREP, PREPS, chipPresolves, chipWeekGain, chipWeekOf, chipsAsked, chipsAvail, clearGain, keptBest, plPays, plannedAt, prepItems, prepKeep, squadWeek } from '../pieces.js';
+import { PREP, PREPS, chipPreps, chipWeekGain, chipWeekOf, chipsAsked, chipsAvail, clearGain, keptBest, plPays, plannedAt, prepItems, prepKeep, squadWeek } from '../pieces.js';
 import { FORK_MAX, PLACE_ALTS, PLANS, SQUAD_CHIPS, earlyOf, movesSig, placesAsked, suggestionsOf } from './suggest.js';
 import { byGain, fitOf, fitsAt, forkKey, mineAny, rebought } from './lit.js';
 import { FORK_FLIGHTS, FORK_REFS, asTaken, forkAsk, forkFlights, forkKept, forkRead, forkValues, measurePlan, planBaseline, planOfRoad, takenBy } from './forks.js';
@@ -81,14 +80,14 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     const m = measurePlan(ctx, P, g, p, asIs, false);
     return m && withinHits(m) && keepsAll(m) && !rebought(P, m.moves, m.ev, ownMoves) ? m : null;
   };
-  const exactRoads = g === P.A ? new Set([P.base, P.b.roads?.roll, ...Object.values(P.b.roads?.chip || {})].filter(Boolean)) : new Set();
+  const exactRoads = g === P.A ? new Set([P.base].filter(Boolean)) : new Set();
   const choices = new Map();  // forkKey → GW g's choice {moves, chips}, in the order they are offered
   // never your plan's own GW-g choice (your transfers or chip there; Forkcast's moves there when it makes your
   // transfers; else a roll). A Wildcard or Free Hit row only in that chip's best week of the window, and only where it
-  // beats not playing it beyond the noise (owner, 2026-10-12): the best week of the bake's pre-solves (chipBests over
-  // chipPresolves), its gain clearGain's; never a week still unknown or one that only ties the next (honestBest,
-  // keptBest). Not your rules' preparations (chipPreps). The week line's Chips… plays it in any week (chipsDoor)
-  const chipSrc = chipPresolves(ctx);
+  // beats not playing it beyond the noise (owner, 2026-10-12): the best week of the chip preparations (chipBests over
+  // chipPreps), its gain clearGain's; never a week still unknown or one that only ties the next (honestBest,
+  // keptBest). The week line's Chips… plays it in any week (chipsDoor)
+  const chipSrc = chipPreps(ctx, P);
   const chipBest = chipSrc.best;
   const squadOk = (c) => !SQUAD_CHIPS.has(c.chips?.[g]) || chipWeekOf(P, chipSrc, c.chips[g], g)?.gw === g;
   // under the hold a week you roll offers its roll too, a choice as the others are (the Roll row: the reference the
@@ -179,11 +178,6 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     return earlyOf(ctx, P, g, ms, ev, before, d0, measureBy);
   };
   const late = [];  // [{c, e}]: the choices offered after those that pass the bars
-  // a road's choice of two or more GW-g moves besides yours, no chip: a pair. The model's own is offered at once;
-  // another road's (`pairs`) only after the week's best two single moves and each listed pair's moves alone, best
-  // first, while the week's transfer choices have room (owner, 2026-10-21)
-  const pairLike = (c) => !Object.keys(c.chips).length && unmade(c).length >= 2;
-  const pairs = [];
   // a week your plan leaves short of money (owedAt): Forkcast's way to pay it back (owedRoad), offered at once like the
   // model's own (owner, 2026-10-28); else the solver's moves refusal by refusal (refusalRoads: the week's best, then
   // the best once its sale is kept or its buy kept out, two refusals ahead; one, the best alone, for a week prepared
@@ -199,10 +193,10 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // (the solver's own week, refusalRoads' root or owedRoad: `roots`; its moves split, each asked as its own move,
   // `parts`: owner, 2026-11-02, "why Rice, Evanilson transfers combined and not independent")
   const roots = new Set(), parts = new Set();
-  // (the solver's own roads first: a choice it and a bake road both make is counted from its solve, as what it counts
-  // against (the roll, a keep) is: one kind of solve on both sides; 2026-11-02, a bake road against the keep's read
-  // Murillo → Hill −0.03 where the solver's own read it best)
-  for (const r of [...solverRoads, ...bundleRoads(P.b.roads)]) {
+  // (the solver's own roads first: a choice it and the model's plan both make is counted from its solve, as what it
+  // counts against (the roll, a keep) is: one kind of solve on both sides; 2026-11-02, the model's road against the
+  // keep's read Murillo → Hill −0.03 where the solver's own read it best)
+  for (const r of [...solverRoads, ...(P.base ? [P.base] : [])]) {
     const x = planOfRoad(ctx, P, r, g, d0);
     if (!x) continue;
     if (solverRoads.has(r) && forkKey(x.choice, g) === yours && !selfRoads.has(yours) && x.plan) {
@@ -213,7 +207,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     if (r === tree[0]?.road || r === owed?.road) roots.add(forkKey(x.choice, g));
     if (!choices.has(forkKey(x.choice, g))) {
       const e = earlyAt(x.choice);
-      if (e) late.push({ c: x.choice, e }); else if (r !== P.base && !solverRoads.has(r) && pairLike(x.choice)) pairs.push(x.choice); else add(x.choice);
+      if (e) late.push({ c: x.choice, e }); else add(x.choice);
     }
     const s = x.plan && `${movesSig(x.plan.moves)}|${JSON.stringify(x.plan.chips)}`;
     if (!s || seen.has(s)) continue;
@@ -350,19 +344,6 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     }
   };
   for (const c of [...choices.values()]) pairSingles(c);
-  // the other roads' pairs, best first by road-plan number, each only with room for its moves alone after it (those
-  // fitOf lets the week make alone; one needing the pair's other sale takes none)
-  const seenPair = new Set();
-  for (const c of pairs.sort((a, b) => rankOf(forkKey(b, g)) - rankOf(forkKey(a, g)))) {
-    const k = forkKey(c, g);
-    if (seenPair.has(k) || choices.has(k)) continue;
-    seenPair.add(k);
-    // (one that splits, splitOf, takes no room of its own: its groups', each its own choice: pairSingles)
-    const need = splitOf(c) ? groupsOf(c).length : 1 + partsOf(c).filter((q) => !choices.has(q.k) && fitOf(ctx, P, g, q.one, d0).ok).length;
-    if (plain() + need > FORK_MAX - 1) continue;
-    add(c);
-    pairSingles(c);
-  }
   for (const x of leads) otherBuys(x, (inn) => singleOf(x, inn));
   for (const x of offered) {
     if (!room()) break;
@@ -651,7 +632,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // when solving"). A week prepared ahead asks it as a lane frees, never waiting on it)
   list.pending = !followed && ([ref, mineRef, solved.get(yours)].some((x) => x?.state === 'solving') || (!prep && !now.length && !!tree.length && forkRead(tree[0].key) == null));
   // a Wildcard or Free Hit the week lists no row of (not its best week, or planned elsewhere) from a plan of it solved
-  // apart (chipSource's road: your rules' preparation, the plan its tap lands), counted against the week's roll plan
+  // apart (chipPreps' road: your rules' preparation, the plan its tap lands), counted against the week's roll plan
   // (owner, 2026-10-22) with the same later weeks on both sides, as the week line counts your chip once played
   // (vsRollOf: weekRollOf's `mine`, `mineRef`). A Free Hit's squad reverts after its week, so its week alone (weekOnto)
   // goes on the later weeks of its own solve (`fhK`), the roll plan's where that failed. A Wildcard's squad lasts: its
@@ -767,7 +748,7 @@ export function chipShown(ctx, P, g, c) {
   return !pl ? null : pl.state === 'ready' ? { cmp: pl.cmp, pays: plPays(pl), vs: choiceVs(P, pl) } : { wait: true };
 }
 /** The one Wildcard or Free Hit number of GW g under your team as it is (owner, 2026-10-22): the pitch's where it shows
- *  the chip (chipShown), else the plan of it solved apart (`pre`: chipSource's at(c, g)) counted as a row of the week
+ *  the chip (chipShown), else the plan of it solved apart (`pre`: chipPreps' at(c, g)) counted as a row of the week
  *  would be (plansOf's chipOf, never a solve asked: plansListed), on the week's roll plan either way → {cmp, vs, pays?}
  *  | {wait: true} (that plan or the roll plan still checked) | null. Off the hold the pitch's alone. Chips…'s rows and
  *  best week (chipStates) and the chip toast (chipPlan) read this; the week line's (chipWeekGain) uses the same measure

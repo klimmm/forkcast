@@ -182,14 +182,13 @@ const post = (path, body, opts) => request('POST', path, { ...opts, body: body ?
 
 export const getMeta = () => get('/api/meta');
 /**
- * The phone's world for one entry (§7.4; api/mobile.py bundle). refresh → refetch the entry and re-bake; have = the
+ * The phone's world for one entry (§7.4; api/mobile.py bundle). refresh → refetch the entry; have = the
  * data version held → players and seeds come back null; the prices block (calls.withPrices) always comes. hl = the
  * live block's stamp held (live_v) → the live block (calls.shownPlayers) comes back null while unchanged. w = the
- * plan's weeks (calls.planWeeks; none: the server's longest). cg = the GWs Chips… was opened on ([9, 10]): the server
- * pre-solves their chips (ahead.chipsAsked).
+ * plan's weeks (calls.planWeeks; none: the server's longest).
  */
-export const getBundle = (entry, { refresh, have, hc, hl, w, cl, cg, signal } = {}) =>
-  get('/api/m/bundle', { entry, refresh, have, hc, hl, w, cl: cl ? 1 : null, cg: cg?.length ? cg.join(',') : null }, { timeout: have ? BUNDLE_TIMEOUT_MS : FIRST_BUNDLE_TIMEOUT_MS, signal })
+export const getBundle = (entry, { refresh, have, hc, hl, w, cl, signal } = {}) =>
+  get('/api/m/bundle', { entry, refresh, have, hc, hl, w, cl: cl ? 1 : null }, { timeout: have ? BUNDLE_TIMEOUT_MS : FIRST_BUNDLE_TIMEOUT_MS, signal })
     .then((b) => (b?.cards ? { ...b, cards: unpackCards(b.cards) } : b));
 /** The cards of the players the bundle carries (api/mobile.py cards; a bundle asked with cl=1 comes without them) →
  *  {cards: unpacked (unpackCards), or null while `hc` is still their stamp, cards_v}. */
@@ -245,6 +244,8 @@ export const getPlayer = ({ id, entry, vs }) => get('/api/m/player', { id, entry
 export const getScouts = () => get('/api/m/scouts');
 /** Every solve asked for the team, the phone's and the server's own, newest first (the ?solves=1 panel). */
 export const getSolves = (entry) => get('/api/m/solves', { entry });
+/** …that list emptied (the panel's Clear). */
+export const clearSolves = (entry) => request('DELETE', `/api/m/solves?entry=${enc(entry)}`);
 /** Plan memory and the ticket, one document per (entry, gw) (§7.4 PUT /api/m/memory) → the saved document, mirrored
  *  into the offline snapshot. */
 export async function putMemory(doc) {
@@ -260,8 +261,9 @@ const FINAL = new Set(['done', 'error', 'cancelled']);
 /** The plan service keeps one user and one speculative solve in flight per client and supersedes the older
  *  (api/mobile.py solve_post, PURPOSES), so a solve's default slot is its purpose's class. 'chipprep', 'pair' (the
  *  suggested plans' fork solves: ahead.js forkPump), 'pairnext' (ahead.js prepNext) and 'presolve' (ahead.js presolve)
- *  are speculative; the service never counts them in its hourly quota. */
-export const SOLVE_CLASS = { heal: 'user', chip: 'user', cash: 'user', wish: 'spec', speculative: 'spec', chipprep: 'spec', pair: 'spec', pairnext: 'spec', presolve: 'spec' };
+ *  are speculative; the service never counts them in its hourly quota. 'plan' (memory model: the solver's plan with
+ *  none of your rules) has a slot of its own: no other solve of this page supersedes it. */
+export const SOLVE_CLASS = { heal: 'user', chip: 'user', cash: 'user', wish: 'spec', speculative: 'spec', chipprep: 'spec', pair: 'spec', pairnext: 'spec', presolve: 'spec', plan: 'plan' };
 const inflight = new Map();  // slot → {key, ctrl, superseded, purpose}
 /** Whether a solve of this browser's is in flight in `slot` ('user' | 'spec'): background asks wait for a free slot
  *  instead of superseding a Wish solve someone is looking at. */

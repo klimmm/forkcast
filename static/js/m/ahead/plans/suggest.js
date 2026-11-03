@@ -1,6 +1,5 @@
 // ahead/plans.js: a week's suggested moves: the bake's roads' moves that week, a place's asked buys
 
-import { bundleRoads } from '../../memory.js';
 import { baseline, compare, draftOf, estimate, movedFrom, pairedMoves, removedAt, squadBefore, weekOf } from '../core.js';
 import { barred, buyCandidates, keptFrom } from '../edits.js';
 import { addYours, extraWeek, owedAt, pairChanged, pinOfMove, wishWeeks } from '../presolve.js';
@@ -109,14 +108,14 @@ function waitsAWeek(ctx, P, g, ms, ev, before, d0, measure = null) {
   return compare(ctx, measure ? measure(d, g) : estimate(ctx, d, g), ev).delta >= -0.05;
 }
 
-/** Every move of the bundle's roads (whichever GW makes it; with `now`, GW g's alone: a move a road plans for a later
+/** Every move of the model's plan (P.base: whichever GW makes it; with `now`, GW g's alone: a move it plans for a later
  *  week is never a GW-g suggestion, owner 2026-11-02), and the solver's own moves in a later week of your plan
  *  that a wish of yours makes the planner's (him from then: Add a player's button), the sale that pays for him among
  *  them, so an earlier week offers it too (owner, 2026-10-30), once each: `${out}>${in}` → {out, in, model (the model's
  *  own plan makes it in GW g)}. Source of suggestionsOf (`now`) and ownAltsOf. */
 export function modelMoves(P, g, { now = false } = {}) {
   const pool = new Map();
-  for (const r of bundleRoads(P.b.roads)) {
+  for (const r of P.base ? [P.base] : []) {
     for (const w of (r.weeks || []).filter((x) => !now || Number(x.gw) === g)) {
       for (const m of pairedMoves(w.out, w.in, P.L)) {
         const k = `${m.out}>${m.in}`;
