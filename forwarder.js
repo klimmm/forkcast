@@ -192,17 +192,41 @@ function watchLaptop() {
 // A 502/504/530, a connection error or a stall is retried on a fresh connection (no keep-alive socket from before the
 // tunnel reconnected) and at the address as re-read, which may have moved; only while nothing has reached the
 // visitor: an error after the answer began (a reset mid-body) retried it and wrote the headers twice, which threw
+// The visitor's own address, for the laptop's per-address quotas (owner, 2026-11-03: behind this forwarder and the
+// tunnel the laptop saw every visitor as one address, so 10 teams an hour and 7 solves in flight were everyone's): the
+// address Render's proxy appended last to X-Forwarded-For (an earlier entry is the visitor's own claim), else this
+// socket's peer, with the time, signed with VISITOR_KEY (a variable shared with the laptop's state/visitor_key: an
+// unsigned or stale pair counts for nothing there). The first VISITOR_LOG_N requests log what was read, to check it.
+const VISITOR_KEY = process.env.VISITOR_KEY || '';
+const VISITOR_LOG_N = 40;
+let visitorLogged = 0;
+function visitorHeaders(req) {
+  if (!VISITOR_KEY) return {};
+  const xff = String(req.headers['x-forwarded-for'] || '');
+  const ip = (xff.split(',').pop() || '').trim() || String(req.socket.remoteAddress || '');
+  if (!ip) return {};
+  const t = String(Math.floor(Date.now() / 1000));
+  if (visitorLogged < VISITOR_LOG_N) {
+    visitorLogged++;
+    console.log(`visitor ${ip} (x-forwarded-for "${xff}", true-client-ip "${req.headers['true-client-ip'] || ''}", cf-connecting-ip "${req.headers['cf-connecting-ip'] || ''}", peer ${req.socket.remoteAddress})`);
+  }
+  const sig = crypto.createHmac('sha256', VISITOR_KEY).update(`${ip}|${t}`).digest('hex');
+  return { 'x-forkcast-visitor': ip, 'x-forkcast-visitor-t': t, 'x-forkcast-visitor-sig': sig };
+}
+
 // ERR_HTTP_HEADERS_SENT and took the forwarder down (2026-10-11 15:30:07 UTC, Render's server_failed). `attempt`: the
 // tries made before this one.
 // `part`: the stalled answer's bytes so far, its rest asked here ({r: its 200 answer, etag, len, chunks, got, resumes}).
 function forward(req, res, body, to, attempt = 0, part = null) {
   const headers = {};
-  for (const [k, v] of Object.entries(req.headers)) if (!HOP.has(k)) headers[k] = v;
+  // (a visitor's own x-forkcast-visitor* never passes: only this forwarder's, visitorHeaders)
+  for (const [k, v] of Object.entries(req.headers)) if (!HOP.has(k) && !k.startsWith('x-forkcast-visitor')) headers[k] = v;
   const own = `https://${req.headers.host}`;
   headers.host = to.host;
   if (req.headers.origin && req.headers.origin.toLowerCase() === own.toLowerCase()) headers.origin = to.origin;
   headers['x-forwarded-host'] = req.headers.host;
   headers['x-forwarded-proto'] = 'https';
+  Object.assign(headers, visitorHeaders(req));
   if (part) {
     headers.range = `bytes=${part.got}-`;
     headers['if-range'] = part.etag;
