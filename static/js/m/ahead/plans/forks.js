@@ -176,37 +176,6 @@ export const forkRead = (key) => { const got = FORK_ROADS.get(key); return got?.
 export const FORK_FLIGHTS = new Map();  // lane (1..) → {key, fork, cancel, gw, P, prep}
 /** Every fork solve in flight as [lane, flight]: lane 0 while a fork holds PAIR.flight, then lanes 1.. */
 export const forkFlights = () => [...(PAIR.flight?.fork ? [[0, PAIR.flight]] : []), ...FORK_FLIGHTS];
-/** Every fork solve this page asked, newest first, in words (the ?solves=1 panel, solvelog.js; owner, 2026-11-03: "show
- *  me in interface what exactly is solved every time"): {at, gw, kind, what, ms, state}. */
-export const SOLVE_LOG = [];
-/** The server's own solves of the team (its bake: the first plan of a team it hasn't seen) written into SOLVE_LOG as
- *  entries like the page's, one list and one wording for every solve (owner, 2026-11-03: "stop separating servers and
- *  others, move them to one place in the code as well"): its week, what it is for, the rules it asks, its state and
- *  time; one not started yet "to come". Each kept by its bake key, updated as the bake goes. */
-export function logBake(ctx) {
-  const b = ctx.bundle?.bake, entry = String(ctx.store.get('entry') ?? '');
-  if (!b?.items?.length || !entry) return;
-  let I = null;
-  try { I = info(ctx); } catch { /* no data yet: ids for names */ }
-  const nm = (id) => { try { return I?.L?.name?.(Number(id)) ?? id; } catch { return id; } };
-  const A = I?.A ?? null, end = I?.gws?.at(-1) ?? A, span = (g) => (g === end ? `GW${g}` : `GW${g}-${end}`);
-  // (the bake's keys: "base", "roll", "hold", "veto:362837+…", "slide:362837@12")
-  const words = (k) => { const v = /^veto[:/]([\d+]+)/.exec(k), sl = /^slide[:/](\d+)@(\d+)/.exec(k);
-    return k === 'base' ? { kind: 'the plan', what: 'the plan as it stands' } : k === 'roll' ? { kind: 'rolling', what: `roll GW${A}` }
-      : k === 'hold' ? { kind: 'your team held', what: `roll ${span(A)}` }
-      : v ? { kind: "the Week sheet's rows", what: v[1].split('+').map((id) => `not ${nm(id)} ${span(A)}`).join(', ') }
-      : sl ? { kind: "the Week sheet's rows", what: `buy ${nm(sl[1])} ${span(Number(sl[2]))}` } : { kind: 'a choice', what: k }; };
-  const at0 = Number(b.started) > 0 ? Number(b.started) * 1000 : Date.now();
-  const id = (k) => `bake:${entry}:${k}`;
-  for (let i = SOLVE_LOG.length - 1; i >= 0; i--) if (SOLVE_LOG[i].id?.startsWith(id('more'))) SOLVE_LOG.splice(i, 1);
-  const more = ctx.store.get('conn')?.state === 'baking' ? Math.max(0, (Number(b.total) || 0) - b.items.length) : 0;
-  const rows = [...b.items.map((x) => ({ id: id(x.key), at: Number(x.started) > 0 ? Number(x.started) * 1000 : at0, entry, gw: A, ...words(x.key), lane: 'server',
-    state: x.state === 'done' ? 'solved' : x.state === 'error' ? 'error' : x.started ? 'solving' : 'to come', ms: Number(x.elapsed) > 0 ? Number(x.elapsed) * 1000 : null })),
-  ...Array.from({ length: more }, (_, k) => ({ id: id(`more${k}`), at: Date.now(), entry, gw: A, kind: 'a choice', what: 'one more', lane: 'server', state: 'to come', ms: null }))];
-  for (const r of rows) { const was = SOLVE_LOG.find((x) => x.id === r.id); if (was) Object.assign(was, r); else SOLVE_LOG.push(r); }
-  SOLVE_LOG.sort((x, y) => y.at - x.at);
-  if (SOLVE_LOG.length > 40) SOLVE_LOG.length = 40;
-}
 // (what a solve asks beyond the plan as it stands: the rules its values add or drop, by player and week)
 function solveWords(ctx, P, ask) {
   let base = {};
@@ -275,13 +244,10 @@ export function forkPump(ctx, P, ask) {
   const ours = () => (lane ? FORK_FLIGHTS.get(lane) : PAIR.flight) === flight;
   const purpose = ask.ahead ? 'presolve' : prep ? 'pairnext' : 'pair';
   if (ask.ahead) AHEAD.asked.push({ at: Date.now(), key: ask.key, src: ask.src });
-  const log = { at: Date.now(), entry: String(P.entry), gw: ask.gw, kind: ask.ahead ? 'a tap, ahead' : ask.root ? 'the week\'s plan' : side ? 'the next ✕ / Keep' : ask.need ? 'next week: what it draws' : prep ? 'next week' : 'a choice', what: solveWords(ctx, P, ask), key: ask.key, lane, ms: null, state: 'solving' };
-  SOLVE_LOG.unshift(log);
-  if (SOLVE_LOG.length > 40) SOLVE_LOG.length = 40;
-  const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, lane ? { slot: `fork${lane}` } : undefined);
+  const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, lane ? { slot: `fork${lane}` } : undefined,
+    { gw: ask.gw, kind: ask.ahead ? 'a tap, ahead' : ask.root ? 'the week\'s plan' : side ? 'the next ✕ / Keep' : ask.need ? 'next week: what it draws' : prep ? 'next week' : 'a choice', what: solveWords(ctx, P, ask), key: ask.key });
   flight.cancel = () => p.cancel?.();
   p.then((res) => {
-      log.state = res.road ? 'solved' : res.state ?? (res.error ? 'error' : 'done');
       // a tap's solve asked ahead: its answer memory's for exactly those values (presolve); one that failed for another
       // reason than your rules is never asked again on this page (no cost: the tap heals as before)
       if (ask.ahead && (res.road || res.state === 'error')) {
@@ -301,8 +267,6 @@ export function forkPump(ctx, P, ask) {
       }
     }, () => { if (ours()) PAIR[pause] = Date.now() + PAIR_HOLD_MS; })
     .finally(() => {
-      log.ms = Date.now() - log.at;
-      if (log.state === 'solving') log.state = 'let go';
       if (!ours()) return;
       if (lane) FORK_FLIGHTS.delete(lane); else PAIR.flight = null;
       // (a solve asked ahead changes nothing drawn: the next one asked in its lane, the choices re-drawn only once none

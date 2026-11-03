@@ -243,6 +243,8 @@ export function unpackCards(c) {
 export const getPlayer = ({ id, entry, vs }) => get('/api/m/player', { id, entry, vs });
 /** About Forkcast's live table (api/mobile.py scouts): this season's Fresh 15 entry against the scouts, each finished GW. */
 export const getScouts = () => get('/api/m/scouts');
+/** Every solve asked for the team, the phone's and the server's own, newest first (the ?solves=1 panel). */
+export const getSolves = (entry) => get('/api/m/solves', { entry });
 /** Plan memory and the ticket, one document per (entry, gw) (§7.4 PUT /api/m/memory) → the saved document, mirrored
  *  into the offline snapshot. */
 export async function putMemory(doc) {
@@ -280,7 +282,7 @@ export function whenFree(slot) {
 export const cancelSolve = (key) => request('DELETE', `/api/m/solve/${enc(key)}`);
 
 /**
- * solve({entry, purpose, values, lane}, {slot, onUpdate, signal}) → Promise<SolveResult> with .cancel().
+ * solve({entry, purpose, values, lane, said}, {slot, onUpdate, signal}) → Promise<SolveResult> with .cancel().
  * `values` is engine.solveValues() output (the plan service whitelists it). `lane` (a pair ask only,
  * 1..meta.pair_lanes − 1, in a slot of its own): held beside the speculative slot's (api/mobile.py PAIR_LANES). A
  * newer solve in the same slot (default SOLVE_CLASS[purpose]) stops polling this one and sends `supersedes: <its
@@ -290,7 +292,7 @@ export const cancelSolve = (key) => request('DELETE', `/api/m/solve/${enc(key)}`
  *   {key, state: 'cancelled'|'superseded'}     cancel(), signal, or a newer solve in the slot
  * and rejects only when the server can't be reached ('unreachable' / 'timeout') or refuses the request.
  */
-export function solve({ entry, purpose, values, lane = 0 }, { slot = SOLVE_CLASS[purpose] ?? purpose, onUpdate, signal } = {}) {
+export function solve({ entry, purpose, values, lane = 0, said = null }, { slot = SOLVE_CLASS[purpose] ?? purpose, onUpdate, signal } = {}) {
   const prev = inflight.get(slot);
   if (prev) { prev.superseded = true; prev.ctrl.abort(); }
   const mine = { key: null, ctrl: new AbortController(), superseded: false, purpose };
@@ -305,7 +307,7 @@ export function solve({ entry, purpose, values, lane = 0 }, { slot = SOLVE_CLASS
   const run = async () => {
     const sig = mine.ctrl.signal;
     try {
-      let s = await post('/api/m/solve', { entry, purpose, values, supersedes: prev?.key ?? null, ...(lane ? { lane } : {}) }, { signal: sig });
+      let s = await post('/api/m/solve', { entry, purpose, values, supersedes: prev?.key ?? null, ...(lane ? { lane } : {}), ...(said ? { said } : {}) }, { signal: sig });
       mine.key = s?.key ?? null;
       onUpdate?.(s);
       let misses = 0;

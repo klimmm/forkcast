@@ -223,8 +223,11 @@ const ownPins = (v, gws) => (solvedFor(v, gws).own ??= composePins([{ id: 'road'
  * without him. Every phone solve goes through here (RULES_V2 §5: nothing you said is silently dropped). `dropped`:
  * [{id, gw}] earliest GW first (Ahead's status row names the first). Keeps .cancel().
  */
-export function solveKept(api, args, opts) {
-  const p = api.solve(args, opts);
+// (what each purpose's solve is for, in the ?solves=1 panel's words, where its caller says nothing more: the server
+// logs every ask with them, GET /api/m/solves)
+const SOLVE_KINDS = { heal: 'your plan', chip: 'your chip', cash: 'your bank', wish: 'a wish', speculative: 'without your transfers', chipprep: 'a chip, ahead', pair: 'a choice', pairnext: 'next week', presolve: 'a tap, ahead' };
+export function solveKept(api, args, opts, said = {}) {
+  const p = api.solve({ ...args, said: { gw: said.gw ?? (Number(args.values?.from_r) || null), kind: said.kind ?? SOLVE_KINDS[args.purpose] ?? args.purpose, what: said.what ?? 'your rules as set' } }, opts);
   const q = p.then((r) => {
     const v = r?.road?.values;
     const gws = (r?.road?.weeks || []).map((w) => Number(w.gw));
