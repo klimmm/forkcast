@@ -1,10 +1,10 @@
-// The ?solves=1 panel (owner, 2026-11-03: "show me in interface what exactly is solved every time"): every fork solve
-// the page asks, newest first, in words: its week, what for, what it asks beyond the plan as it stands, how long it took
-// and how it ended (plans/forks.js SOLVE_LOG). Only with ?solves=1 in the address; a tap folds it.
+// The ?solves=1 panel (owner, 2026-11-03: "show me in interface what exactly is solved every time"): every solve of the
+// team, the page's and the server's own alike (plans/forks.js SOLVE_LOG, logBake), newest first, in words: its week, what for, what it asks beyond the plan as it stands, how long it took
+// and how it ended. Only with ?solves=1 in the address; a tap folds it.
 
-import { SOLVE_LOG } from './plans/forks.js';
+import { SOLVE_LOG, logBake } from './plans/forks.js';
 
-export function mountSolveLog(team = () => null, server = () => null) {
+export function mountSolveLog(ctx) {
   if (!/[?&]solves=1\b/.test(location.search) || document.querySelector('.ah-solvelog')) return;
   const el = document.createElement('div');
   el.className = 'ah-solvelog';
@@ -43,16 +43,11 @@ export function mountSolveLog(team = () => null, server = () => null) {
   const list = document.createElement('div');
   el.replaceChildren(copy, list);
   const paint = () => {
-    // (the team on screen's alone: another team's from earlier on this page never shown; owner, 2026-11-03). Its first
-    // plan's solves too, the ones the server starts itself for a team it hasn't seen ("Planning GW10–13", its bake), in
-    // the same list and counts as the page's own (owner, 2026-11-03, "solves showed in one place and all included in
-    // running or in all"): each with its own start, those not started yet "to come"
-    const e = team(), now = Date.now(), b = server();
-    const first = (b?.items ?? []).map((i) => ({ at: Number(i.started) > 0 ? Number(i.started) * 1000 : b.at, gw: b.span, kind: 'first plan', what: i.what,
-      state: i.state === 'done' ? 'solved' : i.state === 'error' ? 'error' : i.started ? 'solving' : 'to come', ms: Number(i.s) > 0 ? Number(i.s) * 1000 : null }));
-    const more = b?.baking ? Math.max(0, (b.total ?? 0) - first.length) : 0;
-    for (let k = 0; k < more; k++) first.push({ at: now, gw: b.span, kind: 'first plan', what: 'one more plan', state: 'to come', ms: null });
-    const mine = [...SOLVE_LOG.filter((x) => !e || x.entry === e), ...first].sort((x, y) => y.at - x.at);
+    // (the team on screen's alone: another team's from earlier on this page never shown; owner, 2026-11-03), the
+    // server's own solves among them (logBake)
+    logBake(ctx);
+    const e = String(ctx.store.get('entry') ?? ''), now = Date.now();
+    const mine = SOLVE_LOG.filter((x) => !e || x.entry === e).sort((x, y) => y.at - x.at);
     const running = mine.filter((x) => x.state === 'solving').length, since = acted ? mine.filter((x) => x.at >= acted).length : mine.length;
     const ends = (x) => (x.state === 'solving' ? `solving, ${secs(now - x.at)}` : x.state === 'to come' ? 'to come'
       // (an answer back within a second is one the server had already: no solve ran)
@@ -60,7 +55,7 @@ export function mountSolveLog(team = () => null, server = () => null) {
     const head = `${running} running · ${since} since your last tap · ${mine.length} in all`;
     const line = (x) => `${typeof x.gw === 'number' ? `GW${x.gw}` : x.gw} · ${x.kind} · ${x.what} · ${ends(x)}`;
     // (the copy names each solve's key and lane too: one asked again under the same words told apart)
-    said = [head, ...mine.map((x) => (x.key ? `${line(x)} · lane ${x.lane} · #${tag(x.key)}` : line(x)))];
+    said = [head, ...mine.map((x) => `${line(x)} · lane ${x.lane}${x.key ? ` · #${tag(x.key)}` : ''}`)];
     list.replaceChildren(
       Object.assign(document.createElement('b'), { textContent: head }),
       ...mine.slice(0, 30).map((x) => Object.assign(document.createElement('div'), { className: x.state === 'to come' ? 'solving' : x.state, textContent: line(x) })));

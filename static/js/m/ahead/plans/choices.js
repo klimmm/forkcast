@@ -476,9 +476,11 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   let letGo = false;
   // (the later weeks' flights of this plan view stay: their preparation, prepNext, or their own draw's; every later
   // week since owner, 2026-10-28)
+  // (…and the week's refusals ahead, the band's ✕ and Keep (refusalRoads): the tree above is read without the band's
+  // move, so its Keep could be missing from it and was let go and asked again at every draw; 2026-11-03, six asks)
   if (!peek && !prep) AHEAD.at = { P, g };
   for (const [lane, f] of peek || prep ? [] : forkFlights()) {
-    if (asks.some((a) => a.ask?.key === f.key) || f.key === owed?.key || f.root || tree.some((n) => n.key === f.key) || (sameView(f.P, P) && f.gw > g && !f.ahead) || aheadAsks(f, P, g)) continue;
+    if (asks.some((a) => a.ask?.key === f.key) || f.key === owed?.key || f.root || tree.some((n) => n.key === f.key) || (sameView(f.P, P) && (f.gw > g || (f.side && f.gw === g)) && !f.ahead) || aheadAsks(f, P, g)) continue;
     f.cancel?.();
     if (lane) FORK_FLIGHTS.delete(lane); else PAIR.flight = null;
     letGo = true;
