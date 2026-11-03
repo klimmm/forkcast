@@ -194,14 +194,22 @@ function watchLaptop() {
 // visitor: an error after the answer began (a reset mid-body) retried it and wrote the headers twice, which threw
 // The visitor's own address, for the laptop's per-address quotas (owner, 2026-11-03: behind this forwarder and the
 // tunnel the laptop saw every visitor as one address, so 10 teams an hour and 7 solves in flight were everyone's): the
-// address Render's proxy appended last to X-Forwarded-For (an earlier entry is the visitor's own claim), else this
-// socket's peer. The laptop believes it only from this service's own outgoing addresses (access.py _visitor_ip).
+// last public address in X-Forwarded-For, the one Render's proxy appended (an earlier entry is the visitor's own
+// claim, a later private one Render's own hop); none: no header. The laptop believes it only from this service's own
+// outgoing addresses (access.py _visitor_ip).
 // The first VISITOR_LOG_N requests log what was read, to check it.
 const VISITOR_LOG_N = 40;
 let visitorLogged = 0;
+// (a private or local address is a hop inside Render, never the visitor: its proxies' own are 10.x, each request
+// another; 2026-11-03)
+const PRIVATE = [/^10\./, /^127\./, /^192\.168\./, /^172\.(1[6-9]|2\d|3[01])\./, /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./, /^169\.254\./,
+  /^::1$/, /^f[cd]/i, /^fe[89ab]/i, /^::ffff:(10|127)\./i];
+const isPublic = (ip) => !!ip && !PRIVATE.some((rx) => rx.test(ip));
 function visitorHeaders(req) {
   const xff = String(req.headers['x-forwarded-for'] || '');
-  const ip = (xff.split(',').pop() || '').trim() || String(req.socket.remoteAddress || '');
+  // (the last public entry: Render's proxy appends the address that reached it after any the visitor sent, then its
+  // own internal hops)
+  const ip = xff.split(',').map((x) => x.trim()).filter(isPublic).pop() || '';
   if (!ip) return {};
   if (visitorLogged < VISITOR_LOG_N) {
     visitorLogged++;
