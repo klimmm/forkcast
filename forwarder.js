@@ -194,8 +194,7 @@ function watchLaptop() {
 // visitor: an error after the answer began (a reset mid-body) retried it and wrote the headers twice, which threw
 // The visitor's own address, for the laptop's per-address quotas (owner, 2026-11-03: behind this forwarder and the
 // tunnel the laptop saw every visitor as one address, so 10 teams an hour and 7 solves in flight were everyone's): the
-// last public address in X-Forwarded-For, the one Render's proxy appended (an earlier entry is the visitor's own
-// claim, a later private one Render's own hop); none: no header. The laptop believes it only from this service's own
+// address Cloudflare (Render's edge) read off the connection, CF-Connecting-IP; none (or a private one): no header. The laptop believes it only from this service's own
 // outgoing addresses (access.py _visitor_ip).
 // The first VISITOR_LOG_N requests log what was read, to check it.
 const VISITOR_LOG_N = 40;
@@ -207,9 +206,11 @@ const PRIVATE = [/^10\./, /^127\./, /^192\.168\./, /^172\.(1[6-9]|2\d|3[01])\./,
 const isPublic = (ip) => !!ip && !PRIVATE.some((rx) => rx.test(ip));
 function visitorHeaders(req) {
   const xff = String(req.headers['x-forwarded-for'] || '');
-  // (the last public entry: Render's proxy appends the address that reached it after any the visitor sent, then its
-  // own internal hops)
-  const ip = xff.split(',').map((x) => x.trim()).filter(isPublic).pop() || '';
+  // (Cloudflare, in front of Render, puts the visitor in CF-Connecting-IP and overwrites one a visitor sends; the last
+  // public X-Forwarded-For entry is Cloudflare's own edge, each request another: 2026-11-03, the laptop saw
+  // 162.158.x, 172.68.x, 172.70.x for one visitor)
+  const cf = String(req.headers['cf-connecting-ip'] || '').trim();
+  const ip = isPublic(cf) ? cf : '';
   if (!ip) return {};
   if (visitorLogged < VISITOR_LOG_N) {
     visitorLogged++;
