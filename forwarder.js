@@ -195,23 +195,19 @@ function watchLaptop() {
 // The visitor's own address, for the laptop's per-address quotas (owner, 2026-11-03: behind this forwarder and the
 // tunnel the laptop saw every visitor as one address, so 10 teams an hour and 7 solves in flight were everyone's): the
 // address Render's proxy appended last to X-Forwarded-For (an earlier entry is the visitor's own claim), else this
-// socket's peer, with the time, signed with VISITOR_KEY (a variable shared with the laptop's state/visitor_key: an
-// unsigned or stale pair counts for nothing there). The first VISITOR_LOG_N requests log what was read, to check it.
-const VISITOR_KEY = process.env.VISITOR_KEY || '';
+// socket's peer. The laptop believes it only from this service's own outgoing addresses (access.py _visitor_ip).
+// The first VISITOR_LOG_N requests log what was read, to check it.
 const VISITOR_LOG_N = 40;
 let visitorLogged = 0;
 function visitorHeaders(req) {
-  if (!VISITOR_KEY) return {};
   const xff = String(req.headers['x-forwarded-for'] || '');
   const ip = (xff.split(',').pop() || '').trim() || String(req.socket.remoteAddress || '');
   if (!ip) return {};
-  const t = String(Math.floor(Date.now() / 1000));
   if (visitorLogged < VISITOR_LOG_N) {
     visitorLogged++;
     console.log(`visitor ${ip} (x-forwarded-for "${xff}", true-client-ip "${req.headers['true-client-ip'] || ''}", cf-connecting-ip "${req.headers['cf-connecting-ip'] || ''}", peer ${req.socket.remoteAddress})`);
   }
-  const sig = crypto.createHmac('sha256', VISITOR_KEY).update(`${ip}|${t}`).digest('hex');
-  return { 'x-forkcast-visitor': ip, 'x-forkcast-visitor-t': t, 'x-forkcast-visitor-sig': sig };
+  return { 'x-forkcast-visitor': ip };
 }
 
 // ERR_HTTP_HEADERS_SENT and took the forwarder down (2026-10-11 15:30:07 UTC, Render's server_failed). `attempt`: the
