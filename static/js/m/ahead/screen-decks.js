@@ -23,6 +23,15 @@ const lockGlyph = (shut) => svg('svg', { viewBox: '0 0 12 14', 'aria-hidden': 't
 const crossGlyph = () => svg('svg', { viewBox: '0 0 10 10', 'aria-hidden': 'true' },
   svg('path', { d: 'M2 2l6 6M8 2l-6 6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round' }));
 
+/** The best's ticket names (renderDecks' marks after each .x): one move its sale and buy in one .ah-tn; more, its
+ *  sellers' .ah-tn ("A, B, C →") and its buys' ("X, Y, Z"), in the moves' order, on one line where they fit, the buys
+ *  on the next where they don't (m-ahead.css .multi; owner, 2026-11-03, "why these on different lines"). */
+function ticketNames(adds, nm) {
+  const list = (ms, part) => ms.flatMap((m, i) => [h(`span.${part}.x`, { dataset: part === 'i' ? { id: m.in, out: m.out } : { id: m.out } }, nm(part === 'i' ? m.in : m.out)), i < ms.length - 1 ? h('span.c', null, ',') : null]);
+  if (adds.length === 1) return [h('span.ah-tn', null, ...list(adds, 'o'), ' → ', ...list(adds, 'i'))];
+  return [h('span.ah-tn', null, ...list(adds, 'o'), ' →'), h('span.ah-tn', null, ...list(adds, 'i'))];
+}
+
 export function decksPart(V) {
   function renderDecks() { const { S, boxOf, cardBoxes, ctx, decks, drawPlace, fitPitch, frozenAt, gwNow, labelWalls, pitchHost, placePills, plansHeading, reachLabels, rsBtn, sideRoom, tapIn, topRow } = V;
     const root = pitchHost.querySelector(':scope > .pm');
@@ -178,7 +187,7 @@ export function decksPart(V) {
         const id = Number(x.dataset.id), nm = P.L.name(id);
         decks.append(h('button.ah-tcard', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.cardOf(nm), dataset: { row: `tok:card:${g}:${id}` }, style: door(x), onClick: () => tapIn(g, id) }));
         if (x.matches('.i')) {
-          const mi = { gw: g, out: Number(x.parentElement.querySelector('.o').dataset.id), in: id };
+          const mi = { gw: g, out: Number(x.dataset.out), in: id };
           decks.append(h('button.ah-cm.out.tno.in.tx', { type: 'button', 'aria-label': COPY.notBuySaid(nm, g), dataset: { row: `tok:not:${g}:${id}` }, style: after(x), onClick: () => veto(ctx, mi, { scope: 'gw' }) }, crossGlyph()));
         } else {
           const pk = pinOf(P, 'keep', id, g);
@@ -605,10 +614,11 @@ export function decksPart(V) {
         // (one move its sale and buy, "Murillo → Hill": review 7, 2026-11-02, the net result, not one leg; reversing the
         // owner's 2026-10-26 buy alone; several their buys. The best's, in the band over the pitch, each name with its ✕:
         // renderDecks)
-        // (the best's, in the band, its moves on two lines at most, "Gabriel → N.Williams" over "Dewsbury-Hall → Rice", a
-        // third on the first line (.ah-brk after its first half: QA decks, 2026-11-03, 82 px for three); a ✕ after every
-        // name: .x, renderDecks)
-        h('span.ah-tl', { 'aria-hidden': 'true' }, one ? e.adds.flatMap((m, i, all) => [h('span.ah-tn', null, h('span.o.x', { dataset: { id: m.out } }, nm(m.out)), ' → ', h('span.i.x', { dataset: { id: m.in } }, nm(m.in))), all.length > 1 && i === Math.ceil(all.length / 2) - 1 ? h('span.ah-brk') : null])
+        // (the best's, in the band: one move "Gabriel → N.Williams"; more, its sellers first, then its buys, each
+        // comma-separated, on one line where they fit, else "Ajer, Van Hecke, Havertz →" over "N.Williams, Murillo, Evanilson" (owner,
+        // 2026-11-03, "sold players go first and comma-separated, then comma separated bought"); a mark after every
+        // name: .x, renderDecks, a buy's naming its seller, data-out)
+        h('span.ah-tl', { 'aria-hidden': 'true' }, one ? ticketNames(e.adds, nm)
           : (takesBack(e) || !e.adds.length ? [nm(e.inId)] : e.adds.length === 1 ? [`${nm(e.adds[0].out)} → ${nm(e.adds[0].in)}`] : e.adds.map((m) => nm(m.in))).map((t, i, all) => h('span.ah-tn', null, `${t}${i < all.length - 1 ? ',' : ''}`))),
         // (its number as its plate's: numParts)
         // (its number's scope, the window it counts, "+2.0 xP · 4 GW"; "Close call" where the solver's count of it is inside

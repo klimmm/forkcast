@@ -31,6 +31,7 @@ export function healPart(V) {
     const also = S.offered.v === v ? S.offered.roads : [];
     const hit = findRoad(V.model().road, c, gwsNow(), also);
     if (hit) {
+      globalThis.__fcTrace?.('plan', hit.key);  // (the QA's solve audit)
       cancelHeal();
       S.error = null;  // these rules have a plan: an earlier "can't keep them all" is over
       S.aheadSig = null;
@@ -58,7 +59,7 @@ export function healPart(V) {
     // once (owner, 2026-10-26)
     const k = keyNow();
     const got = k && S.offered.v === v ? S.offered.solved.get(k) : null;
-    if (got) { cancelHeal(); took(got, sig, why, true); return; }
+    if (got) { globalThis.__fcTrace?.('plan', got.road?.key); cancelHeal(); took(got, sig, why, true); return; }
     // the plan heal is a user-class solve (api/mobile.py PURPOSES): one per client, a newer one supersedes it.
     // Debounced for an edit; a re-plan of no edit (a team opened, new roads: 'sync') asks at once
     scheduleHeal('heal', { reason: why, now: why === 'sync', ahead: k });

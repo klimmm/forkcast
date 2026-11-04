@@ -415,6 +415,10 @@ export const COPY = Object.freeze({
   aheadHead: 'Plan ahead',
   aheadSeg: (n) => (n === 1 ? '1 week' : `${n} weeks`),
   aheadNote: 'The GWs after your plan show a lock at the top.',
+  // Settings → Solver gap (owner, 2026-11-03): how close to the best the solver must prove its plan, this GW and later
+  gapHead: (later) => (later ? 'Solver gap · later GWs' : 'Solver gap · this GW'),
+  gapSeg: (g) => (g > 0 ? `${+(g * 100).toFixed(2)}%` : 'Exact'),
+  gapNote: 'A looser gap plans faster; the plan may then be that much short of the best.',
   aheadLocked: 'Options with a lock aren\'t available on this Forkcast.',
   /** A GW past your plan, tapped on the GW switcher (ahead.js edgeTicks): how to plan it, or that its length is locked. */
   weekOff: (gw, n) => `Your plan covers ${COPY.aheadSeg(n)}. To plan GW${gw}, ${COPY.settingsDoor}, then ${COPY.aheadHead}.`,

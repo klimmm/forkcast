@@ -123,7 +123,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const keeps = (c) => now.every((y) => c.moves.some((m) => sameMove(m, y)));
   // a group's choice: your GW-g transfers with its moves
   const groupOf = (gr) => gr.reduce(plus, { moves: now, chips: {} });
-  const splitOf = (c) => {
+  // (the groups alone: fundGroups; a choice that splits: splitOf, never the solver's own week, whose groups are its
+  // parts: below)
+  const fundGroups = (c) => {
     const adds = unmade(c);
     if (chipMine || adds.length < 2 || Object.keys(c.chips).length || !keeps(c) || !fitsAt(ctx, P, g, c, d0)) return null;
     const grp = new Map(adds.map((m) => [m, [m]]));
@@ -141,6 +143,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     const groups = [...new Set(grp.values())];
     return groups.length > 1 && groups.every((gr) => gr.length === 1 || fitsAt(ctx, P, g, groupOf(gr), d0)) ? groups : null;
   };
+  // (never the solver's own week: its moves are what it does, one choice (owner, 2026-11-03, "why it not shows solver
+  // actual transfers": Gibbs-White + Evanilson split, its Evanilson half the best at −0.5)
+  const splitOf = (c) => (roots.has(forkKey(c, g)) ? null : fundGroups(c));
   const split = new Map();  // forkKey → the groups of a choice that splits (splitOf)
   // (the solver's own moves for the week split too, each move its own plate and take where it fits alone: owner,
   // 2026-11-02, "why Rice, Evanilson combined and not independent"; was one take since cb793a4f that morning)
@@ -278,17 +283,21 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // −0.1, there for Dewsbury-Hall → Rice's money) is offered whole, its moves one decision (owner, 2026-11-02: "why
   // suggesting gabriel to willisms for -0.1"): it stays among the choices (`wholes`, its known road, no solve, no room
   // taken) until its parts are checked, then goes where one of them pays alone (all), as the Rice above
+  // (its moves in the groups that pay for themselves (fundGroups: a move with the sales its money needs), each group
+  // offered as one, where every move is in one: owner, 2026-11-03, "are all these 4 dependable if not why they not
+  // splitted": Calafiori → Silva paying for King → Dewsbury-Hall and João Pedro → Evanilson for Barnes → Rice, two pairs
+  // that each fit alone, shown as one ticket of four)
   for (const k of roots) {
     const c = choices.get(k);
     if (!c || split.has(k) || unmade(c).length < 2) continue;
-    const ks = [];
-    for (const m of unmade(c)) {
-      const q = groupOf([m]), qk = forkKey(q, g);
+    const ks = [], gs = fundGroups(c) ?? unmade(c).map((m) => [m]);
+    for (const gr of gs) {
+      const q = groupOf(gr), qk = forkKey(q, g);
       if (!fitsAt(ctx, P, g, q, d0)) continue;
       if (!choices.has(qk) && room()) { add(q); if (choices.has(qk)) parts.add(qk); }
       if (choices.has(qk)) ks.push(qk);
     }
-    if (ks.length === unmade(c).length) choices.delete(k);
+    if (ks.length === gs.length) choices.delete(k);
     else if (ks.length) wholes.set(k, ks);
   }
   for (const m of now) otherBuys(m, (inn) => swapIn(m, inn));
@@ -589,14 +598,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // week instead, so a count past the 0.05 bar says now; owner, 2026-10-28)
     .map((x) => (early.has(forkKey(x.choice, g)) && !(x.cmp?.count && x.cmp.delta > 0.05) ? { ...x, early: early.get(forkKey(x.choice, g)) } : x))
     .map((x) => (placed.has(forkKey(x.choice, g)) ? { ...x, placed: true } : x));
-  // (a week kept whole, `wholes`: its parts while any checks or one beats the roll alone, else the whole in their place)
-  const drop = new Set();
-  for (const [k, ks] of wholes) {
-    const ps = each.filter((x) => ks.includes(forkKey(x.choice, g)));
-    if (ps.some((x) => x.state === 'solving' || (x.state === 'ready' && x.cmp?.delta > 0))) drop.add(k);
-    else for (const q of ks) drop.add(q);
-  }
-  const all = each.filter((x) => !drop.has(forkKey(x.choice, g)) && x.state !== 'idle');
+  // (a week kept whole, `wholes`: the whole and its parts both, the whole the solver's own pick; owner, 2026-11-03, "why
+  // it not shows solver actual transfers", reversing 2026-11-02's parts in its place)
+  const all = each.filter((x) => x.state !== 'idle');
   const done = all.filter((x) => x.state === 'ready');
   // the Roll row against the hardest of: the best transfer row's plan (Forkcast's later moves on both sides) and the
   // best Wildcard row's (your later weeks kept on both: its held roll) → {vsBest, best, bestFrom (the Roll side's
@@ -803,7 +807,13 @@ export function plansWait(plans) {
 /** How far a week's checks are as its week line and Week sheet say them ("Planning GW8 · 3 of 9 plans": renderLine,
  *  drawWeek): plansWait over the list that settles it (`plans`: plansOf's whole list, not the ten listed), until one of
  *  its choices is lit on the pitch (`lit`: litOf's count). Pure. → {i, n} | null */
-export const weekWait = (plans, lit) => (lit ? null : plansWait(plans));
+export const weekWait = (plans, lit) => (lit ? null : plansWait(plans.filter(lights)));
+/** Whether a week's row can be its best (weekBest: the solver's own move, a chip beside it) or what the best is counted
+ *  against (the roll's row), or one waiting on your edit's own solve: only these hold the week unsettled and grey
+ *  (weekSettled, weekWait). A plain row, one an
+ *  open Week sheet asks, is drawn as it lands; 2026-11-03, a take in the Week sheet greyed the pitch 2.8 s on its three
+ *  other buys, none of which could be lit. Pure. */
+const lights = (x) => !!x.solver || !!x.refRow || x.wait === 'heal' || Object.keys(x.choice?.chips ?? {}).length > 0;
 /** The week's notices where they are drawn (renderLine): on the strip the first problem of `notices` (a clash, the
  *  price watch, a new forecast; weekModel's order), " · +N" for the others standing (`more`); GW A's lineup notice
  *  (`quiet`: an instruction that stands, FPL's to do) never on the strip but on the week's status beside the goal, in
@@ -888,7 +898,7 @@ const SETTLED_MAX = 64;
 export function weekSettled(P, g, plans, now = Date.now()) {
   const k = weekKey(P, g, plans);
   const s = keepNewest(SETTLED.by, k, SETTLED.by.get(k) ?? { settled: false, done: 0, at: now }, SETTLED_MAX);
-  const done = plans.filter((x) => x.state !== 'solving').length;
+  const held = plans.filter(lights), done = held.filter((x) => x.state !== 'solving').length;
   // a visit's first draw (another week's let its forks go: plansOf's L5), or a landing, starts the bound again; an
   // edit's check that rows wait for (`wait` 'heal': its own toast and clock; its landing is a new plan view) holds it,
   // the week unsettled meanwhile
@@ -899,7 +909,7 @@ export function weekSettled(P, g, plans, now = Date.now()) {
   // (never while the solver's own week or what the rows count against is still solving, plansOf's `pending`: the
   // rows in then were lit as the best, "Rolling is best" before the solver's move landed; owner, 2026-11-02, "after
   // silva refused it first showed rolling the best then greyed out and now shows van hecke")
-  if (!plans.pending && (done === plans.length || now - s.at >= PAIR_HOLD_MS)) s.settled = true;
+  if (!plans.pending && (done === held.length || now - s.at >= PAIR_HOLD_MS)) s.settled = true;
   return s.settled && !heal && !plans.pending;
 }
 /** When GW g's choices on plan view P settle unless one lands first (weekSettled's bound), for tick() to draw them then

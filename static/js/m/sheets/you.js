@@ -154,7 +154,7 @@ export function open(ctx, what = null) {
   });
 }
 
-/** The plan's settings into `planSec` (the Settings sheet's): Most hits per GW and Plan ahead; its other Hits choices
+/** The plan's settings into `planSec` (the Settings sheet's): Most hits per GW, Plan ahead and Solver gap; its other Hits choices
  *  solved ahead while it shows (owner `offs`). → paintPlan */
 function planSettings(ctx, planSec, offs) {
   const { h, fill } = ctx.ui;
@@ -163,7 +163,7 @@ function planSettings(ctx, planSec, offs) {
     // no plan of the length picked (none solved yet: under a data job, or while it solves): Plan ahead stays, the way
     // back to one that has
     const reach = P?.reach ?? ctx.data?.reach;
-    if (!P) { fill(planSec, ...(reach?.length ? [h('h3', null, 'Plan'), ...weeksCtl(reach, true)] : [])); return; }
+    if (!P) { fill(planSec, ...(reach?.length ? [h('h3', null, 'Plan'), ...weeksCtl(reach, true), ...gapCtl()] : [])); return; }
     const { at, choices } = hitsChoices(P);
     const i = choices.findIndex(([n]) => n === at);
     fill(planSec, h('h3', null, 'Plan'),
@@ -175,7 +175,7 @@ function planSettings(ctx, planSec, offs) {
           onClick: () => setHitsMaxWithUndo(ctx, n),
         }, l))), { pick: (b) => b.click() }),
       h('p.m-foot', null, COPY.hitsNote),
-      ...weeksCtl(reach, P.editable));
+      ...weeksCtl(reach, P.editable), ...gapCtl());
     // its taps solved ahead while it is open (presolveTaps; owner, 2026-10-26): each other Hits choice
     if (P.editable) {
       presolveTaps(ctx, choices.filter(([n]) => n !== at).map(([n]) => ({ kind: 'hits', run: () => setHitsMaxWithUndo(ctx, n) })),
@@ -200,8 +200,25 @@ function planSettings(ctx, planSec, offs) {
       ns.some(off) ? h('p.m-foot.y-weeks-lock', null, COPY.aheadLocked) : null,
       h('p.m-foot', null, COPY.aheadNote)];
   }
+  /** Solver gap: GW A's and the later GWs' (ctx.gap / setGap: every solve asked again under it), Exact to 1%. */
+  function gapCtl() {
+    const at = ctx.gap();
+    const row = (k) => {
+      const i = Math.max(0, GAPS.indexOf(at[k])), id = `y-gap-${k}-l`;
+      return [h('div.ah-optl', { id }, COPY.gapHead(k === 'later')),
+        ctx.ui.roving(h(`div.m-seg.y-gap.${k}`, { role: 'radiogroup', 'aria-labelledby': id, style: { '--n': GAPS.length, '--i': i } },
+          h('span.m-seg-thumb'),
+          GAPS.map((g) => h('button', {
+            type: 'button', role: 'radio', 'aria-checked': String(g === at[k]), dataset: { gap: g },
+            onClick: () => { if (g !== at[k]) ctx.setGap({ [k]: g }); },
+          }, COPY.gapSeg(g)))), { pick: (b) => b.click() })];
+    };
+    return [...row('now'), ...row('later'), h('p.m-foot', null, COPY.gapNote)];
+  }
   return paintPlan;
 }
+// (Settings → Solver gap's choices: api/mobile_rules.py GAP_MAX the largest)
+const GAPS = [0, 0.001, 0.005, 0.01];
 
 /** Settings (Ahead's header gear; owner, 2026-10-29): the plan's settings (planSettings), painted again as the plan and
  *  its memory change. */

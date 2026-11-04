@@ -1304,6 +1304,8 @@ status's ink; a locked price FPL's lock alone */
 .pm .pm-pf.bar .pm-px > .icon { vertical-align: -1px; }
 .ah-tok.mv.tix .ah-tn > .o { flex: 0 1 auto; font-weight: 400; color: var(--ink-2); }
 .ah-tok.mv.tix .ah-tn > .i { flex: 0 0 auto; }
+/* a comma after a name's mark, the gap before it taken back: "Ajer 🔓, Van Hecke 🔓" (owner, 2026-11-03) */
+.ah-tok.mv.tix .ah-tn > .c { margin-left: -.3em; }
 .ah-tok.mv.tix > .ah-tnum { margin-left: auto; }
 .ah-tok.mv.tix .ah-tgw { margin-left: .3em; font-size: var(--t-sub); font-weight: 400; color: var(--muted); }
 .ah-tok.mv.tix .ah-tclose { margin-right: .4em; font-size: var(--t-sub); font-weight: 600; color: var(--ink); }
@@ -1314,8 +1316,17 @@ status's ink; a locked price FPL's lock alone */
 .ah-pitch.band .ah-tok.mv.tix.multi { flex-wrap: wrap; row-gap: 0; height: auto; min-height: 52px; padding-top: 2px; padding-bottom: 2px; }
 .ah-tok.mv.tix.multi > .ah-tl { display: contents; }
 .ah-tok.mv.tix.multi .ah-tn { line-height: 24px; }
-.ah-tok.mv.tix.multi .ah-tn { flex: 1 1 0; min-width: 0; }
-.ah-tok.mv.tix.multi .ah-brk { flex-basis: 100%; height: 0; }
+.ah-tok.mv.tix.multi .ah-tn { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+/* (its sellers and its buys each whole, on one line where they fit, the buys wrapping to the next where they don't
+   (owner, 2026-11-03, "why these on different lines"); the number and Swap after the buys where they fit, else a line
+   of their own: three buys and the number overlapped; owner, 2026-11-03) */
+.ah-tok.mv.tix.multi .ah-tn > .i { flex: 0 1 auto; }
+/* (two columns: the names on the left, centred on the band's height, one line or two as they fit; the number over
+   Swap at the end; owner, 2026-11-03, "why not centred") */
+.ah-pitch.band .ah-tok.mv.tix.multi { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; }
+.ah-tok.mv.tix.multi > .ah-tl { display: flex; flex-wrap: wrap; align-items: center; align-content: center; column-gap: .25em; grid-column: 1; grid-row: 1 / span 2; }
+.ah-tok.mv.tix.multi > .ah-tnum { grid-column: 2; grid-row: 1; align-self: end; justify-self: end; margin-left: 0; }
+.ah-tok.mv.tix.multi > .ah-tgo { grid-column: 2; grid-row: 2; align-self: start; justify-self: end; margin-left: 0; }
 
 .ah-tok.mv.tix > .ah-tgo { height: 24px; padding: 0 10px; border-radius: 12px; font-size: var(--t-sub); font-weight: 600; }
 /* the band's seller on the pitch (renderDecks .ah-sold): framed in the band's ink with a white hairline inside, a

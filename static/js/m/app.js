@@ -51,6 +51,8 @@
 // teamPicker(opts)                    ./picker.js teamPicker(ctx, opts): the team picker Connect and Switch team share
 // weeks() → n | null · setWeeks(n)    Settings → Plan ahead: the weeks asked for this team (weeksOf); a new pick is
 // kept per team in this browser and the bundle asked at once
+// gap() → {now, later} · setGap(g)   Settings → Solver gap: GW A's relative MIP gap and every later round's (gapOf),
+// kept in this browser, ridden on every solve through data.gap (memory.planValues)
 //   reveal     true during the first mount after Connect's first load
 //   (local vs remote, for dev-only entries: api.access())
 
@@ -82,6 +84,12 @@ store.persist('entry', null);
 const HORIZON_KEY = (entry) => `fc:horizon:${entry}`;
 /** The weeks to ask `entry`'s bundle for: the pick within b's locks and reach (calls.planWeeks; the server falls back
  *  alike); null without a pick and a bundle. */
+/** Settings → Solver gap (owner, 2026-11-03, "add solver gap to settings, also relax solver gap for future rounds"):
+ *  GW A's round exact, every round after it at 0.1% by default (main.py --gap / --later-gap; on one plan solve 10.6 s
+ *  → 8.3 s, GW A's choices unchanged), in localStorage for every team. */
+const GAP_KEY = 'fc:gap';
+const GAP_DEFAULT = Object.freeze({ now: 0, later: 0.001 });
+const gapOf = () => { try { return { ...GAP_DEFAULT, ...JSON.parse(api.local.get(GAP_KEY) || '{}') }; } catch { return { ...GAP_DEFAULT }; } };
 const weeksOf = (entry, b = store.get('bundle')) => calls.planWeeks(api.local.get(HORIZON_KEY(entry)), b?.meta?.locked, b?.meta ? reachOf(b.meta).length : null);
 
 /** Plan progress in one line: "Planning GW6–9", "Planning…" before the GWs are known. */
@@ -155,6 +163,9 @@ const ctx = {
   weeks: () => weeksOf(store.get('entry')),
   // the weeks picked: kept, and the bundle asked for that plan now
   setWeeks: (n) => { api.local.set(HORIZON_KEY(store.get('entry')), String(n)); return ctx.refresh(); },
+  gap: () => gapOf(),
+  // (the plan's data anew with it: every solve's values from it, so each is asked again under the new gap)
+  setGap: (g) => { api.local.set(GAP_KEY, JSON.stringify({ ...gapOf(), ...g })); const d = store.get('data'); if (d) store.set('data', { ...d, gap: gapOf() }); },
   // Chips… opened on GW g: its chips are solved now (ahead.chipPreps); none before, none of a GW never opened (owner,
   // 2026-10-28); kept for the team until sign-out
   askChips: (g) => {
@@ -465,7 +476,7 @@ function accept(entry, b, { at = Date.now(), offline = false, snapshot = false }
     snapshot: !!snapshot,
   };
   if (changed) {
-    const data = derive(b, at);
+    const data = { ...derive(b, at), gap: gapOf() };
     const gw = store.get('gw');
     if (wantA || !Number.isFinite(gw) || !data.horizon.includes(gw)) store.set('gw', data.gw);
     wantA = false;

@@ -21,6 +21,8 @@ export function planInputs(bundle, data, model = null) {
     return {
       ...rest, A, gws: ids(data.horizon).length ? ids(data.horizon) : ids(meta.horizon), base: data.base, players: data.players,
       seeds: E.decodeSeeds(data.seeds ?? bundle.seeds), noise: num(model?.noise) ?? num(data.noise) ?? E.noiseFloor(meta, A) ?? 0,
+      // (Settings → Solver gap: app.js gapOf, every solve's values; memory.planValues)
+      gap: data.gap ?? null,
     };
   }
   const cols = shownPlayers(bundle) || {};

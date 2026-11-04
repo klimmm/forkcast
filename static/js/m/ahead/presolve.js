@@ -3,10 +3,10 @@
 import * as E from '../../plan/engine.js';
 import { fmt, chipName } from '../../ui.js';
 import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
-import { attach, pinSell, pinHits, pinKeep, pinVeto, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
+import { SOLVES, attach, pinSell, pinHits, pinKeep, pinVeto, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
 import { MINUS, WHY_SHEET, addMove, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
 import { saidNow, sayAgain, asksOf, autoRuleName, barred, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
-import { FORK_FLIGHTS, SQUAD_CHIPS, answeredBy, asTaken, byGain, choiceVs, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
+import { FORK_FLIGHTS, SQUAD_CHIPS, answeredBy, asTaken, byGain, choiceVs, fitsAt, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, forkValues, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
 import { freedBy, lineupMoved, gwMode, inkAt, isLive } from './buys.js';
 import { plPays, squadWeek } from './pieces.js';
 import { rulesOf } from './screen.js';
@@ -29,15 +29,24 @@ import { rulesOf } from './screen.js';
  */
 // (the week's: its best's take alone, owner, 2026-11-02: "no action in any week can trigger more than 6 solves after
 // it": refusalRoads' 4, the next week's best, this one; a Remove's own week answers from memory, an Undo needs none)
-const PRESOLVE_MAX = { week: { take: 1, remove: 0 }, sheet: 3 };
+// (…its first two takes, the best and the Week sheet's next row, since 2026-11-03: owner, "fix so each potential next
+// user move presolved", "fix all waits": a sheet's row tapped a second after it opened waited 1-3 s on its own solve.
+// Two: of the 6, a take's week asks two of its own and the next week's preparation two; three made 7, QA solve-budget)
+const PRESOLVE_MAX = { week: { take: 2, remove: 0 }, sheet: 3 };
+// and nothing asked ahead past the owner's 6 after a tap (2026-11-02), whichever asks first: the rest waits for the
+// next tap (forkPump: tapSpent; QA solve-budget, 2026-11-04: 8 on a card's ×, a place's own four and four ahead)
+const SOLVE_MAX = 6;
 // and at most PRESOLVE_RATE distinct solves a minute on a page, the week's at most its share, so an open sheet's taps
 // (the likelier) always have room
 const PRESOLVE_RATE = { all: 30, week: 16 }, PRESOLVE_WINDOW_MS = 60000;
 // the tap's edit made dry (dryEdit): {got} while one is, edit's args then
 export let DRY = null;
 // srcs: 'week' | 'sheet' → {P, gw, sig, owner, asks: [ask], made: [ask], tried: Set(tap id)}; failed: keys of failed
-// solves (not your rules'); at: viewed week {P, g} (plansOf); ctx: the page's
-export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map(), landed: new Set(), took: null };
+// solves (not your rules'); at: viewed week {P, g} (plansOf); ctx: the page's; tapped: SOLVES.asked at your last tap
+// (null before the first: a page's load is no action)
+export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map(), landed: new Set(), took: null, tapped: null };
+/** Your last tap has asked the 6 it may (SOLVE_MAX; no tap yet: a page's load is no action). */
+export const tapSpent = () => AHEAD.tapped !== null && SOLVES.asked - AHEAD.tapped >= SOLVE_MAX;
 /** A week's moves as one key ("out>in" sorted): the take's (addPlan, AHEAD.took) against the week's (weekRollOf). */
 export const movesKey = (ms) => ms.map((m) => `${m.out}>${m.in}`).sort().join(',');
 /** The take's number for week w while your plan is what the take made (AHEAD.took: its rules landed, none changed
@@ -119,19 +128,23 @@ export function weekTaps(ctx, P, g, list) {
   const ready = list.filter((pl) => pl.state === 'ready' && !pl.self && !rollOnly(pl) && !pl.removed)
     .sort((a, b) => plPays(b) - plPays(a) || byGain(a, b));
   // (`pri`: ask order, takes first by number; `id`: one tap of the view's, made dry once)
-  const takes = ready.map((pl, i) => ({ kind: 'take', gw: g, id: `take:${forkKey(pl.choice, g)}`, pri: i, run: () => addPlan(ctx, g, pl) }));
+  const takes = ready.map((pl, i) => ({ kind: 'take', gw: g, id: `take:${forkKey(pl.choice, g)}`, pri: i, solver: !!pl.solver, run: () => addPlan(ctx, g, pl) }));
   const rules = rulesOf(P).filter((p) => ruleOf(P, p).removable);
   const removes = [...rules.filter((p) => num(p.gw) === g), ...rules.filter((p) => num(p.gw) !== g)]
     .map((p, i) => ({ kind: 'remove', gw: g, id: `rm:${p.id}`, pri: 100 + i, run: () => removeRule(ctx, p.id) }));
   return { takes, removes, sig: `${ready.map((pl) => forkKey(pl.choice, g)).join(';')}|${rules.map((p) => p.id).join(',')}` };
 }
-/** The viewed week's taps (weekTaps), asked in the fork lanes its own checks leave free: a Remove at once, its first
- *  takes (PRESOLVE_MAX) once its choices are settled (best and lit plates known: litOf). */
+/** The viewed week's taps (weekTaps), asked in the fork lanes its own checks leave free: a Remove at once, the
+ *  solver's own rows' takes (the best token's Swap among them: weekBest) once those rows are in (`pending`), as their
+ *  ✕'s refusals are (plansOf), the rest of its first takes (PRESOLVE_MAX) once its choices are settled. */
 export function presolveWeek(ctx, P, g, list) {
   if (P.healing || leftBehind(ctx, P) || inkAt(ctx, P, g)) return;
   const { takes, removes, sig } = weekTaps(ctx, P, g, list);
   const settled = settledList(list);
-  presolve(ctx, P, 'week', [...(settled ? takes : []), ...removes], { gw: g, sig: `${settled}|${sig}` });
+  // (owner, 2026-11-03, "why it not even have prepared what to display after i click on swap": the best's take waited
+  // for every choice's check, its ✕'s refusals asked before it, and the Swap waited 2.4 s on its own solve)
+  const now = settled ? takes : list.pending ? [] : takes.filter((t) => t.solver);
+  presolve(ctx, P, 'week', [...now, ...removes], { gw: g, sig: `${settled}|${!list.pending}|${sig}` });
 }
 
 /** An open sheet's taps, asked ahead while it is open (presolve 'sheet'): each {kind, gw, run} (or a function making
@@ -234,6 +247,7 @@ function watchPage(ctx) {
   AHEAD.ctx = ctx;
   if (AHEAD.watching || typeof document === 'undefined' || !document.addEventListener) return;
   AHEAD.watching = true;
+  for (const t of ['click', 'keydown']) document.addEventListener(t, () => { AHEAD.tapped = SOLVES.asked; }, { capture: true, passive: true });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') stopAhead();
     else if (AHEAD.ctx && attach()?.ctx === AHEAD.ctx) pairChanged(AHEAD.ctx);
@@ -287,20 +301,40 @@ export function passRoad(ctx, P, g, n, peek = false) {
  *  same values but for must-haves and exclusions added, every one of which the road already keeps (a lock of a player
  *  it keeps, a take of its own move: the best of a narrower choice is the same plan). Pure. */
 export function rootStill(was, now, road) {
+  // (the plan service's own test, api/mobile_roads.road_answers, the same rules: owner, 2026-11-03, "find what else
+  // solves do the repeated job between them ... fix all such cases". Under --plan-rolls each week commits from its own
+  // window, which reaches the weeks after it: a narrower rule on the first week, or the road's stop (`to`) earlier,
+  // leaves every window as solved; one on a later week can change an earlier window's plan though the road keeps it
+  // (2 of 3 such pairs solved another plan), unless no transfer is possible up to that week, no buys from the first)
   const toks = (v) => new Set(String(v ?? '').split(',').filter(Boolean));
-  const keys = new Set([...Object.keys(was), ...Object.keys(now)].filter((k) => k !== 'must_have' && k !== 'exclude'));
-  if ([...keys].some((k) => JSON.stringify(was[k] ?? null) !== JSON.stringify(now[k] ?? null))) return false;
-  const squad = (x) => { const w = (road.weeks || []).find((y) => Number(y.gw) === x); return w ? new Set([...ids(w.xi), ...ids(w.bench)]) : null; };
-  const holds = (t, want) => {
-    const [id, span] = t.split('@'), [a, b] = (span ?? '').split('-').map(Number);
-    return (road.weeks || []).filter((w) => !span || (Number(w.gw) >= a && Number(w.gw) <= (b || a))).every((w) => squad(Number(w.gw)).has(Number(id)) === want);
-  };
+  const NARROW = new Set(['must_have', 'exclude', 'no_buys_gw', 'max_buys_gw', 'to', 'quick_before']);
+  if (road?.anchor != null) return false;
+  if ([...new Set([...Object.keys(was), ...Object.keys(now)])].some((k) => !NARROW.has(k) && JSON.stringify(was[k] ?? null) !== JSON.stringify(now[k] ?? null))) return false;
+  const first = Number(now.from_r);
+  if ((now.to == null && was.to != null) || (now.to != null && was.to != null && Number(was.to) < Number(now.to))) return false;
+  const qn = Number(now.quick_before ?? 0), qw = Number(was.quick_before ?? 0);
+  if (qn !== qw && Math.max(qn, qw) > first) return false;
+  const weeks = new Map((road.weeks || []).map((w) => [Number(w.gw), w]));
+  if (!weeks.has(first)) return false;
+  const squad = (g) => { const w = weeks.get(g) ?? weeks.get(first); return new Set([...ids(w.xi), ...ids(w.bench)]); };
+  const held = new Set([...toks(was.no_buys_gw)].map(Number));
+  // (a week whose squad is the first week's in every window: no buys in any week from the first to it)
+  const fixed = (g) => g === first || Array.from({ length: g - first + 1 }, (_, i) => first + i).every((x) => held.has(x));
   for (const [k, want] of [['must_have', true], ['exclude', false]]) {
     const old = toks(was[k]), cur = toks(now[k]);
     if ([...old].some((t) => !cur.has(t))) return false;
-    if ([...cur].some((t) => !old.has(t) && !holds(t, want))) return false;
+    for (const t of [...cur].filter((x) => !old.has(x))) {
+      const [id, span] = t.split('@'), [a, b] = (span ?? '').split('-').map(Number);
+      for (let g = a; g <= (b || a); g++) if (!fixed(g) || squad(g).has(Number(id)) !== want) return false;
+    }
   }
-  return true;
+  const nn = new Set([...toks(now.no_buys_gw)].map(Number));
+  if ([...held].some((g) => !nn.has(g))) return false;
+  const caps = (v) => new Map([...toks(v)].map((t) => t.split(':').map(Number)));
+  const capn = caps(now.max_buys_gw), capw = caps(was.max_buys_gw);
+  if ([...capw].some(([g, n]) => !capn.has(g) || capn.get(g) > n)) return false;
+  const narrower = [...[...nn].filter((g) => !held.has(g)).map((g) => [g, 0]), ...[...capn].filter(([g, n]) => (capw.get(g) ?? 99) > n)];
+  return narrower.every(([g, n]) => g === first && (weeks.get(first).in || []).length <= n);
 }
 /** The values refusalRoads solves GW g's choices under: your rules plus `extra`, less `drop` (ids), the solver's hit cap
  *  in every week from g, GW g's Roll off (a take's cap at its moves, a Roll of k > 0 (addPlan), and your own Roll
@@ -309,7 +343,9 @@ export function rootStill(was, now, road) {
  *  2026-11-02). With a tap's pins made dry (askOf): the root that tap's plan will ask, solved ahead. */
 function rootValues(ctx, P, g, extra = [], drop = []) {
   const cap = hitCap(P.base) ?? 2, roll = `roll:${g}`;
-  return valuesFor(ctx, [...P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x)), ...extra.filter((p) => p.id !== roll)], [...drop, ...P.pins.filter((p) => p.id === roll).map((p) => p.id)]);
+  // (solved to GW g alone, `to`, as a choice's (forkValues): only its GW-g moves are read, the weeks after it your
+  // plan's (planOfRoad); owner, 2026-11-03, "why anytime goes to GW11–13": the ✕ and Keep refusals 8-10 s, GW10 0.3 s)
+  return { ...valuesFor(ctx, [...P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x)), ...extra.filter((p) => p.id !== roll)], [...drop, ...P.pins.filter((p) => p.id === roll).map((p) => p.id)]), to: g };
 }
 /** `lead`: the move the week's best token shows (plansOf: the solver's row with the highest number), the one its ✕
  *  refuses, refused first at the root; else, and below the root, the road's first move as the week draws it (owner,
@@ -317,7 +353,26 @@ function rootValues(ctx, P, g, extra = [], drop = []) {
 export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1, lead: best = null, also = [] } = {}) {
   const yours = weekOf(P, g)?.moves || [], out = [], seen = new Set(), d0 = draftOf(ctx);
   // (`tap`: the tap a refusal prepares, the ✕'s 'x' or the lock's 'keep': the ?solves=1 panel names it)
-  const walk = (extra, d, tap = null) => {
+  // (the week a lead refusal draws once tapped asks its root's moves each alone, `parts` (plansOf: the solver's week of
+  // two or more moves); solved ahead with that refusal, under its rule (forkValues' `more`), the same values the view
+  // after the tap asks, so it draws at once; 2026-11-03, every week's ✕ greyed 0.6-1.4 s on Hill alone after Not Rice)
+  const partsAhead = (road, extra, tap) => {
+    const w = road.weeks.find((x) => Number(x.gw) === g);
+    const ms = w ? (planOfRoad(ctx, P, road, g, d0)?.choice.moves ?? pairedMoves(w.out || [], w.in || [], P.L)).filter((m) => !yours.some((y) => Number(y.out) === Number(m.out) && Number(y.in) === Number(m.in))) : [];
+    if (ms.length < 2) return;
+    const now = yours.map((m) => ({ gw: g, out: m.out, in: m.in }));
+    for (const m of ms) {
+      const q = { moves: [...now.filter((y) => y.out !== m.out && y.in !== m.in), { gw: g, out: m.out, in: m.in }], chips: {} };
+      if (!fitsAt(ctx, P, g, q, d0)) continue;
+      const values = forkValues(ctx, P, g, q, extra), key = valuesKey(P, values);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      // (one refusal ahead at a time, as the rest: asked on the next draw while another is in flight)
+      if (forkRead(key) || forkFlights().some(([, f]) => f.side && !f.root)) continue;
+      forkAsk(ctx, P, { key, values, gw: g, side: true, tap, prep: true });
+    }
+  };
+  const walk = (extra, d, tap = null, ahead = false) => {
     const values = rootValues(ctx, P, g, extra), key = valuesKey(P, values);
     if (seen.has(key)) return;
     seen.add(key);
@@ -333,16 +388,17 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1,
     const road = got?.weeks ? got : null;
     if (root && road) ROOTS.set(`${P.entry}|${g}`, { version: P.b.version, values, road });
     out.push({ key, road });
+    if (ahead && road && !peek) partsAhead(road, extra, tap);
     const w = road && d > 0 ? road.weeks.find((x) => Number(x.gw) === g) : null;
     // (its first move as the week draws it, planOfRoad's: the one the best token's ✕ refuses)
     const ms = w ? (planOfRoad(ctx, P, road, g, d0)?.choice.moves ?? pairedMoves(w.out || [], w.in || [], P.L)).filter((m) => !yours.some((y) => Number(y.out) === Number(m.out) && Number(y.in) === Number(m.in))) : [];
     const lead = (root && best && ms.find((m) => Number(m.out) === Number(best.out) && Number(m.in) === Number(best.in))) || ms[0] || null;
     if (!lead) return;
     // (the ✕'s refusal before the lock's Keep: the likelier tap asked first)
-    walk([...extra, pinVeto(lead.in, g, g, { scope: 'gw' })], d - 1, 'x');
+    walk([...extra, pinVeto(lead.in, g, g, { scope: 'gw' })], d - 1, 'x', root);
     // (its seller's Keep one refusal deep too, as the ✕'s: the ✕ after a Keep draws at once; owner, 2026-11-03, "why
     // grey out after each keep")
-    if (d === depth) walk([...extra, pinKeep(lead.out, g, g, { scope: 'gw' })], d - 1, 'keep');
+    if (d === depth) walk([...extra, pinKeep(lead.out, g, g, { scope: 'gw' })], d - 1, 'keep', true);
     // (the best's other moves, a plan's: each name's ✕ in the band, its buy refused, its seller kept, solved ahead after
     // the lead's; owner, 2026-11-02, "why only 1 out of four players have cross sign")
     if (d === depth) for (const m of also.filter((x) => Number(x.in) !== Number(lead.in))) {

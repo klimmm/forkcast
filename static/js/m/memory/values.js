@@ -132,6 +132,9 @@ export function planValues(cctx, list) {
   if (capped.length) values.max_buys_gw = capped.map(([g, n]) => `${g}:${n}`).join(',');
   if (c.debts.length) values.debt_gw = c.debts.join(',');
   if (c.cash !== null) values.cash = c.cash;
+  // Settings → Solver gap: GW A's round and every round after it, where not exact (planInputs' gap)
+  if (cctx.gap?.now > 0) values.gap = cctx.gap.now;
+  if (cctx.gap?.later > 0) values.later_gap = cctx.gap.later;
   return values;
 }
 
@@ -209,6 +212,9 @@ export function roadFits(road, c, gws) {
 /** A road's own rules, its solve values' --must-have / --exclude, composed over GWs `gws` (once per values). */
 const ownPins = (v, gws) => (solvedFor(v, gws).own ??= composePins([{ id: 'road', must: v.must_have || '', excl: v.exclude || '' }], { from: gws[0], to: gws.at(-1) }));
 
+/** Solves this page has asked (solveKept, the one place it asks): what a tap has started so far (presolve.js SOLVE_MAX). */
+export const SOLVES = { asked: 0 };
+
 /**
  * api.solve, except that a road missing a player it was solved to have (its own values' --must-have: brokenCells 'in')
  * resolves as the error it is, {state: 'error', road: null, error: {code: 'infeasible', plain, detail, dropped}}: an
@@ -219,8 +225,9 @@ const ownPins = (v, gws) => (solvedFor(v, gws).own ??= composePins([{ id: 'road'
  */
 // (what each purpose's solve is for, in the ?solves=1 panel's words, where its caller says nothing more: the server
 // logs every ask with them, GET /api/m/solves)
-const SOLVE_KINDS = { heal: 'your plan', chip: 'your chip', cash: 'your bank', wish: 'a wish', speculative: 'without your transfers', chipprep: 'a chip, ahead', pair: 'a choice', pairnext: 'next week', presolve: 'a tap, ahead', plan: 'the plan' };
+const SOLVE_KINDS = { heal: 'your plan', chip: 'your chip', cash: 'your bank', wish: 'a wish', speculative: 'without your transfers', chipprep: 'a chip, ahead', pair: 'a choice', pairnext: 'a choice, ahead', presolve: 'a tap, ahead', plan: 'the plan' };
 export function solveKept(api, args, opts, said = {}) {
+  SOLVES.asked++;
   const p = api.solve({ ...args, said: { gw: said.gw ?? (Number(args.values?.from_r) || null), kind: said.kind ?? SOLVE_KINDS[args.purpose] ?? args.purpose, what: said.what ?? 'your rules as set' } }, opts);
   const q = p.then((r) => {
     const v = r?.road?.values;
