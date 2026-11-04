@@ -496,7 +496,9 @@ document.addEventListener('visibilitychange', async () => {
   // hidden: away counts from here unless it already does (a page left open unused FORGET_MS, then reloaded, is signed
   // out); shown again: reload into a new release if the server moved to one, else sign out after FORGET_MS away
   if (document.visibilityState !== 'visible') { if (!away()) seen(true); return; }
-  if (await reloadIfReleased()) return;
+  shownCheck = true;
+  if (await reloadIfReleased()) return;  // (the page is going: it stays set)
+  shownCheck = false;
   if (signOutIfAway() || !store.get('entry') || !gate.hidden) return;
   const at = store.get('conn')?.at;
   if (!Number.isFinite(at) || Date.now() - at > 30000 || store.get('conn')?.state !== 'ok') loader.load().catch(() => {});
@@ -679,6 +681,10 @@ function signOut({ away = false } = {}) {
  *  landing, not yet a use of the team. */
 const SEEN_KEY = 'fc:seen';
 let seenAt = 0;
+/** Shown again, the release check under way or its reload: the sign-out is the shown-again path's or the new page's. The
+ *  minute check signing out meanwhile said why on a page about to go, and the new page, used a moment ago, said nothing
+ *  (a busy server's HEAD: QA release, 2 full runs of 4). */
+let shownCheck = false;
 function seen(force = false, team = true) {
   const now = Date.now();
   if (!force && now - seenAt < 15000) return;
@@ -701,6 +707,7 @@ function signOutIfAway() {
  *  checks never run while it stays shown): checked about once a minute and by the first touch or key, before seen()
  *  restarts the clock. */
 function awayOnScreen(e) {
+  if (shownCheck) return true;
   if (!store.get('entry') || !away()) return false;
   signOutIfAway();
   if (e?.type === 'pointerdown') {
