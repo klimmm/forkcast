@@ -478,7 +478,7 @@ export function decksPart(V) {
    *  number alone where its name has no room; a quiet one that gains nothing is a small chip (.loss, owner,
    *  2026-10-26). The best (`L.best`) is ink (a plan's one plate names its row's buys, `o.buys`, in its sellers' order,
    *  and "Rice & 2 more", `o.shown`); a plan's other seller in another row gets his buy's name alone (`o.tag`); any
-   *  other is a quiet green plate: litOf's, or his place's first choice (`L.first`: "checking…" in its number's place
+   *  other is a quiet green plate: litOf's, or his place's first choice (`L.first`: "planning…" in its number's place
    *  while the week checks, never a clock); your own buy's is his take-back (`back`), "Gabriel +0.8", a Remove his name
    *  alone (.bare). No take on any plate (owner, 2026-10-25): its body opens his place, whose headers take. → its
    *  element */
@@ -489,10 +489,10 @@ export function decksPart(V) {
     // (a sentence's plate opens its plan's own sheet, its why and its one take: its first move isn't this place's)
     const open = () => (o.line && pl ? openPlanWhy(P, g, pl) : openPlace(d.a));
     const buys = o.buys ?? (o.tag != null ? [e.inId] : [e.inId, ...e.pair.map((q) => q.in)]), sellers = o.sellers ?? [d.a, ...e.pair.map((q) => q.out)], shown = o.shown ?? [e.inId];
-    // (a first choice: its number once the week settles, else "checking…", or why it can't be checked: as his place's
+    // (a first choice: its number once the week settles, else "planning…", or why it can't be checked: as his place's
     // header; a Remove of yours: its name alone once the week settles)
     const ready = !!pl && pl.state === 'ready' && (!first || !!S.M?.settled);
-    const v = ready ? numParts(g, pl) : !pl ? (S.M?.settled ? null : COPY.pairChecking) : pl.state === 'failed' ? failedWords(P, pl).head : COPY.pairChecking;
+    const v = ready ? numParts(g, pl) : !pl ? (S.M?.settled ? null : COPY.waitShort) : pl.state === 'failed' ? failedWords(P, pl).head : COPY.waitShort;
     // (your own buy's plate: his take-back, naming the player you sold (owner, 2026-10-26); ink where it is the week's
     // best, weekBest: owner, 2026-10-28)
     const back = d.mine && takesBack(e);
@@ -539,7 +539,7 @@ export function decksPart(V) {
   /** The week's status beside the goal (owner, 2026-10-26: the strip): what the week line's first line says, said once,
    *  on the pitch: "Rolling" (emptyHead: "Rolling is best" once settled with nothing better, "Rolling ✓" under your
    *  Roll), "2 transfers −4 +3.8", "Free Hit +4.3", GW A's lineup notice under the words of any (renderLine); yours
-   *  green. Its number is the week line's (vs rolling everywhere), "checking…" under its words while it solves (never a
+   *  green. Its number is the week line's (vs rolling everywhere), "planning…" under its words while it solves (never a
    *  clock: waitClock), a number kept on its word where the words wrap. A tap opens the Week sheet, as the strip does
    *  (under your Roll at Your rules, where its Remove is). Its words are said here alone, the strip's label its facts
    *  (VoiceOver hears the week once). Never given way for room (renderDecks), though the lineup notice under its words
@@ -552,14 +552,14 @@ export function decksPart(V) {
     return h('span.ah-bt.ah-bst', { class: { done: st.mine }, 'aria-hidden': 'true', dataset: { row: `tok:week:${st.g}` } },
       // (dashed while an edit is checked: m-pending)
       h('span.ah-tl', { class: { 'm-pending': st.ap } }, typeof st.one === 'string' ? st.one.replace(/(\d) /g, '$1\u00a0') : st.one),
-      st.wait ? h('small.ah-tw', null, COPY.pairChecking) : null,
+      st.wait ? h('small.ah-tw', null, COPY.waitShort) : null,
       // (the week's number: gainOf, blue with "xP", shimmering while an edit is checked; −4 before it)
       st.hits || (st.gain && !st.wait) ? h('span.ah-tnum', null, hitTag(st.hits), st.gain && !st.wait ? gainOf(st.gain, st.ap) : null) : null);
   }
   /** The week's own choices beside the goal (top-left; m-ahead.css .ah-tok): the week's status (statusTok), a Bench
    *  Boost or Triple Captain alone with its number (owner, 2026-10-23; no Wildcard or Free Hit pill: owner, 2026-10-27,
    *  decksOf), a Roll that takes yours back ("instead of Free Hit"): each its body alone, its Why sheet, whose Play or
-   *  Take takes it, never ink (owner, 2026-10-26); while one solves, "checking…" under its words and no number (never a
+   *  Take takes it, never ink (owner, 2026-10-26); while one solves, "planning…" under its words and no number (never a
    *  clock: waitClock).
    *  First, above them all, the week's best move while one beats your plan or rolling (litOf `move`; `lead` its places
    *  in its plate's top-most row: topRow), ink, its plate's first buy and its number, "Evanilson +1.6", a plan's too,
@@ -647,12 +647,12 @@ export function decksPart(V) {
       const what = planWeeks(P, { ...pl.choice, moves: [], hits: {} }, g, false).find(([x]) => x === g)?.[1] ?? COPY.planRoll(null);
       out.push(h('span.ah-tok.two', { class: { pays: s.pays, wait: !!s.wait }, dataset: { plan: key } },
         h('button.ah-tbody', { type: 'button', disabled: !!s.wait, dataset: { row: `tok:${key}` }, 'aria-label': `${s.label}; ${WHY_SHEET ? 'shows why' : COPY.showsWeek}`, onClick: () => openPlanWhy(P, g, pl) },
-          // its words and number on one line (number blue with "xP": ui.js xpGain), what it takes back or "checking…"
+          // its words and number on one line (number blue with "xP": ui.js xpGain), what it takes back or "planning…"
           // under both across the token's whole width (owner, 2026-10-26: not three lines); never a clock in its
           // number's slot: waitClock
           h('span', null, what),
           s.wait || pl.refRow ? null : xpGain(shownDelta(pl.cmp), 'span.ah-tnum.m-num'),
-          said ? h('small.ah-tw', null, COPY.planInsteadOf(lost)) : null, pl.state === 'solving' ? h('small.ah-tw', null, COPY.pairChecking) : null)));
+          said ? h('small.ah-tw', null, COPY.planInsteadOf(lost)) : null, pl.state === 'solving' ? h('small.ah-tw', null, COPY.waitShort) : null)));
     }
     return out;
   }

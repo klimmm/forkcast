@@ -3,7 +3,7 @@
 // the budget), then one solve per week on top of your plan's pins (--must-have id@g-end, and not before g: each pill is
 // that arrival week). The plan service keeps one speculative solve per client in flight (api/mobile.py solve_post), so
 // pills are solved one after another: off the hold the selected week first, then the likeliest by its ≈; the line under
-// them says which week is out, its place among those to check and the time so far ("Checking GW7 · 2 of 4 weeks ·
+// them says which week is out, its place among those to check and the time so far ("Planning GW7 · 2 of 4 weeks ·
 // 0:14").
 // open(ctx, preId?, {gw}?): a row's + and the Player sheet's "Bring him in…" (preId) both open his week pills (owner,
 // 2026-10-09). A tap on a pill SELECTS that week; under the chips the line names the week's own way and its one button,
@@ -55,7 +55,7 @@ const cantFit = (bp) => (bp.problem?.code === 'club' ? COPY.clubFull(bp.problem.
 /** A week pill's number, shown and said alike (VoiceOver otherwise hears fmt.num's rounding): a ≈ while its solve is
  *  out, `unit` under it what it counts, your total (owner, 2026-10-21); "…" while no number is known, never the money
  *  short in the loss colour (the Sells chips carry it). → {shown, said, unit?} */
-export const pillWords = (o) => (o.delta == null ? { shown: '…', said: 'checking' }
+export const pillWords = (o) => (o.delta == null ? { shown: '…', said: 'planning' }
   : { shown: `${o.kind === 'est' ? '≈' : ''}${fmt.signed(o.delta)}`, said: COPY.listTotalSaid(o.delta, o.kind === 'est'), unit: COPY.listTotal });
 /** A sale chip's tail for player `id` in GW g (x: a saleOptions row), shown and said: its points, named as the week
  *  pill over it names the same measure, your total's move (`unit`); one the money can't pay alone, the money short, not
@@ -236,7 +236,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
        *  reason. */
       function noneWorks(id) {
         const said = (st.need[id] || []).map((g) => st.res[id][g]?.text);
-        if (said.length && said.every((t) => t === 'offline' || t === "can't check")) return COPY.weeksUnchecked(said.every((t) => t === 'offline'));
+        if (said.length && said.every((t) => t === 'offline' || t === COPY.placeCantPlan)) return COPY.weeksUnplanned(said.every((t) => t === 'offline'));
         if (said.length && said.every((t) => t === 'not possible')) return COPY.noWeekPossible(plan(ctx).gws);
         return COPY.noWeekWorks;
       }
@@ -324,7 +324,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         if (!w || !wv.t.isConnected) return;
         if (step.done !== w.i - 1 || step.t0 !== w.t0) step = { done: w.i - 1, at: now, t0: w.t0, max: step.t0 === w.t0 ? step.max : 0 };
         const p = step.max = Math.max(step.max, stepShare(w.i - 1, w.n, reduceMotion() ? 0 : now - step.at, w.i > 1 ? (step.at - w.t0) / (w.i - 1) : 4000));
-        paintWaitView(wv, { key: `bring@${w.t0}`, word: 'Checking', scope: `GW${w.g}`, prog: `${w.i} of ${w.n}`, so: (now - w.t0) / 1000, p });
+        paintWaitView(wv, { key: `bring@${w.t0}`, word: COPY.waitWord, scope: `GW${w.g}`, prog: `${w.i} of ${w.n}`, so: (now - w.t0) / 1000, p });
       };
 
       /** The pills for `id`: the phone's ≈ for every week at once, then the server's solve, one week at a time. */
@@ -394,7 +394,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           const again = async () => { await ctx.api.whenFree?.('spec'); await new Promise((r) => setTimeout(r, PREP_TIMING.again)); };
           const res = await askAgainWhileDropped(() => (st.req = wishSolve(ctx, plan(ctx), id, g, 'wish')), () => st.run === my, again);
           if (!res) return;
-          if (res.state === 'error') { st.res[id][g] = { kind: 'bad', text: res.error?.code === 'infeasible' ? 'not possible' : "can't check" }; return; }
+          if (res.state === 'error') { st.res[id][g] = { kind: 'bad', text: res.error?.code === 'infeasible' ? 'not possible' : COPY.placeCantPlan }; return; }
           if (res.state !== 'done' || !res.road) return;
           // the button lands this road with his wish pin alone (ahead.holdBuy's 'pick', as want makes it): the pill is
           // that road's points against your plan and its GW-g hit, the plan the tap makes
@@ -402,7 +402,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
           if (!bp || bp.kind === 'none') { st.res[id][g] = { kind: 'bad', text: bp ? cantFit(bp) : "can't fit" }; return; }
           st.res[id][g] = { kind: 'road', road: res.road, bp, cmp: bp.cmp, delta: bp.cmp.delta, hits: bp.hits };
         } catch (e) {
-          st.res[id][g] = { kind: 'bad', text: e.code === 'unreachable' || e.code === 'timeout' ? 'offline' : "can't check" };
+          st.res[id][g] = { kind: 'bad', text: e.code === 'unreachable' || e.code === 'timeout' ? 'offline' : "can't plan" };
         }
       }
 

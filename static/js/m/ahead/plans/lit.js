@@ -269,7 +269,7 @@ export const placeFirst = (d) => {
   // (his own moves alone: a plan he is part of has its one mark elsewhere, its sentence)
   const own = placeSplit(placeOrder(d.entries), d.a).singles;
   if (!own.some(live)) return null;
-  // (a failed one listed before one still checking: the checking one, "checking…", never "can't check" while it may land)
+  // (a failed one listed before one still checking: the checking one, "planning…", never "can't plan" while it may land)
   const dealt = placeDealt(own, PLACE_SLOTS);
   return dealt.find(live) ?? own.find(live);
 };
@@ -281,15 +281,15 @@ export function slotsBeside(x0, step, n, W, cw) {
   return [...side(1), ...side(-1)].slice(0, n);
 }
 /** A choice that failed (plansOf `failed`) in words: `head` in its number's place in a player's place, `note` under its
- *  card there, `row` its Week sheet row's and its spoken line's: "can't check", "can't check: no plan fits", and why in
+ *  card there, `row` its Week sheet row's and its spoken line's: "can't plan", "can't plan: no plan fits", and why in
  *  full (COPY.planFailed); a pair's move the week can't make alone (`needs`) all it lacks alone ("£1.7m short"; "£1.3m
  *  short, 3 from ARS": problemShort each) and the sales it needs ("needs Kayode's sale"). Pure. → {head, note, row} */
 export function failedWords(P, pl) {
-  if (!pl.needs) return { head: COPY.placeCantCheck, note: `${COPY.placeCantCheck}: ${COPY.planFailedShort(pl.why)}`, row: COPY.planFailed(pl.why) };
+  if (!pl.needs) return { head: COPY.placeCantPlan, note: `${COPY.placeCantPlan}: ${COPY.planFailedShort(pl.why)}`, row: COPY.planFailed(pl.why) };
   const lack = pl.problems.length ? pl.problems.map(problemShort).join(', ') : problemShort(null), need = COPY.needsSale(pl.needs.map((id) => P.L.name(id)));
   return { head: lack, note: need, row: `${lack} · ${need}` };
 }
-/** What else a place's choice does, under its card: "checking…", why it can't be checked or made alone (failedWords),
+/** What else a place's choice does, under its card: "planning…", why it can't be checked or made alone (failedWords),
  *  what its + takes back ("instead of Palmer"; "instead of Murillo → Hill", named whole, as its Week-sheet row does), a
  *  pair's other moves ("also Dovin → Leno, Saka → Rice": COPY.placeAlso), a transfer it adds to yours ("a 2nd
  *  transfer"), a Bench Boost or Triple Captain it plays (no words for one worth no less a week later: owner,
@@ -298,7 +298,7 @@ export function noteOf(P, w, e, a = null) {
   const nm = P.L.name, pl = e.pl, chip = pl?.choice.chips?.[w.gw];
   // (no "about as good as Truffert" under a card: owner, 2026-10-25)
   const said = (...xs) => [...xs, pl?.removed ? COPY.removedByYou : null].filter(Boolean).join(' · ') || null;
-  if (pl?.state === 'solving') return said(COPY.pairChecking);
+  if (pl?.state === 'solving') return said(COPY.waitShort);
   if (pl?.state === 'failed') return said(failedWords(P, pl).note);
   // in the place of a buy of yours (`a`: the place's player) every card takes that buy back: its title says so ("Rice's
   // place"), so a note naming that buy alone says nothing more; one taking back more than it still says so

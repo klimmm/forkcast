@@ -29,7 +29,7 @@ export const ids = (xs) => (Array.isArray(xs) ? xs.map(Number).filter(Number.isF
 export const sum = (xs) => xs.reduce((s, x) => s + x, 0);
 export const span = (gws) => COPY.span(gws);
 /**
- * The wait line (owner, 2026-10-28), every wait told one way: verb in ink at 600 ("Checking", "Planning"), then what,
+ * The wait line (owner, 2026-10-28), every wait told one way: verb in ink at 600 ("Planning", "Planning"), then what,
  * how far and the clock, the longest that fits whole, never an ellipsis (calls.waitLines); a bar on the container's
  * edge, determinate where a count or time left is known. → {t: the words, bar}
  */

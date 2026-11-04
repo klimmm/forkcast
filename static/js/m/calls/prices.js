@@ -263,7 +263,7 @@ export const clockText = (s) => {
   const t = Math.max(0, Math.floor(s)), hh = Math.floor(t / 3600), mm = Math.floor((t % 3600) / 60), ss = String(t % 60).padStart(2, '0');
   return hh ? `${hh}:${String(mm).padStart(2, '0')}:${ss}` : `${mm}:${ss}`;
 };
-/** A check's clock after its line's " · " ("Checking GW8 · 1 of 4 weeks · 0:12"): the time since `t0` (ms), on
+/** A check's clock after its line's " · " ("Planning GW8 · 1 of 4 weeks · 0:12"): the time since `t0` (ms), on
  *  clockText (sheets/wish.js, sheets/chips.js). */
 export const waitedText = (t0, now = Date.now()) => ` · ${clockText((now - t0) / 1000)}`;
 /** The wait line's words after its verb (owner, 2026-10-28), longest first, for ahead.paintWait to show the longest

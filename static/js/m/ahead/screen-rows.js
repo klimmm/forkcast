@@ -139,7 +139,7 @@ export function rowsPart(V) {
     const { now, adds, back } = planBack(P, g, pl);
     const base = planWeeks(P, { ...pl.choice, moves: adds, hits: pl.hits }, g).find(([x]) => x === g)?.[1] ?? (now.length ? `GW${g}` : COPY.planRoll(g));
     const head = back ? `${base} ${back}` : base;
-    const wait = pl.state === 'ready' ? null : pl.state === 'failed' ? failedWords(P, pl).row : { flight: COPY.pairChecking, heal: COPY.pairAfterEdit }[pl.wait] ?? COPY.pairWaiting;
+    const wait = pl.state === 'ready' ? null : pl.state === 'failed' ? failedWords(P, pl).row : { flight: COPY.waitShort, heal: COPY.pairAfterEdit }[pl.wait] ?? COPY.pairWaiting;
     const who = pl.removed ? `${head}, ${COPY.removedByYou}` : head;
     // the roll's own row is what the others count against: no number (owner, 2026-10-19); no "as good in GW9" after one
     // worth no less a week later (owner, 2026-10-29)
@@ -156,7 +156,7 @@ export function rowsPart(V) {
    * the list's order (its plan against the roll's; the roll's own row has none; green only when it beats the noise:
    * plPays). Nothing of its later weeks (owner, 2026-10-12): a small outlined + takes GW g alone (takePlan: your exact
    * transfers there or its chip, one Undo) and closes the sheet (`closes`); the row opens its Why sheet (openPlanWhy).
-   * While its solve runs: its choice and what it waits for ("· checking…", "· waiting", "· waiting for your edit's
+   * While its solve runs: its choice and what it waits for ("· planning…", "· waiting", "· waiting for your edit's
    * check"), no number, its + off; a failed solve with no road plan: its choice and why (COPY.planFailed), no number,
    * its + off. No swipe, no long press. Under its week's own tab the row leaves the week out (owner, 2026-10-18).
    */
@@ -295,11 +295,11 @@ export function rowsPart(V) {
   /** Transfer m of week w's number: the week's against rolling where it is the week's one (rollOf), else its own share
    *  (rowGains) | null. Its Week sheet row's and, on the pitch, its buy's place's "Yours +0.4". */
   const moveGain = (P, w, m) => { const { ctx } = V; return (m ? rollOf(P, w) ?? rowGains(ctx, P, w).get(`${m.out}>${m.in}`)?.cmp ?? null : null); };
-  /** …as shown: none while the week's roll plan or your choice still solves (`wait`: "checking…", never the week alone
+  /** …as shown: none while the week's roll plan or your choice still solves (`wait`: "planning…", never the week alone
    *  in its place), `ap` the week waiting on an edit's check (shimmering). */
   const moveNum = (P, w, m) => { const { ap0 } = V; const vr = rollOf(P, w); return { cmp: moveGain(P, w, m), wait: !vr && rollPending(P, w), ap: ap0(P, w.gw) }; };
   /** …still to come: the week's roll plan or your own choice still solves (plansOf `pending`), so the week line and a
-   *  week's one move's row say "checking…" and change in place once they land. */
+   *  week's one move's row say "planning…" and change in place once they land. */
   const weekPending = (P, w) => { const { ap0, ctx } = V; return !!w.moves.length && !ap0(P, w.gw) && !!plansOf(ctx, P, w.gw).pending; };
   const rollPending = (P, w) => w.moves.length === 1 && !squadWeek(w) && weekPending(P, w);
   /** A roll of GW g as a move there is measured against it, in words. When the plan against it (`ev`, an estimate from

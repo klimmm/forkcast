@@ -85,7 +85,7 @@ const HORIZON_KEY = (entry) => `fc:horizon:${entry}`;
 const weeksOf = (entry, b = store.get('bundle')) => calls.planWeeks(api.local.get(HORIZON_KEY(entry)), b?.meta?.locked, b?.meta ? reachOf(b.meta).length : null);
 
 /** Plan progress in one line: "Planning GW6–9", "Planning…" before the GWs are known. */
-const planning = (gws) => (gws?.length ? `Planning ${calls.COPY.span(gws)}` : 'Planning…');
+const planning = (gws) => (gws?.length ? `${calls.COPY.waitWord} ${calls.COPY.span(gws)}` : `${calls.COPY.waitWord}…`);
 
 // ================================================================ small shared pieces
 

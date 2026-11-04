@@ -96,7 +96,7 @@ export function placePart(V) {
       card.dataset.key = entryKey(g, e);
       card.setAttribute('aria-label', `${said}${pl && ready ? '; shows why' : ''}. ${card.getAttribute('aria-label')}`);
       Object.assign(card.style, px(x, c.y));
-      const num = e.remove ? (fk ? COPY.placeKeep : COPY.placeRemove) : pl.refRow ? COPY.planRoll(null) : !ready ? (pl.state === 'failed' ? failedWords(P, pl).head : COPY.pairChecking) : null;
+      const num = e.remove ? (fk ? COPY.placeKeep : COPY.placeRemove) : pl.refRow ? COPY.planRoll(null) : !ready ? (pl.state === 'failed' ? failedWords(P, pl).head : COPY.waitShort) : null;
       // its take in words where the + was (owner, 2026-10-23; design_marks/design.md §3): "Swap" (a pair's card swaps
       // all its moves: its note names the others), a take-back its own word ("Remove", "Roll"), the number beside it;
       // handler and fly-in as before (takeFrom)
@@ -213,7 +213,7 @@ export function placePart(V) {
       h('button.ah-plw', { type: 'button', 'aria-haspopup': 'dialog', disabled: !ready, dataset: { key: `line:${planKey(g, pl)}` }, 'aria-label': `${s.label}; shows why`, onClick: why },
         // (each move unbroken, the line wrapping only between them)
         ms.map((x, i) => [h('span.ah-tmv', null, x, i < ms.length - 1 ? ',' : null), ' ']), ms.back ? [h('span.ah-tmv', null, ms.back), ' '] : null,
-        h('span.ah-tmv.m-num', { class: { wait: !ready } }, ready ? numParts(g, pl) : pl.state === 'failed' ? COPY.placeCantCheck : COPY.pairChecking),
+        h('span.ah-tmv.m-num', { class: { wait: !ready } }, ready ? numParts(g, pl) : pl.state === 'failed' ? COPY.placeCantPlan : COPY.waitShort),
         // (its take gives way for room, fitLine: the words then open the sheet that takes it)
         h('span.ah-plm', { 'aria-hidden': 'true' }, ' ›')),
       h('button.ah-plgo.m-swap', { type: 'button', class: { best: S.M?.lit?.move === pl }, disabled: !ready || frozenAt(P, g), dataset: { add: `plan:${planKey(g, pl)}` },
@@ -247,7 +247,7 @@ export function placePart(V) {
     // each header's type (its children's widths less padding) against its room (its width less padding and gaps)
     const k = Math.min(...heads.map((x) => {
       const kids = [...x.children], pad = (e) => px(e, 'paddingLeft') + px(e, 'paddingRight');
-      // (a "checking…" needs none: it gives way, HEAD_NUM)
+      // (a "planning…" needs none: it gives way, HEAD_NUM)
       const need = kids.length ? kids.reduce((a, e) => a + (e.matches('.ah-pv.wait') ? 0 : e.scrollWidth - pad(e)), 0) : x.scrollWidth - pad(x);
       const room = x.clientWidth - pad(x) - px(x, 'columnGap') * Math.max(0, kids.length - 1) - kids.reduce((a, e) => a + pad(e), 0);
       return headScale(need, room, type(x));

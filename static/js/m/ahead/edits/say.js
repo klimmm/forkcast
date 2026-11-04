@@ -65,7 +65,7 @@ export function say(ctx, text, undo, kind = 'info', tag = null, more = [], take 
   lastSay = toastOf(ctx)(text, kind, { timeout: kind === 'info' ? 6500 : 9000, action, actions: more.length ? [...more, action].filter(Boolean) : undefined, tag, replaces: 'pending', take });
   PENDING = null;
 }
-/** An edit's pending toast ("Checking Groß in…", tag 'pending'), its Undo `back` (undoOf), kept as PENDING for
+/** An edit's pending toast ("Planning Groß in…", tag 'pending'), its Undo `back` (undoOf), kept as PENDING for
  *  pendingTick; `more`: PENDING's other fields (reopened: B141's). */
 function sayPending(ctx, said, back, more = {}) {
   say(ctx, COPY.pendingEdit(said), back ? undoOf(ctx, said, back) : null, 'info', 'pending');
@@ -230,7 +230,7 @@ function listen(ctx) {
     else if (why === 'error') fail(ctx, gp.error);
     else if (why === 'heal' && !gp.pending) {
       // a heal with neither a plan nor an error (cancelled or superseded): once its re-plan has had its turn, the edit
-      // lands on its rules' plan or says it couldn't finish (Try again); never "Checking…" for ever
+      // lands on its rules' plan or says it couldn't finish (Try again); never "Planning…" for ever
       const ov = OV;
       setTimeout(() => {
         const now = memPlan(ctx);
@@ -391,7 +391,7 @@ export function clashLine(P, clash = CLASH) {
 
 /**
  * One edit: `pins` added to memory (after `drop`, the ids it replaces); rules only. The plan drawn stays the solver's
- * last (the edit's weeks waiting, pending toast "Checking…") until its plan for the new rules lands: at once when a
+ * last (the edit's weeks waiting, pending toast "Planning…") until its plan for the new rules lands: at once when a
  * bundle road fits or `road` is offered (memory.offer), else memory heals (one solve); the verdict says when it lands
  * (land) or what the solver couldn't keep (fail). Verdict: `text(Q, prev)`, else `what` with its points as what your
  * total moves by ("total +3.3": withPoints), then `ending(Q, prev)` (endingOf); landed at once, `what` and its ending

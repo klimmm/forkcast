@@ -466,7 +466,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     if (lane) FORK_FLIGHTS.delete(lane); else PAIR.flight = null;
     letGo = true;
   }
-  // a week whose flight was let go draws "checking…" from no flight: every memo goes (this draw asks its own), so going
+  // a week whose flight was let go draws "planning…" from no flight: every memo goes (this draw asks its own), so going
   // back to it asks again
   if (letGo) PLANS.set(P, (by = { rev: ++PAIR.rev, gw: new Map() }));
   // (chip plan p on plan r's later weeks: a Free Hit's week alone, its squad reverting after; a Wildcard's plan as it
@@ -788,7 +788,7 @@ export function weekRollOf(ctx, P, w, listed = (g) => plansOf(ctx, P, g)) {
  *  road, ev (the roll's), mine} */
 const vsRollOf = (ctx, mine, ref, g, a, b) => ({ ...ownCount(ctx, compare(ctx, mine.ev, ref.ev), a, b, g), road: ref.road, ev: ref.ev, mine: mine.ev });
 /** How far a week's listed choices (plansOf's rows) are checked, counted as Add a player counts its weeks
- *  (COPY.checkingWeek): the one now checked, the rows ready or failed + 1, of them all; null once none waits. Pure. →
+ *  (COPY.planningWeek): the one now checked, the rows ready or failed + 1, of them all; null once none waits. Pure. →
  *  {i, n} | null */
 export function plansWait(plans) {
   // (a place's own cards, a card's × opened: its sheet's wait, never the week's or the pitch's dim)
@@ -796,7 +796,7 @@ export function plansWait(plans) {
   const n = of.length, done = of.filter((x) => x.state !== 'solving').length;
   return done < n ? { i: done + 1, n } : null;
 }
-/** How far a week's checks are as its week line and Week sheet say them ("Checking GW8 · 3 of 9 plans": renderLine,
+/** How far a week's checks are as its week line and Week sheet say them ("Planning GW8 · 3 of 9 plans": renderLine,
  *  drawWeek): plansWait over the list that settles it (`plans`: plansOf's whole list, not the ten listed), until one of
  *  its choices is lit on the pitch (`lit`: litOf's count). Pure. → {i, n} | null */
 export const weekWait = (plans, lit) => (lit ? null : plansWait(plans));
@@ -876,7 +876,7 @@ export function weekKey(P, g, plans) {
 /** GW g's choices on plan view P are settled once none of them (`plans`: plansOf's whole list) still checks, the draw
  *  heldOrder re-sorts them in; or once PAIR_HOLD_MS has run since the week's last landing (or this visit's first draw
  *  of it) with one still checking (a fork solve lands in 8–25 s): the landed choices are lit then, the one still
- *  checking keeps its "checking…". From then on, for those checks (weekKey), they stay so (litOf lights them), a failed
+ *  checking keeps its "planning…". From then on, for those checks (weekKey), they stay so (litOf lights them), a failed
  *  check asked again (forkAsk) taking nothing off, a plan view made anew with them too (an Undo to a settled week);
  *  never while a choice waits for your edit's check. `now` for the tests. → boolean */
 const SETTLED = { last: null, by: new Map() };  // the week last drawn (weekKey), and weekKey → {settled, done: its rows in, at: its last landing}

@@ -86,7 +86,7 @@ export const HEAD_LEAST = 8;
  *  its padding and gap, its take's word's padding), which at 320 wide frees the 2 px "−0.4" lacked beside "Swap" at its
  *  least type. */
 export const HEAD_TRIMS = ['noxp', 'nomark', 'tight', 'snug'];
-/** A place's header's number, never cut; "checking…" in its place gives way at its end, as a plate's (m-ahead.css
+/** A place's header's number, never cut; "planning…" in its place gives way at its end, as a plate's (m-ahead.css
  *  .ah-pv.wait), never trimming the place's headers. */
 export const HEAD_NUM = '.ah-pv:not(.wait)';
 /** A place's header still over its card after its own trims (fitNum's): the scale of its whole type, its number and its
@@ -182,7 +182,6 @@ export function mount(el, ctx) {
     get PLATE_KEY() { return PLATE_KEY; },
     get RESET_GAPS() { return RESET_GAPS; },
     get S() { return S; },
-    get STORY_PLAN() { return STORY_PLAN; },
     get TOTAL_MS() { return TOTAL_MS; },
     get WAIT_DIM_MS() { return WAIT_DIM_MS; },
     get addOnce() { return addOnce; },
@@ -249,6 +248,7 @@ export function mount(el, ctx) {
     get openWeek() { return openWeek; },
     get openWhy() { return openWhy; },
     get paintWait() { return paintWait; },
+    get waitNow() { return waitNow; },
     get pdBtn() { return pdBtn; },
     get pitchHost() { return pitchHost; },
     get plNumSaid() { return plNumSaid; },
@@ -327,7 +327,7 @@ export function mount(el, ctx) {
     get wireMoveRow() { return wireMoveRow; },
     get xferRow() { return xferRow; },
   };
-  const { pageName, resetTap, resetSheet, learn, gwNow, setGw, outerH, fitBlock, fitHead, fitPitch, redeck, schedule, covered, paintAvatar, renderHead, renderGwLine, paintDeadline, replanning, paintPlanStatus, tick, hosts, focusedKeys, keepFocus, renderPair, render, renderBaking, planning, renderRules, ruleSheet, clearAll, driftRoom, owes, priceDrift, heldOrder, renderWeek, tellStory, paintStoryBar, waitNow, paintWait, paintDim, weekModel, waited, clockShown, waitClock, plansHeading } = headPart(V);
+  const { pageName, resetTap, resetSheet, learn, gwNow, setGw, outerH, fitBlock, fitHead, fitPitch, redeck, schedule, covered, paintAvatar, renderHead, renderGwLine, paintDeadline, replanning, paintPlanStatus, tick, hosts, focusedKeys, keepFocus, renderPair, render, renderBaking, renderRules, ruleSheet, clearAll, driftRoom, owes, priceDrift, heldOrder, renderWeek, waitNow, paintWait, paintDim, weekModel, waited, clockShown, waitClock, plansHeading } = headPart(V);
   const { openWeek, renderLine, fitFacts, weekGain, boxOf, cardBoxes, reachLabels, labelWalls, sideRoom, cardIn, entryKey, resetSlot, placePills, topRow } = linePart(V);
   const { renderDecks, sheetFollows, swapPlate, placeLabel, statusLine, tokensOf, numParts, takeFrom, landMotion, land, openPlace, placeKey, closePlace } = decksPart(V);
   const { drawPlace, planLine, fitLine, scaleHeads, fitBlocks, stepPlace, shadeTap, weekSheet } = placePart(V);
@@ -342,10 +342,9 @@ export function mount(el, ctx) {
   const learntNow = ctx.api?.local?.json?.(LEARN_KEY);
   const S = { drag: null, flashAt: 0, queued: false, live: isLive(ctx), down: new Set(), held: false, week: null,
     learnt: new Set(Array.isArray(learntNow) ? learntNow : []),
-    // the wait's one story (tellStory), after Connect's first load only (ctx.reveal; a warm start has none), until its
-    // first week is settled: {t0: the plan's start (ms), seen: GW → its choices checked (forkKeys), wait: {g, n} while
-    // it checks, f: the share of the week's listed checks in, p: the most its bar showed}
-    story: ctx.reveal ? { t0: null, seen: new Map(), wait: null, f: 0, p: 0 } : null };
+    // the wait now (waitNow): the plan's solve and the viewed week's checks as one, {t0: its first solve's start (ms),
+    // plan: a plan solve in it, max: the most its bar showed}
+    waitAll: null };
   // the header is the team's name, centred, and the avatar; the page is named for assistive tech (a visually hidden h1,
   // the header's label) and the browser tab by the team and the app ("Raketa · Forkcast"): the one screen has no name
   // of its own (owner, 2026-10-07)
@@ -458,9 +457,6 @@ export function mount(el, ctx) {
   const COPY_FPL_TEAM = 'Your team as set in FPL';
 
   const ap0 = approxAt;
-  /** The story's one bar (on the strip's wait line: paintWait): a sweep while the plan solves, then from STORY_PLAN the
-   *  viewed week's listed checks over the rest; never back; gone with the story. Each second (tick) and each draw. */
-  const STORY_PLAN = 0.7;
 
   /**
    * The pitch dimmed while the wait line shows (owner, 2026-10-28): the same state as the line (waitNow). A dim, never
@@ -470,7 +466,7 @@ export function mount(el, ctx) {
    */
   const WAIT_DIM_MS = 1000;
   /** The viewed week's checks' time so far (S.wait: weekModel), on the bake's and Add a player's clock (clockText), no
-   *  estimate: in "checking…"'s place (the week line, a transfer row: numOf), after the count of the week's plans (the
+   *  estimate: in "planning…"'s place (the week line, a transfer row: numOf), after the count of the week's plans (the
    *  Week sheet: drawWeek; the week line's second line until they are lit: renderLine); never in a number's slot of a
    *  choice (token, place header: "Roll 0:00" read as the Roll's value; owner, 2026-10-22). On the week line (`late`)
    *  only once the checks have taken LATE_S, `pre` until then, `sep` before it. Put in place each second (tick:

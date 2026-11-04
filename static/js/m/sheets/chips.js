@@ -2,7 +2,7 @@
 // (ahead.chipsDoor): one row per chip (ahead.chipStates, CHIP_ROW's order, so no row moves as solves land) in the
 // Replace sheet's row look: code, name over one fact (played here, by Forkcast, planned in another week, instead of the
 // week's chip, its best week, played this half), its number on the right (ahead.chipNumber, numberOf) and its baseline
-// in the fact (none before that solve is in, "checking…" while it or the week's roll plan runs). A tap plays the chip,
+// in the fact (none before that solve is in, "planning…" while it or the week's roll plan runs). A tap plays the chip,
 // moves it here, swaps it in or takes it off (ahead.useChip, toast with Undo; a refusal says why in its toast, the
 // sheet stays open). The first draw has no numbers and asks for no solve; the next, after one paint, reads the
 // preparations (ahead.chipPreps) and redraws as they land.
@@ -27,7 +27,7 @@ export function open(ctx, { gw } = {}) {
       const sub = h('p.rs-sub', null, COPY.chipsSub(P0.gws.filter((x) => x >= g)));
       const list = h('div.ah-list', { role: 'group', 'aria-label': COPY.chipsIn(g) });
       const foot = h('p.m-foot', { hidden: true });
-      // the sheet's checks told once over its rows in the wait line's look (AH.waitView): "Checking chips · 2 of 3 ·
+      // the sheet's checks told once over its rows in the wait line's look (AH.waitView): "Planning chips · 2 of 3 ·
       // 0:04", its bar by the count
       const wv = AH.waitView(), wbox = h('div.m-wait', { hidden: true }, wv.t, wv.bar), opened = Date.now(), seen = new Set();
       let step = { done: -1, at: opened, max: 0 };
@@ -51,7 +51,7 @@ export function open(ctx, { gw } = {}) {
           return COPY.chipFact(r.best.gw === g ? COPY.chipBestHere : COPY.chipBestAt(r.best.gw, r.best.delta, vs && r.best.vs === r.vs ? null : r.best.vs ?? (r.best.delta != null ? COPY.chipNoChip : null)),
             vs, r.after != null ? COPY.chipAfter(r.after) : null);
         }
-        if (!r.final) return COPY.chipFact(r.wait ? COPY.chipBestChecking(r.wait.g, r.wait.i, r.wait.n, r.wait.part) : null, vs) || null;
+        if (!r.final) return COPY.chipFact(r.wait ? COPY.chipBestPlanning(r.wait.g, r.wait.i, r.wait.n, r.wait.part) : null, vs) || null;
         // (a best week clear of the next whose own gain is inside the noise gains nothing to act on: not "too close to
         // call", which says two weeks tie)
         // (a Wildcard's or Free Hit's against rolling names its weeks bare)
@@ -73,16 +73,16 @@ export function open(ctx, { gw } = {}) {
         const n = seen.size, done = n - waiting.length, t0 = Math.min(...waiting.map((r) => t0Of(r) ?? opened));
         if (step.done !== done) step = { done, at: now, max: step.max };
         const p = step.max = Math.max(step.max, AH.stepShare(done, n, reduceMotion() ? 0 : now - step.at, done ? (step.at - t0) / done : 4000));
-        AH.paintWaitView(wv, { key: 'chips', word: 'Checking', scope: 'chips', long: `GW${g}'s chips`, prog: `${done + 1} of ${n}`, so: (now - t0) / 1000, p });
+        AH.paintWaitView(wv, { key: 'chips', word: COPY.waitWord, scope: 'chips', long: `GW${g}'s chips`, prog: `${done + 1} of ${n}`, so: (now - t0) / 1000, p });
       };
       /** Which rows run a clock from when: a check asked by a timer (ahead prepAgain) changes neither the plan view nor
        *  the source, and its row had no clock until that check landed. */
       const clocksOf = (rows) => rows.map(t0Of).join('|');
       /** Its number: the gap once known, forecast points blue with "xP" (ui.js xpGain; owner, 2026-10-22: no green or
-       *  red), its sign its direction; a Wildcard's or Free Hit's the pitch's number; "checking…" while its solve runs,
+       *  red), its sign its direction; a Wildcard's or Free Hit's the pitch's number; "planning…" while its solve runs,
        *  else nothing. */
       const numberOf = (r) => (r.cmp ? [xpGain(shownDelta(r.cmp))]
-        : r.solving ? h('small', null, COPY.chipChecking) : null);
+        : r.solving ? h('small', null, COPY.waitShort) : null);
       const saidOf = (r, fact) => {
         const n = chipName(r.chip);
         const pts = r.cmp ? `: ${fmt.signed(shownDelta(r.cmp))} points over ${COPY.span(P0.gws.filter((x) => x >= g))} vs ${r.vs ?? (r.state === 'swap' ? chipName(r.instead) : COPY.chipNoChip)}` : '';

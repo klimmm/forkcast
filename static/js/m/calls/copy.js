@@ -140,8 +140,11 @@ export const COPY = Object.freeze({
   listTotal: 'total',
   listTotalSaid: (delta, about = false) => `${about ? 'about ' : ''}${pts(delta)} points to your total`,
   /** An edit's toast at once, with its Undo, while the full plan solves (its verdict replaces it in place); from 5 s
-   *  its age after the ellipsis ("Checking Groß in your plan… 0:12"), and while the server is away the wait it is in. */
-  pendingEdit: (what, so = null) => `Checking ${what}…${so ? ` ${so}` : ''}`,
+   *  its age after the ellipsis ("Planning Groß in your plan… 0:12"), and while the server is away the wait it is in. */
+  // (every solve's wait has one word, an edit's, a week's checks, a chip's, a bring-in's and the plan's alike: owner,
+  // 2026-11-03, "not split Planning and Planning solves and not treat them differently")
+  waitWord: 'Planning',
+  pendingEdit: (what, so = null) => `${COPY.waitWord} ${what}…${so ? ` ${so}` : ''}`,
   pendingOffline: (what) => `${what} · waiting for the connection`,
   /** An Undo said once, with no button, in the edit's own words ("Undone: Groß in your plan", ahead.undoOf); `gw`: the
    *  week after them unless they name it already. The state it leaves, never a double reversal (owner, 2026-10-22): a
@@ -236,8 +239,8 @@ export const COPY = Object.freeze({
       'Best week: of the GWs your plan covers in its half of the season, where it gains most against not playing it.',
       // one baseline per chip (owner, 2026-10-22; ahead.chipNumber), each row naming its own
       'A Wildcard or Free Hit\'s number is vs rolling that GW, as a plan\'s. Bench Boost and Triple Captain: vs not playing it.',
-      `${COPY.chipNoBestName}: no GW beats the next best by enough to act on. GWs past your plan aren't checked.`,
-      `A chip's numbers can take minutes; its row says ${COPY.chipChecking} until then.`,
+      `${COPY.chipNoBestName}: no GW beats the next best by enough to act on. GWs past your plan aren't planned.`,
+      `A chip's numbers can take minutes; its row says ${COPY.waitShort} until then.`,
     ], 'chips'],
     ['What the numbers mean', [
       'Points are forecast FPL points for a typical week, not a promise, minus 4 for each hit.',
@@ -259,7 +262,7 @@ export const COPY = Object.freeze({
       'Grey too: a move that adds next to nothing or loses when taken, or is as good a GW later.',
       'A transfer, Wildcard or Free Hit in your plan: amber when its gain is small, red when it loses by enough to matter.',
       // (owner, 2026-10-26: the plan is never drawn from an estimate; every squad is the solver's)
-      'While a change is checked, the plan before it shimmers until the new one is in. A check can take from seconds to several minutes.',
+      'While a change is planned, the plan before it shimmers until the new one is in. Planning can take from seconds to several minutes.',
       '≈ before a number in a list: Forkcast\'s quick estimate. Every squad and number of your plan is its solver\'s.',
       '≈ in a Sell list is vs keeping him. Once made, the transfer\'s number is vs rolling instead, so it can differ.',
     ]],
@@ -478,15 +481,15 @@ export const COPY = Object.freeze({
   /** A row's baseline in its fact: "vs rolling", "vs not playing it" (chipNoChip), "vs it" (chipVsIt). */
   chipVs: (vs) => `vs ${vs}`,
   /** The weeks of its half after the plan's last, never looked at, said with a clear best week too (owner, 2026-10-22). */
-  chipAfter: (after) => `weeks after GW${after} aren't checked`,
+  chipAfter: (after) => `weeks after GW${after} aren't planned`,
   /** A row's fact and what follows it, joined once (sheets/chips.js factOf). */
   chipFact: (...parts) => parts.filter(Boolean).join(' \u00b7 '),
   /** A Wildcard or Free Hit choice's Why sheet: the chip it spends and when the next one comes (the second half's first
    *  GW: ahead.halfEnd); "Uses your last Free Hit" in the second half. */
   chipUses: (chip, next = null) => (next != null ? `Uses your ${chip}; next one GW${next}` : `Uses your last ${chip}`),
-  /** …while its weeks are checked (ahead.chipWait): Add a player's count (checkingWeek), its clock after it; no "Best
+  /** …while its weeks are checked (ahead.chipWait): Add a player's count (planningWeek), its clock after it; no "Best
    *  week" while a week of the span was never asked (`part`; owner, 2026-10-28). */
-  chipBestChecking: (gw, i, n, part = false) => (part ? COPY.checkingWeek(gw, i, n) : `Best week · ${COPY.checkingWeek(gw, i, n)}`),
+  chipBestPlanning: (gw, i, n, part = false) => (part ? COPY.planningWeek(gw, i, n) : `Best week · ${COPY.planningWeek(gw, i, n)}`),
   /** …when the best week doesn't beat the runner-up (`next`, its gain `runner`; none in: not playing it) by more than a
    *  toss-up (engine.verdictLabel's 'coin'), and the weeks of its half after the plan's last (`after`) never looked at.
    *  The noise itself is Dev mode's: the words say the toss-up, never its points. */
@@ -497,18 +500,17 @@ export const COPY = Object.freeze({
     ? 'is too close to not playing it' : `and GW${next}${bare ? '' : ` ${fmt.signed(runner)}`} are too close to call`}${after != null ? `. ${COPY.chipAfter(after).replace(/^w/, 'W')}` : ''}`,
   chipNoGain: 'No week gains',
   chipPlayed: (gw, back = null) => `Played${gw != null ? ` GW${gw}` : ''}${back != null ? ` · back GW${back}` : ''}`,
-  chipChecking: 'checking…',
   /** Chips…'s row of a chip you played in that week. */
   chipTakeOff: 'Take it off',
-  /** …and its check, verb first ("Checking" is an edit's or a bring-in's wait, "Planning" a new forecast's): Add a
-   *  player's "Checking GW7 · 2 of 4 weeks" (week in flight, its place among the weeks needing a solve), clock after it
-   *  (ahead.clockText); the Week sheet's suggested plans, "Checking GW8 · 3 of 9 plans" (`of` 'plan'); the week line's
-   *  second line the same, "Checking GW8 · 3 of 9" where it doesn't fit (`of` null), "Checking · 3 of 9" where that
+  /** …and its wait, verb first (COPY.waitWord, every solve's): Add a
+   *  player's "Planning GW7 · 2 of 4 weeks" (week in flight, its place among the weeks needing a solve), clock after it
+   *  (ahead.clockText); the Week sheet's suggested plans, "Planning GW8 · 3 of 9 plans" (`of` 'plan'); the week line's
+   *  second line the same, "Planning GW8 · 3 of 9" where it doesn't fit (`of` null), "Planning · 3 of 9" where that
    *  doesn't either (`gw` null). */
-  checkingWeek: (gw, i, n, of = 'week') => `Checking${gw != null ? ` GW${gw}` : ''} · ${i} of ${of ? plural(n, of) : n}`,
+  planningWeek: (gw, i, n, of = 'week') => `${COPY.waitWord}${gw != null ? ` GW${gw}` : ''} · ${i} of ${of ? plural(n, of) : n}`,
   /** Add a player's line when no week works, as its pills say: every check failed (each "offline": no connection),
    *  every week not possible, else each pill's own reason. */
-  weeksUnchecked: (offline) => `Couldn't check the weeks${offline ? ': no connection' : ''}. Try again in a minute.`,
+  weeksUnplanned: (offline) => `Couldn't plan the weeks${offline ? ': no connection' : ''}. Try again in a minute.`,
   noWeekPossible: (gws) => `No plan brings him in during ${span(gws)}.`,
   noWeekWorks: 'No week works: each week above says why.',
   /** FPL's club limit by its own number (engine.MAX_PER_CLUB) and the way out. */
@@ -541,7 +543,7 @@ export const COPY = Object.freeze({
     const money = why?.short ? `${fmt.money(why.short / 10)} more than you have` : null;
     return xf || money ? `they need ${xf && money ? `${xf}, and ${money}` : xf || money}` : null;
   },
-  unfinished: "Forkcast couldn't finish checking that. Your plan is unchanged.",
+  unfinished: "Forkcast couldn't finish planning that. Your plan is unchanged.",
   pinClash: (name, keepTo, sellGw) => `Keeping ${name} through GW${keepTo} clashes with selling him in GW${sellGw}. Which one?`,
   /** The drift (its toast, ahead.driftSay): the whole new plan against yours (never one player's verdict), then the
    *  main way they part, and the rules of yours it ignores (its "Re-plan with your rules" re-plans with them). `what`
@@ -653,7 +655,7 @@ export const COPY = Object.freeze({
    *  their numbers, each against rolling (the Roll row, no number); a row is the week's own moves alone ("GW7 Kayode →
    *  Vuskovic", none: "GW7 roll"; the + takes this week only: planTake) and its number; on the pitch, a place's "⋯ N
    *  more" (placeMore) for the choices it has no room for. A choice whose solve failed keeps its row, no number, with
-   *  why (planFailed; a solve that found no plan keeping your rules says so, not "couldn't check"). */
+   *  why (planFailed; a solve that found no plan keeping your rules says so, not "couldn't plan"). */
   plansHead: 'Suggested plans',
   planRoll: (g) => (g == null ? 'Roll' : `GW${g} roll`),
   /** A plan row's + and its Why sheet's button: "Take GW7 Scott → Dewsbury-Hall" (its week alone: ahead.planTake). */
@@ -669,10 +671,10 @@ export const COPY = Object.freeze({
   /** Why a plan's moves go together, read off its solved road (ahead.openPlanWhy): "Neto's sale makes room: Palmer is
    *  your 3rd CHE player". */
   planRoom: (sold, buy, n, club) => `${sold}'s sale makes room: ${buy} is your ${fmt.ordinal(n)} ${club} player`,
-  planFailed: (why) => ({ offline: "can't check it offline", nofit: 'Forkcast found no plan that keeps your other weeks', infeasible: 'no plan keeps your rules with it' }[why]
-    ?? "Forkcast couldn't check it, trying again soon"),
+  planFailed: (why) => ({ offline: "can't plan it offline", nofit: 'Forkcast found no plan that keeps your other weeks', infeasible: 'no plan keeps your rules with it' }[why]
+    ?? "Forkcast couldn't plan it, trying again soon"),
   /** A choice whose solve failed, under its card in a player's place (the Week sheet's row says planFailed in full). */
-  planFailedShort: (why) => ({ offline: 'offline', nofit: 'no plan fits', infeasible: 'breaks your rules' }[why] ?? "couldn't check"),
+  planFailedShort: (why) => ({ offline: 'offline', nofit: 'no plan fits', infeasible: 'breaks your rules' }[why] ?? "couldn't plan"),
   /** The card behind (ahead.renderDecks; owner, 2026-10-20): a pair's second tab, a player's place (its stack's label,
    *  header, notes, bar), the week's Roll locked beside the goal. A choice of several moves lit on several tabs: each
    *  tab its part mark, "1/3" (the main), "2/3", "3/3" (owner, 2026-10-22), read "part 2 of a 3-transfer plan, +5.8
@@ -759,7 +761,7 @@ export const COPY = Object.freeze({
   keptFromChoices: (name, when) => `${name} kept${when}: suggestions won't sell him`,
   keepIn: (name, g) => `Keep ${name} in GW${g}`,
   placeRemoveSaid: (out, inn) => `Remove ${out} to ${inn} from your plan`,
-  placeCantCheck: "can't check",
+  placeCantPlan: "can't plan",
   /** A move of a pair the week can't make alone (ahead.plansOf `needs`): the pair's sales that make it fit, "needs
    *  Kayode's sale" (its card's note in his place; its Week sheet row and spoken line after what it lacks alone,
    *  ahead.problemShort's "£1.2m short"). */
@@ -858,12 +860,12 @@ export const COPY = Object.freeze({
   rulesHead: 'Your rules',
   /** A player's name in a Why sheet's comparison, said as what it opens. */
   cardOf: (name) => `${name}'s card`,
-  /** A suggested plan while it is solved (on its row): no number guessed, only what it waits for: "checking…" its own
+  /** A suggested plan while it is solved (on its row): no number guessed, only what it waits for: "planning…" its own
    *  solve (also the week line's while its transfers' plans solve), "waiting" the slot (a sheet's solve, a refused
-   *  ask), "waiting for your edit's check". */
-  pairChecking: 'checking…',
+   *  ask), "waiting for your edit's plan". */
+  waitShort: 'planning…',
   pairWaiting: 'waiting',
-  pairAfterEdit: 'waiting for your edit\'s check',
+  pairAfterEdit: 'waiting for your edit\'s plan',
   frozenStays: (gws, end) => `${span(gws)} ${gws.length > 1 ? 'are' : 'is'} frozen, so your plan stays${gws.at(-1) < end ? `: the new forecast re-plans GW${gws.at(-1) + 1} on` : ''}.`,
   /** A new GW's one notice (memory.carryOver, said once by Ahead): what the last GW's plan handed on (your rules as
    *  their chips); '' with none. */

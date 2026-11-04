@@ -280,8 +280,8 @@ fitFacts), never the bank: words longer than the line (a price drift's) end in "
 .ah-pbt .ah-bs:has(> .ah-blead) { display: flex; }
 .ah-pbt .ah-bs > .ah-blead { flex: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .ah-pbt .ah-bs > .ah-brest { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.ah-pbt .ah-bs .ah-chk { display: inline-flex; max-width: 100%; vertical-align: top; white-space: nowrap; }
-.ah-pbt .ah-chk > .ah-wclock { flex: none; }
+.ah-pbt .ah-bs .ah-wln { display: inline-flex; max-width: 100%; vertical-align: top; white-space: nowrap; }
+.ah-pbt .ah-wln > .ah-wclock { flex: none; }
 /* the week's bank leading the second line where its facts aren't drawn (ahead.js bankLead), whole, quiet beside an
 amber notice */
 .ah-pbt .ah-bs .ah-blead { white-space: nowrap; }
@@ -293,7 +293,7 @@ the pitch where the eye is, moving as it goes (a still line went unseen) */
 .ah-block.ah-waiting:not(.ah-wkeep) .ah-pbt > :not(.m-wl) { display: none; }
 .ah-block.ah-waiting > .m-wlb { position: absolute; left: 11px; right: 11px; bottom: 1px; pointer-events: none; }  /* never over the line's or doors' 44 px reach */
 /* …a money short or an amber notice keeps the line's words over the wait's (ahead.js paintWait .ah-wkeep: a problem is
-never hidden behind a wait); the wait's bar, the dim and the plates' "checking…" say it waits */
+never hidden behind a wait); the wait's bar, the dim and the plates' "planning…" say it waits */
 .ah-block.ah-waiting.ah-wkeep .ah-pbt > .m-wl { display: none; }
 /* the pitch while the wait line shows (ahead.js paintDim, after 1 s of it: no flash; owner, 2026-10-28): a DIM, never a
 blur (a blur hides what is still read). Only the turf and its chalk change, by their tokens (stripes, the bench's
@@ -364,7 +364,7 @@ design_marks/src/base.css).
 .ah-decks a layer over the pitch with no taps of its own (only its buttons). .ah-sp a swap plate: one flat line in
 the row gap over the player it would replace, its foot on his tile's top (never on it: holds and drags start there),
 naming who comes in (.ah-spn, never a shirt) and what it gains vs rolling (.ah-spv, blue with "xP"; .wait
-"checking…"); every plate the same, a tap opens its place, no take on the pitch (owner, 2026-10-25). .best the week's
+"planning…"); every plate the same, a tap opens its place, no take on the pitch (owner, 2026-10-25). .best the week's
 one (ink; a plan is ONE plate naming its row's buys, .ah-spj between them, the others counted, .ah-spm "& 2 more";
 .part a plan's seller in another row, his buy's name alone). .alt a quiet plate of another place: its best single
 that beats rolling, else its first choice whatever its sign (.first; the pitch's dark green). .ah-ring the best's
@@ -444,7 +444,7 @@ words): white 3.34:1 on the turf, 5.45 on the tile. The best stays solid ink wit
 outlined vs solid in grayscale too */
 .ah-sp:not(.best, .loss), .ah-tok.nx { box-shadow: inset 0 0 0 1.5px light-dark(#FFFFFF, rgb(255 255 255 / .22)); }
 .ah-sp.best.part .ah-spb { padding: 0 7px; }
-/* "checking…" in its number's place while the week checks, as a place's header says it (.ah-pv.wait) */
+/* "planning…" in its number's place while the week checks, as a place's header says it (.ah-pv.wait) */
 .ah-spv.wait { font-weight: 500; font-style: italic; }
 .ah-spb:focus-visible { outline: 2px solid #FFFFFF; outline-offset: -2px; border-radius: 4px; }
 /* each plate fitted on its own (ahead.js renderDecks, PLATE_TRIMS; owner, 2026-10-25): its "xP", a smaller type; then,
@@ -454,7 +454,7 @@ has no room its number alone (.only, "−0.4"), a plan's tag his plan's number t
 .ah-sp.tight { font-size: calc(var(--pm-tab) * .56); }
 .ah-sp.cut .ah-spn { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ah-sp.only :is(.ah-spn, .ah-spj, .ah-spm), .ah-sp.part:not(.only) .ah-spv { display: none; }
-/* "checking…" alone shortened as a name is ("chec…"), never past its plate */
+/* "planning…" alone shortened as a name is ("chec…"), never past its plate */
 .ah-sp.only .ah-spv.wait { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* a quiet plate that gains nothing as shown, a loss or 0.0 (.loss: ahead.js swapPlate; owner, 2026-10-26): its number
 alone as a small chip in the quiet plate's green, the smaller type, centred over his card; the plate itself clear,
@@ -1273,6 +1273,9 @@ one card, the bar its white top, the token its black foot (Johnson, Designing wi
 makes groups); an empty band leaves the bar whole */
 .m-screen.ah:has(> .ah-pitch.band .ah-tok:is(.mv, .st.best)) .ah-blockhost > .ah-block:has(> .ah-pbar) { border-radius: 12px 12px 0 0; border-bottom: 0; }
 .m-screen.ah > .ah-pitch.band:has(.ah-tok:is(.mv, .st.best)) { margin-top: var(--ah-band); }
+/* (the bar over the ticket against it, so its button and doors keep the 3 px they reach below, their 44 px target: the
+ticket took them, leaving 41; QA chips-sheet, 2026-11-04) */
+.m-screen.ah:has(> .ah-pitch.band .ah-tok:is(.mv, .st.best)) .ah-blockhost { position: relative; z-index: 3; }
 .ah-pitch.band .ah-tok:is(.mv, .st.best) { top: calc(-1 * var(--ah-band)); left: 8px; right: 8px; max-width: none; height: auto; min-height: 52px; padding: 0 4px 0 12px; border-radius: 0 0 12px 12px; }
 .ah-pitch.band .ah-tok:is(.mv, .st.best)::before { inset: 0; }
 /* a rolling week's band, why it rolls (tokensOf): "Roll → GW13: Gabriel → N.Williams, Dewsbury-Hall → Rice", two lines

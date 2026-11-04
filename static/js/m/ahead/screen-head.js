@@ -71,10 +71,10 @@ export function headPart(V) {
     const real = strip.querySelector(':scope > .ah-block:not(.ah-fitprobe)');
     strip.style.removeProperty('--ah-bar-h');
     const { gw, bank } = FACTS_PROBE, sep = '\u00a0·\u00a0';
-    const facts = () => factSpans(factsWords(FACTS_PROBE), true), chk = h('span.ah-chk', null,
-      h('span.ah-bn.ah-cw', null, COPY.checkingWeek(gw, 10, 10, 'plan')), h('span.ah-wclock.m-num', null, `${sep}0:00`));
+    const facts = () => factSpans(factsWords(FACTS_PROBE), true), wln = h('span.ah-wln', null,
+      h('span.ah-bn.ah-cw', null, COPY.planningWeek(gw, 10, 10, 'plan')), h('span.ah-wclock.m-num', null, `${sep}0:00`));
     const checks = [h('span.ah-blead', null, h('span.ah-fact', null, COPY.ftNow(FACTS_PROBE.ft)), ' · ', h('span.ah-fact', null, itbWords(bank)[0]), sep),
-      h('span.ah-brest', null, chk)];
+      h('span.ah-brest', null, wln)];
     const probes = [facts(), checks].map((two) => {
       const b = h('section.ah-block.ah-fitprobe', { 'aria-hidden': 'true' }, barNode({ one: h('span.ah-bt.ah-bst', null, h('span.ah-tl', null, COPY.rollingNow)), two, doors: doorStubs() }));
       b.style.width = `${strip.clientWidth}px`;
@@ -189,15 +189,15 @@ export function headPart(V) {
    *  shows) */
   function paintPlanStatus() { const { gwline } = V;
     // every wait is told in one place, the wait line (paintWait), the first plan's too (owner, 2026-10-28)
-    gwline.classList.remove('ah-planning', 'ah-story');
+    gwline.classList.remove('ah-planning');
     return false;
   }
   /** Each second: the countdown, an edit's pending toast (pendingTick), the checks' clock (waitClock), the choices once
    *  their checks stop landing (weekSettled's bound), and a re-render once GW A's deadline passes. */
   function tick() { const { S, ctl, ctx, fitFacts, gwline, keepGwLine, pitchHost, strip } = V;
     const was = gwline.querySelector('.ah-dl')?.textContent;
-    if (!ctl.hidden && (replanning() || S.story?.wait)) paintPlanStatus();
-    paintStoryBar();
+    if (!ctl.hidden && waitNow()) paintPlanStatus();
+    paintWait();
     pendingTick(ctx);
     if (S.wait) for (const c of [strip, pitchHost, S.week?.host].flatMap((x) => [...(x?.querySelectorAll('.ah-wclock') ?? [])])) c.textContent = clockShown(c);
     // refit the checks for a clock of more digits ("10:00")
@@ -307,9 +307,8 @@ export function headPart(V) {
     const off = (p) => { const said = COPY.removed(rowName(FV, p)), r = memOf(ctx).removePin(p.id); toastOf(ctx)(said, 'info', { action: { label: 'Undo', onClick: () => r.undo() } }); };
     fill(strip, h('section.ah-block', { 'aria-label': 'Your plan' }, failed
       ? barNode({ one: why, two: 'Try again', warn: true, label: `${why} Try again`, onClick: again, doors: doorStubs(), cls: '.ah-pbake' })
-      // (in the story the squad drawn is named: FPL's lineup until the plan's comes)
-      : S.story ? barNode({ one: h('span.ah-bn', null, COPY_FPL_TEAM), doors: doorStubs(), cls: '.ah-pbake' })
-      : barNode({ one: [h('span.ah-spin', { 'aria-hidden': 'true' }), h('span.ah-bn', null, planning(d.horizon))], status: true, doors: doorStubs(), cls: '.ah-pbake' }),
+      // (while the plan solves the squad drawn is named: FPL's lineup until the plan's comes; how far, the wait line)
+      : barNode({ one: h('span.ah-bn', null, COPY_FPL_TEAM), doors: doorStubs(), cls: '.ah-pbake' }),
     c?.pins.length ? h('div.ah-brow.ah-ask.ah-clash', { role: 'status' }, icon('warn', { size: 16 }), h('p.ah-askt', null, COPY.rulesStuck(c.what, null, COPY.clashWhy(gp.error.why, gp.error.gw))),
       h('div.ah-askb', null, c.pins.map((p) => h('button.ah-askno', { type: 'button', disabled: !FV.editable, onClick: () => off(p) }, `Remove ${rowName(FV, p)}`)))) : null));
     fill(decks);
@@ -334,7 +333,6 @@ export function headPart(V) {
     renderPdBtn();
     if (!V.fitKey || !V.fitDrawn) fitPitch();
   }
-  const planning = (gws) => `Planning ${span(gws)}…`;
 
   /** "Your rules" (RULES_V2 §4, DESIGN_V2 §3.7), the Week sheet's last part (asksHost): each veto, keep and cash rule
    *  you asked for (listedRules: your transfer in the viewed week is its own row, a GW's chip its options) is a row
@@ -427,7 +425,6 @@ export function headPart(V) {
   function renderWeek(P, w) { const { S, cheerEl, ctx, drawWeek, renderLine, sayCarried, sayDrift } = V;
     const M = weekModel(P, w);
     S.M = M;
-    tellStory(w.gw, M);
     renderLine(P, w, M);
     if (S.week) drawWeek(P, w, M);
     S.tint = null;  // the transfer a + made is tinted on its first draw only (xferRow)
@@ -437,70 +434,37 @@ export function headPart(V) {
     sayDrift(P);
     sayCarried(P);
     pendingAgain(ctx, P.mem);
-    // the line every GW: last, so a toast above (a reopened check's, with its Undo) never takes its place at once; on a
-    // first load also through the story's checks, in its second act (tellStory sets S.story.wait this draw)
-    // (its second act stays up CHEER_MS more once the wait ends: owner, 2026-10-28)
-    const checking = !replanning() && !!S.story?.wait;
-    if (replanning() || checking) S.act2 = 'due';
-    const late = !replanning() && !checking && S.act2 === 'due';
+    // the line every GW: last, so a toast above (a reopened check's, with its Undo) never takes its place at once; through
+    // a wait with a plan in it (waitNow), its first line until a step is in, then its second
+    // (its second stays up CHEER_MS more once the wait ends: owner, 2026-10-28)
+    const W = waitNow(), waiting = !!W?.plan;
+    if (waiting) S.act2 = 'due';
+    const late = !waiting && S.act2 === 'due';
     if (late) S.act2 = 'said';
-    sayCheer(ctx, P, cheerEl, replanning() || checking || late, checking || late ? 1 : 0, { linger: late });
+    sayCheer(ctx, P, cheerEl, waiting || late, W?.done || late ? 1 : 0, { linger: late });
   }
   /**
-   * The wait's one story (owner, 2026-10-27: planning was told in three places): Connect's planning line (app.js
-   * planning) goes on as "Planning GW9–12 · 0:38" while the plan solves (memory model), then, the plan in, "Checking
-   * GW9's moves · 1:06 · 5 done" (the plan's clock, from its ask) until GW g's choices
-   * are settled (weekModel's M.settled); then the story is over (later checks: renderLine). Told on the strip's wait
-   * line (paintWait). Its count is GW g's choices checked so far, every one listed since the plan started (`seen`),
-   * never back, no total (a landing road or pre-solve can add a choice or take one's room: plansOf FORK_MAX, rankOf).
-   * The strip's own checks and clock stay off meanwhile.
-   */
-  function tellStory(g, M) { const { S, ctx } = V;
-    const st = S.story;
-    if (!st) return;
-    if (st.t0 == null) st.t0 = planWait()?.since ?? Date.now();
-    const seen = st.seen.get(g) ?? new Set();
-    st.seen.set(g, seen);
-    for (const x of M.all) if (x.state !== 'solving') seen.add(forkKey(x.choice, g));
-    st.f = M.all.length ? M.all.filter((x) => x.state !== 'solving').length / M.all.length : 1;
-    if (replanning()) return;
-    st.wait = M.wait && !M.settled ? { g, n: seen.size } : null;
-    if (!st.wait) S.story = null;
-    if (!paintPlanStatus() && S.dl) paintDeadline(S.dl.A);
-    paintStoryBar();
-  }
-  function paintStoryBar() { const { S, STORY_PLAN, ctl, ctx } = V;
-    // (share kept for the strip's wait line, which draws it)
-    const st = S.story;
-    if (st && !ctl.hidden) {
-      // (while the plan solves, a sweep: one solve has no measure)
-      if (!replanning()) st.p = Math.max(st.p, STORY_PLAN + (1 - STORY_PLAN) * st.f);
-    }
-    paintWait();
-  }
-  /**
-   * The wait now, as the strip's wait line says it (owner, 2026-10-28): one process at a time, the widest first. The
-   * forecast updating (no measure: a few sweeps); the plan solving (its clock, a sweep); the story's checks of the viewed week (its clock and share); else
-   * the viewed week's own checks (S.wl: renderLine), a take's, an Undo's, a later week's after a change, on
-   * waitClock's S.wait, share by the count with the step under way creeping on (calls.stepShare; none counted: a few
-   * sweeps). null while nothing waits.
+   * The wait now, as the strip's wait line says it (owner, 2026-10-28): the forecast updating (no measure: a few
+   * sweeps); else the solves under way, the plan's (memory model) and the viewed week's checks (S.wl: renderLine; a
+   * take's, an Undo's, a later week's after a change, on waitClock's S.wait) counted as one: n solves, the plan's one of
+   * them, share by the count with the step under way creeping on (calls.stepShare). null while nothing waits.
    */
   function waitNow() { const { S, ctl, ctx } = V;
     if (ctl.hidden) return null;
-    const conn = ctx.store.get('conn')?.state, st = S.story, now = Date.now();
-    if (conn === 'updating') return { key: 'updating', word: 'Updating', scope: 'the forecast', p: null };
-    if (replanning()) {
-      const since = planWait()?.since ?? null, gws = ctx.data?.horizon;
-      return { key: `plan@${since}`, word: 'Planning', scope: gws?.length ? span(gws) : null, prog: null, so: since == null ? null : (now - since) / 1000, p: null };
-    }
-    if (st?.wait) {
-      const g = st.wait.g;
-      return { key: `story@${g}`, word: 'Checking', scope: `GW${g}`, long: `GW${g}'s moves`, prog: st.wait.n ? `${st.wait.n} checked` : null, so: st.t0 == null ? null : (now - st.t0) / 1000, p: st.p || null };
-    }
-    const w = S.wl;
-    if (!w || !S.wait) return null;
-    const p = w.n ? (w.max = Math.max(w.max, stepShare(w.done, w.n, reduceMotion() ? 0 : now - w.at, w.tau))) : null;
-    return { key: `week@${w.key}`, word: 'Checking', scope: `GW${w.g}`, long: `GW${w.g}'s moves`, prog: w.n ? `${w.done + 1} of ${w.n}` : null, so: (now - S.wait.t0) / 1000, p };
+    const conn = ctx.store.get('conn')?.state, now = Date.now();
+    if (conn === 'updating') { S.waitAll = null; return { key: 'updating', word: 'Updating', scope: 'the forecast', p: null }; }
+    // the plan's solve and the viewed week's checks are one wait, its solves counted alike (owner, 2026-11-03: "not
+    // split Planning and Planning solves"): one word, one clock from the first solve, one count, one bar never back
+    const plan = replanning(), w = S.wait ? S.wl : null;
+    if (!plan && !w) { S.waitAll = null; return null; }
+    const A = (S.waitAll ??= { t0: (plan ? planWait()?.since : null) ?? S.wait?.t0 ?? now, plan: false, max: 0 });
+    A.plan ||= plan;
+    const n = (A.plan ? 1 : 0) + (w?.n ?? 0), done = (A.plan && !plan ? 1 : 0) + (w?.done ?? 0);
+    const at = w && !plan ? w.at : A.t0, tau = w?.tau ?? 4000;
+    const p = (A.max = Math.max(A.max, stepShare(done, n, reduceMotion() ? 0 : now - at, tau)));
+    const gws = ctx.data?.horizon, scope = w ? `GW${w.g}` : gws?.length ? span(gws) : null;
+    return { key: 'wait', word: COPY.waitWord, scope, long: w ? `GW${w.g}'s moves` : null, prog: n > 1 ? `${Math.min(done + 1, n)} of ${n}` : null,
+      so: (now - A.t0) / 1000, p, plan: A.plan, done };
   }
   /** The strip's wait line (waitView) while anything waits (waitNow), replacing the line's words; doors kept, its bar
    *  on the strip's lower edge; the words return as they fit (fitFacts) when it ends, which is said (waitSaid). Each
@@ -510,7 +474,7 @@ export function headPart(V) {
     const on = !!W && !!pbt, was = !!block?.classList.contains('ah-waiting');
     block?.classList.toggle('ah-waiting', on);
     // (a short bank or an amber notice keeps the line's words; the wait keeps its bar, the dim and the plates'
-    // "checking…": a problem is never hidden behind a wait)
+    // "planning…": a problem is never hidden behind a wait)
     block?.classList.toggle('ah-wkeep', on && !!S.lineKeep);
     paintDim(W);
     if (on) {
@@ -519,7 +483,7 @@ export function headPart(V) {
       paintWaitView(waitV, W);
     } else { waitV.t.remove(); waitV.bar.remove(); waitV.key = null; }
     if (was && !on) fitFacts();
-    const said = W ? `${W.word} ${W.long ?? W.scope ?? ''}`.trim() : S.waitWas ? `${S.waitWas === 'Planning' ? 'Plan ready' : 'Checked'}` : '';
+    const said = W ? `${W.word} ${W.long ?? W.scope ?? ''}`.trim() : S.waitWas ? 'Plan ready' : '';
     if (W || S.waitWas) { if (waitSaid.textContent !== said) waitSaid.textContent = said; S.waitWas = W?.word ?? null; }
   }
   function paintDim(W) { const { S, WAIT_DIM_MS, pitchHost } = V;
@@ -565,7 +529,7 @@ export function headPart(V) {
     // number waiting until none waits (waitClock), from 0:00 again for checks of their own (weekKey)
     const wait = weekWait(all, lit.size);
     // (and while the solver's own week or what the rows count against still solves, plansOf's `pending`, a week with no
-    // transfer of yours too: the pitch greys and the line says "Checking", never a blank corner; owner, 2026-11-02,
+    // transfer of yours too: the pitch greys and the line says "Planning", never a blank corner; owner, 2026-11-02,
     // "why not greyed out when its solving ... and just show nothing instead")
     S.wait = wait || all.pending || weekPending(P, w) ? (S.wait?.key === key ? S.wait : { key, t0: Date.now() }) : null;
     // the "instead of …" that two or more rows take back, said once over them: the one most rows share
@@ -598,5 +562,5 @@ export function headPart(V) {
   /** What the viewed week's choices count against and over which weeks, "Suggested plans · GW8–11 · vs rolling"
    *  (COPY.suggested): the Week sheet's plans heading and the pitch choices' spoken name (renderDecks). */
   const plansHeading = (P, g) => { const { plansVs } = V; const gws = P.gws.filter((x) => x >= g); return COPY.suggested(gws, plansVs(P, g), COPY.plansHead, gws.length < P.gws.length); };
-  return { pageName, resetTap, resetSheet, learn, gwNow, setGw, outerH, fitBlock, fitHead, fitPitch, redeck, schedule, covered, paintAvatar, renderHead, renderGwLine, paintDeadline, replanning, paintPlanStatus, tick, hosts, focusedKeys, keepFocus, renderPair, render, renderBaking, planning, renderRules, ruleSheet, clearAll, driftRoom, owes, priceDrift, heldOrder, renderWeek, tellStory, paintStoryBar, waitNow, paintWait, paintDim, weekModel, waited, clockShown, waitClock, plansHeading };
+  return { pageName, resetTap, resetSheet, learn, gwNow, setGw, outerH, fitBlock, fitHead, fitPitch, redeck, schedule, covered, paintAvatar, renderHead, renderGwLine, paintDeadline, replanning, paintPlanStatus, tick, hosts, focusedKeys, keepFocus, renderPair, render, renderBaking, renderRules, ruleSheet, clearAll, driftRoom, owes, priceDrift, heldOrder, renderWeek, waitNow, paintWait, paintDim, weekModel, waited, clockShown, waitClock, plansHeading };
 }

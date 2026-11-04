@@ -152,7 +152,7 @@ export function modelMoves(P, g, { now = false } = {}) {
  * `early` ones (earlyOf): never lit, + quiet (plPays), asked last;
  * · each choice's plan: the best known one (highest number; Forkcast's best follow-up, never drawn) of the road plans
  * that keep your other weeks (planOfRoad) and its own solve's (forkValues), asked unless a road solved the whole
- * window from your team with no other chip. While it solves: "checking…", "waiting" or "waiting for your edit's check"
+ * window from your team with no other chip. While it solves: "planning…", "waiting" or "waiting for your edit's check"
  * (`wait`), no number. A failed or unaskable solve with no road plan keeps its row with the reason (`failed`, why:
  * 'offline' | 'error' (asked again: forkAsk) | 'infeasible' | 'nofit' (under the hold also a choice whose week alone
  * can't be made); a pair's move the week can't make alone: 'needs', `needs` the sales it needs, `problems` all it

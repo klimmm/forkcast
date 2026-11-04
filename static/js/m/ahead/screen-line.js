@@ -19,7 +19,7 @@ export function linePart(V) {
    * GW9" goes where it doesn't fit: fitFacts);
    *   · your transfers, each an IN card on the pitch: "1 transfer +0.4" over "Out: Saka" (number: weekGain's);
    * · a Wildcard or Free Hit: "Wildcard +14.7" over "8 changes"; the number is your chip's plan against the week's
-   * roll plan (chipWeekGain; owner, 2026-10-22), "checking…" while either solves; off the hold, against not playing it
+   * roll plan (chipWeekGain; owner, 2026-10-22), "planning…" while either solves; off the hold, against not playing it
    * (chipGain);
    *   · GW A under way: its sentence alone, cut at its end (liveCheck; whole in the Week sheet).
    * A problem notice that stands takes the line after the lead ("· +1" for more; amber for a clash or a price that
@@ -41,7 +41,7 @@ export function linePart(V) {
     const g = w.gw, n = w.moves.length;
     const ap = ap0(P, g);
     // a take of k transfers still being checked while the plan before it is drawn (no move yet): its rule keeps them
-    // (memory.pinRoll's caps, "GW9 frozen"), so the line says "1 transfer" and "checking…", never the week as drawn
+    // (memory.pinRoll's caps, "GW9 frozen"), so the line says "1 transfer" and "planning…", never the week as drawn
     // (owner, 2026-10-27)
     const kept = !n && !M.live && !M.sq && ap ? rollKeeps(P.pins.find((p) => p.id === `roll:${g}`)) : 0;
     // `mine`: the week's own words on the line ("Out: Saka", "8 changes")
@@ -53,8 +53,8 @@ export function linePart(V) {
       one = chipName(M.sq);
       gain = v.cmp;
       wait = v.wait;
-      // its changes are its squad's, none counted while that is worked out: "checking…", as Chips… says it
-      two = mine = ap ? COPY.chipChecking : COPY.nChanges(n);
+      // its changes are its squad's, none counted while that is worked out: "planning…", as Chips… says it
+      two = mine = ap ? COPY.waitShort : COPY.nChanges(n);
       said = `${one}${wait || v.cmp ? `, ${numSaid(wait, v.cmp, ap, !!v.vs)}${v.cmp && !v.vs ? ' against no chip' : ''}` : ''}`;
     } else if (n) {
       const v = weekGain(P, w);
@@ -79,11 +79,11 @@ export function linePart(V) {
     }
     const { problem, more, lineup } = lineNotices(M.notices, M.live);
     // until the week's choices are lit on the pitch (litOf), how far their checks are (weekWait), in the Week sheet's
-    // words ("Checking GW9 · 3 of 6 plans · 0:12"), where no problem notice or short bank stands; where they don't fit,
+    // words ("Planning GW9 · 3 of 6 plans · 0:12"), where no problem notice or short bank stands; where they don't fit,
     // "plans" goes, then the GW, then the words ellipsise, then they go; the clock is never cut (fitFacts)
     // (the strip's wait line tells the checks in its place, over a notice or short bank too: paintWait; S.wl what it
     // counts)
-    const checking = null;
+    const waits = null;
     const wl = !M.live && S.wait ? M.wait ?? { i: 1, n: 0 } : null, was = S.wl?.key === S.wait?.key ? S.wl : null;
     S.wl = wl ? { key: S.wait.key, g, n: wl.n, done: wl.i - 1, at: was?.done === wl.i - 1 ? was.at : Date.now(), max: was?.n === wl.n ? was.max : 0,
       tau: wl.i > 1 ? (Date.now() - S.wait.t0) / (wl.i - 1) : 4000 } : null;
@@ -95,15 +95,15 @@ export function linePart(V) {
     // week's FT and bank
     if (problem) two = notice;
     // (the checks' words, then their clock, after the lead; fitFacts sheds the words; the clock carries its own " · ")
-    const chk = checking && h('span.ah-chk', null, h('span.ah-bn.ah-cw', null, checking[0]), waitClock('', { late: true, sep: '\u00a0·\u00a0' }));
-    if (checking) two = chk;
+    const wln = waits && h('span.ah-wln', null, h('span.ah-bn.ah-cw', null, waits[0]), waitClock('', { late: true, sep: '\u00a0·\u00a0' }));
+    if (waits) two = wln;
     // the week's bank leads the line wherever its facts don't say it (owner, 2026-10-21): "£0.3m ITB · Out: Saka", a
     // short bank's words in its place (bankLead); its free transfers before it, in every state (owner, 2026-10-22;
     // weekLead); a notice or the checks after the week's own words, cut from the end where they don't fit (m-ahead.css
     // .ah-bs; fitFacts)
-    const own = facts && !checking && !problem;
+    const own = facts && !waits && !problem;
     const lead = M.live || own ? null : weekLead(P, w);
-    const rest = notice ?? (checking ? checking[0] : null);
+    const rest = notice ?? (waits ? waits[0] : null);
     // (the rest after it gives way, never the lead: .ah-brest)
     // (a week of your transfers: the lead alone, no " · " left with nothing after it)
     // GW A's lineup notice on the bar's second line after the week's FT and bank ("Set in FPL: 2 changes"), whole or
@@ -131,7 +131,7 @@ export function linePart(V) {
         doors: inkAt(ctx, P, g) ? [] : [bringDoor(P, g), chipsDoor(P, g)],
       })));
     // fitFacts's input: the checks' words, shortest last
-    S.line = chk ? { bar: strip.querySelector(':scope > .ah-block > .ah-pbar'), chk, texts: checking } : null;
+    S.line = wln ? { bar: strip.querySelector(':scope > .ah-block > .ah-pbar'), wln, texts: waits } : null;
     fitFacts();
     paintWait();
   }
@@ -140,7 +140,7 @@ export function linePart(V) {
    *    · next GW's free transfers (.ah-fnext: rollFacts) only where they fit, else left to the Week sheet;
    *  · "N FT · £x ITB" leads whole in every state: only its "ITB" gives way where even the bank can't stay whole (a
    *  £10m bank at 320 px), never the amount; words longer than the line end in "…" (m-ahead.css), never cut mid-glyph;
-   *  · the checks after the lead: the clock never cut, their words giving way first ("Checking GW9 · 3 of 6 plans",
+   *  · the checks after the lead: the clock never cut, their words giving way first ("Planning GW9 · 3 of 6 plans",
    *  then "plans", then the GW, then an ellipsis, then none; measured with the clock as it reads once shown); where
    *  even the clock has no room, the words go and the clock stays beside the lead;
    *  · what follows the lead ("Out: …", "8 changes", a notice) is cut at its end, never a " · " left with nothing after
@@ -160,9 +160,9 @@ export function linePart(V) {
     const L = S.line?.bar === bar ? S.line : null, em = parseFloat(getComputedStyle(bs).fontSize);
     const fits = (x) => x.scrollWidth <= x.clientWidth + 0.5, right = (x) => x.getBoundingClientRect().right;
     // the checks' clock in its shown form (" · 0:12": waitClock `late`) while measured
-    const clock = S.wait ? L?.chk.querySelector(':scope > .ah-wclock') : null, was = clock?.textContent;
+    const clock = S.wait ? L?.wln.querySelector(':scope > .ah-wclock') : null, was = clock?.textContent;
     if (clock) clock.textContent = `${clock.dataset.sep ?? ''}${waited()}`;
-    const cw = L?.chk.querySelector(':scope > .ah-cw');
+    const cw = L?.wln.querySelector(':scope > .ah-cw');
     /** The checks' words: the longest that fits, else the shortest cut at its end, else (under 2 em) none. */
     const shed = () => {
       cw.hidden = false;
@@ -190,21 +190,21 @@ export function linePart(V) {
     if (!leadFits()) for (const x of bs.querySelectorAll('.ah-itb')) x.hidden = true;
     if (sep) sep.hidden = false;
     // (a grey notice is whole or gone with its " · ", never cut: "Tomorr…" read as a door's mark or the wait's)
-    if (rest && !warn && !rest.querySelector('.ah-chk') && rest.scrollWidth > rest.clientWidth + 0.5) { rest.hidden = true; if (sep) sep.hidden = true; }
+    if (rest && !warn && !rest.querySelector('.ah-wln') && rest.scrollWidth > rest.clientWidth + 0.5) { rest.hidden = true; if (sep) sep.hidden = true; }
     if (L && rest) {
       shed();
       // (no room for the clock after the words: the words go, the clock stays beside the lead)
       if (clock && !cw.hidden && right(clock) > right(bs) + 0.5) cw.hidden = true;
       if (cw.hidden && sep) sep.hidden = true;
     }
-    if (rest && !rest.hidden && !rest.querySelector('.ah-chk') && rest.clientWidth < 1.5 * em) {
+    if (rest && !rest.hidden && !rest.querySelector('.ah-wln') && rest.clientWidth < 1.5 * em) {
       if (warn) for (const x of seps) x.textContent = x.dataset.t.replace(/[\s\u00a0]+/g, '\u200a');
       else rest.hidden = sep.hidden = true;
     }
     if (clock) clock.textContent = was;
   }
   /** Your week's transfers' number (the week line's; a week with two or more says the week's gain over rolling: owner,
-   *  2026-10-19): your plan against the week's roll plan, Forkcast's later moves on both sides (weekRoll), "checking…"
+   *  2026-10-19): your plan against the week's roll plan, Forkcast's later moves on both sides (weekRoll), "planning…"
    *  (`wait`) while either still solves; off the hold (no roll plan solved: plansOf) or while an edit is checked, the
    *  rows' sum (rowGains).
    *  → {cmp | null, wait, vs (against rolling)} */
@@ -311,8 +311,8 @@ export function linePart(V) {
    * boxes (forkcast/studies/design_marks/DECISION.md, design.md; owner, 2026-10-23): the week's one best an ink plate over the
    * player it replaces naming the buy and its gain (swapPlate; a plan of several moves ONE plate over its sellers in
    * the top-most of their rows, with the plan's one number, each other seller a small ink tag of his buy: owner,
-   * 2026-10-25); each other place whose best single move beats rolling, and each with a choice ready or checking, a
-   * quiet plate of its first choice (placeFirst), its number whatever its sign, "checking…" while the week checks;
+   * 2026-10-25); each other place whose best single move beats rolling, and each with a choice ready or waits, a
+   * quiet plate of its first choice (placeFirst), its number whatever its sign, "planning…" while the week checks;
    * your own buy's a quiet plate naming the player you sold (owner, 2026-10-26). A tap on a plate opens his place;
    * only the best is ink. Nothing is named until the week's checks are in, then once with a fade, and nothing where
    * nothing can act (a plan you can't change, GW A under way). The week's own choices go beside the goal (tokensOf); a

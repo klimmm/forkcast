@@ -82,7 +82,7 @@ export function open(ctx, what = null) {
         // plain facts only: the model's internals (runs, pool, noise, scale, solve counts) are Dev mode's
         let plan;
         if (conn.state === 'updating') plan = 'waiting: the forecast is updating';
-        else if (b?.entry && !model) plan = 'planning…';
+        else if (b?.entry && !model) plan = COPY.waitShort;
         else plan = baked ? `ready since ${baked}` : '—';
         // while requests fail, said plainly (and the time of the data on screen)
         const link = conn.state === 'offline' ? `Forkcast server unreachable · data from ${when((conn.at || 0) / 1000) ?? '—'}` : 'online';

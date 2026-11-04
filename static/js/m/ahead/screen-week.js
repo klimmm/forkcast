@@ -1,6 +1,6 @@
 // screen.js mount: the Week sheet's rows, its words and the Why sheet
 
-import { COPY, priceMorning, shownDelta } from '../calls.js';
+import { COPY, priceMorning, shownDelta, waitLines } from '../calls.js';
 import { h, fmt, fill, icon, xpGain } from '../../ui.js';
 import { fundingOf, moveTo, movesInOrder, pairOf, pinOfMove, presolveTaps, removeMove, rowGains, weekTaps, whenOf, whenOnBase, whyFacts } from './presolve.js';
 import { asTaken, choiceVs, mineAny, planBack, planBaseline, plansOf, yoursAt } from './plans.js';
@@ -12,7 +12,8 @@ import * as E from '../../plan/engine.js';
 import { listedRules } from './screen.js';
 
 export function weekPart(V) {
-  function drawWeek(P, w, M) { const { S, ap0, asksHost, changeRow, ctx, ftAfter, litPays, planRow, plansHeading, rollFacts, shareWeek, waitClock, weekGain, xferRow } = V;
+  function drawWeek(P, w, M) { const { S, ap0, asksHost, changeRow, ctx, ftAfter, litPays, planRow, plansHeading, rollFacts, shareWeek, waitClock, waitNow, weekGain, xferRow } = V;
+    const WN = M.wait ? waitNow() : null;
     const g = w.gw, W = S.week;
     if (W.g !== g) {
       W.g = g;
@@ -38,10 +39,11 @@ export function weekPart(V) {
       M.live ? h('div.ah-brow.ah-bq.ah-blive', { role: 'status' }, h('span.ah-bt', null, M.liveText)) : null,
       M.notices.map((x) => x.row?.()),
       rows,
-      // while they check, how far, as Add a player says it: "Checking GW8 · 3 of 9 plans · 0:12" (plansWait, waitClock)
+      // while they solve, how far, as the strip's wait line says it, the same one wait (waitNow): "Planning GW8 · 3 of 9 ·
+      // 0:12" (waitClock)
       // rows sharing an "instead of …" get it as a subheading ("Instead of Palmer")
       M.plans.length ? [h('div.ah-wh', { dataset: { at: 'plans' } }, h('h3', null, name),
-        M.wait ? h('p.ah-bs', null, COPY.checkingWeek(g, M.wait.i, M.wait.n, 'plan'), S.wait ? h('span', { 'aria-hidden': 'true' }, ' · ', waitClock()) : null) : null),
+        WN ? h('p.ah-bs', null, `${WN.word}${waitLines({ scope: WN.scope, prog: WN.prog })[0]}`, S.wait ? h('span', { 'aria-hidden': 'true' }, ' · ', waitClock()) : null) : null),
         // the two groups (rows that add to your transfer, rows sharing the "instead of …") in their best rows' order,
         // rows within each best first: by M.plans' own order, best first once none checks (plansOf's byGain), the slots
         // held while they check (heldOrder)
@@ -345,11 +347,11 @@ export function weekPart(V) {
    *  the rows' (ui.js xpGain), "points" said for the unspoken marker; `rest` its words after it. */
   const whySub = (g, d, rest) => [`GW${g} · `, xpGain(d), h('span.sr-only', null, ' points'), ` ${rest}`];
   /** A number's cell on a line (the week line's, a transfer row's): "· …" while it solves (`wait`), "· 0:12" once its
-   *  checks have taken LATE_S (waitClock's `late`; the clock takes "checking…"'s place, which cut "1 transfer" to "1
-   *  tran…" on a 390 px phone), else its gain (gainOf), else nothing; and as its label says it ("checking…", "about
+   *  checks have taken LATE_S (waitClock's `late`; the clock takes "planning…"'s place, which cut "1 transfer" to "1
+   *  tran…" on a 390 px phone), else its gain (gainOf), else nothing; and as its label says it ("planning…", "about
    *  +6.2 points vs rolling": `vs`, true for rolling, else its words, "vs your plan"; VoiceOver reads "versus"). */
-  const numOf = (wait, cmp, ap) => { const { waitClock } = V; return (wait ? h('span.ah-bq2', { 'aria-hidden': 'true' }, waitClock('', { late: true, pre: ' · …', sep: ' · ' }) ?? [' · ', COPY.pairChecking]) : cmp ? gainOf(cmp, ap) : null); };
-  const numSaid = (wait, cmp, ap, vs = false) => (wait ? COPY.pairChecking : cmp ? `${ap ? 'about ' : ''}${fmt.signed(shownDelta(cmp))} points${vs ? ` vs ${vs === true ? COPY.planVsRoll : vs}` : ''}` : '');
+  const numOf = (wait, cmp, ap) => { const { waitClock } = V; return (wait ? h('span.ah-bq2', { 'aria-hidden': 'true' }, waitClock('', { late: true, pre: ' · …', sep: ' · ' }) ?? [' · ', COPY.waitShort]) : cmp ? gainOf(cmp, ap) : null); };
+  const numSaid = (wait, cmp, ap, vs = false) => (wait ? COPY.waitShort : cmp ? `${ap ? 'about ' : ''}${fmt.signed(shownDelta(cmp))} points${vs ? ` vs ${vs === true ? COPY.planVsRoll : vs}` : ''}` : '');
   /** …a checked choice's number as a plate, a place's card, a token and a handle say it, against what its row counts
    *  (choiceVs: "vs your plan" in a week of yours; none off the hold). */
   const plNumSaid = (P, pl) => numSaid(false, pl.cmp, false, pl.vsRoll && choiceVs(P, pl));
