@@ -631,7 +631,7 @@ export function decksPart(V) {
     };
     if (top) out.push(moveTok(top[0].L.e, top[0].d.a, mv, true));
     // (no move its best, the solver rolling or your transfers all it makes: nothing in the band, the bar says the week;
-    // owner, 2026-11-04, "stop showing some random crap there", until what belongs there is found: design_1104d)
+    // owner, 2026-11-04, "stop showing some random crap there", then "Keep it empty")
     // (none beside it: each is its place's plate already; owner, 2026-11-02, "stop dublicating black and other pills on
     // pich", reversing 2026-10-29's two moves in the corner)
     // (the week's status is on the bar's first line: statusLine)

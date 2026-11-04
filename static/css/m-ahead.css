@@ -406,6 +406,9 @@ height and corner, its name moved past it; still the armband's drag handle (scre
 .ah-pitch .pm .pm-badge:is(.c, .v) {
   top: calc(100% + 1px); left: 1px; width: auto; min-width: var(--pm-plate); height: var(--pm-plate); padding: 0 2px;
   border-radius: calc(var(--pm-tile-r) - 2px) 0 0 0; box-shadow: none; font-size: calc(var(--pm-plate) * .62); }
+/* (the flying C, armbandHop, goes by its transform from the pitch's corner: the tag's top is a card's, on the pitch it put
+the C a pitch's height down, under the screen, the page scrolling with it at every change of captain from 2026-11-02) */
+.ah-pitch .pm .pm-badge.pm-fly { top: 0; left: 0; }
 .ah-pitch .pm .pm-card:has(.pm-badge:is(.c, .v)) .pm-pn { padding-left: calc(var(--pm-plate) + 2px); }
 /* the swap plates' three weights (design.md §1, §7): the best's ink (the C / V badge's, both themes: white 17.6:1; on
 the dark turf a white hairline holds its edge), a take's the app's "worth doing" mint (#05341C on it 10.2:1: a
