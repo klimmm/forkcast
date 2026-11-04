@@ -194,7 +194,6 @@ export const COPY = Object.freeze({
       // (a card's ×, not ⇄: FPL's substitution sign; owner, 2026-11-03, "Back to ×")
       'Tap × on a player\'s card for his place: the choices for his spot, each with its number and Swap.',
       'In a player\'s place, Keep over his own card keeps him that GW: nothing sells him.',
-      'When rolling is best, the strip names the plan\'s next transfers; tap it for their GW.',
       'Rolling is making no transfer: your free transfer carries over to the next GW.',
       // the rule a take adds, by its own word (rollRule; owner, 2026-10-22: never "lock", the plan length's padlock): a
       // transfer's "GW8 frozen", the Roll's "GW8 roll", a Wildcard's or Free Hit's its chip
@@ -725,20 +724,15 @@ export const COPY = Object.freeze({
   keepSoldSaid: (sold, buy) => `Keep ${sold}, not ${buy}`,
   /** The ✕ on the best move's token (ahead.js renderDecks; owner, 2026-11-02): its buy refused in this week alone. */
   notBuySaid: (buy, g) => `Not ${buy} in GW${g}: the next best move`,
-  rollingBest: 'Rolling is best',
-  /** …and in its band, why: the week the solver's plan spends the free transfer, its moves (owner, 2026-11-02, "find
-   *  better use of the space instead of writing rolling is best"): "Roll → GW13: Gabriel → N.Williams, Dewsbury-Hall
-   *  → Rice"; tapped, that week. */
-  // (→ only between a transfer's names: owner, 2026-11-03, design_1103b "Bar and strip words", Podmajersky)
-  rollNext: (g, moves) => `Roll now · next transfers GW${g}: ${moves}`,
-  /** …a week whose own transfers are made (no best left in it): the plan's next ones (owner, 2026-11-02, "why not pill
-   *  moving to next week"). */
-  planNext: (g, moves) => `Next transfers GW${g}: ${moves}`,
-  planNextSaid: (g, moves) => `Next transfers in GW${g}: ${moves}. Opens GW${g}`,
-  rollNextSaid: (g, moves) => `Rolling is best: the plan's next transfers are in GW${g}, ${moves}. Opens GW${g}`,
-  /** …and what rolling is, in its spoken label (review 7 B9: "Rolling" defined; Help says it too). Never a second
-   *  line on the token: the Reset under the corner's tokens keeps one place in every GW (resetSlot; QA lineup-reset). */
-  rollingMeans: 'no transfer: your free transfer carries over',
+  /** The band in a week with no more moves: not moving is a choice too, so what it passes up (Duke, ch. 2; owner,
+   *  2026-11-04, "make Not betting is a bet"). `made`: your transfers made; the words before its number, by the shown
+   *  gain of the week's best transfer `d` (its Week sheet row's): under 0 not moving wins by it, 0 they level, else it
+   *  gives points up for what the solver counts higher, holdFor: the free transfer, or the hit it would take. */
+  holdWho: (made) => (made ? 'Stopping here' : 'Rolling'),
+  holdLine: (who, move, d) => (d < 0 ? `${who} beats ${move} by ` : d > 0 ? `${who} gives up ${move}, ` : `${who} matches ${move}`),
+  holdFor: (hit) => (hit ? 'to save the hit' : 'to keep a free transfer'),
+  holdKeeps: 'Rolling keeps your free transfer',
+  holdOpens: 'opens the week\'s choices',
   /** A pair card's note, its other moves (ahead.noteOf): "also Semenyo → Palmer, Cunha → Rice". */
   placeAlso: (moves) => `also ${moves.join(', ')}`,
   placeChoices: (n) => `${plural(n, 'choice')} for his place ›`,

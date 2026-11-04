@@ -8,7 +8,7 @@ export {
   weekWait, lineNotices, planWeeks, countedAfter, squadChanges, litEdges, weekKey, weekSettled, settleDue, settlesAt, rowsWanted
 } from './plans/choices.js';
 export {
-  litOf, weekBest, litShown, rollOnly, planBack, decksOf, benchOnly, takesBack, singleMove, placeDealt, placePages,
+  addsOf, litOf, weekBest, litShown, rollOnly, planBack, decksOf, benchOnly, takesBack, singleMove, placeDealt, placePages,
   placeBuys, placeLine, multiMove, placeSplit, lineMoves, placeOrder, PLACE_SLOTS, placeFirst, slotsBeside,
   failedWords, noteOf, mineAny, byGain, forkKey, fitsAt
 } from './plans/lit.js';

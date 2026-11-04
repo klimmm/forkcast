@@ -268,7 +268,7 @@ export function forkPump(ctx, P, ask) {
   const purpose = ask.ahead ? 'presolve' : prep ? 'pairnext' : 'pair';
   if (ask.ahead) AHEAD.asked.push({ at: Date.now(), key: ask.key, src: ask.src });
   const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, lane ? { slot: `fork${lane}` } : undefined,
-    { gw: ask.gw, kind: ask.ahead ? 'a tap, ahead' : ask.root ? 'the week\'s plan' : side ? (ask.tap === 'keep' ? 'the next Keep' : 'the next ✕') : ask.need ? 'next week: what it draws' : prep ? 'next week' : 'a choice', what: solveWords(ctx, P, ask), key: ask.key });
+    { gw: ask.gw, kind: ask.ahead ? 'a tap, ahead' : ask.root ? 'the week\'s plan' : side ? (ask.tap === 'pass' ? 'what not moving passes up' : ask.tap === 'keep' ? 'the next Keep' : 'the next ✕') : ask.need ? 'next week: what it draws' : prep ? 'next week' : 'a choice', what: solveWords(ctx, P, ask), key: ask.key });
   flight.cancel = () => p.cancel?.();
   p.then((res) => {
       // a tap's solve asked ahead: its answer memory's for exactly those values (presolve); one that failed for another

@@ -276,9 +276,13 @@ export function owedRoad(ctx, P, g, { peek = false, prep = false } = {}) {
 const ROOTS = new Map();
 /** …cleared with the fork solves' state (forks.resetForks: between the node tests). */
 export const clearRoots = () => ROOTS.clear();
-/** GW g's last root road (refusalRoads) on plan P's data: the solver's plan under your rules as they stand, its later
- *  weeks' transfers (the band's "Next →": tokensOf) → road | null */
-export const rootRoad = (P, g) => { const r = ROOTS.get(`${P.entry}|${g}`); return r?.version === P.b.version ? r.road : null; };
+/** GW g's road with one more transfer than your n there (--min-buys-gw): the solver's best move if one is made, for a week
+ *  it adds none to, so the band can say what not moving passes up (plansOf, tokensOf; owner, 2026-11-04, "make Not
+ *  betting is a bet"). peek: as solved so far. → road | 'infeasible' | 'error' | null (solving) */
+export function passRoad(ctx, P, g, n, peek = false) {
+  const values = { ...rootValues(ctx, P, g), min_buys_gw: `${g}:${n + 1}`, to: g }, key = valuesKey(P, values);
+  return peek ? forkRead(key) : forkAsk(ctx, P, { key, values, gw: g, side: true, tap: 'pass' });
+}
 /** Whether `road`, the solver's best under `was` (solve values), is still its best under `now`: the same data and the
  *  same values but for must-haves and exclusions added, every one of which the road already keeps (a lock of a player
  *  it keeps, a take of its own move: the best of a narrower choice is the same plan). Pure. */
@@ -780,9 +784,10 @@ export function addPlan(ctx, g, pl) {
       // by (owner, 2026-10-26): that is the header's change (renderTotal)
       : pl.vsRoll && !pl.refRow ? (Q, prev) => takeSaid(ctx, g, `${what}${lineupMoved(Q, prev, g)} · `, pl.cmp, ` vs ${choiceVs(P, pl)}`) : withPoints(ctx, what, (Q, prev) => lineupMoved(Q, prev, g), { total: true }),
     more: own.length && WHY_SHEET ? [whyAct(g, own[0].in)] : [],
-    // a take's receipt: two rows on a phone, its head one line, "frozen" and the week's count clipping after the sales,
-    // anything it takes back whole (ui.toast; owner, 2026-10-26)
-    take: [made, kept].filter(Boolean),
+    // a take's receipt: two rows on a phone, its head one line, "frozen", the week's count and the lineup's words clipping
+    // after the sales, anything it takes back whole (ui.toast; owner, 2026-10-26; the lineup's since QA manyft, 2026-11-04:
+    // a row with a hit beside your transfer took four lines with "Vuskovic to bench" kept whole)
+    take: (Q, prev) => [made, kept, ...lineupMoved(Q, prev, g).split(' · ').slice(1)].filter(Boolean),
   });
 }
 

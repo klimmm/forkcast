@@ -87,7 +87,7 @@ export const rollOnly = (pl) => !!pl?.rolls;
  *  whole only where the choice buys him too ("instead of Murillo → Hill"). Pure. */
 /** Choice c's GW-g moves your week doesn't make already (`yours`: its moves; none in your chip week, where a choice's
  *  moves are all its own): what its + adds (planBack's `adds`; weekBest's single or several). Pure. */
-const addsOf = (c, g, yours) => c.moves.filter((m) => m.gw === g && !yours.some((y) => y.out === m.out && y.in === m.in));
+export const addsOf = (c, g, yours) => c.moves.filter((m) => m.gw === g && !yours.some((y) => y.out === m.out && y.in === m.in));
 export function planBack(P, g, pl) {
   const nm = P.L.name;
   const c = pl.choice;

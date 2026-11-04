@@ -585,8 +585,9 @@ lead (a take's moves) clips, what follows it (.toast-also) keeps its lines, on i
 #toasts .toast .toast-msg.long .toast-also { display: block; }
 #toasts .toast .toast-msg.long .toast-tail { -webkit-line-clamp: var(--tail-lines, 1); line-clamp: var(--tail-lines, 1); }
 /* ui.toast, a take's receipt in two rows where its words with its buttons take more than one line (.split: ui.js fit;
-owner, 2026-10-26): the head on row one, the toast's full width, one line, the sales clipping first, then the clauses
-that may (.toast-may), the buy last, each with "…", every other clause whole (else not split); its one number on row
+owner, 2026-10-26): the head on row one, the toast's full width, one line, the sales clipping first with "…", then the
+clauses that may (.toast-may) going whole, the last first (.off: ui.js fit), the buy last, every other clause whole
+(else not split); its one number on row
 two at the left, its " · " not drawn, the buttons at the right, in order; a warning's icon in a column of its own
 over both. The words' box (.toast-msg) spans both rows on the toast's own columns (subgrid; without it, iOS < 16, no
 .split: ui.js SPLITS) */
@@ -600,6 +601,7 @@ over both. The words' box (.toast-msg) spans both rows on the toast's own column
   #toasts .toast.split .toast-head :where(.toast-lead, .toast-from, .toast-to, .toast-also > span) { flex: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
   #toasts .toast.split .toast-head :is(.toast-lead:not(.moves), .toast-from) { flex: 0 1000 auto; min-width: 3.5em; }
   #toasts .toast.split .toast-head .toast-may { flex: 0 10 auto; }
+  #toasts .toast.split .toast-head .toast-may.off { flex: 0 0 0; }
   #toasts .toast.split .toast-head .toast-to { flex: 0 .01 auto; }  /* (a shrink weighed by its width: last, by far) */
   #toasts .toast.split .toast-tail { grid-column: 1; grid-row: 2; margin: 0; padding: 0; text-indent: 0; }
   #toasts .toast.split .toast-sep { font-size: 0; }

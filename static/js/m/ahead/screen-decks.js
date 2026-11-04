@@ -1,14 +1,18 @@
 // screen.js mount: the plates, the corner tokens and a take's landing
 
-import { MINUS, WHY_SHEET, pairedMoves, weekOf } from './core.js';
-import { h, svg, fill, append, plural, reduceMotion, toast, xpGain, shownGain } from '../../ui.js';
-import { SQUAD_CHIPS, askPlace, failedWords, lineMoves, litShown, multiMove, placeFirst, placeOrder, planBack, planWeeks, rollOnly, takesBack } from './plans.js';
+import { MINUS, WHY_SHEET, weekOf } from './core.js';
+import { h, svg, fmt, fill, append, plural, reduceMotion, toast, xpGain, xpNum, shownGain } from '../../ui.js';
+import { SQUAD_CHIPS, addsOf, askPlace, failedWords, lineMoves, litShown, multiMove, placeFirst, placeOrder, planBack, planWeeks, rollOnly, takesBack } from './plans.js';
 import { COPY, shownDelta } from '../calls.js';
 import { plPays } from './pieces.js';
 import * as E from '../../plan/engine.js';
-import { addPlan, planTake, rootRoad } from './presolve.js';
+import { addPlan, planTake } from './presolve.js';
 import { keep, pinOf, removeRule, veto } from './edits.js';
 import { EDGE_MIN, NAME_LEAST, PLATE_MIN, PLATE_TRIMS, ST_TRIMS, boxesMeet, cssPx, fitNum, oneLook, reachOf } from './screen.js';
+
+/** The band's least height, two lines of ticket and its gap, a move of one line too, so the pitch never moves between
+ *  weeks (m-ahead.css .ah-pitch.band --ah-band; owner, 2026-11-04, design_1104a B). */
+const BAND_LEAST = 60;
 
 /** The lock's glyph, shut or open (cardMarks). */
 const lockGlyph = (shut) => svg('svg', { viewBox: '0 0 12 14', 'aria-hidden': 'true' },
@@ -118,12 +122,13 @@ export function decksPart(V) {
       // (its height the band's, two lines for a plan's moves: the pitch fitted under it again where that changed; its
       // names shortened by its CSS alone, the sellers' first, the corner's trims never: the whole width is its room)
       if (inBand(t)) {
-        // (a name cut: its scope off first, then "Close call" (the outlined Swap still says it), never a name: design_1103b.
+        // (a name cut: "Close call" off first (the outlined Swap still says it), then its scope, the words saying what the
+        // number covers, never a name: design_1103b, reordered by design_1104a's larger "Close call".
         // His name read off a Range: scrollWidth never sees the first 28 px, .x's ✕ padding)
         const nameCut = (x) => { const r = document.createRange(); r.selectNode(x.firstChild); return r.getBoundingClientRect().width > x.clientWidth - parseFloat(getComputedStyle(x).paddingRight) + 0.5; };
         const cut = () => [...t.querySelectorAll('.ah-tn > .x')].some(nameCut);
-        for (const sel of ['.ah-tgw', '.ah-tclose']) { const x = t.querySelector(sel); if (x && cut()) x.hidden = true; }
-        const bh = `${t.offsetHeight + 8}px`;
+        for (const sel of ['.ah-tclose', '.ah-tgw']) { const x = t.querySelector(sel); if (x && cut()) x.hidden = true; }
+        const bh = `${Math.max(t.offsetHeight + 8, BAND_LEAST)}px`;
         // (drawn again on the pitch as fitted: every box here was measured on the pitch before)
         if (pitchHost.style.getPropertyValue('--ah-band') !== bh) { pitchHost.style.setProperty('--ah-band', bh); fitPitch(); return renderDecks(); }
         continue;
@@ -615,22 +620,24 @@ export function decksPart(V) {
         swap ? h(`span.ah-tgo.m-swap${best ? '.best' : ''}`, { 'aria-hidden': 'true' }, takesBack(e) ? COPY.placeKeep : COPY.placeSwap) : null);
     };
     if (top) out.push(moveTok(top[0].L.e, top[0].d.a, mv, true));
-    // "Rolling is best" in the best move's place once the week settles with no move its best and its Roll offered
-    // (owner, 2026-10-30): ink, flat, its "›" the door to the Week sheet, where every choice is counted against it
-    // (openWeek), never given way for room (renderDecks: .st)
-    // in the band once the week settles with no best left (a week you roll, or one whose transfers you made): why, the
-    // next week with transfers of the plan as it stands, its moves, a tap there (owner, 2026-11-02, "find better use of
-    // the space instead of writing rolling is best", "why not pill moving to next week"): the solver's plan under your
-    // rules (rootRoad), else its roll road; "Rolling is best" and the Week sheet where neither makes one
+    // once the week settles with no move its best (the solver rolls, or your transfers are all it makes): what not moving
+    // passes up, the week's best transfer and its number, as its Week sheet row counts it, its "›" the door to that sheet
+    // (openWeek), never given way for room (renderDecks: .st). Not moving is a bet too (Duke, ch. 2; owner, 2026-11-04,
+    // "make Not betting is a bet"), never another week's moves ("dont show or move to the other gw transfers here")
     else if (M?.settled && !lit.best) {
-      const rolling = toks.some(rollOnly), road = rootRoad(P, g) ?? (rolling ? toks.find(rollOnly)?.road : null);
-      const nx = road?.weeks?.filter((x) => Number(x.gw) > g && (x.in || []).length).sort((a, b) => a.gw - b.gw)[0];
-      const ms = nx ? pairedMoves(nx.out || [], nx.in || [], P.L) : [], at = Number(nx?.gw);
-      const words = (f) => ms.map((m) => f(P.L.name(m.out), P.L.name(m.in))).join(', ');
-      if (ms.length) out.push(h('button.ah-tok.st.best.next', { type: 'button', dataset: { row: `tok:week:${g}` }, 'aria-label': (rolling ? COPY.rollNextSaid : COPY.planNextSaid)(at, words(COPY.moveSaid)), onClick: () => V.setGw(at) },
-        h('span.ah-tl', { 'aria-hidden': 'true' }, (rolling ? COPY.rollNext : COPY.planNext)(at, words((o, i) => `${o} → ${i}`.replace(/-/g, '\u2011'))))));
-      else if (rolling) out.push(h('button.ah-tok.st.best', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` }, 'aria-label': `${COPY.statusSaid(COPY.rollingBest, g)}: ${COPY.rollingMeans}`, onClick: (ev) => openWeek(ev, g) },
-        h('span.ah-tl', { 'aria-hidden': 'true' }, COPY.rollingBest)));
+      const adds = (pl) => addsOf(pl.choice, g, w.moves);
+      const pass = M.plans.find((pl) => !pl.refRow && !pl.solver && pl.state === 'ready' && adds(pl).length && !Object.keys(pl.choice.chips ?? {}).length);
+      const who = COPY.holdWho(w.moves.length > 0), rolls = toks.some(rollOnly);
+      const d = pass ? fmt.signed(shownDelta(pass.cmp)) : null, waits = !pass && M.all?.passWait;
+      // (as shown: "0.0" reads level)
+      const n = d?.startsWith('+') ? 1 : d?.startsWith(MINUS) ? -1 : 0, num = n < 0 ? d.slice(1) : d;
+      const moves = pass ? adds(pass).map((m) => `${P.L.name(m.out)} → ${P.L.name(m.in)}`).join(', ') : '';
+      // (its solve under way: the word alone, the sentence growing from it, nothing "planning…" after a tap: QA solve-budget)
+      const line = pass ? COPY.holdLine(who, moves, n) : waits ? who : COPY.holdKeeps;
+      const span = Object.keys(pass?.road?.windows?.[g]?.xi ?? {}).length || P.gws.filter((x) => x >= g).length;
+      const why = n > 0 ? ` ${COPY.holdFor(pass.hits?.[g])}` : '';
+      if (pass || waits || rolls) out.push(h('button.ah-tok.st.best.hold', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` }, 'aria-label': `${line}${n ? `${num} points` : ''}${why}, ${COPY.holdOpens}`, onClick: (ev) => openWeek(ev, g) },
+        h('span.ah-tl', { 'aria-hidden': 'true' }, line, n ? [xpNum(num, 'span.xp-g'), ` ${COPY.overGws(span)}${why}`] : null)));
     }
     // (none beside it: each is its place's plate already; owner, 2026-11-02, "stop dublicating black and other pills on
     // pich", reversing 2026-10-29's two moves in the corner)

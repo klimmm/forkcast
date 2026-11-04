@@ -466,13 +466,14 @@ export function toast(msg, kind = 'info', opts = {}) {
   // buttons on a line under the words (m.css .toast.under) when one can't sit beside the widest number; past three
   // lines the head clips (.toast-msg.long), never the number; the lead clips before .toast-also
   // A take's toast (opts.take) past one line with buttons beside it is two rows (m.css .toast.split): the head on one
-  // line (sales clip first, then `take`'s clauses, the buy last, each with "…"), the number beside the buttons on the
+  // line (sales clip first with "…", then `take`'s clauses go, the last first, the buy last), the number beside the buttons on the
   // second, its " · " not drawn (owner, 2026-10-26); no number: buttons alone. If head or number can't fit: the
   // every-toast way, below
   const fit = () => globalThis.requestAnimationFrame?.(() => {
     if (!text.isConnected) return;
     text.classList.remove('long', 'tailrow');
     el.classList.remove('under', 'split');
+    for (const c of text.querySelectorAll('.toast-may.off')) c.classList.remove('off');
     const lh = parseFloat(getComputedStyle(text).lineHeight) || 17;
     const lines = (e) => (e ? Math.round(e.getBoundingClientRect().height / lh) : 0);
     const tail = text.querySelector('.toast-tail');
@@ -480,6 +481,10 @@ export function toast(msg, kind = 'info', opts = {}) {
       el.classList.add('split');
       const whole = (e) => !e || e.scrollWidth <= e.clientWidth + 1;
       const head = text.querySelector('.toast-head');
+      // (a clause that may clip goes whole, the last first, while one is cut or the buy is: "GW10 Ajayi → Mykolenko (−4) ·
+      // locked", never "GW1… → Mykolenko (−… … · 2 tr… · Vu…"; its words stay in the toast, read out; QA manyft, 2026-11-04)
+      const may = [...text.querySelectorAll('.toast-may')], buy = text.querySelector('.toast-to');
+      while (may.length && (!whole(buy) || may.some((c) => !whole(c)))) may.pop().classList.add('off');
       if (whole(tail) && lines(tail) <= 1 && whole(head) && whole(text.querySelector('.toast-to')) && [...text.querySelectorAll('.toast-also > span:not(.toast-may)')].every(whole)) return;
       el.classList.remove('split');
     }

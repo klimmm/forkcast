@@ -259,7 +259,7 @@ function land(ctx, { instant = false } = {}) {
   memOf(ctx).claimEdit();  // this toast is its receipt
   // the newest edit's verdict, against the plan before it (ov.prevP); its Undo takes back that one only (undoOf), other
   // actions before it (edit's `more`)
-  say(ctx, line, undoOf(ctx, chainSaid(ov.chain.slice(-1)), () => undoNewest(ctx, ov.chain)), 'info', null, ov.more ?? [], ov.take ?? null);
+  say(ctx, line, undoOf(ctx, chainSaid(ov.chain.slice(-1)), () => undoNewest(ctx, ov.chain)), 'info', null, ov.more ?? [], ov.take?.(P, ov.prevP) ?? null);
 }
 /** The weeks plan view Q changes against `prev` (weekChanged): their new transfers and changed cards (changedCards). →
  *  {gws, rows: {gw: [`${out}>${in}`]}, cards: {gw: [id]}} */
@@ -395,8 +395,8 @@ export function clashLine(P, clash = CLASH) {
  * bundle road fits or `road` is offered (memory.offer), else memory heals (one solve); the verdict says when it lands
  * (land) or what the solver couldn't keep (fail). Verdict: `text(Q, prev)`, else `what` with its points as what your
  * total moves by ("total +3.3": withPoints), then `ending(Q, prev)` (endingOf); landed at once, `what` and its ending
- * alone. Nothing goes with it that it doesn't name (RULES_V2 §5). `more`: actions before its Undo; `take`: a take's
- * receipt.
+ * alone. Nothing goes with it that it doesn't name (RULES_V2 §5). `more`: actions before its Undo; `take(Q, prev)`: a
+ * take's receipt, the clauses that may clip.
  */
 export function edit(ctx, { pins = [], drop = [], road = null, from, text = null, what = null, also = null, inPlace = null, ending = null, taken = [], more = [], take = null, hitsMax }) {
   if (!editable(ctx)) { toastOf(ctx)(OFFLINE_EDIT, 'warn'); return false; }

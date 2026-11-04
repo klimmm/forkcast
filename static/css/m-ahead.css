@@ -530,20 +530,23 @@ its hairline, --r-sm, the muted "›" (the raised white pill is Player data's an
 /* the week's best move, first in the stack (ahead.js tokensOf; owner, 2026-10-26, "Ink token, top of stack"): ink as
 its plate, its plate's first buy and number, "Evanilson +1.6" (a plan's too); fitted as the other tokens (its "xP", a
 smaller number), then its name shortened as the plates' (.cut), never its number */
-.ah-tok.mv, .ah-tok.st.best { background: var(--sp-ink); color: #FFFFFF; box-shadow: 0 1px 2px rgb(0 0 0 / .3), var(--sp-edge); --xp-c: var(--xp-d); }
-.ah-tok.st.best { box-shadow: var(--sp-edge); }  /* "Rolling is best" ink but a status: flat, its door's "›" light */
-.ah-tok.st.best::after { color: rgb(255 255 255 / .75); }
-/* "Rolling is best" ink as the week's best move (ahead.js statusTok; owner, 2026-10-27), the lineup notice under it
-light on the ink */
-.ah-tok.st.best .ah-tw { color: rgb(255 255 255 / .75); }
+/* (the week card's foot in the tiles' grey, ink words, the number blue: design_1104a B, Soft foot; owner, 2026-11-04, "why
+this contrasted desing": white over black split the one card in two. The best is told by the card's one filled button
+and its number, not the darkest fill on the screen: Johnson ch. 2, likeness makes a group) */
+.ah-tok.mv, .ah-tok.st.best { background: var(--track); color: var(--ink); box-shadow: 0 0 0 1px var(--hair), 0 1px 2px rgb(0 0 0 / .12); --xp-c: var(--xp); }
+.ah-tok.st.best { box-shadow: 0 0 0 1px var(--hair); }  /* "Rolling is best" a status: flat */
+.ah-tok.st.best::after { color: var(--muted); }
+/* "Rolling is best" as the week's best move (ahead.js statusTok; owner, 2026-10-27), the lineup notice under it */
+.ah-tok.st.best .ah-tw { color: var(--muted); }
 /* (the week's runner-up under it, .nx: its buy, number and Swap as the best's, in its plate's look on the pitch: the
 quiet plate's dark green, white words and white keyline (.ah-sp); ahead.js tokensOf, owner, 2026-10-29) */
 .ah-tok.nx { background: var(--sp-alt); color: #FFFFFF; --xp-c: var(--xp-d); }
 .ah-tok:is(.mv, .nx) > .ah-tl { display: flex; align-items: center; gap: .25em; }
 .ah-tok:is(.mv, .nx) .ah-tn { flex: none; }
-.ah-tok:is(.mv, .nx) .ah-tnum { flex: none; color: var(--xp-d); }
+.ah-tok:is(.mv, .nx) .ah-tnum { flex: none; color: var(--xp-c); }
 .ah-tok.mv.cut .ah-tn { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ah-tok:is(.mv, .nx):focus-visible { outline: 2px solid #FFFFFF; outline-offset: -2px; }
+.ah-tok.mv:focus-visible { outline-color: var(--ink); }
 /* …its take's word, "Swap", the place's best header's mint chip at its end (ahead.js tokensOf; owner, 2026-10-28: one
 act, one look); off before its name is cut (.nogo: ahead.js renderDecks' fit) */
 .ah-tok .ah-tgo { flex: none; display: inline-flex; align-items: center; height: 18px; padding: 0 5px; font-size: calc(var(--t-sub) * .85); }
@@ -608,7 +611,7 @@ button.ah-phead.ah-pkeep.outl { background: rgb(2 30 13 / .5); color: #FFFFFF; b
 /* the −4 before a number on the pitch at the number's own size (11 px on a plate), its look m.css .m-hit's: --loss-d on
 the dark green and the ink, --loss on a light header */
 .ah-dhit { margin-right: 3px; }
-.ah-pitch :is(.ah-sp, .ah-tok.mv, .ah-phead, .ah-pnote) { --hit-c: var(--loss-d); }
+.ah-pitch :is(.ah-sp, .ah-phead, .ah-pnote) { --hit-c: var(--loss-d); }
 .ah-pitch .ah-phead:is(.now, .pays), .ah-pitch .ah-phead.pays + .ah-pnote { --hit-c: var(--loss); }
 .ah-dchip { margin-right: 2px; font-size: .82em; font-weight: 700; color: #FFE7A3; }  /* a Bench Boost / Triple Captain its tap plays too */
 /* the take, worded ("Swap"; ahead.js takeFrom), its target up into the shade over the header and over the number beside
@@ -961,7 +964,8 @@ one (ink; mint on an ink plate), green where it beats rolling, .quiet outlined w
 .m-swap { border: 0; border-radius: var(--r-sm); background: var(--acc-bg); color: var(--acc-ink); font-weight: 700; white-space: nowrap; cursor: pointer; }
 .m-swap.best { background: #17191A; color: #FFFFFF; }
 .m-swap.quiet { background: var(--surface); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--border-2); }
-:is(.ah-tok.mv, .ah-phead.best) .m-swap { background: #8EF2B3; color: #05341C; }  /* on an ink plate: the --sp-go mint */
+.ah-phead.best .m-swap { background: #8EF2B3; color: #05341C; }  /* on an ink plate: the --sp-go mint */
+.ah-tok.mv .m-swap { background: var(--acc-bg); color: var(--acc-ink); }  /* the week card's one filled button */
 .ah-phead.lo .m-swap.quiet { background: none; color: #FFFFFF; box-shadow: inset 0 0 0 1.25px rgb(255 255 255 / .8); }  /* on the dark */
 /* …a row's (the Week sheet's, a place's Other… list): 28 px to see, 44 to hit, in the +'s place */
 .m-sheet .m-swap:is(.ah-add, .ws-add) { width: auto; min-width: 48px; height: 28px; padding: 0 10px; border: 0; border-radius: var(--r-sm); font: 700 var(--t-sub)/1 var(--f-text); }
@@ -1255,7 +1259,7 @@ provisional, at 400 */
 large green swap button while disagree have a cross"): a 24 px ring, white on the ink, the outlined partner of the
 filled mint chip (one primary, one secondary: Material 3 buttons, emphasis); its target its own 24 x 24 box
 (WCAG 2.2 SC 2.5.8), never over the token's or the week line's */
-.ah-decks .ah-cm.tno.in { width: 24px; height: 24px; background: none; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .85); }
+.ah-decks .ah-cm.tno.in { width: 24px; height: 24px; background: none; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink-2); }
 .ah-decks .ah-cm.tno.in::before { content: none; }
 .ah-decks .ah-cm.tno.in svg { width: 8px; height: 8px; }
 .ah-tok.mv.nox .ah-tgo { height: 24px; padding: 0 8px; border-radius: 12px; font-size: var(--t-sub); }
@@ -1278,13 +1282,12 @@ ticket took them, leaving 41; QA chips-sheet, 2026-11-04) */
 .m-screen.ah:has(> .ah-pitch.band .ah-tok:is(.mv, .st.best)) .ah-blockhost { position: relative; z-index: 3; }
 .ah-pitch.band .ah-tok:is(.mv, .st.best) { top: calc(-1 * var(--ah-band)); left: 8px; right: 8px; max-width: none; height: auto; min-height: 52px; padding: 0 4px 0 12px; border-radius: 0 0 12px 12px; }
 .ah-pitch.band .ah-tok:is(.mv, .st.best)::before { inset: 0; }
-/* a rolling week's band, why it rolls (tokensOf): "Roll → GW13: Gabriel → N.Williams, Dewsbury-Hall → Rice", two lines
-at most, its "›" the door to that week */
-/* (a link, not a move to take: outlined and quiet, the ink and its Swap the move's alone; owner, 2026-11-03,
-design_1103b "Bar and strip words": Johnson, Birman) */
-.ah-pitch.band .ah-tok.st.best.next { height: auto; min-height: 52px; padding-top: 4px; padding-bottom: 4px; background: var(--plate, #FFFFFF); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--sp-ink); }
-.ah-pitch.band .ah-tok.st.best.next::after { color: var(--muted); }
-.ah-tok.st.best.next > .ah-tl { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; font-weight: 500; line-height: 1.3; }
+/* (one move one line, the tiles' height, none of the spare height around it; the pitch stays where two lines put it:
+renderDecks BAND_LEAST) */
+.ah-pitch.band .ah-tok.mv.tix:not(.multi) { min-height: 40px; }
+/* (a week with no more moves: what not moving passes up, up to two lines in the foot's height: tokensOf) */
+.ah-pitch.band .ah-tok.st.best.hold { min-height: 40px; padding-top: 4px; padding-bottom: 4px; }
+.ah-tok.st.best.hold > .ah-tl { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; font-weight: 500; line-height: 1.3; }
 .ah-tok.mv.tix .ah-tn { display: flex; align-items: center; flex: 0 1 auto; min-width: 0; gap: .3em; }
 .ah-tok.mv.tix .ah-tn > :is(.o, .i) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ah-tok.mv.tix .ah-tn > .x { padding-right: 28px; }
@@ -1299,13 +1302,13 @@ status's ink; a locked price FPL's lock alone */
 .pm .pm-pf.bar::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--pm-fill); background: var(--pg); }
 .pm .pm-pf.bar .pm-px { position: relative; color: var(--pg-ink, #37003C); }
 .pm .pm-pf.bar .pm-px > .icon { vertical-align: -1px; }
-.ah-tok.mv.tix .ah-tn > .o { flex: 0 1 auto; font-weight: 400; opacity: .8; }
+.ah-tok.mv.tix .ah-tn > .o { flex: 0 1 auto; font-weight: 400; color: var(--ink-2); }
 .ah-tok.mv.tix .ah-tn > .i { flex: 0 0 auto; }
 .ah-tok.mv.tix > .ah-tnum { margin-left: auto; }
-.ah-tok.mv.tix .ah-tgw { margin-left: .3em; font-size: var(--t-sub); font-weight: 400; color: rgb(255 255 255 / .78); }
-.ah-tok.mv.tix .ah-tclose { margin-right: .4em; font-size: var(--t-cap); font-weight: 600; color: #FFFFFF; }
+.ah-tok.mv.tix .ah-tgw { margin-left: .3em; font-size: var(--t-sub); font-weight: 400; color: var(--muted); }
+.ah-tok.mv.tix .ah-tclose { margin-right: .4em; font-size: var(--t-sub); font-weight: 600; color: var(--ink); }
 /* a close call's Swap outlined, the act quieter where the count can't tell it from rolling */
-.ah-tok.mv.tix.close > .ah-tgo.m-swap { background: none; color: #FFFFFF; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .85); }
+.ah-tok.mv.tix.close > .ah-tgo.m-swap { background: none; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink-2); }
 /* a plan's moves, one a line, "Gabriel → N.Williams ✕" over "Dewsbury-Hall → Rice +0.4 xP Swap" (owner, 2026-11-02:
 "it must not take more than two lines"): the band as high as they are (renderDecks --ah-band) */
 .ah-pitch.band .ah-tok.mv.tix.multi { flex-wrap: wrap; row-gap: 0; height: auto; min-height: 52px; padding-top: 2px; padding-bottom: 2px; }
@@ -1314,7 +1317,7 @@ status's ink; a locked price FPL's lock alone */
 .ah-tok.mv.tix.multi .ah-tn { flex: 1 1 0; min-width: 0; }
 .ah-tok.mv.tix.multi .ah-brk { flex-basis: 100%; height: 0; }
 
-.ah-tok.mv.tix > .ah-tgo { height: 24px; padding: 0 10px; border-radius: 12px; font-size: var(--t-sub); }
+.ah-tok.mv.tix > .ah-tgo { height: 24px; padding: 0 10px; border-radius: 12px; font-size: var(--t-sub); font-weight: 600; }
 /* the band's seller on the pitch (renderDecks .ah-sold): framed in the band's ink with a white hairline inside, a
 frame, never the filled ink plate a player coming in has, nor red (flags, losses); one nudge as the band names him
 (owner, 2026-11-03, design_1103b "Ink frame": Johnson, Duke, Elements of Choice); none in his open place, whose own
@@ -1324,7 +1327,7 @@ card is under "Keep" */
 @keyframes ah-sold-nudge { 40% { transform: translateY(-3px); } }
 @media (prefers-reduced-motion: reduce) { .ah-pitch .pm .pm-card.ah-sold { animation: none; } }
 .ah-decks .ah-cm.tlk.tx svg { width: 8px; height: 10px; }
-.ah-decks .ah-cm.tx { z-index: 4; width: 24px; height: 24px; background: none; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .85); }
+.ah-decks .ah-cm.tx { z-index: 4; width: 24px; height: 24px; background: none; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink-2); }
 .ah-decks .ah-cm.tx::before { content: none; }
 .ah-decks .ah-cm.tx svg { width: 8px; height: 8px; }
 
