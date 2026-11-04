@@ -6,7 +6,7 @@ import { h, append, statusDot, statusInfo, icon, toast, fmt, fin, plural } from 
 import { card, segmented, loading, empty, errorCard } from '../studio/kit.js';
 import { table, lineChart, playerPicker } from '../studio/tables.js';
 import {
-  COMPARE_MAX, LUCK_FREE, XI_TITLE, sourceOf, prepRows, describeSource, fixtureTags, xpTitle, xiText,
+  COMPARE_MAX, XI_TITLE, sourceOf, prepRows, describeSource, fixtureTags, xpTitle, xiText,
   signedCompact, compareIds,
 } from './players.js';
 
@@ -15,15 +15,10 @@ const colorOf = (i) => `var(--s${(i % 8) + 1})`;  // lineChart's default colour 
 function historySummary(p, res, color) {
   const head = h('div.cv-hs-name', null, h('span.cv-swatch', { style: { '--c': color } }), p.name);
   if (res?.error) return h('div.cv-hs', null, head, h('div.small.loss', null, res.error.message));
-  const both = (res?.rounds || []).filter((r) => fin(r.pts) && fin(r.pred_h0));
-  if (!both.length) return h('div.cv-hs', null, head, h('div.small.muted', null, 'No played GW with a forecast yet.'));
-  const sum = (k) => both.reduce((a, r) => a + (fin(r[k]) ? r[k] : 0), 0);
-  const diff = sum('pts') - sum('pred_h0');
-  const mae = both.reduce((a, r) => a + Math.abs(r.pts - r.pred_h0), 0) / both.length;
+  const played = (res?.rounds || []).filter((r) => fin(r.pts));
+  if (!played.length) return h('div.cv-hs', null, head, h('div.small.muted', null, 'No played GW yet.'));
   return h('div.cv-hs', null, head,
-    h('div.small', null, `Actual ${sum('pts')} · forecast ${fmt.num(sum('pred_h0'))} · luck-free ${fmt.num(sum('xpts'))}`),
-    h('div.small.muted', null, h('span', { class: diff >= 0 ? 'gain' : 'loss' }, `${fmt.signed(diff)} vs forecast`),
-      ` · mean abs. error ${fmt.num(mae, 2)} over ${plural(both.length, 'GW')}`));
+    h('div.small', null, `Actual ${played.reduce((a, r) => a + r.pts, 0)} over ${plural(played.length, 'GW')}`));
 }
 
 export default {
@@ -183,14 +178,12 @@ export default {
           const i = sel.indexOf(p);
           const rounds = res[i]?.rounds || [];
           // Cumulative lines use only GWs with a forecast, so actual and forecast compare.
-          const rr = histCum ? rounds.filter((r) => fin(r.pred_h0)) : rounds;
+          const rr = rounds;
           const line = (k) => {
             let s = 0;
             return rr.map((r) => (fin(r[k]) ? [r.gw, histCum ? (s += r[k]) : r[k]] : [r.gw, null]));
           };
           series.push({ name: one ? 'Actual points' : `${p.name} actual`, points: line('pts'), color: colorOf(i) });
-          series.push({ name: one ? 'Forecast made that GW' : `${p.name} forecast`, points: line('pred_h0'), color: colorOf(i), dashed: true });
-          if (one) series.push({ name: 'Luck-free points', points: line('xpts'), color: 'var(--muted)' });
         }
         box.replaceChildren();
         append(box,
@@ -211,9 +204,8 @@ export default {
       });
       draw();
       return card({
-        title: 'Actual vs forecast', className: 'cv-hist',
-        sub: 'Played GWs: FPL points (solid) against the pool’s forecast for that GW made at its own deadline (dashed). '
-          + 'Luck-free points (one player) take finishing luck out.',
+        title: 'Points per GW', className: 'cv-hist',
+        sub: 'Played GWs: FPL points.',
         actions: [who, cum],
         body: box,
       });
@@ -240,7 +232,6 @@ export default {
         hz.length > 1 && { label: `xP GW${hz[0]}–${hz[hz.length - 1]}`, get: (p) => p.xp_sum, fmt: (v) => fmt.pts(v, 2), best: 'max', strong: true },
         { label: 'xP per £m', get: (p) => p.xp_per_m, fmt: (v) => fmt.num(v, 2), best: 'max' },
         { label: 'Season points', get: (p) => p.season_pts, best: 'max' },
-        { label: 'Luck-free points', get: (p) => p.season_xpts, fmt: (v) => fmt.num(v, 1), best: 'max', title: LUCK_FREE },
         { label: 'Minutes', get: (p) => p.minutes, fmt: (v) => fmt.int(v), best: 'max' },
         { label: 'Points per 90', get: (p) => p.pts90, fmt: (v) => fmt.num(v, 1), best: 'max' },
         { label: 'Form (points per game)', get: (p) => p.form, fmt: (v) => fmt.num(v, 1), best: 'max', title: S.form },

@@ -111,7 +111,6 @@ export const settingsMethods = {
     const p = Object.fromEntries(CHIP_KEYS.map((k) => [k, undefined]));
     if (mode === 'manual') Object.assign(p, pick(this.values, CHIP_ROUNDS));
     if (mode === 'plan') p.plan = this.values.plan;
-    if (mode === 'auto') p.chip_auto = true;
     if (mode === 'none') p.no_chips = true;
     this.patch({ ...p, ...extra });
   },
@@ -180,8 +179,6 @@ export const settingsMethods = {
       body = choices.length
         ? [this.ctl('plan', { ...f, choices }), h('p.small.muted', null, 'A stored schedule from solver/chips.py CANONICAL_PLANS; it sets all four chips.')]
         : callout('warn', `No stored chip plans for ${season} (CANONICAL_PLANS has ${Object.keys(f?.choices_by_season || {}).join(' and ') || 'none'}). Pick another chip mode.`);
-    } else if (mode === 'auto') {
-      body = h('p.small.muted', null, this.flag('chip_auto')?.help || 'The solver times chips itself.');
     } else {
       body = h('p.small.muted', null, 'No chips are played, not even the season\'s default rounds (--no-chips).');
     }

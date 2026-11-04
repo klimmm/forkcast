@@ -31,9 +31,9 @@
 // withPrices(cols, prices), shownPlayers(bundle) → players columns with the prices block (and the live block) laid over
 // them by id
 // priceNights(meta, {now, until}) → {nights [{k, epoch}], stale, asOf}; priceOutlook(row, nights) → {dir, sure, night,
-// likelihood, word, held}; nightWords(epoch, now, tz); pricePlate(row, meta, {now, tz}) → the Player data plate ("▲
-// tonight", "▼ tomorrow", "▼ Sat", "▲ likely", "Locked", "—"); PRICE_WORD; priceSaid(outlook, when) → "very likely to
-// drop", "may rise (FPL: likely)"
+// likelihood, word, held}; nightWords(epoch, now, tz); pricePlate(row) → the Price change plate as FPL's pitch {text
+// ("+114.8%", "—"), tone, fill, locked}; priceProgress(row, entry row) → FPL's Predicted Progress chip {text ("+26.4%", "Locked"),
+// tone, sale} | null; saleStep(entry row, dir) → a price change's step on his sale, tenths | null; PRICE_WORD; priceSaid(outlook, when) → "very likely to drop", "may rise (FPL: likely)"
 // handoffMoves(week) → GW A's moves as you make them in FPL (the engine's legal ones)
 // statusText(name, row) → "Scott is injured (knee)" | null; OUT, newsReason(row)
 // driftHeadOf(delta, label, fresh, freshLabel, gws) → {gap, label, part}: the drift toast's head in parts
@@ -51,7 +51,7 @@ export {
   forcedNew, withForced, rulesCost, captainGap, subGap, planFromRoad, handoffMoves
 } from './calls/measure.js';
 export {
-  PRICE_WORD, priceSaid, priceNights, shownPlayers, withPrices, priceOutlook, nightWords, pricePlate, priceWatch,
+  PRICE_WORD, priceSaid, priceNights, shownPlayers, withPrices, priceOutlook, nightWords, pricePlate, priceProgress, saleStep, priceWatch,
   priceMorning, clockText, waitedText, waitLines, stepShare,
   waitFacts, waitFact
 } from './calls/prices.js';

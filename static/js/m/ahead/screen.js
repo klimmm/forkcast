@@ -3,7 +3,7 @@
 import * as E from '../../plan/engine.js';
 import { h, svg, fmt, fill, append, toast, toastRegion, chipName, plural, icon, statusInfo, roving, reduceMotion, holdTouch, flick, focusKey, refocus, xpNum, xpGain, shownGain } from '../../ui.js';
 import { subOrder, fitFixtures } from '../../plan/pitch.js';
-import { COPY, captainGap, priceMorning, gwFlags, liveCheck, clockText, stepShare } from '../calls.js';
+import { COPY, captainGap, priceMorning, pricePlate, gwFlags, liveCheck, clockText, stepShare } from '../calls.js';
 import { rollKeeps } from '../memory.js';
 import { EDGE_PX, FLASH, GRIP_MS, LEARN_KEY, LONG_MS, MINUS, NIGHT_KEY, SPENT_PX, SWIPE_MS, SWIPE_PX, TC_MS, WAIT_KEY, boughtIn, capFirst, closedOf, clubCounts, compare, draftOf, dropMove, editable, flatMoves, ids, inFor, info, inputs, lockedFrom, memOf, memPlan, num, paintWaitView, plan, removedAt, span, squadBefore, takeRulesAsk, viewedGw, waitView, weekOf } from './core.js';
 import { aboutRules, asksOf, benchedBuys, captain, clashLine, clashParts, driftSay, edit, keep, pendingAgain, pendingTick, removeRule, rescope, resetLineup, ruleOf, sayCheer, scopeLabels, sub, subChoices, tickWas, toastOf, totalShift, useChip, veto, vice, vsPrev } from './edits.js';
@@ -333,7 +333,7 @@ export function mount(el, ctx) {
   const { drawPlace, planLine, fitLine, scaleHeads, fitBlocks, stepPlace, shadeTap, weekSheet } = placePart(V);
   const { drawWeek, clashRow, noteRow, sayDrift, forecastLine, waitSig, waitWatch, keepNight, sayNight, sayCarried, barNode, dotted, bsep, textOf, bankWarn, bankLead, weekLead, roadOfEv, movesTitle, openWhy, deckOf, placeLink, whenFree, placeAct, whyTaps, whyActs, notOf, vetoBack, notAct, whenSheet, gainOf, whySub, numOf, numSaid, plNumSaid, hitTag, hitSaid, plansVs, whyPart, rowTies } = weekPart(V);
   const { moveX, xferRow, factSpans, itbNode, rollFacts, door, openChips, chipsDoor, bringDoor, doorStubs, changeRow, priceOf, addOnce, litPays, planKey, planSaid, takePlan, planRow, openPlanWhy, ftAfter, weekRoll, rollOf, shareWeek, moveGain, moveNum, weekPending, rollPending, rolling, whyMove, tapIn } = rowsPart(V);
-  const { pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, toastOver, renderTotal, totalNum, keepGwLine, sellOf, hasField, pchgText, plateOk, plateOf, renderPdBtn, playerDataSheet } = pitchPart(V);
+  const { pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, toastOver, renderTotal, totalNum, keepGwLine, sellOf, hasField, plateOk, plateOf, renderPdBtn, playerDataSheet } = pitchPart(V);
   const { spend, letGo, atEdge, tickAt, railEnd, unfill, benchBare, swipeGw, pitchEnd, settle, releaseSoon, gesture, cancelGesture, dragBadge, dropBadge, armTo, armbandSheet, subSheet, lift, dragTo, dropOn, pitchChip, liftShirt, wireMoveRow, vetoRow, vetoFromWhy, pressed, stray, lifted, spentUp, spentDown, spentClick } = touchPart(V);
   el.classList.add('ah');
   // the legacy suggestions' hide (v1.3.27 or earlier: one for every team), let go
@@ -531,10 +531,9 @@ export function mount(el, ctx) {
     { key: 'price', label: 'Price', spoken: 'Current price', short: 'Price', field: 'price', text: (id, p) => fmt.money(p?.price) },
     // FPL pays back what it sells him for (half the profit): a buy of the plan's is sold at what he costs today
     { key: 'sell', label: 'Selling', spoken: 'Selling price', short: 'Selling', field: 'price', ok: () => sellOf().size > 0, text: (id, p) => fmt.money(S.sell?.get(Number(id)) ?? p?.price) },
-    // FPL's projection for the next price-change night (price_watch offset 0: [likelihood, projected_percent]); see
-    // pchgText
-    { key: 'pchg', label: 'Price change', spoken: 'Price change tonight', short: 'Price change', field: 'price_watch',
-      text: (id, p) => pchgText(p) },
+    // FPL's Progress towards the next price change, as its pitch shows it: pricePlate
+    { key: 'pchg', label: 'Price change', spoken: 'Price change progress', short: 'Price change', field: 'price_progress',
+      text: (id, p) => pricePlate(p).text, bar: (id, p) => pricePlate(p) },
     { key: 'own', label: 'Owned', spoken: 'Ownership', short: 'Owned', field: 'sel_pct', text: (id, p) => fmt.pct(p?.sel_pct) },
     { key: 'form', label: 'Form', short: 'Form', field: 'form', text: (id, p) => fmt.num(p?.form) },
     { key: 'chance', label: 'Chance', spoken: 'Chance of playing', short: 'Chance', field: 'status', text: (id, p) => {

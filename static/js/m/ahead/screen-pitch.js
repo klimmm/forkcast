@@ -261,16 +261,6 @@ export function pitchPart(V) {
    *  `second`), the sheet's label and the button's short one. */
   const sellOf = () => { const { ctx } = V; return new Map((ctx.data?.base?.squad || []).filter((x) => x.sell_price != null).map((x) => [Number(x.id), x.sell_price])); };
   const hasField = (f) => { const { ctx } = V; return !!ctx.bundle?.players?.fields?.includes(f); };
-  /** The Price change plate: FPL's projected progress towards the next night's change, "▲ 26%" / "▼ 83%" ("0%" when it
-   *  rounds to nothing), "Locked" / "Calibrating" while FPL holds the price, "—" without a projection. */
-  const pchgText = (p) => {
-    if (p?.price_calibrating) return 'Calibrating';
-    if (Date.parse(p?.price_locked_until ?? '') > Date.now()) return 'Locked';
-    const pct = Number(p?.price_watch?.[0]?.[1]);
-    if (!Number.isFinite(pct)) return fmt.dash;
-    const r = Math.round(Math.abs(pct));
-    return r === 0 ? '0%' : `${pct > 0 ? '▲' : '▼'} ${r}%`;
-  };
   const plateOk = (x) => (!x.field || hasField(x.field)) && (x.ok?.() ?? true);
   /** The chosen option (this browser's, localStorage: ctx.api.local never throws), the default when the bundle can't
    *  back it → {key, label, short, second}. */
@@ -278,7 +268,7 @@ export function pitchPart(V) {
     const k = ctx.api.local.get(PLATE_KEY);
     const x = PLATES.find((o) => o.key === k && plateOk(o)) ?? PLATES[0];
     if (x.key === 'sell') S.sell = sellOf();
-    return { ...x, second: x.second ?? { label: x.label, text: x.text } };
+    return { ...x, second: x.second ?? { label: x.label, text: x.text, bar: x.bar } };
   }
   function renderPdBtn() { const { pdBtn } = V;
     const x = plateOf();
@@ -307,5 +297,5 @@ export function pitchPart(V) {
       },
     });
   }
-  return { pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, toastOver, renderTotal, totalNum, keepGwLine, sellOf, hasField, pchgText, plateOk, plateOf, renderPdBtn, playerDataSheet };
+  return { pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, toastOver, renderTotal, totalNum, keepGwLine, sellOf, hasField, plateOk, plateOf, renderPdBtn, playerDataSheet };
 }

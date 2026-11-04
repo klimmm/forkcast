@@ -713,6 +713,11 @@ export const COPY = Object.freeze({
   showsWhy: 'Shows why',
   /** The best token's spoken name where its tap takes (ahead.tokensOf): its visible verb first. */
   bestSwapSaid: (said) => `Swap. ${said}`,
+  /** His card's chip spoken (priceProgress): "Predicted progress +26.4%". */
+  progressSaid: (text) => `Predicted progress ${text}`,
+  /** The £↓ beside it, where a drop takes your sale down as well, and it spoken, step in tenths: "sale −£0.1m". */
+  saleDrops: '£↓',
+  saleSaid: (step) => `sale ${signedMoney(step)}`,
   /** A buy of yours's plate (ahead.swapPlate; owner, 2026-10-26): the player you sold, said "Keep Gabriel, not Justin,
    *  +0.8 points vs your plan". */
   keepSoldSaid: (sold, buy) => `Keep ${sold}, not ${buy}`,

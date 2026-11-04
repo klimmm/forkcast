@@ -311,7 +311,6 @@ function resultBody(job, result) {
       series: [{ name: 'Predicted', points: c.pred, dashed: true }, { name: 'Actual', points: c.act }],
       xFmt: (x) => `GW${x}`, yLabel: 'Points', height: 220,
     })) : null,
-    s.chip_auto ? h('p.small.muted', null, `Chip auto: ${typeof s.chip_auto === 'string' ? s.chip_auto : JSON.stringify(s.chip_auto)}`) : null,
     h('h3.rs-h', null, 'Moves, captain and chips by GW'),
     movesTable(s) || empty('No moves recorded.'),
     warningsBlock(result),

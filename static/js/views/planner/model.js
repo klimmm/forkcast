@@ -10,10 +10,10 @@ export const QUICK = [
   ['Mode & captaincy', ['fresh', 'no_cap', 'cap_top']],
 ];
 export const CHIP_ROUNDS = ['wc', 'fh', 'bb', 'tc'];
-export const CHIP_KEYS = [...CHIP_ROUNDS, 'plan', 'chip_auto', 'no_chips'];
+export const CHIP_KEYS = [...CHIP_ROUNDS, 'plan', 'no_chips'];
 export const CHIP_MODES = [
   { key: 'manual', label: 'Manual rounds' }, { key: 'plan', label: 'Stored plan' },
-  { key: 'auto', label: 'Auto (--chip-auto)' }, { key: 'none', label: 'No chips' },
+  { key: 'none', label: 'No chips' },
 ];
 // Whose squad and which players: presets and scenarios leave these alone.
 export const KEEP = ['season', 'entry', 'team_state', 'must_have', 'exclude'];
@@ -64,7 +64,7 @@ export function mergeValues(base, overrides) {
   return v;
 }
 
-export const chipMode = (v) => (v.chip_auto ? 'auto' : v.no_chips ? 'none' : v.plan ? 'plan' : 'manual');
+export const chipMode = (v) => (v.no_chips ? 'none' : v.plan ? 'plan' : 'manual');
 export const hitCostOf = (res) => num(res?.meta?.args?.hit_cost_actual) ?? 4;
 export const xpSum = (p) => (Array.isArray(p?.xp) ? sum(p.xp) : null);
 

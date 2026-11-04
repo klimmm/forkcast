@@ -62,7 +62,6 @@ function howItWorks(meta) {
       body: [
         'Manual: `--wc`, `--fh`, `--bb` and `--tc` pin chips to gameweeks (from 2025 there are two of each, one per half) and the plan is built around them. They are not checked against chips your entry has already played; the planner warns when one falls in the current half of the season and your loaded team has already played that chip there. `0` drops a chip’s season default.',
         'Named plans: `--plan` picks a stored schedule (2024 and 2025 only). With no chip flags, 2024 and 2025 use their default schedules; 2026 has none, so no chips are played unless you set them. `--no-chips` turns chips off.',
-        'Automatic: `--chip-auto` decides at every gameweek whether to play a chip now and which to plan later. It trial-solves candidate chip assignments over the window, scores each by its gain over holding, and keeps the best. It knows which chips your entry has left (from 2025, one of each per half-season), and it ignores any manual plan.',
         'Effects: a wildcard or free hit makes that gameweek’s transfers free and unlimited, and a free-hit squad reverts the next week. Bench boost counts the bench like the starting XI. Triple captain doubles the captain bonus.',
       ],
     },

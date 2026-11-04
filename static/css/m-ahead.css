@@ -22,7 +22,7 @@ is one screen (.m-app is 100svh: m.css): the pitch's height, --ah-pitch-fit, is 
 the same in every week (owner, 2026-10-08); only a screen too short for the floor scrolls, never sideways. At 375 ×
 667 the short-screen rules below apply. --ah-head-h: the header's two lines, team name over the GW line (44 pt at the
 default size) */
-.m-screen.ah { --ah-pitch-min: 350px; --ah-head-h: max(44px, calc(var(--t-title) * 1.2 + var(--t-sub) * 1.3)); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.m-screen.ah { --ah-pitch-min: 350px; --ah-head-h: max(44px, calc(var(--t-head) * 1.2 + var(--t-sub) * 1.3)); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 .m-screen.ah > * { flex: none; min-width: 0; }
 
 /* ------------------------------------------------------------------ header and GW line */
@@ -36,7 +36,7 @@ text size), where the switcher rests */
 .ah-head { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; min-height: var(--ah-head-h); padding: 0 10px; background: var(--bg); }
 /* its middle column: the team's name over the GW line (owner, 2026-10-22) */
 .ah-hmid { min-width: 0; display: flex; flex-direction: column; align-items: stretch; }
-.ah-team { min-width: 0; text-align: center; font: 700 var(--t-title)/1.2 var(--f-text); letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ah-team { min-width: 0; text-align: center; font: 600 var(--t-head)/1.2 var(--f-text); letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ah-avatar { position: relative; justify-self: end; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--track); color: var(--ink-2); font: 600 var(--t-sub)/1.3 var(--f-text); }
 .ah-avatar::before { content: ""; position: absolute; inset: -6px; }  /* a 44pt target */
 /* the Settings gear (ahead setBtn; owner, 2026-10-29): the avatar's mirror in the left column, a toothed gear in a
@@ -112,12 +112,12 @@ half-hidden tile shows through; the act's change fades in (app.js factPanel) */
 /* pan-y: a drag up or down from the switcher scrolls the screen; a sideways one scrubs (ahead.js, the rail's pointermove) */
 /* the tiles 40 px on every screen (owner, 2026-10-22): their two lines (renderRail) at the type rule's 13 and 15 px
 fill them */
-.ah-rail { --n: 4; --i: 0; position: relative; height: auto; min-height: 38px; padding: 2px; border-radius: 8px; background: var(--track); outline: none; touch-action: pan-y; }
+.ah-rail { --n: 4; --i: 0; position: relative; height: auto; min-height: 38px; padding: 2px; border-radius: 12px; background: var(--track); outline: none; touch-action: pan-y; }
 .ah-rail::before { content: ""; position: absolute; inset: -3px 0; }  /* a tap takes its x; ≥ 44pt tall */
 .ah-tick:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--acc-bg); }  /* the switcher's one Tab stop, the viewed tile (ui.roving) */
 /* the viewed week's thumb: a dark ring on the off-white track; the ring is the one green, the selected look of every
 segment, week tab and week pill (m.css --sel-*; 7.5:1 on --track) */
-.ah-thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / var(--n)); border-radius: 6px; background: var(--sel-bg); box-shadow: 0 0 0 1.5px var(--sel-edge); transform: translateX(calc(var(--i) * 100%)); transition: transform var(--dur) var(--ease); }
+.ah-thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / var(--n)); border-radius: 10px; background: var(--sel-bg); box-shadow: 0 0 0 1.5px var(--sel-edge); transform: translateX(calc(var(--i) * 100%)); transition: transform var(--dur) var(--ease); }
 .ah-ticks { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); min-height: 34px; }  /* grows with the text size */
 .ah-tick { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 2px; border: 0; border-radius: 6px; background: none; color: var(--ink); -webkit-touch-callout: none; transition: background var(--dur) var(--ease), opacity var(--dur) var(--ease); }
 .ah-tick .g { max-width: 100%; font: 600 var(--t-cap)/1.3 var(--f-text); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1007,7 +1007,22 @@ type, so a larger text size keeps them even */
 .ps-kit svg { display: block; width: 100%; height: 100%; }
 .ps-title > span:last-child { min-width: 0; }
 .m-sh h2 .ps-title { font: 600 var(--t-head)/1.2 var(--f-text); }  /* the player's name: --t-head, not a sheet title */
-.ps-sub { display: block; margin-top: 3px; font: 400 var(--t-sub)/1.3 var(--f-text); letter-spacing: 0; color: var(--muted); }
+.ps-sub { display: flex; flex-wrap: wrap; margin: 3px 0 0 -.85em; font: 400 var(--t-sub)/1.3 var(--f-text); letter-spacing: 0; color: var(--muted); clip-path: inset(0 0 0 .85em); }
+/* (a fact whole, a dot before each, a line's first dot clipped off: the chip pushed "12.5% owned" to a second line and
+left a "·" hanging after the price) */
+.ps-sub > span { white-space: nowrap; }
+.ps-sub > span::before { content: "·" / ""; display: inline-block; width: .85em; text-align: center; }
+/* FPL's Predicted Progress chip beside his price (owner, 2026-11-04: "add price predicitons on top of player profile
+where price is"; "use proper design of labels like in fpl itself"): its Price Changes page's chip, its status colours
+(t1 very likely to rise … t5 very likely to drop, calls.priceProgress: FPL's --ism-color-difficulty-N, read off its
+page), its 4 px corners. After it, a red £↓ where a drop takes your sale down as well, none where it holds ("need a mark
+if selling price expected to drop as well or not", "dont add text there") */
+.ps-pg, .ps-sl { display: inline-block; margin-left: 4px; padding: 0 4px; border-radius: 4px; background: var(--pg); font: 600 var(--t-cap)/16px var(--f-text); color: var(--pg-ink, #37003C); }
+:is(.ps-pg, .pm-pf.bar).t1 { --pg: #375523; --pg-ink: #FFFFFF; }
+:is(.ps-pg, .pm-pf.bar).t2 { --pg: #01FC7A; }
+:is(.ps-pg, .pm-pf.bar).t3 { --pg: #E7E7E7; }
+:is(.ps-pg, .pm-pf.bar).t4, .ps-sl { --pg: #FF1B54; }
+:is(.ps-pg, .pm-pf.bar).t5 { --pg: #80072D; --pg-ink: #FFFFFF; }
 /* the card's type: the name is its one --t-head; buttons and facts --t-body; every other line --t-sub (ink, or muted
 when secondary); the chart's and the lists' labels cap labels (--t-cap 600, uppercase, +.04em) */
 /* the status: up to two lines, FPL's availability then WhoScored's predicted lineup; the dot carries the colour (amber,
@@ -1253,7 +1268,12 @@ not him, the seller's keeps him; Swap, the one primary act, filled (Material 3 b
 shortened first; 24 px targets (WCAG 2.2 SC 2.5.8) */
 .ah-pitch.band { --ah-band: 60px; }  /* (two lines always: the pitch never moves on a GW switch; QA header, 2026-11-03) */
 .m-screen.ah > .ah-pitch.band { margin-top: calc(6px + var(--ah-band)); }
-.ah-pitch.band .ah-tok:is(.mv, .st.best) { top: calc(-1 * var(--ah-band)); left: 8px; right: 8px; max-width: none; height: auto; min-height: 52px; padding: 0 4px 0 12px; border-radius: 16px; }
+/* the week card (owner, 2026-11-03, design_1103c B): the bar and the band's suggestion are one week's, so they touch as
+one card, the bar its white top, the token its black foot (Johnson, Designing with the Mind in Mind, ch. 2: nearness
+makes groups); an empty band leaves the bar whole */
+.m-screen.ah:has(> .ah-pitch.band .ah-tok:is(.mv, .st.best)) .ah-blockhost > .ah-block:has(> .ah-pbar) { border-radius: 12px 12px 0 0; border-bottom: 0; }
+.m-screen.ah > .ah-pitch.band:has(.ah-tok:is(.mv, .st.best)) { margin-top: var(--ah-band); }
+.ah-pitch.band .ah-tok:is(.mv, .st.best) { top: calc(-1 * var(--ah-band)); left: 8px; right: 8px; max-width: none; height: auto; min-height: 52px; padding: 0 4px 0 12px; border-radius: 0 0 12px 12px; }
 .ah-pitch.band .ah-tok:is(.mv, .st.best)::before { inset: 0; }
 /* a rolling week's band, why it rolls (tokensOf): "Roll → GW13: Gabriel → N.Williams, Dewsbury-Hall → Rice", two lines
 at most, its "›" the door to that week */
@@ -1265,10 +1285,21 @@ design_1103b "Bar and strip words": Johnson, Birman) */
 .ah-tok.mv.tix .ah-tn { display: flex; align-items: center; flex: 0 1 auto; min-width: 0; gap: .3em; }
 .ah-tok.mv.tix .ah-tn > :is(.o, .i) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ah-tok.mv.tix .ah-tn > .x { padding-right: 28px; }
+/* (his name a door to his card, over his letters: renderDecks door; no look of its own, a name on the pitch's card has
+none either) */
+.ah-decks .ah-tcard { position: absolute; z-index: 3; padding: 0; border: 0; border-radius: 6px; background: none; touch-action: pan-y; }
+/* the Price change plate as FPL's pitch draws it (owner, 2026-11-04: "are price changes on pitch displayed also updated
+to fpl design", "what number fpl shows? show same"): FPL's Progress (calls.pricePlate), white in either theme, the
+status's colour filling it as far as the progress (--pm-fill: pitch.js secondPlate), the number centred over it in the
+status's ink; a locked price FPL's lock alone */
+.pm .pm-pf.bar { position: relative; background: #FFFFFF; }
+.pm .pm-pf.bar::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--pm-fill); background: var(--pg); }
+.pm .pm-pf.bar .pm-px { position: relative; color: var(--pg-ink, #37003C); }
+.pm .pm-pf.bar .pm-px > .icon { vertical-align: -1px; }
 .ah-tok.mv.tix .ah-tn > .o { flex: 0 1 auto; font-weight: 400; opacity: .8; }
 .ah-tok.mv.tix .ah-tn > .i { flex: 0 0 auto; }
 .ah-tok.mv.tix > .ah-tnum { margin-left: auto; }
-.ah-tok.mv.tix .ah-tgw { margin-left: .3em; font-size: var(--t-cap); font-weight: 400; color: rgb(255 255 255 / .6); }
+.ah-tok.mv.tix .ah-tgw { margin-left: .3em; font-size: var(--t-sub); font-weight: 400; color: rgb(255 255 255 / .78); }
 .ah-tok.mv.tix .ah-tclose { margin-right: .4em; font-size: var(--t-cap); font-weight: 600; color: #FFFFFF; }
 /* a close call's Swap outlined, the act quieter where the count can't tell it from rolling */
 .ah-tok.mv.tix.close > .ah-tgo.m-swap { background: none; color: #FFFFFF; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .85); }

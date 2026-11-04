@@ -20,7 +20,7 @@ const crossGlyph = () => svg('svg', { viewBox: '0 0 10 10', 'aria-hidden': 'true
   svg('path', { d: 'M2 2l6 6M8 2l-6 6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round' }));
 
 export function decksPart(V) {
-  function renderDecks() { const { S, boxOf, cardBoxes, ctx, decks, drawPlace, fitPitch, frozenAt, gwNow, labelWalls, pitchHost, placePills, plansHeading, reachLabels, rsBtn, sideRoom, topRow } = V;
+  function renderDecks() { const { S, boxOf, cardBoxes, ctx, decks, drawPlace, fitPitch, frozenAt, gwNow, labelWalls, pitchHost, placePills, plansHeading, reachLabels, rsBtn, sideRoom, tapIn, topRow } = V;
     const root = pitchHost.querySelector(':scope > .pm');
     const P = S.drawn, w = P && weekOf(P, gwNow(P)), M = S.M;
     // the band over the pitch for the week's best (inBand) while its week can change: the pitch fitted under it
@@ -118,8 +118,10 @@ export function decksPart(V) {
       // (its height the band's, two lines for a plan's moves: the pitch fitted under it again where that changed; its
       // names shortened by its CSS alone, the sellers' first, the corner's trims never: the whole width is its room)
       if (inBand(t)) {
-        // (a name cut: its scope off first, then "Close call" (the outlined Swap still says it), never a name: design_1103b)
-        const cut = () => [...t.querySelectorAll('.ah-tn > .x')].some((x) => x.scrollWidth > x.clientWidth + 0.5);
+        // (a name cut: its scope off first, then "Close call" (the outlined Swap still says it), never a name: design_1103b.
+        // His name read off a Range: scrollWidth never sees the first 28 px, .x's ✕ padding)
+        const nameCut = (x) => { const r = document.createRange(); r.selectNode(x.firstChild); return r.getBoundingClientRect().width > x.clientWidth - parseFloat(getComputedStyle(x).paddingRight) + 0.5; };
+        const cut = () => [...t.querySelectorAll('.ah-tn > .x')].some(nameCut);
         for (const sel of ['.ah-tgw', '.ah-tclose']) { const x = t.querySelector(sel); if (x && cut()) x.hidden = true; }
         const bh = `${t.offsetHeight + 8}px`;
         // (drawn again on the pitch as fitted: every box here was measured on the pitch before)
@@ -160,11 +162,16 @@ export function decksPart(V) {
       // (each ✕ at the end of its name's room, .x, every name of a plan's too, each solved ahead (refusalRoads `also`):
       // a buy's refuses him, a seller's keeps him; owner, 2026-11-02, "why only 1 out of four players have cross sign")
       const after = (el) => { const r = boxOf(el, b); return { left: `${r.x + r.w - 25}px`, top: `${r.y + r.h / 2 - 12}px` }; };
+      // (each name a door to his card, as his card on the pitch is (tapIn), from just before his letters to his mark, so
+      // "Rice" is no 27 px target: the ticket's height for one move, his row's for a plan's; the rest of the ticket his
+      // place, as before: owner, 2026-11-04, "make players clickable in tickets so they can be opened")
+      const door = (el) => { const r = boxOf(el, b), y = bestTok.matches('.multi') ? r : q; return { left: `${r.x - 6}px`, top: `${y.y}px`, width: `${r.w - 22}px`, height: `${y.h}px` }; };
       const xs = tix ? [...bestTok.querySelectorAll('.ah-tn > .x')] : [];
       if (!xs.length) decks.append(h('button.ah-cm.out.tno', { type: 'button', 'aria-label': COPY.notBuySaid(P.L.name(m.in), g), dataset: { row: `tok:not:${g}` },
         class: { in: true }, style: { left: `${q.x + q.w - 28}px`, top: `${q.y + q.h / 2 - 12}px` }, onClick: () => veto(ctx, m, { scope: 'gw' }) }, crossGlyph()));
       for (const x of xs) {
         const id = Number(x.dataset.id), nm = P.L.name(id);
+        decks.append(h('button.ah-tcard', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.cardOf(nm), dataset: { row: `tok:card:${g}:${id}` }, style: door(x), onClick: () => tapIn(g, id) }));
         if (x.matches('.i')) {
           const mi = { gw: g, out: Number(x.parentElement.querySelector('.o').dataset.id), in: id };
           decks.append(h('button.ah-cm.out.tno.in.tx', { type: 'button', 'aria-label': COPY.notBuySaid(nm, g), dataset: { row: `tok:not:${g}:${id}` }, style: after(x), onClick: () => veto(ctx, mi, { scope: 'gw' }) }, crossGlyph()));

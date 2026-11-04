@@ -18,7 +18,6 @@ const FILTERS = { q: '', pos: 'all', club: '', status: 'any', maxPrice: null, ow
 const DEFAULTS = { ...FILTERS, mode: 'proj', all: false, season: undefined, gw: undefined, pool: undefined, sortKey: 'xp_sum', sortDir: 'desc' };
 const DEFAULT_SORT = { proj: 'xp_sum', season: 'season_pts' };
 const STATUS = [['any', 'Any status'], ['ok', 'Available'], ['flagged', 'Flagged'], ['warn', 'Doubtful'], ['bad', 'Out']];
-export const LUCK_FREE = 'Points with finishing luck taken out: goals, assists, clean sheets and goals conceded '
   + 'replaced by their expectations from the match xG / xA / xGC (solver player_data.expected_points)';
 
 const round = (v, d) => Math.round(v * 10 ** d) / 10 ** d;
@@ -133,7 +132,6 @@ function columns(mode, d, view) {
     return [...lead,
       d.cohort_known && { key: 'top_own_pct', label: 'Top own%', num: true, fmt: (v) => fmt.num(v, 1), title: S.top_own_pct },
       { key: 'season_pts', label: 'Pts', num: true, title: `FPL points before GW${d.gw}` },
-      { key: 'season_xpts', label: 'Luck-free', num: true, fmt: (v) => fmt.num(v, 1), title: LUCK_FREE },
       { key: 'minutes', label: 'Mins', num: true, fmt: (v) => fmt.int(v) },
       { key: 'pts90', label: 'Pts/90', num: true, fmt: (v) => fmt.num(v, 1), title: 'Points per 90 minutes (90+ minutes played)' },
       { key: 'form', label: 'Form', num: true, fmt: (v) => fmt.num(v, 1), title: S.form },

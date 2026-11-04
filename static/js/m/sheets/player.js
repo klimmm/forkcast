@@ -12,7 +12,7 @@
 // undoes an older rule acts at once, its verdict naming that rule, with Undo.
 
 import { h, fmt, fill, statusInfo, posName, posCode, roving, xpNum } from '../../ui.js';
-import { COPY, newsReason } from '../calls.js';
+import { COPY, newsReason, priceProgress } from '../calls.js';
 import { getPlayer } from '../api.js';
 import * as AH from '../ahead.js';
 import * as S from './strip.js';
@@ -109,7 +109,8 @@ export function open(ctx, rawId, { gw, place = null } = {}) {
   let off = null, card, cardState = 'loading', local = false, closed = false;
   // header facts: redrawn when the card lands (the API's card gives ownership now; the bundle's carries none, so its
   // row's stands)
-  const subEl = h('small.ps-sub', null, headerSub(row, P0.L.pos(id), null));
+  const entry = d.base?.squad?.find((r) => Number(r.id) === id);
+  const subEl = h('small.ps-sub', null, headerSub(row, P0.L.pos(id), null, entry));
   return ctx.sheets.open({
     title: h('span.ps-title', null, h('span.ps-kit', { 'aria-hidden': 'true' }, shirtOf(P0.L, id, 56)),
       // full name (owner, 2026-10-16), FPL's short one in older data
@@ -133,7 +134,7 @@ export function open(ctx, rawId, { gw, place = null } = {}) {
         const W = widthOf(main);
         const m = model(ctx, P, row, id, card, cardState, local);
         const G = geometry(m, W);
-        subEl.textContent = headerSub(row, P.L.pos(id), card);
+        fill(subEl, headerSub(row, P.L.pos(id), card, entry));
         // focus survives a redraw: a segmented option (ui.roving) in its group, found by name; an ⓘ by its label
         const grp = document.activeElement?.closest?.('.ps-main [role="radio"]')?.closest('[role="radiogroup"]');
         const info = document.activeElement?.closest?.('.ps-main .ps-info')?.getAttribute('aria-label');
@@ -286,14 +287,23 @@ function widthOf(el) {
   return Math.max(260, Math.round(w));
 }
 
-/** The header's facts, "ARS · MID · £9.6m · 38.2% owned": each only when the data has it (ownership from the card, once
- *  it lands); the current price alone. */
-function headerSub(row, pos, card) {
-  const price = Number.isFinite(row.price) ? fmt.money(row.price) : null;
+/** His current price, FPL's chip beside it (calls.priceProgress; none without a projection), a £↓ after that where a
+ *  drop takes the sale of `entry`, his row in your team, down as well. */
+function priceFact(row, entry) {
+  if (!Number.isFinite(row.price)) return null;
+  const c = priceProgress(row, entry);
+  return [fmt.money(row.price),
+    c ? h(`span.ps-pg.t${c.tone}`, { role: 'img', 'aria-label': COPY.progressSaid(c.text) }, c.text) : null,
+    c?.sale ? h('span.ps-sl', { role: 'img', 'aria-label': COPY.saleSaid(c.sale) }, COPY.saleDrops) : null];
+}
+
+/** The header's facts, "ARS · MID · £9.6m +26.4% · 38.2% owned": each only when the data has it (ownership from the
+ *  card, once it lands). */
+function headerSub(row, pos, card, entry) {
   const sel = card?.now?.sel_pct ?? row.sel_pct;
-  // each fact unbroken (no-break space): a line wraps between facts, never inside "22.6% owned"; no form (owner,
+  // each fact unbroken (m-ahead.css .ps-sub): a line wraps between facts, never inside "22.6% owned"; no form (owner,
   // 2026-10-16)
-  return [row.club, posCode(pos), price, Number.isFinite(sel) ? `${fmt.pct(sel)} owned` : null].filter(Boolean).map((x) => x.replace(/ /g, '\u00a0')).join(' · ');
+  return [row.club, posCode(pos), priceFact(row, entry), Number.isFinite(sel) ? `${fmt.pct(sel)} owned` : null].filter(Boolean).map((x) => h('span', null, x));
 }
 
 /** His status, up to two lines: FPL's availability ("75% · ankle injury"; amber, red at 25% or less or out) and, with

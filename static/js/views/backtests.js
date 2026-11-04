@@ -14,12 +14,11 @@ import {
 
 const FORM_KEY = 'backtests:form';  // store key, kept while the tab is open
 const CHIP_KEYS = ['wc', 'fh', 'bb', 'tc'];
-const MODE_KEYS = ['plan', 'chip_auto', 'no_chips', ...CHIP_KEYS];
+const MODE_KEYS = ['plan', 'no_chips', ...CHIP_KEYS];
 const OWN = new Set(['season', 'from_r', 'to', 'dir', ...MODE_KEYS]);  // the form's own fields; the rest in "Extra flags"
 const MODES = [
   { key: 'default', label: 'Season default' },
   { key: 'plan', label: 'Named plan' },
-  { key: 'auto', label: 'Auto' },
   { key: 'none', label: 'No chips' },
   { key: 'manual', label: 'Manual' },
 ];
@@ -30,7 +29,6 @@ const gwSpan = (from, to) => `GW${from ?? 1}–${to ?? 'end'}`;
 
 function modeOf(v) {
   if (v.plan) return 'plan';
-  if (v.chip_auto) return 'auto';
   if (v.no_chips) return 'none';
   return CHIP_KEYS.some((k) => v[k] != null) ? 'manual' : 'default';
 }
@@ -119,7 +117,7 @@ export default {
 
     function autoLabel() {
       const v = form.values;
-      const chips = { default: 'default chips', auto: 'chip-auto', none: 'no chips', plan: `plan ${v.plan || '?'}`, manual: chipsText(pick(v, CHIP_KEYS)) }[form.mode];
+      const chips = { default: 'default chips', none: 'no chips', plan: `plan ${v.plan || '?'}`, manual: chipsText(pick(v, CHIP_KEYS)) }[form.mode];
       const n = extraKeys().length;
       return [`Backtest ${v.season} ${gwSpan(v.from_r, v.to)}`, chips, v.dir, n && `+${n} flag${n > 1 ? 's' : ''}`].filter(Boolean).join(' · ');
     }
@@ -160,7 +158,6 @@ export default {
     function setMode(m) {
       form.mode = m;
       for (const k of MODE_KEYS) delete form.values[k];
-      if (m === 'auto') form.values.chip_auto = true;
       if (m === 'none') form.values.no_chips = true;
       if (m === 'plan') form.values.plan = plansFor(form.values.season)[0]?.tag;
       save();
@@ -171,7 +168,7 @@ export default {
     function paintMode() {
       const { season } = form.values;
       // main.py: before 2025 only the last FH/BB/TC round is played
-      const early = season < 2025 && form.mode !== 'none' && form.mode !== 'auto'
+      const early = season < 2025 && form.mode !== 'none'
         ? h('p.small.muted', null, `In ${season} only the last Free Hit, Bench Boost and Triple Captain round given is played.`) : null;
       const defaults = meta.chip_defaults?.[season];
       const defText = defaults ? `${season} defaults: ${chipsText(defaults)}` : `No default chip rounds for ${season}: no chips are played.`;
@@ -191,8 +188,7 @@ export default {
           desc.textContent = chipsText(plans.find((p) => p.tag === sel.value)?.chips);
           body = [field('Plan', sel, F.plan?.help), desc];
         }
-      } else if (form.mode === 'auto') body = h('p.small.muted', null, F.chip_auto?.help || 'The solver picks the chip rounds as the season goes.');
-      else if (form.mode === 'none') body = h('p.small.muted', null, F.no_chips?.help || 'Play no chips.');
+      } else if (form.mode === 'none') body = h('p.small.muted', null, F.no_chips?.help || 'Play no chips.');
       else {
         body = [
           h('div.grid-2.bt-chips', null, CHIP_KEYS.filter((k) => F[k]).map((k) => flagControl(F[k], form.values[k], (v) => setVal(k, v), { meta }))),

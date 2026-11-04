@@ -4,7 +4,7 @@
 // Player rows are /api/players rows ({name, club, pos, xp[], fixtures[][], status, chance, news}); xp[i] / fixtures[i]
 // are for GW horizon[0] + i.
 
-import { h, svg, fin, fmt, posName, posCode, statusDot, statusInfo, chipName, uid, reduceMotion, xpNum } from '../ui.js';
+import { h, svg, fin, fmt, icon, posName, posCode, statusDot, statusInfo, chipName, uid, reduceMotion, xpNum } from '../ui.js';
 import { shirt } from './kits.js';
 
 const ROWS = ['GK', 'DEF', 'MID', 'FWD'];
@@ -283,7 +283,8 @@ const buyBackSaid = (gw, by = null) => `the plan buys him back in GW${gw}${by &&
 export const platePts = (xp, mult = 1) => (xp == null ? DASH : fmt.pts(Number(xp.toFixed(1)) * mult));
 
 /** The second plate's content (mountPitch `second`): fixture and points, one of them, or a caller's text ({label,
- *  text(id, p)}) → [kids, the words it adds to the card's label]. */
+ *  text(id, p)}, bar(id, p) → {tone, fill, locked} its plate a bar as FPL's pitch draws it: a locked price the lock alone)
+ *  → [kids, the words it adds to the card's label]. */
 function secondPlate(id, p, o, fx, pts, approx) {
   // each opponent in a pale tint of FPL's FDR colour for this GW (plan-pitch.css .pm-opp.fdr-N); a blank or unknown week stays plain
   const fxEl = () => h('span.pm-fx', null, !fx?.length ? oppLabel(fx) || DASH
@@ -295,8 +296,10 @@ function secondPlate(id, p, o, fx, pts, approx) {
   if (s === 'fx') return [h('span.pm-pf', null, fxEl()), null];
   if (s === 'pts') return [h('span.pm-pf', null, ptsEl()), null];
   if (typeof s === 'object') {
-    const text = s.text(id, p) ?? DASH;
-    return [h('span.pm-pf.data', null, h('b.pm-px', null, text)), `${s.label} ${text}`];
+    const text = s.text(id, p) ?? DASH, bar = s.bar?.(id, p);
+    const plate = h('span.pm-pf.data', bar ? { class: `bar t${bar.tone}` } : null, h('b.pm-px', null, bar?.locked ? icon('lock', { size: 9 }) : text));
+    if (bar) plate.style.setProperty('--pm-fill', `${bar.fill}%`);
+    return [plate, `${s.label} ${text}`];
   }
   return [h('span.pm-pf', null, fxEl(), ptsEl()), null];
 }
@@ -487,7 +490,7 @@ export function pitchCard(id, { players = {}, gw, horizon, second = 'both', boug
  * bought     {id: gw}: players not in the real squad and the GW each was bought in (ink name plate that GW, ink ring
  * later; a flag's colour wins)
  *   inFor      {id: name | true}: this GW's buys with the player each replaces; true in a Wildcard / Free Hit week
- * second     'both' (default, "LEE (H) 4.6"), 'fx', 'pts', or {label, text(id, row) → string} (read out as "<label>
+ * second     'both' (default, "LEE (H) 4.6"), 'fx', 'pts', or {label, text(id, row) → string, bar?} (read out as "<label>
  * <text>")
  *   sold       {id: gw}: players the plan sells after this GW: dark name plate and an "OUT GW8" tag
  *   approx     true or ids: "≈" before the points (an unconfirmed phone estimate)

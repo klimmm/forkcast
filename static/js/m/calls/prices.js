@@ -2,7 +2,7 @@
 
 import * as E from '../../plan/engine.js';
 import { fmt } from '../../ui.js';
-import { EPS, andList, lookupOf, num, tenths } from './helpers.js';
+import { EPS, MINUS, andList, lookupOf, num, tenths } from './helpers.js';
 import { COPY } from './copy.js';
 import { handoffMoves } from './measure.js';
 
@@ -117,17 +117,43 @@ export function nightWords(epoch, now, tz) {
   };
 }
 
-/** The Player data plate "Price change" (priceOutlook over every night FPL projects): "▲ tonight" / "▼ Wed" (very
- *  likely, the night), "▲ likely", "Locked", "Calibrating", else "—" (unlikely to change, or a snapshot from before a
- *  change already made). */
-export function pricePlate(row, meta, { now = Date.now() / 1000, tz } = {}) {
-  const { nights, stale } = priceNights(meta, { now });
-  if (stale || !nights.length) return fmt.dash;
-  const o = priceOutlook(row, nights);
-  if (o.held) return o.held === 'locked' ? 'Locked' : 'Calibrating';
-  if (!o.dir) return fmt.dash;
-  const arrow = o.dir > 0 ? '▲' : '▼';
-  return o.sure ? `${arrow} ${nightWords(nights[o.night].epoch, now, tz).short}` : `${arrow} likely`;
+/** FPL's status by likelihood as its Price Changes page's chips colour it: 1 very likely to rise, 2 likely to rise, 3
+ *  unlikely to change, 4 likely to drop, 5 very likely to drop. */
+const PRICE_TONE = Object.freeze({ 5: 1, 4: 2, [-4]: 4, [-5]: 5 });
+const toneOf = (p) => PRICE_TONE[p?.price_watch?.[0]?.[0]] ?? 3;
+const lockedNow = (p) => Date.parse(p?.price_locked_until ?? '') > Date.now();
+/** FPL's Predicted Progress towards the next night's change as its Price Changes page's chip says it (a bundle row's
+ *  price_watch offset 0: [likelihood, projected_percent]; r: his entry row where you hold him) → null without a
+ *  projection, else {text ("+26.4%", "−83.2%", "0%"; "Locked" / "Calibrating" while FPL holds the price), tone
+ *  (PRICE_TONE; 3 while it holds), sale (a likely drop's step on your sale, tenths, saleStep, where it takes it down as
+ *  well; null where it holds, or isn't yours)}. Beside his price on his card. */
+export function priceProgress(p, r) {
+  const says = (text) => ({ text, tone: 3, sale: null });
+  if (p?.price_calibrating) return says('Calibrating');
+  if (lockedNow(p)) return says('Locked');
+  const n = fmt.signed(p?.price_watch?.[0]?.[1]);
+  if (n === fmt.dash) return null;
+  const tone = toneOf(p), step = tone > 3 ? saleStep(r, -1) : null;
+  return { text: /^[+−]/.test(n) ? `${n}%` : '0%', tone, sale: step < 0 ? step : null };
+}
+
+/** The Price change plate as FPL's pitch draws it: its Progress towards the next change (a bundle row's price_progress,
+ *  FPL's price_change_percent; his card's chip is Predicted Progress) → {text ("+114.8%", "+35%", "−115%", "0%", "—"
+ *  without one; "Locked"), tone (its status's: PRICE_TONE), fill (the % of the plate it fills, at most 100), locked
+ *  (FPL's lock alone, no number)}. */
+export function pricePlate(p) {
+  if (lockedNow(p)) return { text: 'Locked', tone: 3, fill: 0, locked: true };
+  const n = num(p?.price_progress);
+  const text = n === null ? fmt.dash : n ? `${n > 0 ? '+' : MINUS}${Math.abs(n)}%` : '0%';
+  return { text, tone: toneOf(p), fill: Math.min(Math.abs(n ?? 0), 100), locked: false };
+}
+
+/** What a price change of `dir` does to a sale, tenths (0: it stays; the half-profit rule: the entry's sell_price_up /
+ *  sell_price_down, api/entry.py through the solver's net_at, never re-done here) of his entry row `r` → null without
+ *  them (a player your entry doesn't hold, an older server): said, never guessed. */
+export function saleStep(r, dir) {
+  const now = tenths(r?.sell_price), after = tenths(dir > 0 ? r?.sell_price_up : r?.sell_price_down);
+  return now === null || after === null ? null : after - now;
 }
 
 /**
@@ -161,9 +187,7 @@ export function priceWatch(ctx, draft, { now = Date.now() / 1000, tz } = {}) {
       const o = priceOutlook(L.get(id)?.row, nights);
       const r = owned.get(Number(id));
       const sale = role === 'sell' ? num(r?.sell_price) : null;
-      const after = role === 'sell' && o.dir ? tenths(o.dir > 0 ? r?.sell_price_up : r?.sell_price_down) : null;
-      // a sale without the entry's stepped price (an older server) is said, never guessed
-      const step = !o.dir ? 0 : role === 'buy' ? o.dir : after === null || sale === null ? null : after - tenths(sale);
+      const step = !o.dir ? 0 : role === 'buy' ? o.dir : saleStep(r, o.dir);
       players[id] = { ...o, id: Number(id), role, name: L.name(id), sale, step, counted: o.sure && step !== null };
     }
   }
