@@ -1271,7 +1271,9 @@ above its turf (the pitch fitted under it: fitPitch), never given way (renderDec
 not him, the seller's keeps him; Swap, the one primary act, filled (Material 3 buttons, emphasis); the seller's name
 shortened first; 24 px targets (WCAG 2.2 SC 2.5.8) */
 .ah-pitch.band { --ah-band: 60px; }  /* (two lines always: the pitch never moves on a GW switch; QA header, 2026-11-03) */
-.m-screen.ah > .ah-pitch.band { margin-top: calc(6px + var(--ah-band)); }
+/* (with nothing in the band the bar keeps its 1 px bottom border, a ticket takes it: the pitch in the same place in every
+week; QA header, 2026-11-04, 7 px lower once a rolling week's foot went) */
+.m-screen.ah > .ah-pitch.band { margin-top: calc(var(--ah-band) - 1px); }
 /* the week card (owner, 2026-11-03, design_1103c B): the bar and the band's suggestion are one week's, so they touch as
 one card, the bar its white top, the token its black foot (Johnson, Designing with the Mind in Mind, ch. 2: nearness
 makes groups); an empty band leaves the bar whole */
@@ -1285,9 +1287,6 @@ ticket took them, leaving 41; QA chips-sheet, 2026-11-04) */
 /* (one move one line, the tiles' height, none of the spare height around it; the pitch stays where two lines put it:
 renderDecks BAND_LEAST) */
 .ah-pitch.band .ah-tok.mv.tix:not(.multi) { min-height: 40px; }
-/* (a week with no more moves: what not moving passes up, up to two lines in the foot's height: tokensOf) */
-.ah-pitch.band .ah-tok.st.best.hold { min-height: 40px; padding-top: 4px; padding-bottom: 4px; }
-.ah-tok.st.best.hold > .ah-tl { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; font-weight: 500; line-height: 1.3; }
 .ah-tok.mv.tix .ah-tn { display: flex; align-items: center; flex: 0 1 auto; min-width: 0; gap: .3em; }
 .ah-tok.mv.tix .ah-tn > :is(.o, .i) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ah-tok.mv.tix .ah-tn > .x { padding-right: 28px; }

@@ -282,7 +282,7 @@ export function forkPump(ctx, P, ask) {
   // (a week prepared before you open it, "ahead", never "next week": its GW says which; owner, 2026-11-03, "what means
   // gw11 and 'next week' in same line")
   const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, lane ? { slot: `fork${lane}` } : undefined,
-    { gw: ask.gw, kind: ask.ahead ? 'a tap, ahead' : ask.root ? 'the week\'s plan' : side ? (ask.tap === 'pass' ? 'what not moving passes up' : ask.tap === 'keep' ? 'the next Keep' : 'the next ✕') : ask.need ? 'what it draws, ahead' : prep ? 'a choice, ahead' : 'a choice', what: solveWords(ctx, P, ask), key: ask.key });
+    { gw: ask.gw, kind: ask.ahead ? 'a tap, ahead' : ask.root ? 'the week\'s plan' : side ? (ask.tap === 'keep' ? 'the next Keep' : 'the next ✕') : ask.need ? 'what it draws, ahead' : prep ? 'a choice, ahead' : 'a choice', what: solveWords(ctx, P, ask), key: ask.key });
   flight.cancel = () => p.cancel?.();
   p.then((res) => {
       // a tap's solve asked ahead: its answer memory's for exactly those values (presolve); one that failed for another

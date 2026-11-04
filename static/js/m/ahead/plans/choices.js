@@ -5,7 +5,7 @@ import { chipName } from '../../../ui.js';
 import { COPY } from '../../calls.js';
 import { MINUS, compare, draftOf, flatMoves, isFrozen, ownCount, removedAt, sameView, valuesFor, valuesKey, viewOfState, weekOf } from '../core.js';
 import { barred, chainOf, chipEdit, keptCells, keptFrom } from '../edits.js';
-import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, passRoad, refusalRoads, pinOfMove, planTakeDraft, presolveWeek, rootStill, weekOnto } from '../presolve.js';
+import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, presolveWeek, rootStill, weekOnto } from '../presolve.js';
 import { inkAt } from '../buys.js';
 import { PREP, PREPS, chipPreps, chipWeekGain, chipWeekOf, chipsAsked, chipsAvail, clearGain, keptBest, plPays, plannedAt, prepItems, prepKeep, squadWeek } from '../pieces.js';
 import { FORK_MAX, PLACE_ALTS, PLANS, SQUAD_CHIPS, earlyOf, movesSig, placesAsked, suggestionsOf } from './suggest.js';
@@ -192,10 +192,6 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // (one refusal ahead, the next tap's: owner, 2026-11-03, "why it running 17 solves on one team just at loading")
   const depth = prep ? 0 : 1, tree = owed || followed ? [] : refusalRoads(ctx, P, g, { peek: true, depth });
   const solverRoads = new Set([owed?.road, ...tree.map((n) => n.road)].filter(Boolean));
-  // (a week the solver adds no move to: its best with one more, a row as the others, what not moving passes up: passRoad)
-  const stays = !prep && !followed && !owed && !chipMine && !!tree[0]?.road && forkKey(planOfRoad(ctx, P, tree[0].road, g, d0)?.choice ?? { moves: [{}], chips: {} }, g) === yours;
-  const passed = stays ? passRoad(ctx, P, g, now.length, peek) : undefined;
-  if (passed?.weeks) solverRoads.add(passed);
   // (your GW-g transfers' own plan, the reference `yours` counts against, where a solver road makes no move beside
   // them: that road, never a fork of its own; owner, 2026-11-02, at most 6 solves after an action)
   const selfRoads = new Map();
@@ -623,7 +619,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // Forkcast's later moves; `pending` while either solves (the row says so, never the week alone)
   if (ref?.state === 'ready') Object.assign(list, { ref, mine: ours });
   // (the roads weekRollOf counts these two by, as the rows are: ownCount)
-  Object.assign(list, { mineRoad: yourRoad, countRoad, passWait: passed === null });
+  Object.assign(list, { mineRoad: yourRoad, countRoad });
   // …in your Wildcard or Free Hit week your chip's plan against its own roll (refOf: a Wildcard's keeps your later
   // weeks, `held`), as the pitch's token set that chip's (weekRollOf's `mineRef`). Its week is your plan's own, the
   // squad its tap landed, as Chips… and its toast counted it (the chip's own solve picks its squad afresh). A Free

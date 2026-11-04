@@ -290,13 +290,6 @@ export function owedRoad(ctx, P, g, { peek = false, prep = false } = {}) {
 const ROOTS = new Map();
 /** …cleared with the fork solves' state (forks.resetForks: between the node tests). */
 export const clearRoots = () => ROOTS.clear();
-/** GW g's road with one more transfer than your n there (--min-buys-gw): the solver's best move if one is made, for a week
- *  it adds none to, so the band can say what not moving passes up (plansOf, tokensOf; owner, 2026-11-04, "make Not
- *  betting is a bet"). peek: as solved so far. → road | 'infeasible' | 'error' | null (solving) */
-export function passRoad(ctx, P, g, n, peek = false) {
-  const values = { ...rootValues(ctx, P, g), min_buys_gw: `${g}:${n + 1}`, to: g }, key = valuesKey(P, values);
-  return peek ? forkRead(key) : forkAsk(ctx, P, { key, values, gw: g, side: true, tap: 'pass' });
-}
 /** Whether `road`, the solver's best under `was` (solve values), is still its best under `now`: the same data and the
  *  same values but for must-haves and exclusions added, every one of which the road already keeps (a lock of a player
  *  it keeps, a take of its own move: the best of a narrower choice is the same plan). Pure. */

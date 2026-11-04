@@ -728,15 +728,6 @@ export const COPY = Object.freeze({
   keepSoldSaid: (sold, buy) => `Keep ${sold}, not ${buy}`,
   /** The ✕ on the best move's token (ahead.js renderDecks; owner, 2026-11-02): its buy refused in this week alone. */
   notBuySaid: (buy, g) => `Not ${buy} in GW${g}: the next best move`,
-  /** The band in a week with no more moves: not moving is a choice too, so what it passes up (Duke, ch. 2; owner,
-   *  2026-11-04, "make Not betting is a bet"). `made`: your transfers made; the words before its number, by the shown
-   *  gain of the week's best transfer `d` (its Week sheet row's): under 0 not moving wins by it, 0 they level, else it
-   *  gives points up for what the solver counts higher, holdFor: the free transfer, or the hit it would take. */
-  holdWho: (made) => (made ? 'Stopping here' : 'Rolling'),
-  holdLine: (who, move, d) => (d < 0 ? `${who} beats ${move} by ` : d > 0 ? `${who} gives up ${move}, ` : `${who} matches ${move}`),
-  holdFor: (hit) => (hit ? 'to save the hit' : 'to keep a free transfer'),
-  holdKeeps: 'Rolling keeps your free transfer',
-  holdOpens: 'opens the week\'s choices',
   /** A pair card's note, its other moves (ahead.noteOf): "also Semenyo → Palmer, Cunha → Rice". */
   placeAlso: (moves) => `also ${moves.join(', ')}`,
   placeChoices: (n) => `${plural(n, 'choice')} for his place ›`,

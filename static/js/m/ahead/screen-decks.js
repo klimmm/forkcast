@@ -1,8 +1,8 @@
 // screen.js mount: the plates, the corner tokens and a take's landing
 
 import { MINUS, WHY_SHEET, weekOf } from './core.js';
-import { h, svg, fmt, fill, append, plural, reduceMotion, toast, xpGain, xpNum, shownGain } from '../../ui.js';
-import { SQUAD_CHIPS, addsOf, askPlace, failedWords, lineMoves, litShown, multiMove, placeFirst, placeOrder, planBack, planWeeks, rollOnly, takesBack } from './plans.js';
+import { h, svg, fill, append, plural, reduceMotion, toast, xpGain, shownGain } from '../../ui.js';
+import { SQUAD_CHIPS, askPlace, failedWords, lineMoves, litShown, multiMove, placeFirst, placeOrder, planBack, planWeeks, rollOnly, takesBack } from './plans.js';
 import { COPY, shownDelta } from '../calls.js';
 import { plPays } from './pieces.js';
 import * as E from '../../plan/engine.js';
@@ -630,25 +630,8 @@ export function decksPart(V) {
         swap ? h(`span.ah-tgo.m-swap${best ? '.best' : ''}`, { 'aria-hidden': 'true' }, takesBack(e) ? COPY.placeKeep : COPY.placeSwap) : null);
     };
     if (top) out.push(moveTok(top[0].L.e, top[0].d.a, mv, true));
-    // once the week settles with no move its best (the solver rolls, or your transfers are all it makes): what not moving
-    // passes up, the week's best transfer and its number, as its Week sheet row counts it, its "›" the door to that sheet
-    // (openWeek), never given way for room (renderDecks: .st). Not moving is a bet too (Duke, ch. 2; owner, 2026-11-04,
-    // "make Not betting is a bet"), never another week's moves ("dont show or move to the other gw transfers here")
-    else if (M?.settled && !lit.best) {
-      const adds = (pl) => addsOf(pl.choice, g, w.moves);
-      const pass = M.plans.find((pl) => !pl.refRow && !pl.solver && pl.state === 'ready' && adds(pl).length && !Object.keys(pl.choice.chips ?? {}).length);
-      const who = COPY.holdWho(w.moves.length > 0), rolls = toks.some(rollOnly);
-      const d = pass ? fmt.signed(shownDelta(pass.cmp)) : null, waits = !pass && M.all?.passWait;
-      // (as shown: "0.0" reads level)
-      const n = d?.startsWith('+') ? 1 : d?.startsWith(MINUS) ? -1 : 0, num = n < 0 ? d.slice(1) : d;
-      const moves = pass ? adds(pass).map((m) => `${P.L.name(m.out)} → ${P.L.name(m.in)}`).join(', ') : '';
-      // (its solve under way: the word alone, the sentence growing from it, nothing "planning…" after a tap: QA solve-budget)
-      const line = pass ? COPY.holdLine(who, moves, n) : waits ? who : COPY.holdKeeps;
-      const span = Object.keys(pass?.road?.windows?.[g]?.xi ?? {}).length || P.gws.filter((x) => x >= g).length;
-      const why = n > 0 ? ` ${COPY.holdFor(pass.hits?.[g])}` : '';
-      if (pass || waits || rolls) out.push(h('button.ah-tok.st.best.hold', { type: 'button', 'aria-haspopup': 'dialog', dataset: { row: `tok:week:${g}` }, 'aria-label': `${line}${n ? `${num} points` : ''}${why}, ${COPY.holdOpens}`, onClick: (ev) => openWeek(ev, g) },
-        h('span.ah-tl', { 'aria-hidden': 'true' }, line, n ? [xpNum(num, 'span.xp-g'), ` ${COPY.overGws(span)}${why}`] : null)));
-    }
+    // (no move its best, the solver rolling or your transfers all it makes: nothing in the band, the bar says the week;
+    // owner, 2026-11-04, "stop showing some random crap there", until what belongs there is found: design_1104d)
     // (none beside it: each is its place's plate already; owner, 2026-11-02, "stop dublicating black and other pills on
     // pich", reversing 2026-10-29's two moves in the corner)
     // (the week's status is on the bar's first line: statusLine)
