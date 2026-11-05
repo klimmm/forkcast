@@ -97,7 +97,7 @@ export const COPY = Object.freeze({
    *  buy takes from the bank, with the bank it takes it from where known (`bank`); null when equal. */
   frees: (x, bank = null) => (Math.abs(x) < 0.05 ? null : x > 0 ? `frees ${fmt.money(x)}` : `${fmt.money(-x)} from the bank${bank ? ` (${bank})` : ''}`),
   /** A week with no transfer, its verdict by who left it empty (ahead.emptyHead): under the hold the Roll's own
-   *  "Rolling" (COPY.rollingNow; owner, 2026-10-26); no edit reaches it (GW A under way) "No transfers"; off the hold,
+   *  "No transfer made" (COPY.noTransferMade; owner, 2026-11-05: one name, whether or not there is a move); no edit reaches it (GW A under way) "No transfers"; off the hold,
    *  a week Forkcast's plan leaves empty "Forkcast rolls GW8" ("No transfers" while an edit's check may still re-plan
    *  it, or where a Roll rule holds: rollRule). */
   noTransfers: 'No transfers',
@@ -785,8 +785,12 @@ export const COPY = Object.freeze({
   whyOneOf: (gw, n) => `GW${gw} · one of ${n} transfers: the week's number is on its line`,
   ftWithout: (gw, ft, without, n = 1) => `GW${gw}: ${ft} FT (${without} without ${n > 1 ? `these ${n} transfers` : 'this transfer'})`,
   /** …on the pitch the week's status beside the goal (ahead.emptyHead, statusTok), its Week sheet row with no + either. */
-  rollingNow: 'Rolling',
-  noTransferYet: 'No transfer yet',
+  noTransferMade: 'No transfer made',
+  /** The strip's answer, in every week you can change (owner, 2026-11-05, design_1105b A, "like save more"): Forkcast's move
+   *  under its title, a week it saves, or your moves with nothing to add. */
+  answerMove: 'Make this transfer',
+  answerSave: (ft) => (ft > 1 ? 'Save your free transfers' : 'Save your free transfer'),
+  answerDone: 'Nothing more to do this week',
   /** The band's number's scope and its toss-up (ahead tokensOf; owner, 2026-11-03, design_1103b): "· 4 GW", "Close call". */
   overGws: (n) => `· ${n} GW`,
   closeCall: 'Close call',

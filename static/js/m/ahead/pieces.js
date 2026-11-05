@@ -33,7 +33,7 @@ export const plPays = (pl) => pl?.state === 'ready' && !!pl.solver;
  *  gwMode 'roll' too) a week Forkcast adds no transfer to "No transfers", one its plan leaves empty "Forkcast rolls
  *  GW8". Pure. */
 export const emptyHead = (g, { ink = false, hold = false, off = false, lock = false } = {}) => (ink ? COPY.noTransfers
-  : lock ? COPY.rollingOn : hold ? COPY.rollingNow : off ? COPY.noTransfers : COPY.forkcastRolls(g));
+  : lock ? COPY.rollingOn : hold ? COPY.noTransferMade : off ? COPY.noTransfers : COPY.forkcastRolls(g));
 /** The facts under a week with no transfer (the week line's second line, rollFacts), each with its spoken words: GW
  *  `gw`'s free transfers (`ft`), then its bank after the week's moves (owner, 2026-10-21; `bank`: w.bank, as Replace's
  *  header counts it) in FPL's word, "£0.8m ITB", then what rolling makes next week (`next`; none in the window's last
@@ -62,10 +62,10 @@ export function rollFt(P, g, pl) {
 /** GW w's facts on plan view P (factsWords): its free transfers, its bank, and the free transfers rolling makes next
  *  week (engine.nextFt, with next week's grant). Pure. → [[text, said]] */
 export function weekFacts(P, w) {
-  const g = w.gw, ft = w.ft ?? 1;
-  const next = g < P.end ? E.nextFt(ft, w.used ?? 0, E.ftGrant(P.season, g + 1)) : null;
-  return factsWords({ gw: g, ft, next, bank: w.bank });
+  return factsWords({ gw: w.gw, ft: w.ft ?? 1, next: nextFts(P, w), bank: w.bank });
 }
+/** Next week's free transfers after week `w`; null in the window's last GW. */
+export const nextFts = (P, w) => (w.gw < P.end ? E.nextFt(w.ft ?? 1, w.used ?? 0, E.ftGrant(P.season, w.gw + 1)) : null);
 
 
 /** The GWs Chips… was opened on for the team on screen (app.js askChips): only their chips are solved (chipPreps;

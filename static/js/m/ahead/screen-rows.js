@@ -73,18 +73,18 @@ export function rowsPart(V) {
    *  over rolling" (owner, 2026-10-11): the pitch's choices are that fork. The head: the week's status beside the goal
    *  (statusTok: "Rolling", "Rolling is best" once settled with nothing better, `best`; "Rolling ✓" under your Roll). →
    *  {head, rest (nodes; next GW's free transfers may go to the Week sheet: fitFacts), said} */
-  function rollFacts(P, w) { const { ap0, bankWarn, ctx, textOf } = V;
+  function rollFacts(P, w, { bar = false } = {}) { const { ap0, bankWarn, ctx, textOf } = V;
     const g = w.gw;
     const ink = inkAt(ctx, P, g), hold = !!P.mem?.hold;
     // this week's free transfers first, then what rolling them makes next week (the last GW of the window has no next
-    // week to name), the bank between them ("2 FT · £0.8m ITB · 3 FT in GW10")
-    const facts = weekFacts(P, w), bank = bankWarn(P, w);
+    // week to name), the bank between them ("2 FT · £0.8m ITB · 3 FT in GW10"); on the bar (`bar`) the strip says next week's
+    const all = weekFacts(P, w), next = g < P.end, facts = bar && next ? all.slice(0, -1) : all, bank = bankWarn(P, w);
     // while an edit is checked, a later week still drawn from the plan before it claims no choice of Forkcast's ("No
     // transfers", not "Forkcast rolls GW8": the check may re-plan it)
     const stale = !hold && P.healing && P.approx.has(g) && !ap0(P, g);
     return {
       head: emptyHead(g, { ink, hold, off: gwMode(P, g) === 'roll' || stale, lock: rollingAt(P, g) }),
-      rest: [factSpans(facts, g < P.end), bank ? [' · ', bank] : null],
+      rest: [factSpans(facts, next && !bar), bank ? [' · ', bank] : null],
       // read out with FPL's codes in full ("1 free transfer, £0.5 million in the bank, 2 free transfers in gameweek 7")
       said: [...facts.map(([, s]) => s), bank && textOf(bank)].filter(Boolean).join(', '),
     };

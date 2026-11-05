@@ -76,7 +76,7 @@ export function headPart(V) {
     const checks = [h('span.ah-blead', null, h('span.ah-fact', null, COPY.ftNow(FACTS_PROBE.ft)), ' · ', h('span.ah-fact', null, itbWords(bank)[0]), sep),
       h('span.ah-brest', null, wln)];
     const probes = [facts(), checks].map((two) => {
-      const b = h('section.ah-block.ah-fitprobe', { 'aria-hidden': 'true' }, barNode({ one: h('span.ah-bt.ah-bst', null, h('span.ah-tl', null, COPY.rollingNow)), two, doors: doorStubs() }));
+      const b = h('section.ah-block.ah-fitprobe', { 'aria-hidden': 'true' }, barNode({ one: h('span.ah-bt.ah-bst', null, h('span.ah-tl', null, COPY.noTransferMade)), two, doors: doorStubs() }));
       b.style.width = `${strip.clientWidth}px`;
       strip.append(b);
       return b;

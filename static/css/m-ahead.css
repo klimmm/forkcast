@@ -1289,7 +1289,7 @@ ticket took them, leaving 41; QA chips-sheet, 2026-11-04) */
 .ah-pitch.band .ah-tok:is(.mv, .st.best)::before { inset: 0; }
 /* (one move one line, the tiles' height, none of the spare height around it; the pitch stays where two lines put it:
 renderDecks BAND_LEAST) */
-.ah-pitch.band .ah-tok.mv.tix:not(.multi) { min-height: 40px; }
+.ah-pitch.band .ah-tok.mv.tix:not(.multi, .lead) { min-height: 40px; }
 .ah-tok.mv.tix .ah-tn { display: flex; align-items: center; flex: 0 1 auto; min-width: 0; gap: .3em; }
 .ah-tok.mv.tix .ah-tn > :is(.o, .i) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ah-tok.mv.tix .ah-tn > .x { padding-right: 28px; }
@@ -1352,3 +1352,19 @@ card is under "Keep" */
 .ah-solvelog > div > div { border-top: 1px solid rgb(255 255 255 / .12); padding: 2px 0 2px 1.2em; text-indent: -1.2em; }
 .ah-solvelog > div > .solving { color: #FFD166; }
 .ah-solvelog > div > :is(.cancelled, .error, .superseded) { color: #FF8A80; }
+
+/* the strip's answer (screen-decks.js tokensOf), two lines at one height in every week, words left (design_1105b A);
+   past text 23 px it grows and the band with it: at 28 px a fixed 52 cut both lines by 3 px */
+.ah-pitch.band .ah-tok.st.best.ah-ans { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; font-weight: 600; }
+.ah-pitch.band .ah-tok.st.best.ah-ans .ah-tw { font-weight: 400; }
+/* (row-gap: the lock and × are 24 px on a 17 px row: at 1 px the title ran 2.6 px into them) */
+.ah-pitch.band .ah-tok.mv.lead { display: grid; grid-template-columns: minmax(0, 1fr) max-content max-content; grid-template-rows: auto auto; column-gap: 6px; row-gap: 5px; align-items: center; align-content: center; padding-top: 3px; padding-bottom: 3px; }
+.ah-pitch.band .ah-tok.mv.lead > .ah-tlead { grid-column: 1 / 3; justify-self: start; grid-row: 1; font-size: var(--t-sub); font-weight: 700; text-align: left; line-height: 1.15; white-space: nowrap; }
+.ah-pitch.band .ah-tok.mv.lead > .ah-tl { grid-column: 1; grid-row: 2; min-width: 0; overflow: hidden; }
+.ah-pitch.band .ah-tok.mv.lead > .ah-tl .ah-tn:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+.ah-pitch.band .ah-tok.mv.lead > .ah-tnum { grid-column: 2; grid-row: 2; justify-self: end; margin-left: 0; white-space: nowrap; }
+.ah-pitch.band .ah-tok.mv.lead > .ah-tnum > * { flex-shrink: 1; }
+.ah-pitch.band .ah-tok.mv.lead > .ah-tgo { grid-column: 3; grid-row: 1 / 3; align-self: center; }
+.ah-pitch.band .ah-tok.st.best.ah-ans { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; row-gap: 1px; align-content: center; justify-items: start; padding-top: 3px; padding-bottom: 3px; }
+.ah-pitch.band .ah-tok.st.best.ah-ans > .ah-tl { grid-row: 1; font-size: var(--t-sub); font-weight: 700; }
+.ah-pitch.band .ah-tok.st.best.ah-ans > .ah-tw { grid-row: 2; position: static; transform: none; margin: 0; text-align: left; font-size: var(--t-sub); }

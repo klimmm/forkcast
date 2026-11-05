@@ -14,7 +14,7 @@ import { h, fmt, fill, toast, norm, posName, icon, xpGain } from '../../ui.js';
 import * as E from '../../plan/engine.js';
 import { COPY } from '../calls.js';
 import { plan, squadBefore, inTeamAt, addMove, draftOf, planBaseline, takenBy, sellOut, problemText, problemShort, barred, barringRules, removeRule, openRules, baseOf, weekOf, saleBuy, bringIn, sayBuyProblem, presolveTaps } from '../ahead.js';
-import { weekPills, sortsOf, orderOf, sortChips, barTop, bars, who, found } from './buylist.js';
+import { weekPills, sortsOf, orderOf, sortChips, barTop, bars, ownWeeks, who, found } from './buylist.js';
 
 const CAP = 30;
 /** Hits the estimate takes from GW g on. */
@@ -127,7 +127,7 @@ export function open(ctx, rawOut, rawGw) {
         const last = (o) => !!o.blocked && o.code !== 'budget';
         const shown = all.filter((o) => !q || found(o.row, q))
           .sort((a, b) => (last(a) - last(b)) || by(a, b)).filter((o, i) => i < CAP);
-        const top = barTop(L, shown, P.gws);
+        const weeks = ownWeeks(P, st.g), top = barTop(L, shown, weeks);
         fill(list, shown.length ? shown.map((o) => {
           const rowEl = h('button.ah-lrow', {
             // (one the bank can't pay for is made as it is: pick, never greyed)
@@ -137,7 +137,7 @@ export function open(ctx, rawOut, rawGw) {
             onClick: () => pick(o),
           },
           who(L, o.row, [statOf(o), o.bench ? h('span.rs-bench', null, ` · bench in GW${st.g}`) : null]),
-          bars(L, o.id, P.gws, st.g, top, st.sort),
+          bars(L, o.id, weeks, st.g, top, st.sort),
           // its ≈ over what it counts, your total; forecast points, blue with "xP" (ui.js xpGain; owner, 2026-10-22)
           h('span.rt.m-num', null, o.blocked
             ? h('small', { class: { 'g-loss': o.code === 'budget' } }, o.blocked)

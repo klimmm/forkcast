@@ -5,12 +5,15 @@ import { h, fill, fmt, norm, roving } from '../../ui.js';
 import { COPY } from '../calls.js';
 import { shirtOf } from '../ahead.js';
 
-const after = (P, g) => P.gws.filter((x) => x >= g);
+/** Week g's own forecast weeks: the plan's length of them from g, as g's own plan is solved, past the plan's last week while
+ *  the forecast reaches (owner, 2026-11-05, "why it shows gw11-13 instead of gw 11-14"; it stopped at the plan's end, 3
+ *  weeks of GW11's, 1 of GW13's). */
+export const ownWeeks = (P, g) => P.d.xpGws.filter((x) => x >= g).slice(0, P.gws.length);
 const two = (v) => Number(v).toFixed(2);
 /** The lists' sorts as chips (owner, 2026-10-10, 2026-10-28): key, chip name, his value (P, row, g), its number and
  *  small line, low first (xGC: fewer conceded; Price: cheapest), the bundle field it needs. */
 export const SORTS = [
-  { key: 'pts', xp: true, name: (P, g) => `Predicted ${COPY.span(after(P, g))}`, val: (P, r, g) => after(P, g).reduce((t, x) => t + (P.L.xp(Number(r.id), x) ?? 0), 0), num: (v) => fmt.num(v), unit: (P, g) => `xP ${COPY.span(after(P, g))}` },
+  { key: 'pts', xp: true, name: (P, g) => `Predicted ${COPY.span(ownWeeks(P, g))}`, val: (P, r, g) => ownWeeks(P, g).reduce((t, x) => t + (P.L.xp(Number(r.id), x) ?? 0), 0), num: (v) => fmt.num(v), unit: (P, g) => `xP ${COPY.span(ownWeeks(P, g))}` },
   { key: 'week', xp: true, name: (P, g) => `GW${g}`, val: (P, r, g) => P.L.xp(Number(r.id), g) ?? 0, num: (v) => fmt.num(v), unit: (P, g) => `xP GW${g}` },
   { key: 'price', name: () => 'Price', val: (P, r) => r.price, num: (v) => fmt.money(v), unit: () => 'price', low: true },
   { key: 'own', name: () => 'Owned', field: 'sel_pct', val: (P, r) => r.sel_pct, num: (v) => fmt.pct(v), unit: () => 'owned' },

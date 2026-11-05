@@ -67,13 +67,13 @@ export function linePart(V) {
       mine = COPY.outNames(movesInOrder(P, w).map((m) => P.L.name(m.out)));
       said = `${one}${hitSaid(w.hits)}, ${numSaid(wait, v.cmp, ap, v.vs)}`;
     } else {
-      // ("Rolling", never "Rolling is best": that is the corner's black token, tokensOf; "No transfer yet" while the
-      // band offers a move, never "Rolling" over its Swap: owner, 2026-11-03, design_1103b "Bar and strip words")
-      const f = rollFacts(P, w), head = M?.lit?.move && f.head === COPY.rollingNow ? COPY.noTransferYet : f.head;
-      one = kept ? COPY.nTransfers(kept) : head;
+      // (the team's state, one name for no transfer; what Forkcast suggests is the strip's: tokensOf. Next week's free
+      // transfers are the strip's too)
+      const f = rollFacts(P, w, { bar: true });
+      one = kept ? COPY.nTransfers(kept) : f.head;
       wait = kept > 0;
       two = f.rest;
-      said = kept ? `${one}, ${numSaid(true)}` : head;
+      said = kept ? `${one}, ${numSaid(true)}` : f.head;
       factsSaid = f.said;
       facts = true;
     }

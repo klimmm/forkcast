@@ -19,7 +19,7 @@
 // pin (ahead.wishSolve), the button lands that road with the pin alone (ahead.want → holdBuy's 'pick' → bringIn), so
 // the sale and the money are the solver's, as a Wildcard's or Free Hit's always were. No hits rule is set.
 // The list (owner, 2026-10-10): Replace's rows (buylist.js), the week pills, All / GK / DEF / MID / FWD, forecast bars,
-// one row of sorts (Predicted GW6–9 = his points from that week to the window's end, GW6, Price, Owned, Form, xGI, xGC,
+// one row of sorts (Predicted GW6–9 = his points over that week's own weeks: buylist.js ownWeeks, GW6, Price, Owned, Form, xGI, xGC,
 // DefCon: season-to-date per-90 rates, shown only while the bundle has them), each row's number the sort's, a second
 // tap turns it round. Every player you could buy of the position (All: every position; owner, 2026-10-15), in the
 // sort's order, with your squad of that week where it ranks (greyed, "In your team", a ⋯ in the +'s place opening his
@@ -34,7 +34,7 @@ import * as E from '../../plan/engine.js';
 import { h, fmt, fill, norm, icon, xpNum, reduceMotion } from '../../ui.js';
 import { COPY } from '../calls.js';
 import { plan, weekOf, squadBefore, squadWeek, addMove, draftOf, estimate, wishSolve, want, reroute, editable, barred, barringRule, ruleOf, clearGain, inkAt, buyPlan, saleBuy, sayBuyProblem, holdBuy, bringIn, bringInTakes, removesText, inWords, weekWith, saleOptions, solvesRound, problemText, presolveTaps, waitView, paintWaitView, stepShare, PREP_TIMING } from '../ahead.js';
-import { weekPills, tabs, barTop, bars, shirt, found, SORTS, sortsOf, orderOf, sortChips } from './buylist.js';
+import { weekPills, tabs, barTop, bars, ownWeeks, shirt, found, SORTS, sortsOf, orderOf, sortChips } from './buylist.js';
 
 /** A row's disclosure: its week pills open under it (down), shut (up). Never a +: that read as the Week sheet's take,
  *  which makes the transfer at once (design 1028d K1, owner, 2026-10-28). */
@@ -140,7 +140,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
             h('button.nm.ws-name', { type: 'button', onClick: () => ctx.openSheet('player', id, { gw: st.g }) },
               h('b', null, name),
               h('span', null, sub2 ?? [mine ? yours : bar ? ruleOf(P, bar).text : no.has(id) ? 'Ruled out by you' : null, r?.club, fmt.money(r?.price)].filter(Boolean).join(' · '))),
-            sub2 ? null : bars(P.L, id, P.gws, st.g, top, x.key),
+            sub2 ? null : bars(P.L, id, ownWeeks(P, st.g), st.g, top, x.key),
             // (a forecast sort's number in the forecast's blue, its unit under it naming the weeks: ui.js xpNum; owner,
             // 2026-10-22)
             sub2 ? null : h('span.rt.m-num', null, v == null ? '—' : x.xp ? xpNum(x.num(v), 'span', null, false) : x.num(v), h('small', null, x.unit(P, st.g))),
@@ -292,7 +292,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         sortChips(sortEl, sorts(), st, P, g, draw);
         const items = players(P).map((o) => ({ ...o, id: Number(o.row.id) }));
         const ids = items.map((o) => o.id);
-        const top = barTop(L, items, P.gws);
+        const top = barTop(L, items, ownWeeks(P, st.g));
         const later = P.weeks.filter((w) => w.gw > g).flatMap((w) => w.in.map((id) => ({ id, gw: w.gw }))).filter((x) => !st.lock || L.pos(x.id) === st.pos);
         const extra = st.open != null && !ids.includes(st.open) && !later.some((x) => x.id === st.open) ? row(st.open, null, top) : null;
         // offline: every + off, the reason once above them (an open row says it under its button)

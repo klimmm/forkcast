@@ -4,9 +4,9 @@ import { MINUS, WHY_SHEET, weekOf } from './core.js';
 import { h, svg, fill, append, plural, reduceMotion, toast, xpGain, shownGain } from '../../ui.js';
 import { SQUAD_CHIPS, askPlace, failedWords, lineMoves, litShown, multiMove, placeFirst, placeOrder, planBack, planWeeks, rollOnly, takesBack } from './plans.js';
 import { COPY, shownDelta } from '../calls.js';
-import { plPays } from './pieces.js';
+import { nextFts, plPays } from './pieces.js';
 import * as E from '../../plan/engine.js';
-import { addPlan, planTake } from './presolve.js';
+import { addPlan, planTake, rollingAt } from './presolve.js';
 import { keep, pinOf, removeRule, veto } from './edits.js';
 import { EDGE_MIN, NAME_LEAST, PLATE_MIN, PLATE_TRIMS, ST_TRIMS, boxesMeet, cssPx, fitNum, oneLook, reachOf } from './screen.js';
 
@@ -604,7 +604,7 @@ export function decksPart(V) {
       // ahead: presolve.refusalRoads' lead)
       const one = best && swap && e.adds.length && !takesBack(e) ? e.adds[0] : null;
       const close = pl.cmp?.label === 'coin', span = Object.keys(pl.road?.windows?.[g]?.xi ?? {}).length || P.gws.filter((x) => x >= g).length;
-      return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', class: { tix: !!one, multi: !!one && e.adds.length > 1, close: !!one && close }, 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(one ? { notOut: one.out, notIn: one.in } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}), ...(!takesBack(e) && e.adds.length === 1 ? { buy: nm(e.adds[0].in) } : {}) },
+      return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', class: { lead: best, tix: !!one, multi: !!one && e.adds.length > 1, close: !!one && close }, 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(one ? { notOut: one.out, notIn: one.in } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}), ...(!takesBack(e) && e.adds.length === 1 ? { buy: nm(e.adds[0].in) } : {}) },
         // (its verb first where it takes, as drawn: "Swap. Best move this week: …")
         'aria-label': swap ? COPY.bestSwapSaid(said) : `${said}, ${COPY.showsChoices}`,
         // (its "Swap" takes; a tap on its words opens his place, the move among his choices: review 7, 2026-11-02,
@@ -618,6 +618,7 @@ export function decksPart(V) {
         // comma-separated, on one line where they fit, else "Ajer, Van Hecke, Havertz →" over "N.Williams, Murillo, Evanilson" (owner,
         // 2026-11-03, "sold players go first and comma-separated, then comma separated bought"); a mark after every
         // name: .x, renderDecks, a buy's naming its seller, data-out)
+        best ? h('small.ah-tlead', { 'aria-hidden': 'true' }, COPY.answerMove) : null,
         h('span.ah-tl', { 'aria-hidden': 'true' }, one ? ticketNames(e.adds, nm)
           : (takesBack(e) || !e.adds.length ? [nm(e.inId)] : e.adds.length === 1 ? [`${nm(e.adds[0].out)} → ${nm(e.adds[0].in)}`] : e.adds.map((m) => nm(m.in))).map((t, i, all) => h('span.ah-tn', null, `${t}${i < all.length - 1 ? ',' : ''}`))),
         // (its number as its plate's: numParts)
@@ -630,8 +631,15 @@ export function decksPart(V) {
         swap ? h(`span.ah-tgo.m-swap${best ? '.best' : ''}`, { 'aria-hidden': 'true' }, takesBack(e) ? COPY.placeKeep : COPY.placeSwap) : null);
     };
     if (top) out.push(moveTok(top[0].L.e, top[0].d.a, mv, true));
-    // (no move its best, the solver rolling or your transfers all it makes: nothing in the band, the bar says the week;
-    // owner, 2026-11-04, "stop showing some random crap there", then "Keep it empty")
+    // (the strip answers in every week you can change, at one height: no move of Forkcast's there, it says to save the free
+    // transfer and what that makes next week; your transfers with nothing to add, that there is nothing more; owner,
+    // 2026-11-05, design_1105b A: "can't tell if thre any transfer suiggestions or suggestion is to roll")
+    else if (M && !M.sq && !M.live && !V.S.wait && P.editable && !frozenAt(P, g) && !rollingAt(P, g)) {
+      const nx = w.moves.length ? null : nextFts(P, w);
+      out.push(h('button.ah-tok.st.best.ah-ans', { type: 'button', dataset: { row: `tok:ans:${g}` }, onClick: (ev) => openWeek(ev, g) },
+        h('span.ah-tl', null, w.moves.length ? COPY.answerDone : COPY.answerSave(w.ft ?? 1)),
+        nx != null ? h('small.ah-tw', null, COPY.rollKeeps(nx, g + 1)) : null));
+    }
     // (none beside it: each is its place's plate already; owner, 2026-11-02, "stop dublicating black and other pills on
     // pich", reversing 2026-10-29's two moves in the corner)
     // (the week's status is on the bar's first line: statusLine)
