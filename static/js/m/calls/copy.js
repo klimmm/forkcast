@@ -789,6 +789,18 @@ export const COPY = Object.freeze({
   /** The strip's answer, in every week you can change (owner, 2026-11-05, design_1105b A, "like save more"): Forkcast's move
    *  under its title, a week it saves, or your moves with nothing to add. */
   answerMove: 'Make this transfer',
+  makeTheSwap: 'Make the swap',
+  showAnother: 'Show another',
+  showATransfer: 'Show a transfer',
+  undoMove: 'Undo',
+  seeChanges: 'See the changes',
+  onToWeek: (g) => `On to GW${g}`,
+  saveThem: (ft) => (ft > 1 ? 'Save them' : 'Save it'),
+  setInFplGo: 'Set in FPL',
+  overNextWeeks: (n) => `over the next ${n} week${n === 1 ? '' : 's'}.`,
+  bringInPlayer: 'bring in a player you want',
+  playAChip: 'play a chip',
+  yourFplTeam: 'Your FPL team:',
   answerSave: (ft) => (ft > 1 ? 'Save your free transfers' : 'Save your free transfer'),
   answerDone: 'Nothing more to do this week',
   /** The band's number's scope and its toss-up (ahead tokensOf; owner, 2026-11-03, design_1103b): "· 4 GW", "Close call". */

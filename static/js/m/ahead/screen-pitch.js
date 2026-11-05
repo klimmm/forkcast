@@ -64,8 +64,8 @@ export function pitchPart(V) {
   /** The pitch on Ahead (pitch.mountPitch), Player data, Reset lineup, Reset plan and the choices on it first
    *  (m-ahead.css: its top-right corner, beside the goal, then the layer the choices are drawn in: renderDecks; read
    *  before the eleven). An open place closes: its cards were the pitch's. */
-  function mountHere(props) { const { S, cardBoxes, cardIn, chipsHint, closePlace, ctx, decks, pdBtn, pitchHost, rsBtn, settle } = V;
-    const pill = [rsBtn, pdBtn].find((b) => b === document.activeElement);
+  function mountHere(props) { const { S, cardBoxes, cardIn, chipsHint, closePlace, ctx, decks, pdBtn, pitchHost, settle } = V;
+    const pill = pdBtn === document.activeElement ? pdBtn : null;
     // a place open with the focus in it: on his card once the pitch is mounted anew (a keyboard's, VoiceOver's)
     const inPlace = S.place && pitchHost.querySelector(':scope > .pm > .ah-place')?.contains(document.activeElement) ? S.place.a : null;
     closePlace(false);
@@ -74,7 +74,7 @@ export function pitchPart(V) {
     S.snap = old ? new Map(cardBoxes(old).map((c) => [c.id, { rect: c.n.getBoundingClientRect(), node: c.n.cloneNode(true) }])) : null;
     ctx.pitch.mountPitch(pitchHost, props);
     if (inPlace) cardIn(pitchHost.querySelector(':scope > .pm'), inPlace)?.focus({ preventScroll: true });
-    pitchHost.querySelector(':scope > .pm')?.prepend(pdBtn, rsBtn, decks);
+    pitchHost.querySelector(':scope > .pm')?.prepend(pdBtn, decks);
     if (pill) (pill.hidden ? pdBtn : pill).focus({ preventScroll: true });  // a corner pill keeps focus over a pitch drawn anew
     pitchHost.querySelector(':scope > .pm > .pm-field')?.append(chipsHint);
     // a swipe's new week comes in from the side the finger went (pitchEnd: S.slide)
@@ -151,9 +151,9 @@ export function pitchPart(V) {
         const chg = !!was;
         const chgMark = was ? h('s.ah-was', { 'aria-hidden': 'true' }, was) : null;
         return h('button.ah-tick', {
-          type: 'button', role: 'radio', 'aria-checked': String(w.gw === g), dataset: { gw: w.gw }, class: { sel: w.gw === g, heal: (P.mark ?? P.approx).has(w.gw), lu: !!w.lineup, pencil: w.gw > P.A, chg },
+          type: 'button', role: 'radio', 'aria-checked': String(w.gw === g), dataset: { gw: w.gw }, style: { order: -w.gw, '--d': Math.abs(w.gw - g) }, class: { down: w.gw < g, sel: w.gw === g, heal: (P.mark ?? P.approx).has(w.gw), lu: !!w.lineup, pencil: w.gw > P.A, chg },
           // VoiceOver and Switch Control activate with a click and no pointer (detail 0); a touch is the bar's own
-          onClick: (e) => { if (e.detail === 0) { setGw(w.gw); } },
+          onClick: () => setGw(w.gw),
           'aria-label': `Gameweek ${w.gw}, ${fmt.num(w.points)} points, ${w.gw > P.A ? 'provisional, ' : ''}${sq ? plural(n, 'change') : !n ? 'roll' : `${w.moves.map((m) => P.L.name(m.in)).join(', ')} in`}${w.hits ? `, ${MINUS}${E.HIT_COST * w.hits}` : ''}${w.chip ? `, ${chipName(w.chip)}` : ''}${flags.length ? `, ${flags.map((f) => (f === 'DGW' ? 'a double gameweek' : 'a blank gameweek')).join(' and ')}` : ''}${w.lineup ? ', your lineup' : ''}${was ? `, ${COPY.tileWas(was)}` : ''}`,
         },
         // two lines, every week the same height: "GW6" with its marks and what the week does (the buy's name, "2 in";
@@ -162,10 +162,12 @@ export function pitchPart(V) {
           w.chip ? h('em', null, w.chip.toUpperCase()) : null,
           w.hits ? h('i.hit', null, ` ${MINUS}${E.HIT_COST * w.hits}`) : null) : null,
           change ? h('span.c', null, change) : null),
+        h('span.a', null, V.adviceOf(P, w)),
         // the points never recoloured for the window's lowest week (GW A short at FPL's prices stays coral: a fact);
         // the week's forecast in its blue with "xP" (xpNum), a change's mark before it
         h('span.p.m-num', { class: { 'g-loss': over } }, over ? fmt.money(w.bank) : [chgMark, xpNum(shown)]));
       }), past);
+    V.strip.style.order = -g;
     fitRail();
     roving(ticks);
     if (had) ticks.querySelector('[aria-checked="true"]')?.focus({ preventScroll: true });

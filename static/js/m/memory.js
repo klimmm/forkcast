@@ -95,7 +95,7 @@
 // ================================================================ pure exports (node: the memory-*.test.mjs suites)
 // parseSpans, spanString, composePins, pinConflicts, pinsDir, makePin, barredAt, changesGwA, yieldRoad, pinsAfter,
 // holdOf, pinRoad, splitRoad, ticketSquad, lockPin, pinFrozen, frozenHolds, thawPin, frozenClash, frozenWeeks,
-// frozenOnOf, frozenSince, inkRepair, pinWish, pinSell, pinSlide, pinVeto, pinNever, pinKeep, pinChip, pinCash,
+// frozenOnOf, frozenSince, inkRepair, pinWish, pinSell, pinSlide, pinVeto, pinNever, pinNotFor, pinKeep, pinChip, pinCash,
 // withBank,
 // pinHits, squadInto, movesIn, pinRoll, isRoll, isExact, exactAt, scopeOf, carryPins, planValues, roadCaps, forcedHits,
 // idleRules, roadFits, optionPins, optionsRoad,
@@ -107,7 +107,7 @@ export {
   TIMING, FORGET_MS, USED, isRoll, isExact, exactAt, rollKeeps, parseSpans, spanString, composePins, pinConflicts,
   pinsDir, makePin, barredAt, changesGwA, yieldRoad, pinsAfter, pinRoad, splitRoad, ticketSquad, pinFrozen, lockPin,
   frozenHolds, thawPin, frozenClash, deadlinePassed, frozenWeeks, frozenOnOf, frozenSince, inkRepair, pinWish,
-  pinSell, pinSlide, pinVeto, pinNever, pinKeep, scopeOf, pinChip, pinCash, withBank, pinHits, movesIn, squadInto,
+  pinSell, pinSlide, pinVeto, pinNever, pinNotFor, pinKeep, scopeOf, pinChip, pinCash, withBank, pinHits, movesIn, squadInto,
   pinRoll, carryPins
 } from './memory/pins.js';
 export {

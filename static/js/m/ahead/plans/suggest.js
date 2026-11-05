@@ -1,7 +1,7 @@
 // ahead/plans.js: a week's suggested moves: the bake's roads' moves that week, a place's asked buys
 
 import { baseline, compare, draftOf, estimate, movedFrom, pairedMoves, removedAt, squadBefore, weekOf } from '../core.js';
-import { barred, buyCandidates, keptFrom } from '../edits.js';
+import { barred, refusedAt, buyCandidates, keptFrom } from '../edits.js';
 import { addYours, extraWeek, owedAt, pairChanged, pinOfMove, wishWeeks } from '../presolve.js';
 import { inkAt } from '../buys.js';
 import { squadWeek } from '../pieces.js';
@@ -30,7 +30,7 @@ export function suggestionsOf(ctx, P, g) {
   const asked = placesAsked(P, g), at = `${g}|${asked.join(',')}`;
   if (by.has(at)) return by.get(at);
   const w = weekOf(P, g), squad = w.squad, into = squadBefore(P, g);
-  const no = barred(P, g);
+  const no = barred(P, g), refused = refusedAt(P, g);
   const mine = movedFrom(P, g, true);
   const kept = keptFrom(P, g);
   const d0 = draftOf(ctx);
@@ -38,7 +38,7 @@ export function suggestionsOf(ctx, P, g) {
   const hitsAt = (ev) => ev.gws.find((x) => x.gw === g)?.hits ?? 0;
   // a move you took off this session is still offered, as yours (`removed`)
   const gone = removedAt(P, g);
-  const fits = (m) => into.includes(m.out) && squad.includes(m.out) && !squad.includes(m.in) && !mine.has(m.out) && !mine.has(m.in) && !no.has(m.in) && !kept.has(m.out);
+  const fits = (m) => into.includes(m.out) && squad.includes(m.out) && !squad.includes(m.in) && !mine.has(m.out) && !mine.has(m.in) && !no.has(m.in) && !refused.has(`${m.out}>${m.in}`) && !kept.has(m.out);
   // (null where the week can't make it)
   const measured = (m) => {
     const r = addYours(ctx, P, g, m.out, m.in, d0);

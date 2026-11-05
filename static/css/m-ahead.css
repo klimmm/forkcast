@@ -401,15 +401,14 @@ so it never takes their taps */
 /* the best move's token's ✕ (ahead.js renderDecks; owner, 2026-11-02): over the token's top-right corner, half on its ink,
 half on the turf, so the C / V's look, solid ink with its white keyline, never the grey idle mark (lost on the ink) */
 .ah-decks .ah-cm.tno { z-index: 4; background: #17191A; box-shadow: 0 0 0 1.5px #FFFFFF; }
-/* the C / V as a tag at the left end of his name plate (owner, 2026-11-02: the tile's top-left is the ×'s), the plate's
-height and corner, its name moved past it; still the armband's drag handle (screen-pitch.js .pm-badge[data-badge]) */
+/* the C / V: the armband's drag handle (screen-pitch.js .pm-badge[data-badge]); it sits on the shirt, so every name stays
+centred under its shirt (owner, 2026-11-05) */
 .ah-pitch .pm .pm-badge:is(.c, .v) {
   top: calc(100% + 1px); left: 1px; width: auto; min-width: var(--pm-plate); height: var(--pm-plate); padding: 0 2px;
   border-radius: calc(var(--pm-tile-r) - 2px) 0 0 0; box-shadow: none; font-size: calc(var(--pm-plate) * .62); }
 /* (the flying C, armbandHop, goes by its transform from the pitch's corner: the tag's top is a card's, on the pitch it put
 the C a pitch's height down, under the screen, the page scrolling with it at every change of captain from 2026-11-02) */
 .ah-pitch .pm .pm-badge.pm-fly { top: 0; left: 0; }
-.ah-pitch .pm .pm-card:has(.pm-badge:is(.c, .v)) .pm-pn { padding-left: calc(var(--pm-plate) + 2px); }
 /* the swap plates' three weights (design.md §1, §7): the best's ink (the C / V badge's, both themes: white 17.6:1; on
 the dark turf a white hairline holds its edge), a take's the app's "worth doing" mint (#05341C on it 10.2:1: a
 place's best header), the quiet plate the pitch's dark green (white 6.7 / 12.3:1; the bench tile's wash held the blue
@@ -763,7 +762,7 @@ proportions. Per card: a card whose fixture takes two lines has a tile one plate
 --pm-tile-two) */
 .ah-pitch .pm .pm-card { --pm-shirt-w: calc((var(--pm-card-w) + var(--pm-tile) / .92) / 2 * .741 * 220 / 193); }
 /* the pitch's corner pills (.ah-pp), beside the goal: Player data (FPL's "Opponent ⌄") top-right, alone there; the
-top-left corner is the week's own choices' (.ah-tok) and the one Reset under them (.ah-rsbtn). Small light pills,
+top-left corner is the week's own choices' (.ah-tok). Small light pills,
 never over the goalkeeper's card (centred, over the goal): at most the room beside it less 14 px, the label
 ellipsised first; px sizes, so a larger text size never grows one into a card; a 44 pt tall target */
 .ah-pitch .pm > .ah-pp {
@@ -774,30 +773,7 @@ ellipsised first; px sizes, so a larger text size never grows one into a card; a
 }
 .ah-pitch .pm > .ah-pp[hidden] { display: none; }
 .ah-pitch .pm > .ah-pdbtn { right: 6px; }
-/* the one "↺ Reset" (.ah-rsbtn: ahead.js rsBtn) on the pitch's top-left corner with the week's own choices, a take-back
-beside the takes (owner, 2026-10-29), 12 px under a one-line token's room (--pm-pill) or the first token where
-taller, one place in every week (ahead.js resetSlot, placePills): "Reset lineup", "Reset plan", or "Reset ⌄" where
-both apply (its choice: ahead.js resetSheet); in the destructive role's red words with its "↺" (a sign as well as the
-colour; never filled; Undo in its toast keeps it a quiet act) */
-.ah-pitch .pm > .ah-rsbtn { top: 66px; left: 6px; padding: 0 10px; color: var(--loss); }
-/* …12 px from the keeper's card at its widest (a card behind's slivers beside him: ahead.js resetFits, GAP_MAX), its
-label ellipsised first */
-.ah-pitch .pm > .ah-rsbtn { max-width: calc(50% - var(--pm-card) / 2 - 18px); }
-.ah-pitch .pm > .ah-rsbtn:has(> .ah-chev) { padding-right: 8px; }
-/* …a take-back, set apart from the setting over it by its look too: the app's take-back button (m.css:41 "the secondary
-with its words --loss", never filled red), on the turf its white with a --loss hairline, a button's corner (--r-ctl),
-no pill and no shadow */
-.ah-pitch .pm > .ah-rsbtn { border-radius: var(--r-ctl); box-shadow: inset 0 0 0 1px var(--loss); }
-.ah-pitch .pm > .ah-rsbtn > .ah-pdl::before { content: "\21BA" / ""; margin-right: 4px; font-weight: 400; }
 .ah-rsbtn .ah-chev { width: 6px; height: 6px; margin: 0 1px 3px; border-width: 1.5px; }
-/* its target 3 px over it, down to the card under it (ahead.js placePills) */
-.ah-pitch .pm > .ah-rsbtn::before { top: -3px; bottom: calc(-1 * var(--down, 9px)); }
-/* …3 px under the token (.near, a 320 px phone: ahead.js RESET_GAPS), 24 px tall, each target to its half of the gap,
-the token's 9 px under it cut to 1 (.ah-over: ahead.js placePills) */
-.ah-pitch .pm > .ah-rsbtn.near { height: 24px; }
-.ah-pitch .pm > .ah-rsbtn.near::before { top: -1px; }
-.ah-pitch .pm:has(> .ah-rsbtn.near:not([hidden])) .ah-tok.ah-over::before,
-.ah-pitch .pm:has(> .ah-rsbtn.near:not([hidden])) .ah-tok.two.ah-over .ah-tbody::before { bottom: -1px; }
 /* the choice's rows (ahead.js resetSheet): the captain's list's rows, the take-back's red words and "↺" */
 .ah-rssheet .ah-lrow .mk { display: grid; place-items: center; color: var(--loss); font: 400 22px/1 var(--f-text); }
 .ah-rssheet .ah-lrow .nm b { color: var(--loss); }
@@ -1368,3 +1344,131 @@ card is under "Keep" */
 .ah-pitch.band .ah-tok.st.best.ah-ans { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; row-gap: 1px; align-content: center; justify-items: start; padding-top: 3px; padding-bottom: 3px; }
 .ah-pitch.band .ah-tok.st.best.ah-ans > .ah-tl { grid-row: 1; font-size: var(--t-sub); font-weight: 700; }
 .ah-pitch.band .ah-tok.st.best.ah-ans > .ah-tw { grid-row: 2; position: static; transform: none; margin: 0; text-align: left; font-size: var(--t-sub); }
+
+/* ================================================================ the week ticket (owner, 2026-11-05; design_1105f ticket.html)
+   One font, four sizes. Dark pitch, shirts and names on the grass, the weeks one stack top to bottom, the front week's
+   ticket in its place: one decision, one line, two buttons. */
+.m-screen.ah {
+  --tk-night: #103f26; --tk-paper: #fff; --tk-paper2: #e6e9ee; --tk-ink: #14171a; --tk-mute: #5f6670; --tk-go: #ffd23c; --tk-out: #d8342b;
+  --tk-xp: #2B5BB8; --tk-xp-d: #9CC0FF;
+  --tk1: calc(24rem / 17); --tk2: calc(18rem / 17); --tk3: calc(15rem / 17); --tk4: calc(13rem / 17);
+  --ah-tab-h: calc(27rem / 17); --ah-ticket-h: calc(188rem / 17); --ah-stack-gap: 8px;
+  /* the pitch never under its rows, at any text size: the page scrolls instead */
+  --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 34px) + 40px);
+  display: flex; flex-direction: column; background: var(--tk-night); padding-bottom: 10px; font-family: var(--f-text); font-weight: 500;
+}
+/* the header: who you are, the plan's total; the week's facts; settings and you */
+.m-screen.ah .ah-head { position: relative; z-index: 8; display: flex; align-items: center; gap: 8px; height: auto; min-height: 0; padding: 8px 14px 6px; background: var(--tk-night); color: #fff; }
+.m-screen.ah .ah-hmid { flex: 1 1 auto; min-width: 0; text-align: left; align-items: flex-start; }
+.m-screen.ah .ah-team { font: 700 var(--tk2)/1.1 var(--f-text); color: #fff; text-align: left; }
+.m-screen.ah .ah-gwline { justify-content: flex-start; color: rgb(255 255 255 / .7); font: 500 var(--tk4)/1.3 var(--f-text); }
+.m-screen.ah .ah-gwline .xp, .m-screen.ah .ah-gwline .xp-u { color: var(--tk-xp-d); }
+.m-screen.ah .ah-stand { flex: none; display: flex; flex-direction: column; align-items: flex-end; color: rgb(255 255 255 / .7); font: 500 var(--tk4)/1.3 var(--f-text); }
+.m-screen.ah .ah-stand b { color: #fff; font-weight: 600; }
+.m-screen.ah .ah-set { color: rgb(255 255 255 / .8); }
+.m-screen.ah .ah-avatar { flex: none; width: 32px; height: 32px; background: none; color: #fff; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .5); font: 600 var(--tk4)/1 var(--f-text); }
+/* the pitch: dark, striped, its lines quiet; no goal, plates, tiles or marks: the shirts and names alone */
+.m-screen.ah .ah-pitchwrap { position: relative; flex: none; }
+.m-screen.ah .ah-pitch { --turf-1: #14502f; --turf-2: #175a35; --chalk: rgb(255 255 255 / .28); flex: none; height: max(var(--ah-pitch-floor), var(--ah-pitch-fit, 300px)); margin: 0; border-radius: 0; container-type: size; }
+.m-screen.ah .ah-pitch.band { --ah-band: 0px !important; margin-top: 0; }
+.m-screen.ah .ah-pitch .pm { --pm-x2: 0px; --pm-plate: max(calc(var(--tk4) * 1.1), 13px); --pm-hlo: calc(var(--tk4) * 1.1 + var(--tk4) * 1.2 + 34px); --pm-kh: calc(var(--pm-h) - var(--tk4) * 1.1 - var(--tk4) * 1.2); --pm-bl: 0px; --pm-bl-gap: 0px; --pm-bench-pad: 3px; --pm-foot: 4px; }
+.m-screen.ah .ah-decks, .m-screen.ah .ah-pitch .ah-pp, .m-screen.ah .ah-cheer, .m-screen.ah .ah-hint, .m-screen.ah .ah-thumb, .m-screen.ah .pm-goal, .m-screen.ah .pm-bl, .m-screen.ah .pm-turf, .m-screen.ah .pm-field > svg { display: none !important; }
+.m-screen.ah .pm-field { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='rgba(255,255,255,.28)' stroke-width='1.5'%3E%3Crect x='110' y='-2' width='180' height='46'/%3E%3Crect x='160' y='-2' width='80' height='18'/%3E%3Cpath d='M170 44a32 32 0 0 0 60 0M0 300V0M400 300V0M0 298H400M140 298a60 60 0 0 1 120 0'/%3E%3C/g%3E%3C/svg%3E") center / 100% 100% no-repeat, repeating-linear-gradient(180deg, var(--turf-1) 0 34px, var(--turf-2) 34px 68px); }
+.m-screen.ah .pm-card .pm-kit { width: 100%; height: var(--pm-kh); background: none; box-shadow: none; }
+.m-screen.ah .pm-card .pm-flip { overflow: visible; }
+.m-screen.ah .pm-card .pm-face { position: absolute; left: 0; top: 0; width: 100%; height: calc(var(--pm-kh) / .64); display: flex; justify-content: center; transform: none; }
+.m-screen.ah .pm-card .pm-face.back { display: none; }
+.m-screen.ah .pm-card .pm-face :is(svg, img) { width: auto; height: 100%; max-width: none; }
+.m-screen.ah .pm-card .pm-face img { height: var(--pm-kh); }
+.m-screen.ah .pm-card .pm-plate, .m-screen.ah .pm-card .pm-plate.chg { background: none; box-shadow: none; border: 0; padding: 0; color: #fff; overflow: visible; text-align: center; }
+.m-screen.ah .pm-card .pm-pn { display: block; width: max-content; position: relative; left: 50%; transform: translateX(-50%); height: auto; padding: 0 2px; background: none; box-shadow: none !important; color: #fff; font: 600 var(--tk4)/1.1 var(--f-text); white-space: nowrap; max-width: calc(100% + 8px); overflow: hidden; text-overflow: ellipsis; }
+.m-screen.ah .pm-bs .pm-pn { max-width: calc(100% + 28px); }
+.m-screen.ah .pm-card .pm-badge { position: absolute; left: calc(50% - 30px); top: 1px; z-index: 2; width: 14px; height: 14px; margin: 0; padding: 0; border: 0; border-radius: 50%; box-shadow: none; background: #fff; color: var(--tk-ink); font: 700 9px/14px var(--f-text); text-align: center; }
+.m-screen.ah .pm-card .pm-pf { height: auto; background: none; justify-content: center; font: 500 var(--tk4)/1.2 var(--f-text); color: rgb(255 255 255 / .75); }
+/* (one line always, at every text size: a row is the height the pitch was fitted for, the longest fixture ellipsises; the
+wider system font took a second line at the largest sizes and ran the rows together, QA fit 2026-11-05) */
+.m-screen.ah .pm-card .pm-pf.two:has(.xp-u) { display: flex; flex-direction: row; height: auto; column-gap: 3px; }
+.m-screen.ah .pm-card .pm-opp { background: none !important; box-shadow: none; color: inherit; text-decoration: none; border: 0; padding: 0; }
+.m-screen.ah .pm-card .pm-px { color: var(--tk-xp-d); font-weight: 600; }
+.m-screen.ah .pm-card .xp-u { display: none; }
+.m-screen.ah .pm-card.ah-sold .pm-pn { background: var(--tk-out); padding: 0 4px; }
+.m-screen.ah .pm-card.is-in .pm-pn { background: var(--tk-go); color: var(--tk-ink); padding: 0 4px; }
+.m-screen.ah .pm-card.f-red { opacity: .55; }
+.m-screen.ah .ah-pitch .pm .pm-benchzone { background: #0d3620 !important; border-radius: 0; margin: 0; box-shadow: none; }
+.m-screen.ah .pm-card .pm-flag { position: absolute; right: 4px; top: 0; transform: scale(.85); transform-origin: top right; }
+.m-screen.ah .ah-fplflag { position: absolute; left: 0; top: 0; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 4px 9px 4px 7px; border: 0; border-left: 3px solid var(--tk-go); background: rgb(13 54 32 / .86); color: #fff; font: 500 var(--tk4)/1.15 var(--f-text); cursor: pointer; }
+.m-screen.ah .ah-fplflag[hidden] { display: none; }
+.m-screen.ah .ah-fplflag b { font-weight: 600; }
+.m-screen.ah .ah-pitch .pm .pm-bench { background: none !important; border: 0; box-shadow: none; border-radius: 0; margin: 0; padding: 0; }
+.m-screen.ah .ah-pitch .pm .pm-bs, .m-screen.ah .ah-pitch .pm .pm-pl { outline: 0; box-shadow: none !important; background: none; border: 0; }
+.m-screen.ah .ah-pitch .pm .pm-card.ah-sold::before, .m-screen.ah .ah-pitch .pm .pm-card.ah-sold::after { content: none; }
+.m-screen.ah .pm-card.f-red .pm-pn { background: none; box-shadow: none !important; outline: 0; color: #fff; }
+.m-screen.ah .pm-card.f-red .pm-plate { background: none; }
+/* the stack: one list top to bottom, GW13 to GW10: later weeks above the ticket, earlier ones under it, the nearest widest
+   (order: renderRail) */
+.m-screen.ah .ah-stack { flex: 1 1 auto; position: relative; display: flex; flex-direction: column; margin: var(--ah-stack-gap) 12px 0; touch-action: none; }
+/* (a screen too short for the whole stack keeps its scroll: its swipes then go sideways alone) */
+.m-screen.ah .ah-stack.scrolls { touch-action: pan-y; }
+/* the card a change of week leaves, for its 180 ms (screen-ticket.js holdStack): going on it drops over the stack, going
+back the next card rises over it */
+.m-screen.ah .ah-tkghost { position: fixed; z-index: 1; margin: 0; pointer-events: none; }
+.m-screen.ah .ah-tkghost.over { z-index: 5; }
+.m-screen.ah .ah-ctl, .m-screen.ah .ah-railwrap, .m-screen.ah .ah-rail, .m-screen.ah .ah-ticks { display: contents; }
+.m-screen.ah .ah-ctl[hidden] { display: none; }
+.m-screen.ah .ah-railwrap > :not(.ah-rail) { display: none; }
+/* (the old rail's tap strip, .ah-rail::before, sat over the whole stack once the rail is display: contents: every tab's
+   tap met the rail, not the tab; QA qa-tk2, 2026-11-05) */
+.m-screen.ah .ah-rail::before { content: none; }
+.m-screen.ah .ah-tick { flex: none; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 8px; width: 100%; height: var(--ah-tab-h); margin: 0; padding: 0 12px; border: 0; border-radius: 6px 6px 0 0; background: var(--tk-paper2); color: var(--tk-ink); box-shadow: none; outline: 0; text-align: left; font: 500 var(--tk3)/1 var(--f-text); border-bottom: 1px solid rgb(0 0 0 / .12); }
+.m-screen.ah .ah-tick.sel, .m-screen.ah .ah-tick:not([data-gw]) { display: none; }
+.m-screen.ah .ah-tick { width: auto; margin-inline: calc(var(--d, 1) * 5px); background: color-mix(in srgb, var(--tk-paper2) calc(106% - var(--d, 1) * 6%), #b8bec7); }
+.m-screen.ah .ah-tick.down { border-radius: 0 0 6px 6px; border-bottom: 0; border-top: 1px solid rgb(0 0 0 / .12); }
+.m-screen.ah .ah-tick .g { display: flex; gap: 4px; font: 700 var(--tk3)/1 var(--f-text); color: var(--tk-ink); }
+.m-screen.ah .ah-tick .g .c { display: none; }
+/* the week's points without your transfers, struck before its own: its tab and its card alike */
+.m-screen.ah .ah-was { margin-right: 5px; font: 500 var(--tk4)/1 var(--f-text); color: var(--tk-mute); text-decoration: line-through 1px; }
+.m-screen.ah .ah-tick .a { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; }
+.m-screen.ah .ah-tick .p, .m-screen.ah .ah-tick .p .xp, .m-screen.ah .ah-tick .p .xp-u { color: var(--tk-xp); font-weight: 600; }
+/* later weeks provisional, by weight (every forecast number is the one blue) */
+.m-screen.ah .ah-tick.pencil .p, .m-screen.ah .ah-tick.pencil .p .xp { font-weight: 500; }
+.m-screen.ah .ah-blockhost { flex: 1 0 auto; position: relative; z-index: 2; display: flex; min-height: var(--ah-ticket-h); margin: 0; --ah-bar-h: 0px; }
+.m-screen.ah :is(.ah-ticket, .ah-tkghost) { flex: 1 1 auto; display: flex; flex-direction: column; margin: 0; padding: 0; background: var(--tk-paper); border-radius: 6px; box-shadow: none; color: var(--tk-ink); overflow: hidden; }
+.m-screen.ah .ah-ticket > .ah-pbar { display: none; }
+.m-screen.ah .ah-ticket.ah-waiting > .ah-pbar { display: flex; height: auto; min-height: 0; margin: 0 14px; padding: 0; background: none; box-shadow: none; }
+.m-screen.ah .ah-tkbody { padding: 10px 14px 8px; }
+.m-screen.ah .ah-tkrow { position: relative; z-index: 1; display: flex; width: 100%; padding: 10px 0 18px; margin: -10px 0 -18px; border: 0; background: none; text-align: left; cursor: pointer; align-items: baseline; gap: 8px; font: 500 var(--tk3)/1.2 var(--f-text); color: var(--tk-mute); }
+.m-screen.ah .ah-tkrow b { color: var(--tk-ink); font-weight: 600; }
+.m-screen.ah .ah-tkrow .ah-dl::before { content: ", "; color: inherit; }
+.m-screen.ah .ah-tkg { font-weight: 700; color: var(--tk-ink); }
+.m-screen.ah .ah-tkx { margin-left: auto; white-space: nowrap; }
+.m-screen.ah .ah-tkx .xp, .m-screen.ah .ah-tkx .xp-u { color: var(--tk-xp); font-weight: 600; }
+.m-screen.ah .ah-tkhead { margin: 5px 0 3px; font: 700 var(--tk1)/1.08 var(--f-text); color: var(--tk-ink); }
+.m-screen.ah .ah-tkhead.long { font-size: calc(20rem / 17); line-height: 1.1; }
+.m-screen.ah .ah-tkline { margin: 0; font: 500 var(--tk3)/1.3 var(--f-text); color: #2b3036; }
+.m-screen.ah .ah-tkline .xp, .m-screen.ah .ah-tkline .xp-u, .m-screen.ah .ah-tkline .xp-g { color: var(--tk-xp); font-weight: 600; }
+/* the week's line, and at its end the one Reset, on every week's card while there's something of yours to take back */
+.m-screen.ah .ah-tkmid { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; }
+.m-screen.ah .ah-rsbtn { position: relative; z-index: 1; margin: -16px 0 -8px auto; padding: 16px 0 8px; border: 0; background: none; color: var(--tk-out); font: 600 var(--tk4)/1.3 var(--f-text); white-space: nowrap; cursor: pointer; }
+.m-screen.ah .ah-rsbtn[hidden] { display: none; }
+.m-screen.ah .ah-rsbtn > .ah-pdl::before { content: "\21BA" / ""; margin-right: 3px; font-weight: 400; }
+.m-screen.ah .ah-tkor { margin: 6px 0 0; font: 500 var(--tk4)/1.3 var(--f-text); color: var(--tk-mute); }
+.m-screen.ah .ah-tkor .ah-door { position: relative; z-index: 1; display: inline; height: auto; min-height: 0; padding: 20px 0 8px; margin: -20px 0 -8px; border: 0; background: none; color: var(--tk-ink); font: 600 var(--tk4)/1.3 var(--f-text); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
+.m-screen.ah .ah-tkor .ah-door::before, .m-screen.ah .ah-tkor .ah-door::after { content: none; }
+.m-screen.ah .ah-tkacts { display: flex; gap: 8px; margin-top: auto; padding: 0 14px 10px; }
+.m-screen.ah .ah-alt, .m-screen.ah .ah-go { flex: 1 1 0; min-width: 0; height: calc(46rem / 17); padding: 0 8px; border-radius: 6px; font: 700 var(--tk2)/1 var(--f-text); color: var(--tk-ink); cursor: pointer; }
+.m-screen.ah .ah-alt { border: 1.5px solid var(--tk-ink); background: none; font-weight: 600; }
+.m-screen.ah .ah-go { border: 0; background: var(--tk-go); }
+/* an iPhone SE's screen: the whole page in one look */
+@media (max-height: 700px) { .m-screen.ah { --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 28px) + 24px); --ah-ticket-h: calc(187rem / 17); } .m-screen.ah .ah-pitch .pm { --pm-hlo: calc(var(--tk4) * 1.1 + var(--tk4) * 1.2 + 28px); } }
+@media (max-height: 620px) {
+  .m-screen.ah { --tk1: calc(23rem / 17); --tk2: calc(16rem / 17); --tk3: calc(14rem / 17); --tk4: calc(12rem / 17); --ah-tab-h: calc(23rem / 17); --ah-ticket-h: calc(146rem / 17); --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 22px) + 32px); }
+  .m-screen.ah .ah-pitch .pm { --pm-hlo: calc(var(--tk4) * 1.1 + var(--tk4) * 1.2 + 22px); }
+  .m-screen.ah .ah-alt, .m-screen.ah .ah-go { height: calc(40rem / 17); }
+  .m-screen.ah .ah-tkbody { padding: 7px 12px 6px; }
+  .m-screen.ah .ah-tkrow { padding: 7px 0 21px; margin: -7px 0 -21px; }
+  .m-screen.ah .ah-tkacts { padding: 0 12px 8px; }
+}
+@media (max-width: 340px) { .m-screen.ah .pm-card .pm-pn { max-width: 66px; } }
+/* (the flag on two lines where the keeper's shirt would meet it) */
+@media (max-width: 340px), (max-height: 700px) { .m-screen.ah .ah-fplflag { flex-direction: column; align-items: flex-start; gap: 0; } }
+.m-screen.ah .ah-tick .p .xp-u { display: inline !important; margin-left: .2em; font-size: var(--tk4); font-weight: 500; }

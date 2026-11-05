@@ -263,7 +263,7 @@ export const madeOn = (acc) => acc?.roads_version ?? acc?.data_version ?? null;
 /** A solve's own key: the data version and its values, key order aside (the plan service keys a solve by its argv on
  *  that data, api/mobile.py solve_key: two asks of one key are one request). */
 export const solvedKey = (version, values) => `${version}|${JSON.stringify(Object.keys(values).sort().map((k) => [k, values[k]]))}`;
-export const sigOf = (c) => `${c.must_have}|${c.exclude}|${JSON.stringify(c.hits)}|${JSON.stringify(c.chips)}|${c.cash}${c.rolls.length ? `|roll:${c.rolls.join(',')}` : ''}${Object.keys(c.caps ?? {}).length ? `|cap:${JSON.stringify(c.caps)}` : ''}`;
+export const sigOf = (c) => `${c.must_have}|${c.exclude}|${JSON.stringify(c.hits)}|${JSON.stringify(c.chips)}|${c.cash}${c.not_for ? `|notfor:${c.not_for}` : ''}${c.rolls.length ? `|roll:${c.rolls.join(',')}` : ''}${Object.keys(c.caps ?? {}).length ? `|cap:${JSON.stringify(c.caps)}` : ''}`;
 /** A road as the stored plan: its weeks, the values it was solved for, its objective (the planner's own count:
  *  calls.plannerOf), its weeks' own windows (calls.windowGap), the scale by horizon those are on (k_h, api/scale.py
  *  road; engine.objectiveOf atAnchor puts it back on GW A's scale) and its planner's own hits per GW (road.planner:

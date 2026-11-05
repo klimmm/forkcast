@@ -3,9 +3,9 @@
 import * as E from '../../plan/engine.js';
 import { fmt, chipName } from '../../ui.js';
 import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
-import { SOLVES, attach, pinSell, pinHits, pinKeep, pinVeto, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
+import { SOLVES, attach, pinSell, pinHits, pinKeep, pinVeto, pinNotFor, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
 import { MINUS, WHY_SHEET, addMove, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
-import { saidNow, sayAgain, asksOf, autoRuleName, barred, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
+import { saidNow, sayAgain, asksOf, autoRuleName, barred, refusedAt, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
 import { FORK_FLIGHTS, SQUAD_CHIPS, answeredBy, asTaken, byGain, choiceVs, fitsAt, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, forkValues, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
 import { freedBy, lineupMoved, gwMode, inkAt, isLive } from './buys.js';
 import { plPays, squadWeek } from './pieces.js';
@@ -281,7 +281,7 @@ export function owedRoad(ctx, P, g, { peek = false, prep = false } = {}) {
 
 /** GW g's moves as the solver ranks them, refusal by refusal (owner, 2026-11-02: "solve ... all possible options for
  *  this week until rolling is actually best"): your plan solved with GW g on the planner's, as main.py --must-have
- *  plans it under your rules, its GW-g move on top of yours the week's best; that move refused, its buy kept out in GW g alone (the ✕'s "Not … in GW g") `depth` refusals ahead (2: the next
+ *  plans it under your rules, its GW-g move on top of yours the week's best; that move refused in GW g alone (Show another's "Not … for …") `depth` refusals ahead (2: the next
  *  is solved before you refuse), its sale kept (the lock's Keep) at the first refusal alone: 4 solves a plan view
  *  (owner, 2026-11-02: "follow the ✕ only", at most 6 solves after an action); a road with no move of its own in GW g
  *  ends its branch (rolling is best there). Each asked as a fork is (forkAsk; read only when `peek`). → [{key, road}], the
@@ -388,7 +388,7 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1,
     const lead = (root && best && ms.find((m) => Number(m.out) === Number(best.out) && Number(m.in) === Number(best.in))) || ms[0] || null;
     if (!lead) return;
     // (the ✕'s refusal before the lock's Keep: the likelier tap asked first)
-    walk([...extra, pinVeto(lead.in, g, g, { scope: 'gw' })], d - 1, 'x', root);
+    walk([...extra, pinNotFor(lead.out, lead.in, g)], d - 1, 'x', root);
     // (its seller's Keep one refusal deep too, as the ✕'s: the ✕ after a Keep draws at once; owner, 2026-11-03, "why
     // grey out after each keep")
     if (d === depth) walk([...extra, pinKeep(lead.out, g, g, { scope: 'gw' })], d - 1, 'keep', true);
@@ -486,10 +486,10 @@ export function ownAltsOf(ctx, P, w, m, all = false) {
   const cut = made && d !== d0;
   let list = [];
   if (rg) {
-    const no = barred(P, g);
+    const no = barred(P, g), refused = refusedAt(P, g);
     const mine = movedFrom(P, g);
     const measure = (ids) => ids.flatMap((id) => {
-      if (id === m.in || w.squad.includes(id) || mine.has(id) || no.has(id)) return [];
+      if (id === m.in || w.squad.includes(id) || mine.has(id) || no.has(id) || refused.has(`${m.out}>${id}`)) return [];
       const r = addMove(ctx, d, g, m.out, id, takenBy(ctx, P));
       if (r.problem || (cut && addMove(ctx, d0, g, m.out, id).problem)) return [];
       return [{ out: m.out, in: id, cmp: compare(ctx, r.ev, rg.without) }];
@@ -542,11 +542,11 @@ export function otherUseOf(ctx, P, w, m) {
   let best = null;
   if (rg && !rg.hit) {
     const into = squadBefore(P, g), squad = rg.without.gws.find((s) => s.gw === g)?.squad ?? [];
-    const no = barred(P, g), kept = keptFrom(P, g), mine = movedFrom(P, g);
+    const no = barred(P, g), refused = refusedAt(P, g), kept = keptFrom(P, g), mine = movedFrom(P, g);
     mine.delete(m.out);
     mine.delete(m.in);
     for (const x of modelMoves(P, g, { now: true }).values()) {
-      if ((x.out === m.out && x.in === m.in) || !into.includes(x.out) || !squad.includes(x.out) || squad.includes(x.in) || mine.has(x.out) || mine.has(x.in) || no.has(x.in) || kept.has(x.out)) continue;
+      if ((x.out === m.out && x.in === m.in) || !into.includes(x.out) || !squad.includes(x.out) || squad.includes(x.in) || mine.has(x.out) || mine.has(x.in) || no.has(x.in) || refused.has(`${x.out}>${x.in}`) || kept.has(x.out)) continue;
       const r = addYours(ctx, P, g, x.out, x.in, rg.dWithout, takenBy(ctx, P));
       if (r.problem) continue;
       const cmp = compare(ctx, r.ev, rg.without);

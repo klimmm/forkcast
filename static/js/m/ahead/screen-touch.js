@@ -21,7 +21,7 @@ export function touchPart(V) {
   /** A finger down within EDGE_PX of the screen's sides: the system's back / forward swipe, never a swipe or scrub of
    *  ours; a tap or long press there stays one. */
   const atEdge = (e) => { const { el } = V; const box = el.getBoundingClientRect(); return e.clientX - box.left < EDGE_PX || box.right - e.clientX < EDGE_PX; };
-  const tickAt = (x) => { const { ticks } = V; return [...ticks.querySelectorAll('.ah-tick')].find((t) => { const r = t.getBoundingClientRect(); return x >= r.left && x <= r.right; }); };
+  const tickAt = (x, y) => { const { ticks } = V; return [...ticks.querySelectorAll('.ah-tick')].find((t) => { const r = t.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; }); };
   const railEnd = (e) => { const { S, rail, setGw } = V;
     const st = S.drag?.rail;
     if (!st) return;
@@ -32,7 +32,7 @@ export function touchPart(V) {
     if (st.dragging) { spend(e); return; }
     // a tap moved under 10 px in all: a finger that went further (sideways at the screen's edge) picks nothing
     if (Math.hypot(e.clientX - st.x, e.clientY - st.y) >= 10) return;
-    const t = tickAt(e.clientX);
+    const t = tickAt(e.clientX, e.clientY);
     if (t) { spend(e); setGw(Number(t.dataset.gw)); }
   };
   /** A pitch gesture's hold ring gone (holdFill: its hold fired, or it was let go or moved first). */

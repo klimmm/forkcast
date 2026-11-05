@@ -20,6 +20,7 @@ import { rowsPart } from './screen-rows.js';
 import { pitchPart } from './screen-pitch.js';
 import { mountSolveLog } from './solvelog.js';
 import { touchPart } from './screen-touch.js';
+import { ticketPart } from './screen-ticket.js';
 
 // ================================================================ THE SCREEN (§5.5)
 
@@ -130,21 +131,13 @@ const holdFill = (x, y, ms, word = null) => {
  *  the pitch */
 export const reachOf = (c, walls, m = 2) => Math.max(0, c.y - 44, ...walls.filter((q) => q.n !== c.n && q.x < c.x + c.w + m && q.x + q.w > c.x - m && q.y < c.y).map((q) => q.y + q.h + 2));
 /** The least room over a card for a tab (its one line) and for edges (their slivers), px; the most of the gap beside a
- *  card a sliver of his took each side once, px (resetFits keeps that room). */
-export const TAB_MIN = 16, EDGE_MIN = 6, GAP_MAX = 8;
+ *  card a sliver of his took each side once, px . */
+export const TAB_MIN = 16, EDGE_MIN = 6;
 /** The least room over a card for a plate (renderDecks: its one line at its .tight 10 px type), px; under it its number
  *  alone (.only), as short as the room. */
 export const PLATE_MIN = 14;
 /** Boxes a and b on the pitch ({x, y, w, h}) meet, b taken `down` px taller (a target under it). */
 export const boxesMeet = (a, b, down = 0) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h + down && b.y < a.y + a.h;
-/** The pitch's Reset fits at its place, box p (m-ahead.css .ah-rsbtn: top-left corner, under the best token's room),
- *  over the cards as drawn (`boxes`: mount's cardBoxes): it meets no card and leaves each card under it a card behind's
- *  least room, a tab's over him (reachOf, TAB_MIN) and his edges' at their widest (GAP_MAX, EDGE_MIN). Where it doesn't
- *  it is not drawn: Reset plan is still the You sheet's. → bool */
-export const resetFits = (p, boxes) => {
-  const takes = (c, m, least) => { const top = reachOf(c, [p], m); return top > reachOf(c, [], m) && c.y - top < least; };
-  return !boxes.some((c) => boxesMeet(c, p) || takes(c, 2, TAB_MIN) || takes(c, GAP_MAX + 2, EDGE_MIN));
-};
 /** The least height of the pitch (m-ahead.css .ah-pitch, the bench inside it) at which no card meets another row's nor
  *  a sub's label (his order, "1"; the keeper's none: .pm-blp): the bench's chrome (--pm-chrome), five cards at the
  *  tile's floor (--pm-hlo: four rows and the bench), a plate more in each row (a fixture on a line of its own where the
@@ -180,7 +173,6 @@ export function mount(el, ctx) {
     get LINE_LEAST() { return LINE_LEAST; },
     get PLATES() { return PLATES; },
     get PLATE_KEY() { return PLATE_KEY; },
-    get RESET_GAPS() { return RESET_GAPS; },
     get S() { return S; },
     get TOTAL_MS() { return TOTAL_MS; },
     get WAIT_DIM_MS() { return WAIT_DIM_MS; },
@@ -254,7 +246,6 @@ export function mount(el, ctx) {
     get plNumSaid() { return plNumSaid; },
     get placeHint() { return placeHint; },
     get placeLink() { return placeLink; },
-    get placePills() { return placePills; },
     get planKey() { return planKey; },
     get planRow() { return planRow; },
     get planSaid() { return planSaid; },
@@ -286,6 +277,15 @@ export function mount(el, ctx) {
     get sayNight() { return sayNight; },
     get schedule() { return schedule; },
     get setBtn() { return setBtn; },
+    get flag() { return flag; },
+    get stand() { return stand; },
+    get stack() { return stack; },
+    get paintTicket() { return paintTicket; },
+    get adviceOf() { return adviceOf; },
+    get atEdge() { return atEdge; },
+    get holdStack() { return holdStack; },
+    get spanOf() { return spanOf; },
+    get inkAt() { return inkAt; },
     get setGw() { return setGw; },
     get settle() { return settle; },
     get shareWeek() { return shareWeek; },
@@ -328,8 +328,9 @@ export function mount(el, ctx) {
     get xferRow() { return xferRow; },
   };
   const { pageName, resetTap, resetSheet, learn, gwNow, setGw, outerH, fitBlock, fitHead, fitPitch, redeck, schedule, covered, paintAvatar, renderHead, renderGwLine, paintDeadline, replanning, paintPlanStatus, tick, hosts, focusedKeys, keepFocus, renderPair, render, renderBaking, renderRules, ruleSheet, clearAll, driftRoom, owes, priceDrift, heldOrder, renderWeek, waitNow, paintWait, paintDim, weekModel, waited, clockShown, waitClock, plansHeading } = headPart(V);
-  const { openWeek, renderLine, fitFacts, weekGain, boxOf, cardBoxes, reachLabels, labelWalls, sideRoom, cardIn, entryKey, resetSlot, placePills, topRow } = linePart(V);
-  const { renderDecks, sheetFollows, swapPlate, placeLabel, statusLine, tokensOf, numParts, takeFrom, landMotion, land, openPlace, placeKey, closePlace } = decksPart(V);
+  const { openWeek, renderLine, fitFacts, weekGain, boxOf, cardBoxes, reachLabels, labelWalls, sideRoom, cardIn, entryKey, topRow } = linePart(V);
+  const { adviceOf, bindStack, holdStack, paintTicket } = ticketPart(V);
+  const { renderDecks, spanOf, sheetFollows, swapPlate, placeLabel, statusLine, tokensOf, numParts, takeFrom, landMotion, land, openPlace, placeKey, closePlace } = decksPart(V);
   const { drawPlace, planLine, fitLine, scaleHeads, fitBlocks, stepPlace, shadeTap, weekSheet } = placePart(V);
   const { drawWeek, clashRow, noteRow, sayDrift, forecastLine, waitSig, waitWatch, keepNight, sayNight, sayCarried, barNode, dotted, bsep, textOf, bankWarn, bankLead, weekLead, roadOfEv, movesTitle, openWhy, deckOf, placeLink, whenFree, placeAct, whyTaps, whyActs, notOf, vetoBack, notAct, whenSheet, gainOf, whySub, numOf, numSaid, plNumSaid, hitTag, hitSaid, plansVs, whyPart, rowTies } = weekPart(V);
   const { moveX, xferRow, factSpans, itbNode, rollFacts, door, openChips, chipsDoor, bringDoor, doorStubs, changeRow, priceOf, addOnce, litPays, planKey, planSaid, takePlan, planRow, openPlanWhy, ftAfter, weekRoll, rollOf, shareWeek, moveGain, moveNum, weekPending, rollPending, rolling, whyMove, tapIn } = rowsPart(V);
@@ -385,7 +386,7 @@ export function mount(el, ctx) {
   // resetLineup), your plan's transfers, chips and rules ("Reset plan": planHasYours, resetPlan; owner, 2026-10-21);
   // one tap where one applies (toast, Undo); where both do, "Reset ⌄" and its tap the choice (resetSheet; the wider
   // wipe never the one a tap lands on)
-  const rsBtn = h('button.ah-pp.ah-rsbtn', { type: 'button', hidden: true, onClick: () => { resetTap(); } });
+  const rsBtn = h('button.ah-rsbtn', { type: 'button', hidden: true, onClick: () => { resetTap(); } });
   // the pitch's first-use hint (LEARN_KEY), two short lines on the turf (placeHint): the chips' holds in the field's
   // bottom-left corner ('chips'); the help's Swipes paragraph says the holds in full
   const chipsHint = h('div.ah-ph.chips', { 'aria-hidden': 'true', hidden: true }, ...COPY.hintChips.map((t) => h('span', null, t)));
@@ -406,7 +407,12 @@ export function mount(el, ctx) {
   const remProbe = h('span.ah-remprobe', { 'aria-hidden': 'true' });
   // a notice that comes to the week line's second line, said once (the line is a button's, read only on focus)
   const noticeSaid = h('span.sr-only', { 'aria-live': 'polite' });
-  el.append(head, slot, ctl, strip, noticeSaid, pitchHost, remProbe);
+  // the screen top to bottom: the pitch, then the weeks as one stack, the front week's ticket among them (screen-ticket.js)
+  const flag = h('button.ah-fplflag', { type: 'button', hidden: true, dataset: { row: 'fpl' } });
+  const stand = h('div.ah-stand');
+  const stack = h('div.ah-stack', null, ctl, strip);
+  bindStack();
+  el.append(head, slot, h('div.ah-pitchwrap', null, pitchHost, flag), noticeSaid, stack, remProbe);
   // the node Ahead keeps drawing into, placed in the Week sheet: your rules (every GW's)
   const asksHost = h('div.ah-rules-host');
   GO_GW = setGw;  // an Undo shows where it changed the plan (undoOf)
@@ -472,13 +478,6 @@ export function mount(el, ctx) {
    *  only once the checks have taken LATE_S, `pre` until then, `sep` before it. Put in place each second (tick:
    *  clockShown), never a whole draw; never read out. null while nothing waits. */
   const LATE_S = 10;
-  /** The Reset's top (rsBtn: m-ahead.css .ah-rsbtn, the pitch's top-left corner), `gap` px under the corner's last
-   *  token's room (`last`; the corner's top with none): a one-line token's (--pm-pill), or that token as drawn where it
-   *  is taller (its "Swap" on a line of its own, a long name or a 320 px phone). So it sits at one place in every week
-   *  with no token or one one-line token, and under both of two tokens (owner, 2026-10-29).
-   *  RESET_GAPS: 12 px (the token's target 9 px under it, the Reset's 3 px over it), else 3 px (a 320 px phone: the
-   *  keeper's row leaves no more; .near: 24 px tall). */
-  const RESET_GAPS = [12, 3];
   /** The landing's motion (owner, 2026-10-20): on a pitch mounted anew after an edit landed (a take, its Undo, an
    *  "instead of", a pair: FLASH) each new player comes forward into his card's place (200 ms) and the one who stood
    *  there goes up behind him and fades (his card's copy, .ah-ghost); the buy a tap took (takeFrom: S.fly) comes from
@@ -561,7 +560,7 @@ export function mount(el, ctx) {
     } else if (!st.dragging && Math.abs(dy) > 10) { S.drag = null; return; }
     if (!st.dragging) return;
     // a GW past the plan (edgeTicks) is passed over: its word comes from a tap, not from every scrub across it
-    const tk = tickAt(e.clientX);
+    const tk = tickAt(e.clientX, e.clientY);
     const gg = tk && !tk.classList.contains('edge') ? Number(tk.dataset.gw) : NaN;
     if (Number.isFinite(gg) && gg !== Number(ctx.store.get('gw'))) setGw(gg);
   });

@@ -632,7 +632,7 @@ function matchStrip(m, G, { low, peak } = scaleOf(m, G)) {
       const runs = [];
       for (const c of lc) { if (c.kind !== 'epl') continue; const r = runs.at(-1); if (r && Math.abs(r[1] - c.x) < 0.5) r[1] = c.x + c.w; else runs.push([c.x, c.x + c.w]); }
       b.push(`<g class="avg" data-v="${f1(avg)}">${runs.map(([a, z]) => L(a, sy(avg), z, sy(avg), 'var(--ink)', 1, 'stroke-dasharray="1.5 2.5"')).join('')}`
-        + (avgFits ? `<text x="${end.toFixed(1)}" y="${(y0 - 8).toFixed(1)}" text-anchor="end" fill="var(--muted)">${esc(avgText)}</text>` : '') + '</g>');
+        + (avgFits ? `<text x="${(end - 3).toFixed(1)}" y="${(y0 - 8).toFixed(1)}" text-anchor="end" fill="var(--muted)">${esc(avgText)}</text>` : '') + '</g>');
     }
     return yEnd + 6;
   }

@@ -89,6 +89,6 @@ export {
   chipBests, chipBack, chipsAvail, squadWeek, chipGain, chipWeekGain, xpShown, chipStates, PREP_TIMING, chipPreps
 } from './ahead/pieces.js';
 export {
-  rulesOf, listedRules, oneLook, headScale, reachOf, TAB_MIN, EDGE_MIN, GAP_MAX, PLATE_MIN, boxesMeet, resetFits,
+  rulesOf, listedRules, oneLook, headScale, reachOf, TAB_MIN, EDGE_MIN, PLATE_MIN, boxesMeet,
   pitchLeast, mount
 } from './ahead/screen.js';

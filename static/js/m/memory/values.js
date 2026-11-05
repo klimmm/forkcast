@@ -131,6 +131,7 @@ export function planValues(cctx, list) {
   const capped = Object.entries(c.caps).sort(([a], [b]) => a - b);
   if (capped.length) values.max_buys_gw = capped.map(([g, n]) => `${g}:${n}`).join(',');
   if (c.debts.length) values.debt_gw = c.debts.join(',');
+  if (c.not_for) values.not_for = c.not_for;
   if (c.cash !== null) values.cash = c.cash;
   // Settings → Solver gap: GW A's round and every round after it, where not exact (planInputs' gap)
   if (cctx.gap?.now > 0) values.gap = cctx.gap.now;
@@ -206,6 +207,10 @@ export function roadFits(road, c, gws) {
   if (String(v.max_buys_gw ?? '').split(',').filter(Boolean).some((t) => { const [g, n] = t.split(':').map(Number); return !(c.caps?.[g] <= n); })) return false;
   // a road solved letting a week's bank go below 0 (debt_gw, holdOf) is short there only where your plan lets it be
   if (parseRolls(v.debt_gw).some((g) => !c.debts?.includes(g) && (num(weekAt(road, g)?.bank) ?? 0) < -1e-9)) return false;
+  // a road solved refusing a transfer you don't refuse, or making one you do
+  const refused = c.notFor ?? [];
+  if (String(v.not_for ?? '').split(',').filter(Boolean).some((t) => !refused.includes(t))) return false;
+  if (refused.some((t) => { const [g, o, i] = t.split(':').map(Number), w = weekAt(road, g); return ids(w?.out).includes(o) && ids(w?.in).includes(i); })) return false;
   return brokenCells(road, c).length === 0;
 }
 
@@ -306,6 +311,9 @@ function ruleWords(p, nameOf, { end, start, cap = null, hold = false } = {}) {
       return { icon: 'ban', text: `Not ${nm(p.player)}${sc ? ` · ${sc}` : ''}`, scope: one ? 'gw' : 'all', removable: true,
         desc: one ? `The plan doesn't buy ${nm(p.player)} in ${sc}; it may later.` : `The plan never buys ${nm(p.player)}${g ? ` in ${COPY.range(g, to)}` : ''}.` };
     }
+    case 'notfor':
+      return { icon: 'ban', text: `Not ${nm(p.player)} for ${nm(p.out)} · GW${g}`, removable: true,
+        desc: `The plan doesn't swap ${nm(p.out)} for ${nm(p.player)} in GW${g}. ${nm(p.player)} can still come for someone else, and ${nm(p.out)} can still go for someone else.` };
     case 'keep': {
       const sc = scopeOf(p, { start, end: to });
       const one = /^GW\d+$/.test(sc);

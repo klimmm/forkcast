@@ -122,6 +122,7 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
   const hits = {};
   const rolls = new Set();
   const caps = {};  // gw → at most n transfers (the hold's: exact moves after a planner week, holdOf)
+  const refused = [];  // [g, out, in]: the transfers you refused (pinNotFor)
   const debts = new Set();  // bank may go below 0 (the hold's, holdOf)
   for (const pin of list) {
     if (!pin) continue;
@@ -157,6 +158,7 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
       const g = num(pin.gw) ?? 0, keep = Math.min(rollKeeps(pin), exactAt(list, g).length);
       if (g >= from && g <= to) { if (keep) caps[g] = keep; else rolls.add(g); }
     }
+    if (kindOf(pin) === 'notfor') refused.push([num(pin.gw), Number(pin.out), Number(pin.player)]);
     for (const g of pin.rolls || []) if (Number(g) >= from && Number(g) <= to) rolls.add(Number(g));  // the hold's (holdOf)
     for (const g of pin.debts || []) if (Number(g) >= from && Number(g) <= to) debts.add(Number(g));  // the hold's (holdOf)
     if (!isRoll(pin)) for (const [g, n] of Object.entries(pin.caps || {})) if (Number(g) >= from && Number(g) <= to) caps[Number(g)] = Number(n);
@@ -170,11 +172,18 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
   const must = [], excl = [];
   for (const [id, byGw] of cells) for (const [g, { want }] of byGw) (want === 'in' ? must : excl).push([id, g, g]);
   const must_have = spanString(must), exclude = spanString(excl);
+  // a refused transfer binds in its own week of the window: never in a Wildcard or Free Hit (a rebuild has no transfers),
+  // a squad held whole, or a week your rules make that very move (pinConflicts takes such a refusal back)
+  const notFor = [...new Set(refused.filter(([g, o, i]) => g >= from && g <= to && !['wc', 'fh'].includes(chips[g]) && !holds.has(g) && !makesMove(cells, g, o, i))
+    .map((x) => x.join(':')))].sort();
   return {
-    must_have, exclude, must: parseSpans(must_have), excl: parseSpans(exclude), hits,
+    must_have, exclude, must: parseSpans(must_have), excl: parseSpans(exclude), hits, notFor, not_for: notFor.join(','),
     rolls: [...rolls].sort((a, b) => a - b), caps, debts: [...debts].sort((a, b) => a - b), chips, cash, cells, overridden,
   };
 }
+
+/** Your rules (composePins' cells) put `out` out of GW g and `inn` in it. */
+const makesMove = (cells, g, out, inn) => cells.get(out)?.get(g)?.want === 'out' && cells.get(inn)?.get(g)?.want === 'in';
 
 /** The players `pin` moves in GW g on a plan whose squad going into g is `into` ([id]), once the pin's own g − 1 holds:
  *  its cells in g that take a player the other way from that squad (a sale from g of one it has; a Wish or slide
@@ -203,9 +212,12 @@ export function pinConflicts(list, pin, { into = null, ...opts } = {}) {
     if (!by.has(k)) by.set(k, { pin: older ?? null, id, was, gws: [] });
     by.get(k).gws.push(g);
   };
-  for (const o of composePins([...others, pin], opts).overridden) {
+  const c = composePins([...others, pin], opts);
+  for (const o of c.overridden) {
     if (o.by === pin.id) add(others.find((p) => p.id === o.pin), o.id, o.was, o.gw);
   }
+  // (a transfer you refused, now one you ask for: the refusal goes)
+  for (const q of others) if (kindOf(q) === 'notfor' && makesMove(c.cells, num(q.gw), Number(q.out), Number(q.player))) add(q, Number(q.player), 'out', num(q.gw));
   if (into) {
     const inWindow = (g) => g !== null && g >= (opts.from ?? 1) && g <= (opts.to ?? E.LAST_ROUND);
     const g0 = num(pin.gw);
@@ -531,6 +543,9 @@ export function pinVeto(id, A, end, { label, kind = 'veto', scope = 'all', ...o 
   return makePin({ ...o, id: s.id, kind, scope: s.scope, player: Number(id), label, gw: A, excl: s.span });
 }
 export const pinNever = (id, A, end, o = {}) => pinVeto(id, A, end, { ...o, kind: 'never' });
+/** A transfer refused, `out` for `inn` in GW g alone (Show another; owner, 2026-11-05, "not rice for mbeumo"): no window
+ *  of its own, so `inn` can still come for someone else and `out` go for someone else (values.not_for: --not-for-gw). */
+export const pinNotFor = (out, inn, g, { label, ...o } = {}) => makePin({ ...o, id: `notfor:${out}>${inn}@${g}`, kind: 'notfor', player: Number(inn), out: Number(out), label, gw: g });
 export function pinKeep(id, from, end, { label, scope = 'all', ...o } = {}) {
   const s = scoped('keep', id, from, end, scope);
   return makePin({ ...o, id: s.id, kind: 'keep', scope: s.scope, player: Number(id), label, gw: from, must: s.span });

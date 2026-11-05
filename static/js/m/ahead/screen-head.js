@@ -56,6 +56,8 @@ export function headPart(V) {
       else if (g > P.end) toast(`${COPY.forecastEdge(g)} Plans cover ${span(P.gws)}.`, 'info');
       return;
     }
+    const from = gwNow(P);
+    if (g !== from) V.holdStack(from, g);
     ctx.store.set('gw', g);
   };
   const outerH = (x) => {
@@ -110,8 +112,11 @@ export function headPart(V) {
     V.fitKey = key;
     V.fitDrawn = drawn && !!pm;
     const s = getComputedStyle(el);
-    const above = parseFloat(s.paddingTop) + fitHead() + outerH(slot) + outerH(ctl) + parseFloat(getComputedStyle(strip).marginTop)
-      + fitBlock() + parseFloat(getComputedStyle(pitchHost).marginTop) + parseFloat(s.paddingBottom);
+    // (under the pitch the weeks' stack, its tabs always the window's less the front one, and the ticket: one height in
+    // every week, so the pitch never moves)
+    const [tab, ticket, gap] = cssPx(el, 'var(--ah-tab-h)', 'var(--ah-ticket-h)', 'var(--ah-stack-gap)');
+    const tabs = (V.ctx.data?.horizon?.length ?? 4) - 1;
+    const above = parseFloat(s.paddingTop) + fitHead() + outerH(slot) + tabs * tab + ticket + 2 * gap + parseFloat(getComputedStyle(pitchHost).marginTop) + parseFloat(s.paddingBottom);
     el.style.setProperty('--ah-pitch-fit', `${Math.floor(H - above)}px`);
     // pitchLeast from the width's and text size's tokens as resolved here (W, rem)
     if (!pm) return;
@@ -161,7 +166,7 @@ export function headPart(V) {
   function renderHead() { const { avatar, ctx, gwline, head, setBtn } = V;
     const team = ctx.bundle?.entry?.team_name ?? '';
     if (globalThis.document) document.title = team ? `${team} · Forkcast` : 'Forkcast';
-    fill(head, pageName(team), setBtn, h('div.ah-hmid', null, h('div.ah-team', null, team), gwline), avatar);
+    fill(head, pageName(team), setBtn, h('div.ah-hmid', null, h('div.ah-team', null, team), gwline), V.stand, avatar);
   }
   /** "Gameweek 6 • Deadline: Sat 10 Oct at 13:00 (4d 17h)": always GW A, the week you act on, whatever GW g is viewed;
    *  data-gw is the GW last drawn (the harness waits on it). */
@@ -194,8 +199,8 @@ export function headPart(V) {
   }
   /** Each second: the countdown, an edit's pending toast (pendingTick), the checks' clock (waitClock), the choices once
    *  their checks stop landing (weekSettled's bound), and a re-render once GW A's deadline passes. */
-  function tick() { const { S, ctl, ctx, fitFacts, gwline, keepGwLine, pitchHost, strip } = V;
-    const was = gwline.querySelector('.ah-dl')?.textContent;
+  function tick() { const { S, ctl, ctx, dlEl, fitFacts, gwline, keepGwLine, pitchHost, strip } = V;
+    const was = dlEl.querySelector('.ah-dl')?.textContent;
     if (!ctl.hidden && waitNow()) paintPlanStatus();
     paintWait();
     pendingTick(ctx);
@@ -204,7 +209,7 @@ export function headPart(V) {
     if (S.wait && S.line && waited().length !== S.line.n) { S.line.n = waited().length; fitFacts(); }
     const due = S.drawn && S.M && !S.M.settled ? settleDue(S.M.key) : null;
     if (due != null && Date.now() >= due) schedule('pair');
-    const dl = gwline.querySelector('.ah-dl');
+    const dl = dlEl.querySelector('.ah-dl');
     if (dl && S.dl) {
       const info = deadlineInfo(deadlineOf(ctx.bundle, S.dl.A, S.dl.g));
       fill(dl, countdownParts(info));

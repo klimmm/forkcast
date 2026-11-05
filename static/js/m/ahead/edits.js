@@ -7,7 +7,7 @@ export {
 } from './edits/say.js';
 export {
   endingOf, chainOf, sellFrom, sellAny, veto, want, keepPin, keep, never, scopeLabels, rescope, buyCandidates,
-  asksOf, pinsOf, windowOf, clashing, withTaken, ruleOf, pinOf, barred, keptFrom, keptCells, barringRules,
+  asksOf, pinsOf, windowOf, clashing, withTaken, ruleOf, pinOf, barred, refusedAt, keptFrom, keptCells, barringRules,
   barringRule, sellOut, liftAsk, removeRule, captain, vice, subLineup, sub, subChoices
 } from './edits/rules.js';
 export {

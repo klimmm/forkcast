@@ -232,6 +232,8 @@ function settingsSheet(ctx) {
       body.append(planSec);
       const paintPlan = planSettings(ctx, planSec, offs);
       paintPlan();
+      // (Shirts: Drawn | Official: the Player data sheet's, gone from the screen with Points + opp)
+      body.append(ctx.kits.kitSourceRow());
       offs.push(ctx.store.on('data', paintPlan), ctx.store.on('memory', paintPlan));
     },
   });

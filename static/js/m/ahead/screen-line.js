@@ -8,7 +8,7 @@ import { COPY } from '../calls.js';
 import { lineNotices } from './plans.js';
 import { inkAt } from './buys.js';
 import * as E from '../../plan/engine.js';
-import { cssPx, reachOf, resetFits } from './screen.js';
+import { cssPx, reachOf } from './screen.js';
 
 export function linePart(V) {
   /**
@@ -121,15 +121,17 @@ export function linePart(V) {
     S.status = M.live ? null : { g, one, hits: n && !M.sq ? w.hits : 0, wait, gain, ap, said: lineup ? `${said}. ${lineup}` : said, sub: lineup, mine: n > 0 || kept > 0 || !!M.sq || (facts && rollingAt(P, g)) };
     // the week said in one place, the bar: its status ("1 transfer +1.5 xP") over its facts ("1 FT · £0.5m ITB · Set in
     // FPL: 2 changes"), one door with one "›" to the Week sheet, Bring in and Chips at its right
-    fill(strip, h('section.ah-block', { 'aria-label': COPY.weekTitle(g), tabindex: '-1', dataset: { focusHome: '' } },
+    fill(strip, h('section.ah-block.ah-ticket', { 'aria-label': COPY.weekTitle(g), tabindex: '-1', dataset: { focusHome: '' } },
+      h('div.ah-tkbody'),
       barNode({
         one: M.live ? null : statusLine(S.status), two, warn: !!problem?.warn,
         // (the week said once: status, GW A's lineup notice, then facts; GW A under way its sentence)
         label: M.live ? said : COPY.statusSaid([S.status.said, own ? factsSaid : null, lead?.said, mine, rest].filter(Boolean).join('. '), g),
         onClick: (ev) => openWeek(ev, g),
         moves: w.moves.map((m) => `${m.out}>${m.in}`).join(' '),
-        doors: inkAt(ctx, P, g) ? [] : [bringDoor(P, g), chipsDoor(P, g)],
-      })));
+        doors: [],
+      }),
+      h('div.ah-tkacts')));
     // fitFacts's input: the checks' words, shortest last
     S.line = wln ? { bar: strip.querySelector(':scope > .ah-block > .ah-pbar'), wln, texts: waits } : null;
     fitFacts();
@@ -268,44 +270,6 @@ export function linePart(V) {
   const cardIn = (root, id) => root?.querySelector(`:scope > :is(.pm-field, .pm-benchzone) .pm-card[data-id="${id}"]`) ?? null;
   /** An entry's key in its place (its held order): its choice's (planKey) and the buy it shows. */
   const entryKey = (g, e) => { const { planKey } = V; return `${e.pl ? planKey(g, e.pl) : `rm:${e.remove.out}>${e.remove.in}`}|${e.inId}`; };
-  const resetSlot = (last, gap = V.RESET_GAPS[0]) => { const { decks } = V; return (last ? last.offsetTop : 6) + Math.max(Math.ceil(cssPx(decks, 'var(--pm-pill)')[0]), last?.offsetHeight ?? 0) + gap; };
-  /** The Reset (rsBtn) over the cards as drawn (pitch box b, `boxes`: cardBoxes), shown while something of yours is
-   *  there to take back (S.reset): at its slot (resetSlot, RESET_GAPS) where it meets no card and takes no card
-   *  behind's room (resetFits); else at the top, the tokens given way (their plates stay); else not drawn (the You
-   *  sheet's Reset plan). Its target reaches down only to the card or token under it. Hidden with focus on it, it hands
-   *  focus to Player data. Placed by every draw of the choices (renderDecks), before they reach up to it. */
-  function placePills(b, boxes) { const { RESET_GAPS, S, decks, pdBtn, rsBtn } = V;
-    rsBtn.hidden = !S.reset;
-    rsBtn.classList.remove('near');
-    if (!rsBtn.hidden) {
-      // (the corner's stack: never the band's token, over the pitch: renderDecks inBand; QA lineup-reset, 2026-11-03)
-      const last = [...decks.querySelectorAll(':scope > .ah-tok:not(.mv, .st.best)')].filter((t) => t.isConnected).at(-1) ?? null;
-      // (no token in the corner: the corner's top first, never a token's room kept empty over it; owner, 2026-11-03, "why
-      // reset plan not on top"; its slots under only where a card takes the top)
-      const at = [...(last ? [] : [[6, false]]), ...RESET_GAPS.map((gap, i) => [resetSlot(last, gap), i > 0])]
-        .find(([y, near]) => { rsBtn.style.top = `${y}px`; rsBtn.classList.toggle('near', near); return resetFits(boxOf(rsBtn, b), boxes); });
-      // (no slot: a 320 px phone at a large text size with a token in the corner: the Reset goes at the top and the
-      // tokens under it give way, the best's plate staying on its player (data-mv-out), every choice the Week sheet's;
-      // a status never gives way)
-      const toks = [...decks.querySelectorAll(':scope > .ah-tok')];
-      if (at == null && toks.length && !toks.some((t) => t.matches('.st'))) {
-        rsBtn.style.top = '6px'; rsBtn.classList.remove('near');
-        if (resetFits(boxOf(rsBtn, b), boxes)) {
-          for (const t of toks) t.remove();
-          if (toks.some((t) => t.matches('.mv'))) decks.toggleAttribute('data-mv-out', true);
-          const gone = [decks.dataset.tokOut, ...toks.map((t) => t.dataset.plan).filter(Boolean)].filter(Boolean).join(' ');
-          if (gone) decks.dataset.tokOut = gone;
-        } else rsBtn.hidden = true;
-      } else if (at == null) { rsBtn.hidden = true; rsBtn.classList.remove('near'); }
-      for (const t of decks.querySelectorAll(':scope > .ah-tok')) t.classList.toggle('ah-over', t === last && rsBtn.matches('.near'));
-    }
-    if (rsBtn.hidden) { if (rsBtn === document.activeElement) pdBtn.focus({ preventScroll: true }); return; }
-    const p = boxOf(rsBtn, b);
-    const toks = [...decks.querySelectorAll(':scope > .ah-tok')].map((t) => boxOf(t, b));
-    const under = Math.min(Infinity, ...boxes.filter((c) => c.x < p.x + p.w && p.x < c.x + c.w && c.y >= p.y).map((c) => c.y - p.y - p.h),
-      ...toks.filter((c) => c.y > p.y).map((c) => (c.y - p.y - p.h) / 2));
-    rsBtn.style.setProperty('--down', `${Math.max(-1, Math.min(9, Math.floor(under - 1)))}px`);
-  }
   /**
    * The choices on the pitch as drawn (decksOf, litOf; S.M: the model renderWeek drew), placed from the mounted cards'
    * boxes (forkcast/studies/design_marks/DECISION.md, design.md; owner, 2026-10-23): the week's one best an ink plate over the
@@ -322,5 +286,5 @@ export function linePart(V) {
   /** Places ({c: his card's box}) in reading order, top row first, and those in its top-most row: the best's plate
    *  spans them (renderDecks), its token names their buys (tokensOf). → [row0, all] */
   const topRow = (xs) => { const all = [...xs].sort((p, q) => p.c.y - q.c.y || p.c.x - q.c.x); return [all.filter((x) => Math.abs(x.c.y - all[0].c.y) < 2), all]; };
-  return { openWeek, renderLine, fitFacts, weekGain, boxOf, cardBoxes, reachLabels, labelWalls, sideRoom, cardIn, entryKey, resetSlot, placePills, topRow };
+  return { openWeek, renderLine, fitFacts, weekGain, boxOf, cardBoxes, reachLabels, labelWalls, sideRoom, cardIn, entryKey, topRow };
 }

@@ -33,7 +33,9 @@ function ticketNames(adds, nm) {
 }
 
 export function decksPart(V) {
-  function renderDecks() { const { S, boxOf, cardBoxes, ctx, decks, drawPlace, fitPitch, frozenAt, gwNow, labelWalls, pitchHost, placePills, plansHeading, reachLabels, rsBtn, sideRoom, tapIn, topRow } = V;
+  /** The weeks a choice's number counts (its window's, else the plan's from week g on). */
+  const spanOf = (P, g, pl) => Object.keys(pl.road?.windows?.[g]?.xi ?? {}).length || P.gws.filter((x) => x >= g).length;
+  function renderDecks() { const { S, boxOf, cardBoxes, ctx, decks, drawPlace, fitPitch, frozenAt, gwNow, labelWalls, pitchHost, plansHeading, reachLabels, sideRoom, tapIn, topRow } = V;
     const root = pitchHost.querySelector(':scope > .pm');
     const P = S.drawn, w = P && weekOf(P, gwNow(P)), M = S.M;
     // the band over the pitch for the week's best (inBand) while its week can change: the pitch fitted under it
@@ -43,7 +45,9 @@ export function decksPart(V) {
       // (a plan you can't change: its status is on the bar, statusLine)
       decks.removeAttribute('aria-label');
       fill(decks);
-      S.decks = []; closePlace(false); if (root) { placePills(root.getBoundingClientRect(), cardBoxes(root)); reachLabels(root); } return;
+      S.decks = []; closePlace(false); if (root) reachLabels(root);
+      if (P && w) V.paintTicket(P, w, M);
+      return;
     }
     const g = w.gw;
     const { decks: D, toks, lit } = M;
@@ -62,6 +66,7 @@ export function decksPart(V) {
     // (the best move's places in its plate's top-most row, for its token: tokensOf)
     const lead = topRow(D.filter((d) => lit.get(d.a)?.best).map((d) => ({ d, c: boxes.find((x) => x.id === d.a), L: lit.get(d.a) })).filter((x) => x.c))[0];
     const name = plansHeading(P, g), tk = tokensOf(P, w, toks, lit, lead, M), any = D.length || tk.length;
+    V.paintTicket(P, w, M, tk);
     if (any) decks.setAttribute('aria-label', name);
     else decks.removeAttribute('aria-label');
     fill(decks, any ? h('h3.sr-only', null, name) : null, tk);
@@ -118,13 +123,11 @@ export function decksPart(V) {
     // under the status, then the best's over it; the status then leads the stack, kept whether or not it clears the
     // cards
     const st = tk.find((t) => t.matches('.st'));
-    // (the Reset sits under the last token: resetSlot, placePills)
-    rsBtn.hidden = !S.reset;
     // (the best move's token, or "Rolling is best", in the band over the pitch, the whole width: m-ahead.css .band;
     // owner, 2026-11-02, "Full-width strip" picked: the move whole on one line, each name its ✕, never given way)
     const inBand = (t) => t.matches('.mv, .st.best');
     const stack = () => { let top = 6; for (const t of tk) if (t.isConnected && !inBand(t)) { t.style.top = `${top}px`; top += t.offsetHeight + 8; } };
-    // (an empty band its own height again: the Reset there, placePills)
+    // (an empty band its own height again)
     if (!tk.some(inBand) && pitchHost.style.getPropertyValue('--ah-band')) { pitchHost.style.removeProperty('--ah-band'); fitPitch(); return renderDecks(); }
     let top = 6;
     for (const t of tk) {
@@ -203,8 +206,6 @@ export function decksPart(V) {
     const gone = tk.filter((t) => !t.isConnected && t.dataset.plan).map((t) => t.dataset.plan).join(' ');
     if (gone) decks.dataset.tokOut = gone;
     else delete decks.dataset.tokOut;
-    // the Reset at its slot under the last token, before the choices reach up to it (placePills)
-    placePills(b, boxes);
     const walls = [...boxes, ...labelWalls(root, b), ...[...root.querySelectorAll(':scope > .ah-pp:not([hidden]), .ah-tok')].map((x) => boxOf(x, b))];
     // a plate's height (m-ahead.css --pm-tab: the text size's), in whole px
     const tabH = Math.round(cssPx(decks, 'var(--pm-tab)')[0]);
@@ -603,7 +604,7 @@ export function decksPart(V) {
       // (the best's first buy, its ✕ refusing it: renderDecks' notBadge; of several moves the first, the one refused
       // ahead: presolve.refusalRoads' lead)
       const one = best && swap && e.adds.length && !takesBack(e) ? e.adds[0] : null;
-      const close = pl.cmp?.label === 'coin', span = Object.keys(pl.road?.windows?.[g]?.xi ?? {}).length || P.gws.filter((x) => x >= g).length;
+      const close = pl.cmp?.label === 'coin', span = spanOf(P, g, pl);
       return h(best ? 'button.ah-tok.mv' : 'button.ah-tok.nx', { type: 'button', class: { lead: best, tix: !!one, multi: !!one && e.adds.length > 1, close: !!one && close }, 'aria-haspopup': swap ? null : 'dialog', dataset: { row: `tok:${best ? 'best' : 'next'}:${g}`, deck: a, ...(best ? { best: planKey(g, pl) } : {}), ...(one ? { notOut: one.out, notIn: one.in } : {}), ...(swap ? { add: `plan:${planKey(g, pl)}` } : {}), ...(!takesBack(e) && e.adds.length === 1 ? { buy: nm(e.adds[0].in) } : {}) },
         // (its verb first where it takes, as drawn: "Swap. Best move this week: …")
         'aria-label': swap ? COPY.bestSwapSaid(said) : `${said}, ${COPY.showsChoices}`,
@@ -630,7 +631,13 @@ export function decksPart(V) {
         // its place's best header, a keep-back "Keep"; none where it opens his place
         swap ? h(`span.ah-tgo.m-swap${best ? '.best' : ''}`, { 'aria-hidden': 'true' }, takesBack(e) ? COPY.placeKeep : COPY.placeSwap) : null);
     };
-    if (top) out.push(moveTok(top[0].L.e, top[0].d.a, mv, true));
+    if (top) {
+      // (the ticket's buttons act through it: screen-ticket.js)
+      const t = moveTok(top[0].L.e, top[0].d.a, mv, true);
+      t.move = { e: top[0].L.e, pl: mv };
+      t.take = (ev) => takeFrom(ev, P, g, mv, ev.currentTarget, top[0].d.a, top[0].L.e.inId);
+      out.push(t);
+    }
     // (the strip answers in every week you can change, at one height: no move of Forkcast's there, it says to save the free
     // transfer and what that makes next week; your transfers with nothing to add, that there is nothing more; owner,
     // 2026-11-05, design_1105b A: "can't tell if thre any transfer suiggestions or suggestion is to roll")
@@ -788,5 +795,5 @@ export function decksPart(V) {
     layer.style.pointerEvents = 'none';
     layer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: 'forwards' }).onfinish = () => layer.remove();
   }
-  return { renderDecks, sheetFollows, swapPlate, placeLabel, statusLine, tokensOf, numParts, takeFrom, landMotion, land, openPlace, placeKey, closePlace };
+  return { renderDecks, spanOf, sheetFollows, swapPlate, placeLabel, statusLine, tokensOf, numParts, takeFrom, landMotion, land, openPlace, placeKey, closePlace };
 }

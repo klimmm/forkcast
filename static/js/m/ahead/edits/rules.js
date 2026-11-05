@@ -3,7 +3,7 @@
 import * as E from '../../../plan/engine.js';
 import { subOrder } from '../../../plan/pitch.js';
 import { COPY, subGap, sentence, hitCap } from '../../calls.js';
-import { pinSell, pinVeto, pinNever, pinKeep, pinChip, composePins, pinConflicts, barredAt, ruleText, scopeOf, parseSpans } from '../../memory.js';
+import { pinSell, pinVeto, pinNever, pinNotFor, pinKeep, pinChip, composePins, pinConflicts, barredAt, ruleText, scopeOf, parseSpans } from '../../memory.js';
 import { baked, ids, inputs, noteRemoved, num, plan, problemText, span, squadBefore, sum, weekOf, wishDrop } from '../core.js';
 import { addYours, pinOfMove, removeMove, repicks, withFlag } from '../presolve.js';
 import { bringIn, captainMoved, holdBuy, liftFrom, liftsLive, sayBuyProblem, takenBack } from '../buys.js';
@@ -97,11 +97,13 @@ export function sellAny(ctx, g, out) {
 export function veto(ctx, m, { scope = 'gw' } = {}) {
   const P = plan(ctx);
   const nm = P.L.name;
-  const one = scope === 'gw';
-  const pin = one ? pinVeto(m.in, m.gw, m.gw, { scope, label: `Not ${nm(m.in)} in GW${m.gw}` }) : pinVeto(m.in, P.A, P.end, { label: `Not ${nm(m.in)}` });
+  // scope 'pair': the transfer alone, in its week (Show another: pinNotFor); 'gw': him that week; 'all': him in every week
+  const pair = scope === 'pair', one = pair || scope === 'gw';
+  const label = pair ? `Not ${nm(m.in)} for ${nm(m.out)} in GW${m.gw}` : `Not ${nm(m.in)} in GW${m.gw}`;
+  const pin = pair ? pinNotFor(m.out, m.in, m.gw, { label }) : one ? pinVeto(m.in, m.gw, m.gw, { scope, label }) : pinVeto(m.in, P.A, P.end, { label: `Not ${nm(m.in)}` });
   // his asks it contradicts go (a wish or pick of him, a Keep holding him then), named in the verdict (withTaken), and
   // every veto of him whose weeks meet it. One rule, one name: its chip's, "Not Groß · all weeks"
-  const said = one ? `Not ${nm(m.in)} in GW${m.gw}` : ruleOf(P, pin).text;
+  const said = one ? label : ruleOf(P, pin).text;
   // your sale stays and only its buy changes (owner, 2026-10-10: the released row springs back with the new buy in
   // place), to the solver's pick (sellAny's rule), named once it lands. Never a phone-picked buy (owner, 2026-10-26)
   const mine = (() => { const q = pinOfMove(P, m); return q?.kind === 'sell' && Number(q.in) === Number(m.in) ? q : null; })();
@@ -258,6 +260,8 @@ export const ruleOf = (P, p) => ruleText(p, P.L.name, { end: P.end, start: P.A, 
 export const pinOf = (P, kind, id, gw = null) => pinsOf(P, kind, id).find((p) => gw == null || overlaps(p, { player: id, must: [[Number(id), gw, gw]] })) ?? null;
 /** The players your pins keep out in any GW from..to (memory.barredAt), but not the player a sale of yours sells from a
  *  later GW (he can come in before it), nor its buy before it (laterBuys). */
+/** The transfers you refused in GW g (memory.pinNotFor): "out>in". */
+export const refusedAt = (P, g) => new Set(P.pins.filter((p) => p.kind === 'notfor' && Number(p.gw) === g).map((p) => `${p.out}>${p.player}`));
 export const barred = (P, from, to = P.end) => barredAt(P.pins.map((p) => (p.kind === 'sell' && Number(p.gw) > from
   ? { ...p, in: null, excl: (p.excl || []).filter(([id]) => Number(id) !== Number(p.player)) } : p)), from, to);
 /** The players your Keeps hold in GW g or later: Map(id → the first such GW). A sale from GW g has him out from g on,
