@@ -5,7 +5,7 @@ import { h, fill, fmt, plural, reduceMotion, xpNum } from '../../ui.js';
 import { COPY } from '../calls.js';
 import { plan } from './core.js';
 import { itbWords } from './pieces.js';
-import { removeMove } from './presolve.js';
+import { presolveSwap, removeMove } from './presolve.js';
 import { tickWas, veto } from './edits.js';
 
 /** A plan view's transfers as one string: what a week's remembered advice (adviceOf) was read against. */
@@ -121,6 +121,8 @@ export function ticketPart(V) {
     let title, line = null, left = null, right = null;
     if (best) {
       const { e, pl } = best.move, num = best.querySelector('.ah-tnum')?.cloneNode(true);
+      // (once the week's rows are in: a card drawn before its best is a swap solved for nothing)
+      if (!S.wait) presolveSwap(ctx, P, g, pl);
       title = e.adds.length ? movesWords(P, e.adds) : best.querySelector('.ah-tl').textContent;
       num?.querySelectorAll('.ah-tclose, .ah-tgw').forEach((x) => x.remove());
       line = [num, ' ', COPY.overNextWeeks(spanOf(P, g, pl))];

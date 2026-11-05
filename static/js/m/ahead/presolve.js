@@ -20,17 +20,17 @@ import { rulesOf } from './screen.js';
  * flight), the answer offered to memory (memory.offer) so the heal lands it with no wait (memory.replan, landNow). An
  * Undo needs none.
  * Asked most likely first, at most PRESOLVE_MAX a source (each solve costs a plan's worth of solver time:
- * presolve_report.md), a sheet's before the week's: 'week' (presolveWeek): once its choices are settled, the week's
+ * presolve_report.md), a sheet's before the week's: 'week' (presolveSwap): once its choices are settled, the week's
  * best's take; 'sheet' (presolveTaps): the taps of an
  * open sheet's buttons, until it closes.
  * Never while your plan heals or the bundle is behind. A source is made again for each plan view; a flight no source
  * asks is let go (plansOf's L5), as is every one when the page is hidden (stopAhead), except the one your rules' heal
  * waits on (aheadWaited).
  */
-// (the week's: its best's take alone, Make the swap, the one take on its card (owner, 2026-11-05: "delete all solves
-// which are not needed"; a row of the Week sheet is asked while that sheet is open, `sheet`); a Remove's own week answers
-// from memory, an Undo needs none)
-const PRESOLVE_MAX = { week: { take: 1, remove: 0 }, sheet: 3 };
+// (the week's: Make the swap alone, the one take on its card (owner, 2026-11-05: "delete all solves which are not
+// needed"; a row of the Week sheet is asked while that sheet is open, `sheet`); a Remove's own week answers from memory,
+// an Undo needs none)
+const PRESOLVE_MAX = { week: 1, sheet: 3 };
 // and nothing asked ahead past the owner's 6 after a tap (2026-11-02), whichever asks first: the rest waits for the
 // next tap (forkPump: tapSpent; QA solve-budget, 2026-11-04: 8 on a card's ×, a place's own four and four ahead)
 const SOLVE_MAX = 6;
@@ -41,10 +41,13 @@ const PRESOLVE_RATE = { all: 30, week: 16 }, PRESOLVE_WINDOW_MS = 60000;
 export let DRY = null;
 // srcs: 'week' | 'sheet' → {P, gw, sig, owner, asks: [ask], made: [ask], tried: Set(tap id)}; failed: keys of failed
 // solves (not your rules'); at: viewed week {P, g} (plansOf); ctx: the page's; tapped: SOLVES.asked at your last tap
-// (null before the first: a page's load is no action)
-export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map(), landed: new Set(), took: null, tapped: null };
-/** Your last tap has asked the 6 it may (SOLVE_MAX; no tap yet: a page's load is no action). */
-export const tapSpent = () => AHEAD.tapped !== null && SOLVES.asked - AHEAD.tapped >= SOLVE_MAX;
+// (null before the first: a page's load is no action), tappedOn: the team it was on
+export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map(), landed: new Set(), took: null, tapped: null, tappedOn: null };
+const teamOn = () => AHEAD.ctx?.store.get('entry') ?? null;
+/** Your last tap on this team has asked the 6 it may (SOLVE_MAX). No tap yet is no action, nor the tap that opened it, a
+ *  load like any other: its own solves spent the 6 and left Make the swap and Show another unsolved (owner, 2026-11-05,
+ *  "Yes, full preparation"). */
+export const tapSpent = () => AHEAD.tapped !== null && AHEAD.tappedOn === teamOn() && SOLVES.asked - AHEAD.tapped >= SOLVE_MAX;
 /** A week's moves as one key ("out>in" sorted): the take's (addPlan, AHEAD.took) against the week's (weekRollOf). */
 export const movesKey = (ms) => ms.map((m) => `${m.out}>${m.in}`).sort().join(',');
 /** The take's number for week w while your plan is what the take made (AHEAD.took: its rules landed, none changed
@@ -103,10 +106,10 @@ function presolve(ctx, P, src, taps, { gw = P.A, sig = '', owner = null } = {}) 
     // (the room counts every tap made, its solve asked or memory's already: one solved before never makes room for the
     // next likeliest; 2026-11-03, a new team's load asked the Swap of Barry and of Hill, the band's best Evanilson's
     // solved, a new plan view later: 22 solves)
-    const cap = PRESOLVE_MAX[src], room = (kind) => (typeof cap === 'number' ? cur.made.length < cap : cur.made.filter((a) => a.kind === kind).length < (cap[kind] ?? 0));
+    const room = () => cur.made.length < PRESOLVE_MAX[src];
     for (const t0 of taps) {
       const t = typeof t0 === 'function' ? t0() : t0;
-      if (!room(t.kind) || (t.id != null && cur.tried.has(t.id))) continue;
+      if (!room() || (t.id != null && cur.tried.has(t.id))) continue;
       if (t.id != null) cur.tried.add(t.id);
       const a = askOf(ctx, P, t, src);
       if (a) cur.made.push(a);  // (every tap's, asked here or not: presolveTaps)
@@ -132,18 +135,12 @@ export function weekTaps(ctx, P, g, list) {
     .map((p, i) => ({ kind: 'remove', gw: g, id: `rm:${p.id}`, pri: 100 + i, run: () => removeRule(ctx, p.id) }));
   return { takes, removes, sig: `${ready.map((pl) => forkKey(pl.choice, g)).join(';')}|${rules.map((p) => p.id).join(',')}` };
 }
-/** The viewed week's taps (weekTaps), asked in the fork lanes its own checks leave free: a Remove at once, the
- *  solver's own rows' takes (the best token's Swap among them: weekBest) once those rows are in (`pending`), as their
- *  ✕'s refusals are (plansOf). */
-export function presolveWeek(ctx, P, g, list) {
+/** Make the swap on GW g's card, solved ahead: the move the card shows (screen-ticket.js paintTicket; of a week's several
+ *  moves the one highest on the pitch, so never read from the rows' order), in the fork lanes its own checks leave free. */
+export function presolveSwap(ctx, P, g, pl) {
   if (P.healing || leftBehind(ctx, P) || inkAt(ctx, P, g)) return;
-  const { takes, removes, sig } = weekTaps(ctx, P, g, list);
-  const settled = settledList(list);
-  // (owner, 2026-11-03, "why it not even have prepared what to display after i click on swap": the best's take waited
-  // for every choice's check, its ✕'s refusals asked before it, and the Swap waited 2.4 s on its own solve)
-  // (…once the solver's own rows are in: the one take asked is the card's, never a row landed before the best)
-  const now = settled ? takes : list.pending || list.some((x) => x.solver && x.state === 'solving') ? [] : takes.filter((t) => t.solver);
-  presolve(ctx, P, 'week', [...now, ...removes], { gw: g, sig: `${settled}|${!list.pending}|${sig}` });
+  const [take] = weekTaps(ctx, P, g, [pl]).takes;
+  if (take) presolve(ctx, P, 'week', [take], { gw: g, sig: take.id, owner: take.id });
 }
 
 /** An open sheet's taps, asked ahead while it is open (presolve 'sheet'): each {kind, gw, run} (or a function making
@@ -246,7 +243,7 @@ function watchPage(ctx) {
   AHEAD.ctx = ctx;
   if (AHEAD.watching || typeof document === 'undefined' || !document.addEventListener) return;
   AHEAD.watching = true;
-  for (const t of ['click', 'keydown']) document.addEventListener(t, () => { AHEAD.tapped = SOLVES.asked; }, { capture: true, passive: true });
+  for (const t of ['click', 'keydown']) document.addEventListener(t, () => { AHEAD.tapped = SOLVES.asked; AHEAD.tappedOn = teamOn(); }, { capture: true, passive: true });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') stopAhead();
     else if (AHEAD.ctx && attach()?.ctx === AHEAD.ctx) pairChanged(AHEAD.ctx);

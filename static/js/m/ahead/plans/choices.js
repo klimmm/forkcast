@@ -5,7 +5,7 @@ import { chipName } from '../../../ui.js';
 import { COPY } from '../../calls.js';
 import { MINUS, compare, draftOf, flatMoves, isFrozen, ownCount, removedAt, sameView, valuesFor, valuesKey, viewOfState, weekOf } from '../core.js';
 import { barred, chainOf, chipEdit, keptCells, keptFrom } from '../edits.js';
-import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, presolveWeek, rootStill, weekOnto } from '../presolve.js';
+import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, rootStill, weekOnto } from '../presolve.js';
 import { inkAt } from '../buys.js';
 import { PREP, PREPS, chipPreps, chipWeekGain, chipWeekOf, chipsAsked, chipsAvail, clearGain, keptBest, plPays, plannedAt, prepItems, prepKeep, squadWeek } from '../pieces.js';
 import { FORK_MAX, PLACE_ALTS, PLANS, SQUAD_CHIPS, earlyOf, movesSig, placesAsked, suggestionsOf } from './suggest.js';
@@ -31,10 +31,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   let by = PLANS.get(P);
   if (!by || by.rev !== PAIR.rev) PLANS.set(P, (by = { rev: PAIR.rev, gw: new Map() }));
   if (by.gw.has(g)) {
-    // (its taps' solves asked as its choices are checked, at every draw: presolveWeek; none from inside a tap made dry)
-    const got = by.gw.get(g);
-    if (!peek && !prep && !DRY) presolveWeek(ctx, P, g, got);
-    return got;
+    return by.gw.get(g);
   }
   const d0 = draftOf(ctx), before = planBaseline(ctx, P, g), mine = flatMoves(d0);
   // (the plans set against rolling measured alike on both sides, in the xP order: asTaken's `held` false; what a + gives,
@@ -681,7 +678,6 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   by.gw.set(g, list);
   // its taps' solves asked ahead as its choices are checked (presolve), in the lanes its checks leave; the week settled
   // (none checks, nor what its rows count against), the next one prepared
-  if (!DRY) presolveWeek(ctx, P, g, list);
   // the refusals ahead once the solver's own week and what the rows count against are in (`pending`), beside the
   // week's other checks: the ✕ is there as soon as the best is (owner, 2026-11-02, a new team's first ✕ greyed while
   // its other choices were still checked); the best token's move, weekBest's: the solver's row with the highest
@@ -713,7 +709,7 @@ const nextGw = (P, g) => P.gws.reduce((m, x) => (x > g && (m === null || x < m) 
  */
 function prepNext(ctx, P, g) {
   // the next week alone (owner, 2026-11-02: "make only next week prepared after this lands not all 3"; every later
-  // week since 2026-10-28 before), once the viewed week's taps solved ahead have landed too (presolveWeek's, `ahead`):
+  // week since 2026-10-28 before), once the viewed week's taps solved ahead have landed too (presolveSwap's, `ahead`):
   // never beside what you wait on
   if (forkFlights().some(([, f]) => f.ahead && sameView(f.P, P))) return;
   const nx = nextGw(P, g);
