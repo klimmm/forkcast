@@ -121,8 +121,8 @@ export function ticketPart(V) {
     let title, line = null, left = null, right = null;
     if (best) {
       const { e, pl } = best.move, num = best.querySelector('.ah-tnum')?.cloneNode(true);
-      // (once the week's rows are in: a card drawn before its best is a swap solved for nothing)
-      if (!S.wait) presolveSwap(ctx, P, g, pl);
+      // (once every row of the week is in: the card can change to the best until then, a swap solved for nothing)
+      if (M?.settled) presolveSwap(ctx, P, g, pl);
       title = e.adds.length ? movesWords(P, e.adds) : best.querySelector('.ah-tl').textContent;
       num?.querySelectorAll('.ah-tclose, .ah-tgw').forEach((x) => x.remove());
       line = [num, ' ', COPY.overNextWeeks(spanOf(P, g, pl))];
