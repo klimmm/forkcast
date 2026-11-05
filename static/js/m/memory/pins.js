@@ -173,8 +173,10 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
   for (const [id, byGw] of cells) for (const [g, { want }] of byGw) (want === 'in' ? must : excl).push([id, g, g]);
   const must_have = spanString(must), exclude = spanString(excl);
   // a refused transfer binds in its own week of the window: never in a Wildcard or Free Hit (a rebuild has no transfers),
-  // a squad held whole, or a week your rules make that very move (pinConflicts takes such a refusal back)
-  const notFor = [...new Set(refused.filter(([g, o, i]) => g >= from && g <= to && !['wc', 'fh'].includes(chips[g]) && !holds.has(g) && !makesMove(cells, g, o, i))
+  // a squad held whole, a week of no transfers (the roll a Show another's next card counts against is the solve it was,
+  // so its tap waits on none: owner, 2026-11-05, "why it never presolves next moves"), or a week your rules make that
+  // very move (pinConflicts takes such a refusal back)
+  const notFor = [...new Set(refused.filter(([g, o, i]) => g >= from && g <= to && !['wc', 'fh'].includes(chips[g]) && !holds.has(g) && !rolls.has(g) && !makesMove(cells, g, o, i))
     .map((x) => x.join(':')))].sort();
   return {
     must_have, exclude, must: parseSpans(must_have), excl: parseSpans(exclude), hits, notFor, not_for: notFor.join(','),

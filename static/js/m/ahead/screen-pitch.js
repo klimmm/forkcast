@@ -123,6 +123,9 @@ export function pitchPart(V) {
    * play (meta.dgw_bgw.window, calls.gwFlags), in muted ink. The viewed GW sits on the thumb; the window's total is
    * the switcher's accessible summary and the line under it.
    */
+  /** Week x's tab in the stack beside the viewed week g: its place and depth (m-ahead.css .ah-stack), under the card or
+   *  above it, the viewed week's own the card. The plan's tabs and the first plan's alike, so none moves when it lands. */
+  const tabAt = (x, g) => ({ style: { order: -x, '--d': Math.abs(x - g) }, down: x < g, sel: x === g });
   function renderRail(P, g) { const { rail, setGw, ticks, totalEl } = V;
     const past = edgeTicks(P);
     rail.style.setProperty('--n', P.weeks.length + past.length);
@@ -150,8 +153,9 @@ export function pitchPart(V) {
         const was = P.bare?.has(w.gw) ? tickWas(w, P.bare.get(w.gw)) : null;
         const chg = !!was;
         const chgMark = was ? h('s.ah-was', { 'aria-hidden': 'true' }, was) : null;
+        const { style, ...at } = tabAt(w.gw, g);
         return h('button.ah-tick', {
-          type: 'button', role: 'radio', 'aria-checked': String(w.gw === g), dataset: { gw: w.gw }, style: { order: -w.gw, '--d': Math.abs(w.gw - g) }, class: { down: w.gw < g, sel: w.gw === g, heal: (P.mark ?? P.approx).has(w.gw), lu: !!w.lineup, pencil: w.gw > P.A, chg },
+          type: 'button', role: 'radio', 'aria-checked': String(w.gw === g), dataset: { gw: w.gw }, style, class: { ...at, heal: (P.mark ?? P.approx).has(w.gw), lu: !!w.lineup, pencil: w.gw > P.A, chg },
           // VoiceOver and Switch Control activate with a click and no pointer (detail 0); a touch is the bar's own
           onClick: () => setGw(w.gw),
           'aria-label': `Gameweek ${w.gw}, ${fmt.num(w.points)} points, ${w.gw > P.A ? 'provisional, ' : ''}${sq ? plural(n, 'change') : !n ? 'roll' : `${w.moves.map((m) => P.L.name(m.in)).join(', ')} in`}${w.hits ? `, ${MINUS}${E.HIT_COST * w.hits}` : ''}${w.chip ? `, ${chipName(w.chip)}` : ''}${flags.length ? `, ${flags.map((f) => (f === 'DGW' ? 'a double gameweek' : 'a blank gameweek')).join(' and ')}` : ''}${w.lineup ? ', your lineup' : ''}${was ? `, ${COPY.tileWas(was)}` : ''}`,
@@ -299,5 +303,5 @@ export function pitchPart(V) {
       },
     });
   }
-  return { pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, toastOver, renderTotal, totalNum, keepGwLine, sellOf, hasField, plateOk, plateOf, renderPdBtn, playerDataSheet };
+  return { pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, tabAt, toastOver, renderTotal, totalNum, keepGwLine, sellOf, hasField, plateOk, plateOf, renderPdBtn, playerDataSheet };
 }

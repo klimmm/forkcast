@@ -295,11 +295,11 @@ export function headPart(V) {
     }
   }
 
-  function renderBaking() { const { COPY_FPL_TEAM, S, asksHost, barNode, ctx, decks, doorStubs, edgeTicks, mountHere, plateOf, rail, renderPdBtn, rsBtn, strip, ticks, totLine, totalEl } = V;
+  function renderBaking() { const { COPY_FPL_TEAM, S, asksHost, ctx, decks, edgeTicks, firstCard, mountHere, plateOf, rail, renderPdBtn, rsBtn, sizeTitle, strip, tabAt, ticks, totLine, totalEl } = V;
     const d = ctx.data;
     renderGwLine(d.gw, d.gw);
-    // the first week while planned: the week line says what it waits for, its doors' place held (no control yet), the
-    // pitch shows your squad as is with no choice (it keeps its size when the plan lands)
+    // the first week while planned: its card says what it waits for (firstCard), the pitch shows your squad as is with no
+    // choice (it keeps its size when the plan lands)
     S.week?.sheet.close();
     // your team's first plan under the hold is the solver's (memory.keepBase), as the model's plan is (memory model):
     // one it couldn't finish says so, a tap asks again, never a phone-made plan (owner, 2026-10-26)
@@ -310,12 +310,11 @@ export function headPart(V) {
     const c = FV && aboutRules(gp.error) ? clashParts(FV, null) : null;
     const why = (held ? gp.error.plain : null) || COPY.unfinished, again = () => (held ? memOf(ctx).heal({ now: true }) : memOf(ctx).retryModel());
     const off = (p) => { const said = COPY.removed(rowName(FV, p)), r = memOf(ctx).removePin(p.id); toastOf(ctx)(said, 'info', { action: { label: 'Undo', onClick: () => r.undo() } }); };
-    fill(strip, h('section.ah-block', { 'aria-label': 'Your plan' }, failed
-      ? barNode({ one: why, two: 'Try again', warn: true, label: `${why} Try again`, onClick: again, doors: doorStubs(), cls: '.ah-pbake' })
-      // (while the plan solves the squad drawn is named: FPL's lineup until the plan's comes; how far, the wait line)
-      : barNode({ one: h('span.ah-bn', null, COPY_FPL_TEAM), doors: doorStubs(), cls: '.ah-pbake' }),
-    c?.pins.length ? h('div.ah-brow.ah-ask.ah-clash', { role: 'status' }, icon('warn', { size: 16 }), h('p.ah-askt', null, COPY.rulesStuck(c.what, null, COPY.clashWhy(gp.error.why, gp.error.gw))),
-      h('div.ah-askb', null, c.pins.map((p) => h('button.ah-askno', { type: 'button', disabled: !FV.editable, onClick: () => off(p) }, `Remove ${rowName(FV, p)}`)))) : null));
+    // (while the plan solves the squad drawn is named: FPL's lineup until the plan's comes; how far, the wait line)
+    fill(strip, firstCard(d.gw, failed ? why : COPY_FPL_TEAM, failed ? h('button.ah-go', { type: 'button', onClick: again }, 'Try again') : null,
+      c?.pins.length ? h('div.ah-brow.ah-ask.ah-clash', { role: 'status' }, icon('warn', { size: 16 }), h('p.ah-askt', null, COPY.rulesStuck(c.what, null, COPY.clashWhy(gp.error.why, gp.error.gw))),
+        h('div.ah-askb', null, c.pins.map((p) => h('button.ah-askno', { type: 'button', disabled: !FV.editable, onClick: () => off(p) }, `Remove ${rowName(FV, p)}`)))) : null));
+    sizeTitle(strip);
     fill(decks);
     S.M = null;
     S.wl = null;
@@ -332,7 +331,8 @@ export function headPart(V) {
     const past = edgeTicks({ reach: d.reach ?? d.horizon, gws: d.horizon });
     rail.style.setProperty('--n', d.horizon.length + past.length);
     rail.style.setProperty('--i', 0);
-    fill(ticks, d.horizon.map((x) => h('div.ah-tick', { dataset: { gw: x } }, h('span.g', null, `GW${x}`), h('span.p', null, h('span.m-skel')))), past);
+    fill(ticks, d.horizon.map((x) => { const { style, ...at } = tabAt(x, d.gw); return h('div.ah-tick', { dataset: { gw: x }, style, class: { ...at, pencil: x > d.gw } }, h('span.g', null, `GW${x}`), h('span.a'), h('span.p', null, h('span.m-skel'))); }), past);
+    strip.style.order = -d.gw;
     fill(totLine, h('span.k', null, `${span(d.horizon)} `), h('span.m-skel'));
     fill(totalEl, span(d.horizon), ' ', h('span.m-skel'));
     renderPdBtn();

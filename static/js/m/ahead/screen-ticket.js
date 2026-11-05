@@ -99,6 +99,16 @@ export function ticketPart(V) {
       if (g != null) setGw(g);
     });
   }
+  /** A card's title at its size: over its one line the smaller one. */
+  const sizeTitle = (block) => { const head = block.querySelector('.ah-tkhead'); head.classList.toggle('long', head.offsetHeight > 1.6 * parseFloat(getComputedStyle(head).fontSize)); };
+  /** The card while the first plan solves: the ticket as it will stand, GW g and its deadline, `title`, the wait line on
+   *  its bar (paintWait), `action` its one button, `rest` under its words; the plan lands in place, nothing moves (owner,
+   *  2026-11-05, "why card not displayed correctly at loading"). */
+  function firstCard(g, title, action, rest) { const { barNode, dlEl } = V;
+    return h('section.ah-block.ah-ticket', { 'aria-label': 'Your plan' },
+      h('div.ah-tkbody', null, h('div.ah-tkrow', null, h('span.ah-tkg', null, `GW${g}`), dlEl, h('span.ah-tkx.m-num', null, h('span.m-skel'))), h('h2.ah-tkhead', null, title)),
+      barNode({ cls: '.ah-pbake' }), rest, h('div.ah-tkacts', null, action));
+  }
   function paintTicket(P, w, M, tk = []) { const { S, ctx, dlEl, el, bringDoor, chipsDoor, inkAt, openWeek, rsBtn, setGw, spanOf, stack, strip } = V;
     const block = strip.querySelector(':scope > .ah-ticket');
     if (!block || !w) return;
@@ -127,6 +137,10 @@ export function ticketPart(V) {
       title = movesWords(P, w.moves);
       left = btn('alt', COPY.undoMove, `tk:undo:${g}`, () => removeMove(ctx, { ...w.moves[w.moves.length - 1], gw: g }));
       right = onward;
+    } else if (S.wait && !M?.live) {
+      // (the week's answer still solving: the wait line alone, never "No transfer made" and its button as if it were the
+      // answer; owner, 2026-11-05)
+      title = '';
     } else if (ans) {
       title = ans.querySelector('.ah-tl').textContent;
       line = ans.querySelector('.ah-tw')?.textContent ?? null;
@@ -150,12 +164,10 @@ export function ticketPart(V) {
       h('div.ah-tkmid', null, line ? h('p.ah-tkline', null, line) : null, rsBtn),
       chips ? h('p.ah-tkor', null, 'Or ', chips[0], ', or ', chips[1], '.') : null);
     if (held) rsBtn.focus({ preventScroll: true });
-    // (a title over its one line takes the smaller size)
-    const head = block.querySelector('.ah-tkhead');
-    head.classList.toggle('long', head.offsetHeight > 1.6 * parseFloat(getComputedStyle(head).fontSize));
+    sizeTitle(block);
     fill(block.querySelector(':scope > .ah-tkacts'), left, right);
     stack.classList.toggle('scrolls', el.scrollHeight > el.clientHeight + 1);
     playStack(g);
   }
-  return { adviceOf, bindStack, holdStack, paintTicket };
+  return { adviceOf, bindStack, firstCard, holdStack, paintTicket, sizeTitle };
 }

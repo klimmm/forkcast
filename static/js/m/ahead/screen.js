@@ -203,6 +203,7 @@ export function mount(el, ctx) {
     get drawPlace() { return drawPlace; },
     get drawWeek() { return drawWeek; },
     get edgeTicks() { return edgeTicks; },
+    get tabAt() { return tabAt; },
     get el() { return el; },
     get entryKey() { return entryKey; },
     get factSpans() { return factSpans; },
@@ -282,6 +283,8 @@ export function mount(el, ctx) {
     get stack() { return stack; },
     get paintTicket() { return paintTicket; },
     get adviceOf() { return adviceOf; },
+    get firstCard() { return firstCard; },
+    get sizeTitle() { return sizeTitle; },
     get atEdge() { return atEdge; },
     get holdStack() { return holdStack; },
     get spanOf() { return spanOf; },
@@ -329,12 +332,12 @@ export function mount(el, ctx) {
   };
   const { pageName, resetTap, resetSheet, learn, gwNow, setGw, outerH, fitBlock, fitHead, fitPitch, redeck, schedule, covered, paintAvatar, renderHead, renderGwLine, paintDeadline, replanning, paintPlanStatus, tick, hosts, focusedKeys, keepFocus, renderPair, render, renderBaking, renderRules, ruleSheet, clearAll, driftRoom, owes, priceDrift, heldOrder, renderWeek, waitNow, paintWait, paintDim, weekModel, waited, clockShown, waitClock, plansHeading } = headPart(V);
   const { openWeek, renderLine, fitFacts, weekGain, boxOf, cardBoxes, reachLabels, labelWalls, sideRoom, cardIn, entryKey, topRow } = linePart(V);
-  const { adviceOf, bindStack, holdStack, paintTicket } = ticketPart(V);
+  const { adviceOf, bindStack, firstCard, holdStack, paintTicket, sizeTitle } = ticketPart(V);
   const { renderDecks, spanOf, sheetFollows, swapPlate, placeLabel, statusLine, tokensOf, numParts, takeFrom, landMotion, land, openPlace, placeKey, closePlace } = decksPart(V);
   const { drawPlace, planLine, fitLine, scaleHeads, fitBlocks, stepPlace, shadeTap, weekSheet } = placePart(V);
   const { drawWeek, clashRow, noteRow, sayDrift, forecastLine, waitSig, waitWatch, keepNight, sayNight, sayCarried, barNode, dotted, bsep, textOf, bankWarn, bankLead, weekLead, roadOfEv, movesTitle, openWhy, deckOf, placeLink, whenFree, placeAct, whyTaps, whyActs, notOf, vetoBack, notAct, whenSheet, gainOf, whySub, numOf, numSaid, plNumSaid, hitTag, hitSaid, plansVs, whyPart, rowTies } = weekPart(V);
   const { moveX, xferRow, factSpans, itbNode, rollFacts, door, openChips, chipsDoor, bringDoor, doorStubs, changeRow, priceOf, addOnce, litPays, planKey, planSaid, takePlan, planRow, openPlanWhy, ftAfter, weekRoll, rollOf, shareWeek, moveGain, moveNum, weekPending, rollPending, rolling, whyMove, tapIn } = rowsPart(V);
-  const { pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, toastOver, renderTotal, totalNum, keepGwLine, sellOf, hasField, plateOk, plateOf, renderPdBtn, playerDataSheet } = pitchPart(V);
+  const { pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, tabAt, toastOver, renderTotal, totalNum, keepGwLine, sellOf, hasField, plateOk, plateOf, renderPdBtn, playerDataSheet } = pitchPart(V);
   const { spend, letGo, atEdge, tickAt, railEnd, unfill, benchBare, swipeGw, pitchEnd, settle, releaseSoon, gesture, cancelGesture, dragBadge, dropBadge, armTo, armbandSheet, subSheet, lift, dragTo, dropOn, pitchChip, liftShirt, wireMoveRow, vetoRow, vetoFromWhy, pressed, stray, lifted, spentUp, spentDown, spentClick } = touchPart(V);
   el.classList.add('ah');
   // the legacy suggestions' hide (v1.3.27 or earlier: one for every team), let go
