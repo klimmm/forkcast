@@ -79,7 +79,7 @@ export {
   removeMove, rowGains, onBase, whenOnBase, ifMisses, whyFacts, rootStill
 } from './ahead/presolve.js';
 export {
-  buyPlan, saleOptions, saleBuy, bringIn, wishSolve, bringInTakes, removesText, holdBuy, weekWith, inWords,
+  buyPlan, saleOptions, saleBuy, bringIn, chooseOnPitch, choosing, replaceable, replaceWith, stopChoosing, wishSolve, bringInTakes, removesText, holdBuy, weekWith, inWords,
   buyProblem, fitsLater, bringInFrom, sayBuyProblem, solvesRound, resetPlan, planHasYours, hitsChoices,
   setHitsMaxWithUndo, chipWeek, gwMode, watchOf, watchView, deadlineInfo, isLive, fplSubs, fplSets, inkAt, sellWeek,
   liftsLive, initials, reroute

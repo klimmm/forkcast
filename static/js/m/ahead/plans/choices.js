@@ -4,7 +4,7 @@ import * as E from '../../../plan/engine.js';
 import { chipName } from '../../../ui.js';
 import { COPY } from '../../calls.js';
 import { MINUS, compare, draftOf, flatMoves, isFrozen, ownCount, removedAt, sameView, valuesFor, valuesKey, viewOfState, weekOf } from '../core.js';
-import { barred, chainOf, chipEdit, keptCells, keptFrom } from '../edits.js';
+import { refusedAt, barred, chainOf, chipEdit, keptCells, keptFrom } from '../edits.js';
 import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, rootStill, weekOnto } from '../presolve.js';
 import { inkAt } from '../buys.js';
 import { PREP, PREPS, chipPreps, chipWeekGain, chipWeekOf, chipsAsked, chipsAvail, clearGain, keptBest, plPays, plannedAt, prepItems, prepKeep, squadWeek } from '../pieces.js';
@@ -197,9 +197,11 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // (the solver's own roads first: a choice it and the model's plan both make is counted from its solve, as what it
   // counts against (the roll, a keep) is: one kind of solve on both sides; 2026-11-02, the model's road against the
   // keep's read Murillo → Hill −0.03 where the solver's own read it best)
+  // (a transfer you refused is no choice here, the first plan's own move included: it was listed under your rule)
+  const refused = refusedAt(P, g);
   for (const r of [...solverRoads, ...(P.base ? [P.base] : [])]) {
     const x = planOfRoad(ctx, P, r, g, d0);
-    if (!x) continue;
+    if (!x || x.choice.moves.some((m) => refused.has(`${m.out}>${m.in}`))) continue;
     if (solverRoads.has(r) && forkKey(x.choice, g) === yours && !selfRoads.has(yours) && x.plan) {
       // (your plan itself where its later moves are yours too, else the plan it is, Forkcast's later moves counted)
       const own = !chipMine && movesSig(x.plan.moves) === mineFrom && !Object.keys(x.plan.chips).length, m = own ? null : measurePlan(ctx, P, g, x.plan, asIs, false);

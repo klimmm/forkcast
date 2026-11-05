@@ -2,7 +2,7 @@
 
 import { COPY, priceMorning, shownDelta, waitLines } from '../calls.js';
 import { h, fmt, fill, icon, xpGain } from '../../ui.js';
-import { fundingOf, moveTo, movesInOrder, pairOf, pinOfMove, presolveTaps, removeMove, rowGains, weekTaps, whenOf, whenOnBase, whyFacts } from './presolve.js';
+import { fundingOf, moveTo, movesInOrder, pairOf, pinOfMove, presolveTaps, removeMove, rowGains, swapGain, weekTaps, whenOf, whenOnBase, whyFacts } from './presolve.js';
 import { asTaken, choiceVs, mineAny, planBack, planBaseline, plansOf, yoursAt } from './plans.js';
 import { FLASH, MINUS, NIGHT_KEY, WAIT_KEY, WHY_SHEET, capFirst, compare, draftOf, dropMove, flatMoves, memOf, span, weekOf } from './core.js';
 import { freedBy, liftsLive, rowName } from './buys.js';
@@ -51,7 +51,9 @@ export function weekPart(V) {
         // fitOf)
         ...[false, true].map((sh) => ({ sh, grp: plans.filter((pl) => !pl.needs && (planBack(P, g, pl).back === M.sharedBack) === sh) }))
           .filter((x) => x.grp.length).sort((x, y) => plans.indexOf(x.grp[0]) - plans.indexOf(y.grp[0])).map(({ sh, grp }) => {
-            const rows = grp.map((pl) => planRow(P, g, pl, { shared: M.sharedBack, closes: true, lit: litPays(pl, M), best: M.lit?.move === pl }));
+            // (best first by the number each row shows, the lit one ahead of them all)
+            const worth = (pl) => (planBack(P, g, pl).adds.length && !pl.refRow ? swapGain(ctx, P, g, pl) : null) ?? shownDelta(pl.cmp);
+            const rows = [...grp].sort((a, b) => (M.lit?.move === b) - (M.lit?.move === a) || worth(b) - worth(a)).map((pl) => planRow(P, g, pl, { shared: M.sharedBack, closes: true, lit: litPays(pl, M), best: M.lit?.move === pl }));
             // (rows under it marked data-under="instead": the QA's chip-week-plans reads them)
             if (sh) for (const r of rows) r.dataset.under = 'instead';
             return sh ? [h('div.ah-wh', { dataset: { at: 'instead' } }, h('p.ah-bs', null, capFirst(M.sharedBack))), rows] : rows;

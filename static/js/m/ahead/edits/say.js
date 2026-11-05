@@ -51,6 +51,13 @@ export const vsPrevOr = (ctx, same, drop, changed) => (Q, prev) => {
 /** The shell's toast (ctx.ui; the node tests a recorder); none while a tap's edit is made dry (DRY: presolve). */
 export const toastOf = (ctx) => (DRY ? () => () => {} : ctx.ui?.toast ?? toast);
 let lastSay = null;  // the verdict toast on screen: a newer edit replaces it (UX-7)
+// the newest edit's Undo, the card's to offer once no black tab shows it ({entry, gw, fn}: the card of the week it was made
+// on, never another's: owner, 2026-11-05, "why 'undo' ... in other gws cards when last action is on othe gw"); backing: the card is taking
+// something back, and what that edit says is no Undo to offer next (its Undo would make the swap again), till the next tap
+let lastUndo = null, backing = false, watching = false;
+export const cardUndo = (ctx, g) => (lastUndo?.entry === ctx.store.get('entry') && lastUndo.gw === g ? lastUndo.fn : null);
+/** `fn`, a take-back of the card's own, as a tap's handler. */
+export const takingBack = (fn) => () => { backing = true; lastUndo = null; return fn(); };
 /** The verdict toast on screen (its dismiss, whose .update rewrites its words in place) | null: a toast whose number
  *  lands after it (addPlan's) keeps it and rewrites it while it is still the one up (sayAgain). */
 export const saidNow = () => lastSay;
@@ -62,7 +69,13 @@ export function say(ctx, text, undo, kind = 'info', tag = null, more = [], take 
   // its Undo stays tappable. `more`: actions before Undo ("Try again"); `take`: a take's receipt (addPlan)
   if (lastSay !== PENDING?.toast) lastSay?.();
   const action = undo ? { label: 'Undo', onClick: undo } : undefined;
-  lastSay = toastOf(ctx)(text, kind, { timeout: kind === 'info' ? 6500 : 9000, action, actions: more.length ? [...more, action].filter(Boolean) : undefined, tag, replaces: 'pending', take });
+  // (with the week's ticket up the card says it and its Undo takes it back: no black tab over the header, its words for
+  // VoiceOver alone, a problem's still drawn; owner, 2026-11-05, "remove the black undo tab from top")
+  // (…with a sheet up the card is under it, so the tab stays: its Undo has no other place)
+  const doc = globalThis.document, quiet = kind !== 'warn' && !!doc?.querySelector('.ah-ticket') && !doc.querySelector('.m-sheet');
+  if (doc && !watching) { watching = true; doc.addEventListener('click', () => { backing = false; }, { capture: true, passive: true }); }
+  if (undo && !backing) { const P = plan(ctx); lastUndo = { entry: ctx.store.get('entry'), gw: P ? viewedGw(ctx, P) : null, fn: () => { lastUndo = null; undo(); } }; if (doc) queueMicrotask(() => bump(ctx)); }
+  lastSay = toastOf(ctx)(text, kind, { timeout: kind === 'info' ? 6500 : 9000, action, actions: more.length ? [...more, action].filter(Boolean) : undefined, tag, replaces: 'pending', take, quiet });
   PENDING = null;
 }
 /** An edit's pending toast ("Planning Groß in…", tag 'pending'), its Undo `back` (undoOf), kept as PENDING for

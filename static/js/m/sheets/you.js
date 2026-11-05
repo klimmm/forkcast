@@ -121,7 +121,7 @@ export function open(ctx, what = null) {
           h('button.m-secondary.y-change', { type: 'button', onClick: () => switchTeam(ctx) }, 'Change team…'),
           refresh,
           // your choices off at once, as for a new team (the model's solves stay); the toast has Undo
-          h('button.m-secondary.m-danger', { type: 'button', onClick: () => { ctx.sheets.closeAll(); if (resetPlan(ctx)) ctx.navigate('ahead', {}, { replace: true, top: true }); } }, 'Reset plan'),
+          h('button.m-secondary.m-danger', { type: 'button', onClick: () => { ctx.sheets.closeAll(); if (resetPlan(ctx)) ctx.navigate('ahead', {}, { replace: true, top: true }); } }, COPY.resetAll),
           signOutButton(ctx));
       }
 

@@ -1133,8 +1133,6 @@ segments 13) */
 .ws-item { border-bottom: .5px solid var(--hair); }
 .ws-item .ah-lrow { border-bottom: 0; }
 .ws-name { border: 0; background: none; padding: 0; color: inherit; text-align: left; font: inherit; }
-.ws-x { padding: 4px 2px 14px; animation: m-cap-in .3s var(--spring); }
-.ws-fund { min-height: 18px; margin-top: 4px; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
 
 /* Reduce Motion (§6): no slide under a swiped row, no sweeps; the rest is m.css's cross-fades */
 @media (prefers-reduced-motion: reduce) {
@@ -1346,7 +1344,7 @@ card is under "Keep" */
    One font, four sizes. Dark pitch, shirts and names on the grass, the weeks one stack top to bottom, the front week's
    ticket in its place: one decision, one line, two buttons. */
 .m-screen.ah {
-  --tk-night: #103f26; --tk-paper: #fff; --tk-paper2: #e6e9ee; --tk-ink: #14171a; --tk-mute: #5f6670; --tk-go: #ffd23c; --tk-out: #d8342b;
+  --tk-night: #103f26; --tk-paper: #fff; --tk-paper2: #e6e9ee; --tk-ink: #14171a; --tk-mute: #5f6670; --tk-go: #01FC7A; --tk-out: #d8342b; --tk-wait: #475D50;
   --tk-xp: #2B5BB8; --tk-xp-d: #9CC0FF;
   --tk1: calc(24rem / 17); --tk2: calc(18rem / 17); --tk3: calc(15rem / 17); --tk4: calc(13rem / 17);
   --ah-tab-h: calc(27rem / 17); --ah-ticket-h: calc(188rem / 17); --ah-stack-gap: 8px;
@@ -1390,8 +1388,30 @@ wider system font took a second line at the largest sizes and ran the rows toget
 .m-screen.ah .pm-card .xp-u { display: none; }
 .m-screen.ah .pm-card.ah-sold .pm-pn { background: var(--tk-out); padding: 0 4px; }
 .m-screen.ah .pm-card.is-in .pm-pn { background: var(--tk-go); color: var(--tk-ink); padding: 0 4px; }
+/* the card's swap on the pitch before its tap (screen-pitch.js paintBoard): green is what your tap brings, struck what it
+replaces, as the card's struck number; the shirt whole, nothing moves */
+.m-screen.ah .pm .pm-card.sb-card .pm-plate { display: inline-grid; grid-template-columns: minmax(0, max-content); justify-content: center; justify-items: center; width: max-content; max-width: calc(100% + 18px); margin-inline: -9px; gap: 0; }
+.m-screen.ah .pm .pm-card.sb-card .pm-pn { display: block; position: static; left: auto; width: auto; max-width: none; height: var(--pm-plate); padding: 0 5px; border-radius: 3px; background: var(--tk-go); color: var(--tk-ink); line-height: var(--pm-plate); text-align: center; font-weight: 700; transform: none; }
+.m-screen.ah .pm .pm-card.sb-card.sb-down .pm-pn { padding: 0; background: none; color: #fff; font-weight: inherit; }
+.m-screen.ah .pm .pm-card.sb-card .sb-off { display: block; height: var(--pm-plate); overflow: hidden; color: rgb(255 255 255 / .72); font: 500 var(--tk4)/var(--pm-plate) var(--f-text); text-align: center; text-decoration: line-through 1px; text-overflow: ellipsis; white-space: nowrap; }
+.m-screen.ah .pm .pm-badge.sb-arm { background: var(--tk-go); color: var(--tk-ink); }
+@media (prefers-reduced-motion: no-preference) {
+  .m-screen.ah .pm :is(.sb-card .pm-pn, .sb-off, .sb-arm) { animation: ah-in .16s ease-out 1; }
+}
+/* Bring in, who he replaces (screen-pitch.js paintChoosing): those he can in the go colour, the rest quiet; what the money
+lacks in the fixture's place */
+.m-screen.ah .ah-choosing .pm-card.ah-cant { opacity: .35; }
+.m-screen.ah .ah-choosing .pm-card.ah-cant .pm-pn { background: none; color: #fff; }
+.m-screen.ah .ah-choosing .pm-card.ah-can .pm-pn { background: var(--tk-go); color: var(--tk-ink); padding: 0 4px; }
+.m-screen.ah .ah-choosing .pm-pf[data-need] { overflow: visible; }
+.m-screen.ah .ah-choosing .pm-pf[data-need] > * { display: none; }
+.m-screen.ah .ah-choosing .pm-pf[data-need]::after { content: attr(data-need); color: #fff; white-space: nowrap; }
 .m-screen.ah .pm-card.f-red { opacity: .55; }
 .m-screen.ah .ah-pitch .pm .pm-benchzone { background: #0d3620 !important; border-radius: 0; margin: 0; box-shadow: none; }
+/* waiting, the whole frame greys with the turf: the header, the bench and what is round the stack (owner, 2026-11-05: "why
+bench never grey out only pitch", "the top panel must also grey out"; .ah-pitch.ah-wait the turf's) */
+.m-screen.ah.ah-wait, .m-screen.ah.ah-wait .ah-head, .m-screen.ah.ah-wait .ah-pitch .pm .pm-benchzone { background: var(--tk-wait) !important; }
+.m-screen.ah.ah-wait .ah-fplflag { background: rgb(71 93 80 / .86); }
 .m-screen.ah .pm-card .pm-flag { position: absolute; right: 4px; top: 0; transform: scale(.85); transform-origin: top right; }
 .m-screen.ah .ah-fplflag { position: absolute; left: 0; top: 0; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 4px 9px 4px 7px; border: 0; border-left: 3px solid var(--tk-go); background: rgb(13 54 32 / .86); color: #fff; font: 500 var(--tk4)/1.15 var(--f-text); cursor: pointer; }
 .m-screen.ah .ah-fplflag[hidden] { display: none; }
@@ -1441,6 +1461,7 @@ back the next card rises over it */
 .m-screen.ah :is(.ah-tick, .ah-tkx) .m-skel { background: rgb(0 0 0 / .08); }
 .m-screen.ah .ah-gwline .m-skel { background: rgb(255 255 255 / .18); }
 .m-screen.ah .ah-tkrow .ah-dl::before { content: ", "; color: inherit; }
+.m-screen.ah .ah-tkrow .ah-dl:empty::before { content: none; }
 .m-screen.ah .ah-tkg { font-weight: 700; color: var(--tk-ink); }
 .m-screen.ah .ah-tkx { margin-left: auto; white-space: nowrap; }
 .m-screen.ah .ah-tkx .xp, .m-screen.ah .ah-tkx .xp-u { color: var(--tk-xp); font-weight: 600; }
@@ -1450,14 +1471,18 @@ back the next card rises over it */
 .m-screen.ah .ah-tkline .xp, .m-screen.ah .ah-tkline .xp-u, .m-screen.ah .ah-tkline .xp-g { color: var(--tk-xp); font-weight: 600; }
 /* the week's line, and at its end the one Reset, on every week's card while there's something of yours to take back */
 .m-screen.ah .ah-tkmid { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; }
-.m-screen.ah .ah-rsbtn { position: relative; z-index: 1; margin: -16px 0 -8px auto; padding: 16px 0 8px; border: 0; background: none; color: var(--tk-out); font: 600 var(--tk4)/1.3 var(--f-text); white-space: nowrap; cursor: pointer; }
+/* (the card's take-backs one group at the right, beside the line or under it where they don't fit) */
+.m-screen.ah .ah-tkback { position: relative; z-index: 2; display: flex; gap: 14px; margin-left: auto; }  /* (over the links' reach under them) */
+.m-screen.ah .ah-rsbtn { position: relative; z-index: 1; margin: -16px 0 -8px; padding: 16px 0 8px; border: 0; background: none; color: var(--tk-out); font: 600 var(--tk4)/1.3 var(--f-text); white-space: nowrap; cursor: pointer; }
 .m-screen.ah .ah-rsbtn[hidden] { display: none; }
-.m-screen.ah .ah-rsbtn > .ah-pdl::before { content: "\21BA" / ""; margin-right: 3px; font-weight: 400; }
+/* (each sign says its one meaning: back a step, or take a swap back; Reset all weeks wears none, its words and red say it) */
+.m-screen.ah .ah-rsbtn.undo { color: var(--tk-ink); }
+.m-screen.ah .ah-rsbtn.undo::before { content: "\21A9\FE0E" / ""; margin-right: 3px; font-weight: 400; }
+.m-screen.ah .ah-rsbtn.undo.back::before { content: "\2190" / ""; }
 .m-screen.ah .ah-tkor { margin: 6px 0 0; font: 500 var(--tk4)/1.3 var(--f-text); color: var(--tk-mute); }
 .m-screen.ah .ah-tkor .ah-door { position: relative; z-index: 1; display: inline; height: auto; min-height: 0; padding: 20px 0 8px; margin: -20px 0 -8px; border: 0; background: none; color: var(--tk-ink); font: 600 var(--tk4)/1.3 var(--f-text); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
 .m-screen.ah .ah-tkor .ah-door::before, .m-screen.ah .ah-tkor .ah-door::after { content: none; }
-.m-screen.ah .ah-tkacts { display: flex; gap: 8px; margin-top: auto; padding: 0 14px 10px; }
-.m-screen.ah .ah-tkacts:empty { border-top: 0; }
+.m-screen.ah .ah-tkacts { display: flex; gap: 8px; margin-top: auto; padding: 0 14px 10px; border-top: 0; }
 .m-screen.ah .ah-alt, .m-screen.ah .ah-go { flex: 1 1 0; min-width: 0; height: calc(46rem / 17); padding: 0 8px; border-radius: 6px; font: 700 var(--tk2)/1 var(--f-text); color: var(--tk-ink); cursor: pointer; }
 .m-screen.ah .ah-alt { border: 1.5px solid var(--tk-ink); background: none; font-weight: 600; }
 .m-screen.ah .ah-go { border: 0; background: var(--tk-go); }

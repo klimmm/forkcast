@@ -169,6 +169,42 @@ export function bringIn(ctx, id, g, bp) {
   });
 }
 
+/** Bring in a player's second step (owner, 2026-11-05): he is chosen and the pitch of GW g asks who he replaces, nothing
+ *  solved till he is on it. → {id, g, team} while it asks (for GW g, given), else null */
+const teamKey = (P) => `${P.entry}|${P.A}`;
+export const choosing = (ctx, P, g = null) => { const b = ctx.store.get('bringing'); return b && P && b.team === teamKey(P) && (g == null || b.g === g) ? b : null; };
+export const stopChoosing = (ctx) => ctx.store.set('bringing', null);
+/** Who player `id` can replace in GW g: every sale of his position but one the club limit stops, `short` what the money
+ *  lacks (saleBuy makes it all the same). → [{out, short}] */
+export const replaceable = (ctx, id, g) => saleOptions(ctx, id, g).filter((x) => !x.problem || x.problem.code === 'budget').map((x) => ({ out: x.out, short: x.problem?.short ?? 0 }));
+/** His + on the Bring in list: the pitch asks who he replaces; a Wildcard or Free Hit week has no sale to choose, him in
+ *  its squad at once; no one he can replace, the reason. → bool (the sheet may go) */
+export function chooseOnPitch(ctx, id, g) {
+  const P = plan(ctx);
+  if (!editable(ctx)) { toastOf(ctx)(OFFLINE_EDIT, 'warn'); return false; }
+  if (squadWeek(weekOf(P, g))) return bringIn(ctx, id, g, { kind: 'pick', in: Number(id), road: null });
+  if (!replaceable(ctx, id, g).length) { sayBuyProblem(ctx, P, id, buyPlan(ctx, id, g), 'info'); return false; }
+  ctx.store.set('bringing', { id: Number(id), g, team: teamKey(P) });
+  return true;
+}
+/** The move a tap on the pitch made, while its solve is out: the card says it and the pitch shows it at once, nothing being
+ *  solved before that tap. → {g, out, in} | null */
+let PLACED = null;
+export const placedAt = (g) => (PLACED?.g === g ? PLACED : null);
+export const placedDone = () => { PLACED = null; };
+/** A player tapped on the pitch while it asks: him out, the chosen player in; one who can't go is no answer. → bool */
+export function replaceWith(ctx, out) {
+  const P = plan(ctx), b = choosing(ctx, P);
+  if (!b || !replaceable(ctx, b.id, b.g).some((x) => x.out === Number(out))) return false;
+  const bp = saleBuy(ctx, b.id, b.g, out);
+  if (bp.kind !== 'one') { sayBuyProblem(ctx, P, b.id, bp, 'info'); return false; }
+  stopChoosing(ctx);
+  PLACED = { g: b.g, out: Number(out), in: b.id };
+  const made = bringIn(ctx, b.id, b.g, bp);
+  if (!made) placedDone();
+  return made;
+}
+
 /** A bring-in's other sales: [{out, in}] (buyPlan's one `fund`). */
 const fundsOf = (bp) => (bp.fund ? [bp.fund] : []);
 /** What transfer m (a sale's `out`) frees in GW g on estimate ev: its sale less its buy, £m (below 0 it spends). */
@@ -326,20 +362,22 @@ export const lineupMoved = (Q, prev, g) => {
   return `${benched.length ? ` · ${COPY.toBench(benched.map((id) => Q.L.name(id)))}` : ''}${captainMoved(Q, prev, g)}`;
 };
 
-/** "Reset plan" (the You sheet; owner, 2026-10-10; the pitch's pill, 2026-10-21): this GW's plan as a new team's
+/** "Reset all weeks" (the You sheet; owner, 2026-10-10; the pitch's pill, 2026-10-21): this GW's plan as a new team's
  *  (memory.reset) and this browser's lineups of the later GWs gone; the bundle's solves stay. At once, its toast with
- *  Undo (both back). → bool */
+ *  Undo (both back). You land on the first week, where the plan starts again, and Undo brings you back to the week you
+ *  were on (owner, 2026-11-05). → bool */
 export function resetPlan(ctx) {
   if (!editable(ctx)) { toastOf(ctx)(OFFLINE_EDIT, 'warn'); return false; }
   const I = info(ctx);
   const lus = clone(lineups(ctx, I)), gone = clone(removedBy(I));
-  const prevP = plan(ctx);
+  const prevP = plan(ctx), at = ctx.store.get('gw');
   forgetEdit();
   const r = memOf(ctx).reset();
   setLineups(ctx, I, {});
   REMOVED.by = {};  // nothing of yours: no move "removed by you" either (B129)
   flashLanding(ctx, prevP, { gws: I.gws });
-  say(ctx, COPY.planReset, undoOf(ctx, subjectOf(COPY.planReset), () => { if (!r.undo()) return false; setLineups(ctx, I, lus); REMOVED.by = gone; }));
+  say(ctx, COPY.planReset, undoOf(ctx, subjectOf(COPY.planReset), () => { if (!r.undo()) return false; setLineups(ctx, I, lus); REMOVED.by = gone; ctx.store.set('gw', at); }));
+  if (prevP) ctx.store.set('gw', prevP.A);
   return true;
 }
 /** Plan view P holds a transfer, chip or rule of yours (any pin but the derived ones: the hold's and Settings → Hits'),

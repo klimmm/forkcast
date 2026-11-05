@@ -245,8 +245,8 @@ export const COPY = Object.freeze({
       'Points are forecast FPL points for a typical week, not a promise, minus 4 for each hit.',
       'The total at the top: your plan\'s points, no transfers unless you add them.',
       // one phrase for the baseline, "vs rolling" (owner, 2026-10-22: no "beats rolling", "against rolling")
-      'A transfer\'s number: its gain vs rolling that GW, to the end of the plan.',
-      'A plan\'s number: its gain vs rolling that GW. Roll has no number: the others are vs it.',
+      'A transfer\'s number: what it adds to your weeks\' xP, the change you then see on the tabs.',
+      'A plan\'s number: the same, all its transfers together. Roll has no number: it keeps your team as it is.',
       // compared to the transfer made, not rolling (owner, 2026-10-25)
       'In a GW with a transfer, Wildcard or Free Hit of yours, every choice, Roll too, is vs your plan: worse than yours is negative.',
       'Vs rolling, both sides get Forkcast\'s best later moves (none after a Wildcard), so the free transfer rolling saves can be used.',
@@ -281,9 +281,9 @@ export const COPY = Object.freeze({
       'On a player\'s card, tap ⓘ to read what a chart shows.',
     ]],
     ['Start over', [
-      'Tap your initials, then Reset plan.',
+      'Tap your initials, then Reset all weeks.',
       // (the pitch's pill, owner, 2026-10-21; ahead.planHasYours, resetFits)
-      'Reset plan is on the pitch too (top left) while your plan has a transfer, chip or rule of yours.',
+      'Reset all weeks is on the week\'s card too while your plan has a transfer, chip or rule of yours.',
       `Leave Forkcast for more than ${AWAY} and it signs you out of the team and clears its choices.`,
     ]],
   ],
@@ -635,7 +635,8 @@ export const COPY = Object.freeze({
   planReset: 'Plan reset: your team as it is, no rules or transfers of yours.',
   /** The pitch's Reset plan pill, as VoiceOver names it: what ahead.resetPlan resets (memory.reset: your document as a
    *  new team's, Settings → Hits with it; this browser's later lineups). */
-  planResetSaid: 'Reset plan: take off every transfer, chip, rule and lineup of yours, and set Hits back to its default',
+  resetAll: 'Reset all weeks',
+  planResetSaid: 'Reset all weeks: take off every transfer, chip, rule and lineup of yours, and set Hits back to its default',
   /** The pitch's one Reset where your viewed GW's lineup and your plan both have something to take back (owner,
    *  2026-10-29: top-left corner): its words "Reset ⌄", as VoiceOver names it, and its choice sheet, each row what it
    *  takes back (planResetSaid's words for the plan). */
@@ -792,13 +793,23 @@ export const COPY = Object.freeze({
   makeTheSwap: 'Make the swap',
   showAnother: 'Show another',
   showATransfer: 'Show a transfer',
-  undoMove: 'Undo',
+  /** The card's take-backs, each saying what it takes back (owner, 2026-11-05, "fix undo / reset buttions signs and theier
+   *  meaning and wording"): this week's swaps, or the card before your Show another. */
+  undoSwaps: (n) => (n === 1 ? 'Undo swap' : `Undo ${n} swaps`),
+  previous: 'Previous',
+  undoLast: 'Undo',
   seeChanges: 'See the changes',
   onToWeek: (g) => `On to GW${g}`,
   saveThem: (ft) => (ft > 1 ? 'Save them' : 'Save it'),
   setInFplGo: 'Set in FPL',
   overNextWeeks: (n) => `over the next ${n} week${n === 1 ? '' : 's'}.`,
   bringInPlayer: 'bring in a player you want',
+  /** The card while the pitch asks who he replaces, and what the money lacks under a name there. */
+  bringWho: (name) => `Who does ${name} replace?`,
+  bringCancel: 'Cancel',
+  bringNeeds: (x) => `needs ${fmt.money(x)}`,
+  /** A place on the pitch the card's swap would change, said. */
+  boardSaid: (name, out) => `${name} would come in for ${out}`,
   playAChip: 'play a chip',
   yourFplTeam: 'Your FPL team:',
   answerSave: (ft) => (ft > 1 ? 'Save your free transfers' : 'Save your free transfer'),

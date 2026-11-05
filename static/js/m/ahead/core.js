@@ -2,8 +2,8 @@
 
 import * as E from '../../plan/engine.js';
 import { h, chipName } from '../../ui.js';
-import { COPY, planInputs, compare as compareIn, counted as countedIn, rulesCost, hitBook, clockText, waitedText, horizonFeature, waitLines, stepShare } from '../calls.js';
-import { attach, makePin, squadInto, composePins, findRoad, optionsRoad, optionsValues, withBank, forcedHits, solveKept, solvedKey } from '../memory.js';
+import { COPY, planInputs, compare as compareIn, counted as countedIn, clockText, waitedText, horizonFeature, waitLines, stepShare } from '../calls.js';
+import { attach, makePin, squadInto, composePins, findRoad, withBank, forcedHits, solveKept, solvedKey } from '../memory.js';
 import { asksOf, changedOf, derivedPin, ovOf } from './edits.js';
 import { SQUAD_CHIPS } from './plans.js';
 import { pinOfMove } from './presolve.js';
@@ -321,24 +321,15 @@ export function plan(ctx) {
   // waiting week's
   const drawn = (list) => list(road).filter((f) => !approx.has(f.gw));
   const forced = drawn((r) => forcedHits(r, I.gws));
-  const book = drawn((r) => (hitBook(r) || []).filter((b) => I.gws.includes(b.gw)));
-  const cmp = compare(ctx, { weeks }, I.base);
   const edited = weeks.filter((w) => w.lineup);
   const lineupGap = edited.length ? { delta: sum(edited.map((w) => w.lineupDelta ?? 0)), gws: edited.map((w) => w.gw) } : null;
   const comparable = !ov && !gp?.pending && (gp?.source !== 'yours' || (!gp.stale && !!road.objective));
-  const ref = gp?.source !== 'yours' ? I.base : comparable ? optionsRef(ctx, I, pins, road) : null;
-  const rules = !comparable || !ref ? null : gp?.source === 'yours' ? rulesCost(inputs(ctx), road, ref) : { cost: 0, label: 'coin', points: 0, transfers: 0 };
   const bareRoad = bareRef(ctx, I, pins);
   const bare = bareRoad ? new Map(bareRoad.weeks.map((w) => [Number(w.gw), viewOfRoadWeek(w, I.L)])) : null;
-  const baseWeeks = new Map(I.base.weeks.map((w) => [Number(w.gw), w]));
-  const onLine = !ov && !gp?.pending && weeks.every((w) => {
-    const b = baseWeeks.get(w.gw);
-    return b && sameSet(w.squad, [...ids(b.xi), ...ids(b.bench)]) && sameSet(w.xi, ids(b.xi)) && (w.chip ?? null) === (b.chip ?? null) && w.captain === num(b.captain);
-  });
   const ok = editable(ctx);
   const P = {
-    ...I, mem: gp, road, pins, weeks, total, approx, mark, forced, book, healing: !!(ov || gp?.pending), cmp, onLine, bare,
-    editable: ok, why: ok ? '' : OFFLINE_EDIT, lineupGap, rules, comparable,
+    ...I, mem: gp, road, pins, weeks, total, approx, mark, forced, healing: !!(ov || gp?.pending), bare,
+    editable: ok, why: ok ? '' : OFFLINE_EDIT, lineupGap, comparable,
   };
   memo = { key, P };
   return P;
@@ -349,16 +340,6 @@ const OPTIONS = new Map();
 /** A background solve's cache key: the roads version and its values (key order aside). */
 export const valuesKey = (I, values) => solvedKey(I.b.version, values);
 
-/**
- * What your rules' cost is measured against: the planner's best with your options (chips, hit caps, cash) and none of
- * your rules (memory.optionsRoad: the model's plan, or your plan's road when it has none). Else one speculative solve of
- * those pins (memory.optionsValues). → Road | null.
- */
-function optionsRef(ctx, I, pins, road) {
-  const found = optionsRoad(I.base, pins, I.gws, [road]);
-  if (found || !specOk(ctx, I)) return found;
-  return specRoad(ctx, I, optionsValues(inputs(ctx), pins));
-}
 /** Your team as it is, the plan to compare yours with (owner, 2026-10-26): the solver's plan with none of your rules,
  *  one speculative solve per roads version (specRoad). → Road | null */
 function bareRef(ctx, I, pins) {

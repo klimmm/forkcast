@@ -2,7 +2,7 @@
 
 import { h, fmt, chipName } from '../../ui.js';
 import { COPY, shownDelta } from '../calls.js';
-import { addPlan, pairOf, pinOfMove, planTake, removeMove, rollingAt, rowGains, takenKeep, whyFacts } from './presolve.js';
+import { addPlan, pairOf, pinOfMove, planTake, removeMove, rollingAt, rowGains, swapGain, takenKeep, whyFacts } from './presolve.js';
 import { WHY_SHEET, capFirst, closedOf, clubCounts, draftOf, ids, plan, removedAt, span, weekOf } from './core.js';
 import { gwMode, inkAt } from './buys.js';
 import { chipBack, emptyHead, plPays, rollFt, shirtOf, squadWeek, weekFacts } from './pieces.js';
@@ -160,7 +160,7 @@ export function rowsPart(V) {
    * check"), no number, its + off; a failed solve with no road plan: its choice and why (COPY.planFailed), no number,
    * its + off. No swipe, no long press. Under its week's own tab the row leaves the week out (owner, 2026-10-18).
    */
-  function planRow(P, g, pl, { shared = null, closes = false, lit = null, best = null } = {}) { const { S, frozenAt, gainOf, hitTag, whyPart } = V;
+  function planRow(P, g, pl, { shared = null, closes = false, lit = null, best = null } = {}) { const { S, ctx, frozenAt, gainOf, hitTag, whyPart } = V;
     const nm = P.L.name;
     const key = planKey(g, pl);
     // `shared`: the "instead of …" every listed row's + takes back, said once on the Week sheet's plans heading
@@ -191,7 +191,9 @@ export function rowsPart(V) {
     const why = () => openPlanWhy(P, g, pl, pays);
     // (the Roll its 0.0: the baseline every other row's number counts from; owner, 2026-11-03, design_1103b "Number
     // scope + close call": Saffer, Johnson's Elements of Choice)
-    const gain = pl.refRow ? gainOf({ delta: 0 }) : gainOf(pl.cmp);
+    // (a transfer's number the card's and the tabs': swapGain; its solve asked while this sheet is open)
+    const moved = adds.length && !pl.refRow ? swapGain(ctx, P, g, pl) : null;
+    const gain = pl.refRow ? gainOf({ delta: 0 }) : !adds.length ? gainOf(pl.cmp) : moved == null ? h('span.ah-bq2', null, COPY.waitShort) : gainOf({ delta: moved });
     const top1 = best ?? S.M?.lit?.move === pl;
     const add = rollOnly(pl) ? null : h('button.ah-add.m-swap', {
       type: 'button', disabled: frozenAt(P, g), dataset: { add: `plan:${key}` }, class: { best: top1, quiet: !top1 }, 'aria-label': COPY.planTake(s.head),

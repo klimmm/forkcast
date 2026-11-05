@@ -2,7 +2,7 @@
 
 import { h, fill, append, toast, icon, roving, reduceMotion, focusKey, refocus } from '../../ui.js';
 import { aboutRules, clashLine, clashParts, edit, pendingAgain, pendingTick, removeRule, rescope, resetLineup, ruleOf, sayCheer, scopeLabels, toastOf, vsPrev } from './edits.js';
-import { deadlineInfo, fplSets, initials, inkAt, isLive, liftsLive, resetPlan, rowName, watchOf, watchView } from './buys.js';
+import { deadlineInfo, fplSets, initials, inkAt, isLive, liftsLive, resetPlan, rowName, stopChoosing, watchOf, watchView } from './buys.js';
 import { COPY, liveCheck, clockText, stepShare } from '../calls.js';
 import { FLASH, LEARN_KEY, WAIT_KEY, editable, info, lockedFrom, memOf, memPlan, num, paintWaitView, plan, span, takeRulesAsk, viewedGw, weekOf } from './core.js';
 import { factsWords, itbWords, squadWeek } from './pieces.js';
@@ -32,7 +32,7 @@ export function headPart(V) {
           h('span.mk', { 'aria-hidden': 'true' }, '\u21BA'), h('span.nm', null, h('b', null, name), h('span', null, what)));
         append(body, h('div.ah-list', { role: 'group', 'aria-label': title },
           row(COPY.resetLineupName(g), COPY.resetLineupWhat(g), () => resetLineup(ctx, g)),
-          row('Reset plan', COPY.resetPlanWhat, () => resetPlan(ctx))));
+          row(COPY.resetAll, COPY.resetPlanWhat, () => resetPlan(ctx))));
       },
     });
   }
@@ -58,6 +58,8 @@ export function headPart(V) {
     }
     const from = gwNow(P);
     if (g !== from) V.holdStack(from, g);
+    const b = ctx.store.get('bringing');
+    if (b && b.g !== g) stopChoosing(ctx);
     ctx.store.set('gw', g);
   };
   const outerH = (x) => {
@@ -94,7 +96,7 @@ export function headPart(V) {
    *  change: keepGwLine); a re-plan's progress stays on one line (paintPlanStatus). */
   function fitHead() { const { S, gwline, head, keepGwLine } = V;
     const busy = gwline.classList.contains('ah-planning');
-    if (busy && S.dl) paintDeadline(S.dl.A);
+    if (busy && S.dl) paintDeadline(S.dl.g, S.dl.A);
     gwline.classList.add('ah-bare');
     keepGwLine();
     const v = outerH(head);
@@ -168,22 +170,22 @@ export function headPart(V) {
     if (globalThis.document) document.title = team ? `${team} · Forkcast` : 'Forkcast';
     fill(head, pageName(team), setBtn, h('div.ah-hmid', null, h('div.ah-team', null, team), gwline), V.stand, avatar);
   }
-  /** "Gameweek 6 • Deadline: Sat 10 Oct at 13:00 (4d 17h)": always GW A, the week you act on, whatever GW g is viewed;
-   *  data-gw is the GW last drawn (the harness waits on it). */
+  /** "Sat 10 Oct at 13:00 (4d 17h)": the deadline of GW g, the week on the card (owner, 2026-11-05: "no deadline here
+   *  why"); data-gw is the GW last drawn (the harness waits on it). */
   function renderGwLine(g, A) { const { S, gwline } = V;
-    S.dl = { g: A, A };
+    S.dl = { g, A };
     gwline.dataset.gw = g;
-    if (!paintPlanStatus()) paintDeadline(A);
+    if (!paintPlanStatus()) paintDeadline(g, A);
   }
-  /** GW A's deadline on the GW line: "Sat 13:00 · 4d 17h" (tick() runs the countdown). */
-  function paintDeadline(A) { const { ctx, dlEl, gwline } = V;
-    const info = deadlineInfo(deadlineOf(ctx.bundle, A, A));
+  /** GW g's deadline on the card: "Sat 13:00 · 4d 17h" (tick() runs the countdown). */
+  function paintDeadline(g, A) { const { ctx, dlEl, gwline } = V;
+    const info = deadlineInfo(deadlineOf(ctx.bundle, A, g));
     gwline.classList.remove('ah-planning');
     // "Sat 10:00 · 1d 11h", no "GW6" before it (the selected tile names the week; the prefix wrapped at 375 with larger
     // text); its title names the GW. "Deadline" is said, not shown (owner, 2026-10-22), leaving room for the window's
     // total.
     fill(dlEl, info.date ? [h('b', null, info.left <= 0 ? 'Deadline passed' : [h('span.sr-only', null, 'Deadline '), info.short]), h('span.ah-dl', { class: info.tone }, countdownParts(info))] : null);
-    dlEl.title = info.date ? `Gameweek ${A} deadline: ${info.long}` : '';
+    dlEl.title = info.date ? `Gameweek ${g} deadline: ${info.long}` : '';
   }
   /** A re-plan under way: the forecast updating, or the model's plan (memory model) asked and not in yet. The state
    *  banner then speaks to assistive tech alone, the total shimmers (totalNum), the strip's wait line says how far
@@ -274,6 +276,7 @@ export function headPart(V) {
     renderWeek(P, w);
     S.snap = null;  // cards as they stood, set by mountHere for landMotion
     renderPitch(P, w);
+    V.paintChoosing(P, w);
     renderRail(P, g);
     renderTotal(P);
     renderPdBtn();
@@ -491,12 +494,12 @@ export function headPart(V) {
     const said = W ? `${W.word} ${W.long ?? W.scope ?? ''}`.trim() : S.waitWas ? 'Plan ready' : '';
     if (W || S.waitWas) { if (waitSaid.textContent !== said) waitSaid.textContent = said; S.waitWas = W?.word ?? null; }
   }
-  function paintDim(W) { const { S, WAIT_DIM_MS, pitchHost } = V;
-    const now = Date.now();
-    if (!W) { S.dimT0 = null; clearTimeout(S.dimTimer); S.dimTimer = null; pitchHost.classList.remove('ah-wait'); return; }
+  function paintDim(W) { const { S, WAIT_DIM_MS, el, pitchHost } = V;
+    const now = Date.now(), dim = (on) => { for (const x of [el, pitchHost]) x.classList.toggle('ah-wait', on); };
+    if (!W) { S.dimT0 = null; clearTimeout(S.dimTimer); S.dimTimer = null; dim(false); return; }
     S.dimT0 ??= now;
     const left = S.dimT0 + WAIT_DIM_MS - now;
-    pitchHost.classList.toggle('ah-wait', left <= 0);
+    dim(left <= 0);
     if (left > 0 && !S.dimTimer) S.dimTimer = setTimeout(() => { S.dimTimer = null; paintWait(); }, left + 5);
   }
 
@@ -566,6 +569,6 @@ export function headPart(V) {
   };
   /** What the viewed week's choices count against and over which weeks, "Suggested plans · GW8–11 · vs rolling"
    *  (COPY.suggested): the Week sheet's plans heading and the pitch choices' spoken name (renderDecks). */
-  const plansHeading = (P, g) => { const { plansVs } = V; const gws = P.gws.filter((x) => x >= g); return COPY.suggested(gws, plansVs(P, g), COPY.plansHead, gws.length < P.gws.length); };
+  const plansHeading = (P, g) => { const gws = P.gws.filter((x) => x >= g); return COPY.suggested(gws, null, COPY.plansHead, gws.length < P.gws.length); };
   return { pageName, resetTap, resetSheet, learn, gwNow, setGw, outerH, fitBlock, fitHead, fitPitch, redeck, schedule, covered, paintAvatar, renderHead, renderGwLine, paintDeadline, replanning, paintPlanStatus, tick, hosts, focusedKeys, keepFocus, renderPair, render, renderBaking, renderRules, ruleSheet, clearAll, driftRoom, owes, priceDrift, heldOrder, renderWeek, waitNow, paintWait, paintDim, weekModel, waited, clockShown, waitClock, plansHeading };
 }

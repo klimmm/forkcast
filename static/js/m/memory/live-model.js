@@ -2,7 +2,7 @@
 
 import { planInputs } from '../calls.js';
 import { solvedKey } from './drift.js';
-import { planValues, solveKept } from './values.js';
+import { firstPlanValues, solveKept } from './values.js';
 import { ARCHIVE_VERSIONS, ROADS } from './live.js';
 
 const AGAIN_MS = 5000;
@@ -17,7 +17,7 @@ export function modelPart(V) {
     if (asked.b !== b || asked.d !== d) {
       let ask = null;
       try {
-        const values = planValues(planInputs(b, d), []);
+        const values = firstPlanValues(planInputs(b, d), ctx.planDefault);
         ask = { key: solvedKey(b.version ?? null, values), values };
       } catch { /* no plan inputs yet */ }
       asked = { b, d, ask };

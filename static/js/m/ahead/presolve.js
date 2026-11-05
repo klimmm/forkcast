@@ -4,7 +4,7 @@ import * as E from '../../plan/engine.js';
 import { fmt, chipName } from '../../ui.js';
 import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
 import { SOLVES, attach, pinSell, pinHits, pinNotFor, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
-import { MINUS, WHY_SHEET, addMove, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
+import { MINUS, WHY_SHEET, addMove, asYours, sum, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
 import { saidNow, sayAgain, asksOf, autoRuleName, barred, refusedAt, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
 import { FORK_FLIGHTS, SQUAD_CHIPS, answeredBy, asTaken, byGain, choiceVs, fitsAt, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, forkValues, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
 import { freedBy, lineupMoved, gwMode, inkAt, isLive } from './buys.js';
@@ -30,7 +30,7 @@ import { rulesOf } from './screen.js';
 // (the week's: Make the swap alone, the one take on its card (owner, 2026-11-05: "delete all solves which are not
 // needed"; a row of the Week sheet is asked while that sheet is open, `sheet`); a Remove's own week answers from memory,
 // an Undo needs none)
-const PRESOLVE_MAX = { week: 1, sheet: 3 };
+const PRESOLVE_MAX = { week: 1, sheet: 5 };
 // and nothing asked ahead past the owner's 6 after a tap (2026-11-02), whichever asks first: the rest waits for the
 // next tap (forkPump: tapSpent; QA solve-budget, 2026-11-04: 8 on a card's ×, a place's own four and four ahead)
 const SOLVE_MAX = 6;
@@ -141,6 +141,26 @@ export function presolveSwap(ctx, P, g, pl) {
   if (P.healing || leftBehind(ctx, P) || inkAt(ctx, P, g)) return;
   const [take] = weekTaps(ctx, P, g, [pl]).takes;
   if (take) presolve(ctx, P, 'week', [take], { gw: g, sig: take.id, owner: take.id });
+}
+
+/** What Make the swap on GW g's card moves your weeks' xP by, so what the tabs' numbers change by (the plan its solve
+ *  brings less the plan on screen, both yours with no later transfers; owner, 2026-11-05: the card counted against a roll
+ *  that makes later transfers, "+2.7" for tabs that moved +10.9). → number | null till its solve is in */
+export function swapGain(ctx, P, g, pl) {
+  const road = swapRoad(ctx, P, g, pl);
+  return road ? sum(asYours(ctx, road).weeks.map((w) => w.points)) - P.total : null;
+}
+/** The plan Make the swap brings, as yours. → {weeks} | null till its solve is in */
+const swapRoad = (ctx, P, g, pl) => {
+  const [take] = weekTaps(ctx, P, g, [pl]).takes;
+  const a = take ? askOf(ctx, P, take, 'week') : null;
+  return a ? memOf(ctx).solvedRoad(a.values) : null;
+};
+/** GW g's team as Make the swap would leave it: what the pitch shows before the tap. → the week's view | null till its
+ *  solve is in */
+export function swapWeek(ctx, P, g, pl) {
+  const road = swapRoad(ctx, P, g, pl);
+  return road ? asYours(ctx, road).weeks.find((w) => Number(w.gw) === g) ?? null : null;
 }
 
 /** An open sheet's taps, asked ahead while it is open (presolve 'sheet'): each {kind, gw, run} (or a function making
@@ -908,6 +928,17 @@ export function removeMove(ctx, m) {
   const text = vr ? (Q, prev) => `${what}${end(Q, prev)}` : withPoints(ctx, what, end, { total: true });
   // the move its toast names is remembered as removed by you, part of its Undo (edit's `also`, after the snapshot)
   return edit(ctx, { drop: [pin.id, ...taken.map((q) => q.id)], from, what, taken, text, also: () => noteRemoved(P, [own]) });
+}
+
+/** Every transfer of yours in GW g taken back in one edit: the card's Undo, which names them all (owner, 2026-11-05, "why
+ *  ... when i click undo it not undo it and keep silva transfer"). → bool */
+export function removeWeek(ctx, g) {
+  const P = plan(ctx), moves = (weekOf(P, g)?.moves || []).map((m) => ({ ...m, gw: g }));
+  if (g === P.A && isLive(ctx)) { toastOf(ctx)(COPY.live(P.A), 'warn'); return false; }
+  const taken = P.pins.filter((q) => q.id === `roll:${g}`);
+  const what = withTaken(P, COPY.removed(moves.map((m) => moveSaid(P.L.name, m)).join(', ')), taken);
+  // (no noteRemoved: an Undo, never a refusal, so the card it undid comes back)
+  return edit(ctx, { drop: [...goneIds(P, moves), ...taken.map((q) => q.id)], from: g, what, taken, text: withPoints(ctx, what, () => '', { total: true }) });
 }
 
 /**

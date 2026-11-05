@@ -9,7 +9,7 @@ import { EDGE_PX, FLASH, GRIP_MS, LEARN_KEY, LONG_MS, MINUS, NIGHT_KEY, SPENT_PX
 import { aboutRules, asksOf, benchedBuys, captain, clashLine, clashParts, driftSay, edit, keep, pendingAgain, pendingTick, removeRule, rescope, resetLineup, ruleOf, sayCheer, scopeLabels, sub, subChoices, tickWas, toastOf, totalShift, useChip, veto, vice, vsPrev } from './edits.js';
 import { PLACE_SLOTS, SQUAD_CHIPS, approxAt, asTaken, askPlace, byGain, choiceVs, countedAfter, decksOf, failedWords, forkKey, lineMoves, lineNotices, listedOf, litOf, litShown, mineAny, multiMove, noteOf, placeBuys, placeFirst, placeOrder, placePages, placeSplit, planBack, planBaseline, planWeeks, plansOf, rollOnly, settleDue, singleMove, slotsBeside, squadChanges, takesBack, weekKey, weekRollOf, weekSettled, weekWait, yoursAt } from './plans.js';
 import { addPlan, fundingOf, moveTo, movesInOrder, pairOf, pinOfMove, planTake, presolveTaps, removeMove, rollingAt, rowGains, takenKeep, weekTaps, whenOf, whenOnBase, whyFacts } from './presolve.js';
-import { deadlineInfo, fplOf, fplSets, freedBy, gwMode, initials, inkAt, isLive, liftsLive, planHasYours, resetPlan, rowName, watchOf, watchView } from './buys.js';
+import { choosing, deadlineInfo, fplOf, fplSets, freedBy, gwMode, initials, inkAt, isLive, liftsLive, planHasYours, resetPlan, rowName, watchOf, watchView } from './buys.js';
 import { chipBack, chipWeekGain, chipsAvail, clearGain, emptyHead, factsWords, itbWords, plPays, rollFt, shirtOf, squadWeek, weekFacts, xpShown } from './pieces.js';
 import { headPart } from './screen-head.js';
 import { linePart } from './screen-line.js';
@@ -263,6 +263,8 @@ export function mount(el, ctx) {
     get renderLine() { return renderLine; },
     get renderPdBtn() { return renderPdBtn; },
     get renderPitch() { return renderPitch; },
+    get paintChoosing() { return paintChoosing; },
+    get paintBoard() { return paintBoard; },
     get renderRail() { return renderRail; },
     get renderTotal() { return renderTotal; },
     get replanning() { return replanning; },
@@ -296,6 +298,7 @@ export function mount(el, ctx) {
     get sideRoom() { return sideRoom; },
     get slot() { return slot; },
     get spend() { return spend; },
+    get letGo() { return letGo; },
     get spent() { return spent; },
     get statusLine() { return statusLine; },
     get strip() { return strip; },
@@ -337,7 +340,7 @@ export function mount(el, ctx) {
   const { drawPlace, planLine, fitLine, scaleHeads, fitBlocks, stepPlace, shadeTap, weekSheet } = placePart(V);
   const { drawWeek, clashRow, noteRow, sayDrift, forecastLine, waitSig, waitWatch, keepNight, sayNight, sayCarried, barNode, dotted, bsep, textOf, bankWarn, bankLead, weekLead, roadOfEv, movesTitle, openWhy, deckOf, placeLink, whenFree, placeAct, whyTaps, whyActs, notOf, vetoBack, notAct, whenSheet, gainOf, whySub, numOf, numSaid, plNumSaid, hitTag, hitSaid, plansVs, whyPart, rowTies } = weekPart(V);
   const { moveX, xferRow, factSpans, itbNode, rollFacts, door, openChips, chipsDoor, bringDoor, doorStubs, changeRow, priceOf, addOnce, litPays, planKey, planSaid, takePlan, planRow, openPlanWhy, ftAfter, weekRoll, rollOf, shareWeek, moveGain, moveNum, weekPending, rollPending, rolling, whyMove, tapIn } = rowsPart(V);
-  const { pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, tabAt, toastOver, renderTotal, totalNum, keepGwLine, sellOf, hasField, plateOk, plateOf, renderPdBtn, playerDataSheet } = pitchPart(V);
+  const { paintBoard, paintChoosing, pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, tabAt, toastOver, renderTotal, totalNum, keepGwLine, sellOf, hasField, plateOk, plateOf, renderPdBtn, playerDataSheet } = pitchPart(V);
   const { spend, letGo, atEdge, tickAt, railEnd, unfill, benchBare, swipeGw, pitchEnd, settle, releaseSoon, gesture, cancelGesture, dragBadge, dropBadge, armTo, armbandSheet, subSheet, lift, dragTo, dropOn, pitchChip, liftShirt, wireMoveRow, vetoRow, vetoFromWhy, pressed, stray, lifted, spentUp, spentDown, spentClick } = touchPart(V);
   el.classList.add('ah');
   // the legacy suggestions' hide (v1.3.27 or earlier: one for every team), let go
@@ -599,7 +602,7 @@ export function mount(el, ctx) {
       }
       return;
     }
-    if (pl && P?.editable) st.timer = setTimeout(() => liftShirt(st, e), LONG_MS);
+    if (pl && P?.editable && !choosing(ctx, P)) st.timer = setTimeout(() => liftShirt(st, e), LONG_MS);
     // the bench held where no shirt is (its labels, its edges): the Bench Boost there, or off (owner, 2026-10-13); its
     // progress fills at the finger (holdFill)
     else if (bare && P?.editable) {
@@ -675,7 +678,7 @@ export function mount(el, ctx) {
       if (away) t.dataset.chip = `GW${m[1]}:`;
     }
   };
-  const offs = [ctx.store.on('gw', () => { awayToasts(); schedule(); }), ctx.store.on('memory', () => schedule('mem')), ctx.store.on('aheadRev', () => schedule()),
+  const offs = [ctx.store.on('gw', () => { awayToasts(); schedule(); }), ctx.store.on('memory', () => schedule('mem')), ctx.store.on('aheadRev', () => schedule()), ctx.store.on('bringing', () => schedule()),
     ctx.store.on('learnt', () => { S.learnt = new Set(); schedule(); }),
     ctx.store.on('aheadPair', () => schedule('pair'))];
   // (plan memory at once: it asks the plan, renderBaking waits for it)

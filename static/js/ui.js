@@ -451,7 +451,8 @@ export function toast(msg, kind = 'info', opts = {}) {
   };
   const text = h('span.toast-msg');
   const x = h('button.icon-btn', { type: 'button', 'aria-label': 'Dismiss', onClick: () => dismiss() }, icon('close', { size: 14 }));
-  const el = h('div.toast', null, text, x);
+  // (opts.quiet: said to VoiceOver alone, m.css)
+  const el = h('div.toast', { class: { quiet: !!opts.quiet } }, text, x);
   // held: `keep` actions whose sheet is still up; its time runs once none is
   const stay = { el, until: 0, dismiss, held: 0 };
   const restart = () => { stay.until = stay.held ? Infinity : performance.now() + ms; };

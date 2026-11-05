@@ -500,7 +500,6 @@ code or a value 600 */
 .cs .ah-lrow:disabled { opacity: 1; }  /* played this half: legible, its name grey */
 .cs .ah-lrow:disabled .nm b { color: var(--muted); }
 .ws .ws-item { border-bottom: 1px solid var(--hair); }
-.ws .ws-x { animation: none; }
 
 /* Details: no rain, no tracked capitals */
 .wy-sheet .wy-swarm text { font-family: var(--f-text); }
@@ -556,6 +555,7 @@ rolling", whole: .toast-msg's min-width) can't sit beside them (larger text on a
   font: 400 var(--t-sub)/1.3 var(--f-text); animation: m-toast-in var(--dur) var(--ease);
 }
 #toasts .toast > .icon { display: none; }
+#toasts .toast.quiet { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); pointer-events: none; }  /* said to VoiceOver alone (ui.toast opts.quiet) */
 /* its Undo takes a tap once it has come in (app.js placeToasts: .armed): on a sheet, one a control has slid under since
 it was placed dims and lets the tap through until it is placed again */
 #toasts .toast .toast-msg { flex: 1; min-width: auto; max-width: 100%; }

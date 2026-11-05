@@ -116,6 +116,14 @@ export function solvedLineup(roads, g, sq, chip) {
  * weeks whose bank may go below 0 (debt_gw "9,10": the hold's) and cash. A Wildcard or Free Hit week sends neither
  * hits cap nor Roll.
  */
+/** The first plan's values, the solver's best with no rule of yours: GW A alone under the hold (planDefault 'hold', the
+ *  app's), as every other solve its own week. The card reads it, each later week solves its own plan, and GW11-13 were
+ *  three more solves in a row the first card waited on: 10.5 s against 3.65 s, the same transfer (owner, 2026-11-05, "why
+ *  these solved"). */
+export const firstPlanValues = (cctx, planDefault = 'hold') => {
+  const values = planValues(cctx, []);
+  return planDefault === 'hold' ? { ...values, to: values.from_r } : values;
+};
 export function planValues(cctx, list) {
   const gws = cctx.gws;
   const c = composePins(list, { from: gws[0], to: gws.at(-1) });

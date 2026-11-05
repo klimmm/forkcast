@@ -122,6 +122,7 @@ export function createMemory(ctx) {
     inkOf, inkClash, addPin, removePin, restorePins, batch, setHitsMax, reset, setLineup, setPlan, values, offer, heal, settled, compare,
     // whether a solve of exactly these values was offered (offer `values`): ahead.js presolve asks it no more
     solved: (vals) => S.offered.v === versionNow() && S.offered.solved.has(solvedKey(ctx.bundle?.version ?? null, vals)),
+    solvedRoad: (vals) => (S.offered.v === versionNow() ? S.offered.solved.get(solvedKey(ctx.bundle?.version ?? null, vals))?.road ?? null : null),
     pencilDiff, markSeen, forecastChange, keepMine, adoptDrift, journal, noteEdit, claimEdit,
     // detached: a save still in flight lands without writing this device's mirror (sign-out cleared it) → that save
     // (forget waits for it, so it never lands over the forgetting)
