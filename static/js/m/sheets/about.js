@@ -1,6 +1,6 @@
 // Forkcast · About Forkcast (owner, 2026-10-14). One page, two homes: under Connect's form (landing(ctx, {start}):
-// app.js showConnect) and as a sheet from Help and the You sheet (open). In order: the promise (COPY.whySub;
-// COPY.whyHero over it in the sheet); a question a section, most asked first (COPY.whyApp), each answered by a
+// app.js showConnect) and as a sheet from Help and the You sheet (open). In order: the promise (COPY.whySub); a
+// question a section, most asked first (COPY.whyApp), each answered by a
 // recording of the real app (clip: static/m/clips, tools/qa/scenarios/about-clips.mjs); the seasons replayed (final
 // rank, rank after every GW, caveats, then replays at 1-4 GWs: static/m/why.json, tools/why_bake.py; ranks inside a
 // season, never points across seasons); against the scouts (this season live, GET /api/m/scouts re-baked after every
@@ -60,7 +60,7 @@ export function landing(ctx, { start = null } = {}) {
   // one of them has filled
   const proof = h('details.wf-more', { hidden: true, open: true }, h('summary', null, COPY.whyProof), rec, scouts);
   const page = h('div.wf', null, ...[
-    start ? h('p.wf-lead', null, COPY.whySub) : h('header.wf-hero', null, h('h2', null, COPY.whyHero), h('p', null, COPY.whySub)),
+    h('p.wf-lead', null, COPY.whySub),
     // how it works and the plain facts first, one list (owner, 2026-10-14)
     h('section.wf-sec.wf-facts', null, h('h3', null, COPY.whyHowHead), factList([...COPY.whyHow, ...COPY.whyFacts]), proof),
     ...COPY.whyApp.map(({ clip: c, ask, text }) => h('section.wf-sec.wf-q', { dataset: { clip: c } }, h('h3', null, ask), h('p', null, text), clip(c, ask))),

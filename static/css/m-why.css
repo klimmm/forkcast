@@ -1,7 +1,7 @@
 /* Forkcast About (sheets/about.js): under Connect's form, a sheet from Help and You, Help's recordings. After m.css;
 *m.css tokens only.
 *.wf  wrapper
-*.wf-hero .wf-lead  the promise (Connect: sentence alone)
+*.wf-lead  the promise
 *.wf-sec .wf-q  a section; a question with its recording
 *.wf-clip  real-app recording (static/m/clips) in a phone frame
 *.wf-rec .wf-big .wf-fig .wf-hzlead  seasons replayed
@@ -12,9 +12,7 @@
 
 /* Connect: under Recent with a rule over it; in the sheet, at its top */
 .m-gate > .wf { margin-top: 36px; padding-top: 28px; border-top: 1px solid var(--hair); }
-.wf .wf-hero { margin: 4px 0 6px; }
-.wf .wf-hero h2 { margin: 0; font: 700 var(--t-title)/1.2 var(--f-text); color: var(--ink); }
-.wf .wf-hero p, .wf .wf-lead { margin: 8px 0 0; font: 400 var(--t-body)/1.45 var(--f-text); color: var(--ink-2); }
+.wf .wf-lead { margin: 8px 0 0; font: 400 var(--t-body)/1.45 var(--f-text); color: var(--ink-2); }
 .wf .wf-lead { margin: 0; }
 
 .wf .wf-sec { margin-top: 34px; }

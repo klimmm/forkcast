@@ -1,6 +1,7 @@
 // Forkcast · Bring in a player (the Wish sheet: IPHONE_DESIGN §5.8, M9). Large detent, the search focused. The week is the
-// card's it was opened from (owner, 2026-11-05: "do not make choose gw once again"). A row's + is the whole choice: the
-// sheet shuts and the pitch of that week asks who he replaces, the sale yours (ahead.chooseOnPitch), the money short or
+// card's it was opened from (owner, 2026-11-05: "do not make choose gw once again"), the week pills over the list another
+// (owner, 2026-11-06: "fix bug with missing GW panel"). A row's + is the whole choice: the sheet shuts and the pitch of
+// the list's week asks who he replaces, the sale yours (ahead.chooseOnPitch), the money short or
 // not; nothing is solved before he is on the pitch (owner, 2026-11-05: "choossaable by one click then offer to choose who
 // to replace right on pitch, not pre plan anything until it moved to pitch"). A Wildcard or Free Hit week has no sale to
 // choose: his + puts him in the chip's squad. A player your pins keep out (a veto, Never) stays on the list, marked with
@@ -17,7 +18,7 @@
 import { h, fmt, fill, norm, icon, xpNum } from '../../ui.js';
 import { COPY } from '../calls.js';
 import { plan, weekOf, squadBefore, barred, barringRule, ruleOf, inkAt, saleBuy, sayBuyProblem, bringIn, chooseOnPitch, reroute } from '../ahead.js';
-import { tabs, barTop, bars, ownWeeks, shirt, found, SORTS, sortsOf, orderOf, sortChips } from './buylist.js';
+import { weekPills, tabs, barTop, bars, ownWeeks, shirt, found, SORTS, sortsOf, orderOf, sortChips } from './buylist.js';
 
 const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
 export function open(ctx, preId = null, { gw = null, pos = null, out = null } = {}) {
@@ -32,8 +33,8 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
     // the week replaces the address, never a new entry (a later Back never switches the week)
     ctx.navigate('ahead', { gw: g }, { replace: true, top: true });
   };
-  /** His +: the pitch of the card's week asks who he replaces. */
-  const pick = (id) => { if (chooseOnPitch(ctx, id, G)) leave(G); };
+  /** His +: the pitch of week g asks who he replaces. */
+  const pick = (id, g = G) => { if (chooseOnPitch(ctx, id, g)) leave(g); };
   // (his card's Bring him in…: chosen already, no list)
   if (preId != null) { pick(Number(preId)); return null; }
   // pos: the position its list opens on (a player's place's "Other…": ahead.drawPlace), else all; place: that player, the
@@ -46,10 +47,11 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
     build(body) {
       // the names FPL writes are mostly surnames (a first name finds no one); a club's short name finds its players
       const input = h('input', { type: 'search', placeholder: 'Search by surname', 'aria-label': 'Search by surname', autocomplete: 'off', spellcheck: 'false', enterkeyhint: 'search' });
+      const pillsEl = h('div.ah-pills', { role: 'group', 'aria-label': 'From gameweek' });
       const posEl = h('div.m-seg.small', { role: 'radiogroup', 'aria-label': 'Position' });
       const main = h('div.ws-main');
       const sortEl = h('div.ws-sorts', { role: 'radiogroup', 'aria-label': 'Sort by' });
-      body.append(h('label.ah-search', null, icon('search', { size: 16 }), input), posEl, sortEl, main);
+      body.append(h('label.ah-search', null, icon('search', { size: 16 }), input), pillsEl, posEl, sortEl, main);
       input.addEventListener('input', () => { st.q = input.value; draw(); });
       /** The sorts this bundle can back (buylist.sortsOf), the one chosen. */
       const sorts = () => sortsOf(ctx);
@@ -84,7 +86,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
               // from a player's place (st.lock) its tap swaps him in at once: "Swap", outlined (one filled per view; design
               // 1028d K1); else his +
               : st.lock ? h('button.ws-add.m-swap.quiet', { type: 'button', disabled: !P.editable, 'aria-label': `${COPY.bringIn(name, st.g)} for ${P.L.name(st.place)}`, onClick: () => swapIn(id) }, COPY.placeSwap)
-                : h('button.ws-add', { type: 'button', disabled: !P.editable, 'aria-label': COPY.bringIn(name, st.g), onClick: () => pick(id) }, '+')));
+                : h('button.ws-add', { type: 'button', disabled: !P.editable, 'aria-label': COPY.bringIn(name, st.g), onClick: () => pick(id, st.g) }, icon('plus', { size: 16 }))));
       }
 
       /** The list for the week in the sort's order: every player you could buy then (one a rule of yours keeps out
@@ -105,6 +107,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         const P = plan(ctx);
         if (!P) return;
         const L = P.L, g = st.g, q = norm(st.q.trim());
+        weekPills(pillsEl, P.gws, g, live, (x) => { st.g = x; draw(); });
         tabs(posEl, [['all', 'All'], ...POSITIONS.map((x) => [x, x])], st.pos, (k) => { st.pos = k; draw(); }, (k) => st.lock && k !== st.pos);
         posEl.hidden = !!q;
         // the sorts as chips in one sideways row (buylist.sortChips)

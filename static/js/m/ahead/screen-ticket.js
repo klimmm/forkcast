@@ -5,7 +5,7 @@ import { h, fill, fmt, plural, reduceMotion, xpGain, xpNum } from '../../ui.js';
 import { COPY } from '../calls.js';
 import { plan } from './core.js';
 import { itbWords } from './pieces.js';
-import { presolveSwap, removeWeek, swapGain, swapWeek } from './presolve.js';
+import { presolveSwap, removeWeek, showTransfer, showingAt, swapGain, swapWeek } from './presolve.js';
 import { choosing, placedAt, placedDone, stopChoosing } from './buys.js';
 import { cardUndo, removeRule, takingBack, tickWas, veto } from './edits.js';
 
@@ -17,6 +17,9 @@ const STACK_MOTION = { duration: 180, easing: 'cubic-bezier(.2,.7,.2,1)' };
 /** The stack under a finger, px: it starts past `start`, follows up to `far`, and a quarter of that where no week is left
  *  (owner, 2026-11-05: "wont ever know if you moving anything"). */
 const STACK_PULL = { start: 8, far: 96, end: 24 };
+/** "play a chip" switched off, its note beside it, its QA scenarios `asked` alone (owner, 2026-11-05: "disable 'play a chip'
+ *  button and leave a note there and skip chips tests"). false brings it back. */
+const CHIPS_OFF = true;
 
 export function ticketPart(V) {
   /** What a week's tab says: your transfers alone. Each card's offer is worked out as if no week before it moves, so GW11's
@@ -28,7 +31,7 @@ export function ticketPart(V) {
     // went unpainted, QA qa-tk2 2026-11-05)
     const itb = w.bank != null ? itbWords(w.bank) : null;
     fill(stand, h('span', null, w.moves.length ? [h('b', null, plural(w.moves.length, 'transfer')), ' made'] : h('b', null, plural(w.ft ?? 1, 'free transfer'))),
-      w.bank != null ? h('span', null, itb ? [h('b', null, itb[0].replace(/ ITB$/, '')), ' in the bank'] : h('b', null, COPY.moneyShort(-w.bank))) : null);
+      w.bank != null ? h('span', null, itb ? [h('b', null, itb[0].replace(/ ITB$/, '')), ' in the bank'] : h('b.ah-short', null, COPY.moneyShort(-w.bank))) : null);
   }
   /** "Your FPL team: 2 changes to make" on the pitch's corner, GW A's in every week; its tap the Week sheet's list. */
   function paintFlag(P, w) { const { S, flag, openWeek } = V;
@@ -76,14 +79,16 @@ export function ticketPart(V) {
     m.ghost.animate([{ transform: 'none', opacity: 1 }, { transform: `translateY(${land ? tabTop(land) - m.top : 0}px)`, opacity: 0 }], STACK_MOTION).onfinish = () => m.ghost.remove();
   }
   /** Swipes on the stack, cards and tabs alike: down or left the next week, up or right the one before. Left and right
-   *  on a tab are the switcher's own scrub (rail). Up and down the stack follows the finger; let go short of a swipe it
-   *  goes back, past one holdStack takes the card from where the finger left it. The finger is let go at once: the week
-   *  drawn at the release, not LIFT_MS on, when the card's picture has gone. */
-  function bindStack() { const { atEdge, ctx, gwNow, letGo, setGw, spend, stack } = V;
+   *  on a tab are the switcher's own scrub (rail). Up and down the card follows the finger, the tabs staying (owner,
+   *  2026-11-06: "only full stack moving randomly"), on any screen: a short one scrolls from the pitch. Let go short of a
+   *  swipe it goes back, past one holdStack takes the card from where the finger left it. The finger is let go at once: the
+   *  week drawn at the release, not LIFT_MS on, when the card's picture has gone. */
+  function bindStack() { const { atEdge, ctx, gwNow, letGo, setGw, spend, stack, strip } = V;
     let at = null;
     const weekBy = (step) => { const P = plan(ctx); return P?.gws[P.gws.indexOf(gwNow(P)) + step] ?? null; };
-    const pull = (px) => { stack.style.transform = px ? `translateY(${px}px)` : ''; };
-    const back = (px) => { pull(0); if (px) stack.animate([{ transform: `translateY(${px}px)` }, { transform: 'none' }], STACK_MOTION); };
+    const card = () => strip.querySelector(':scope > .ah-ticket');
+    const pull = (px) => { const c = card(); if (c) c.style.transform = px ? `translateY(${px}px)` : ''; };
+    const back = (px) => { pull(0); if (px) card()?.animate([{ transform: `translateY(${px}px)` }, { transform: 'none' }], STACK_MOTION); };
     const reach = (dy) => { const far = weekBy(dy > 0 ? 1 : -1) != null ? STACK_PULL.far : STACK_PULL.end;
       return Math.sign(dy) * Math.min(far, Math.abs(dy) * (far === STACK_PULL.far ? 1 : .25)); };
     stack.addEventListener('pointerdown', (e) => { at = e.isPrimary && e.button < 1 ? { x: e.clientX, y: e.clientY, sideways: !atEdge(e) && !e.target.closest('.ah-rail'), px: null } : null; });
@@ -91,7 +96,7 @@ export function ticketPart(V) {
       if (!at) return;
       const dx = e.clientX - at.x, dy = e.clientY - at.y;
       if (at.px == null) {
-        if (Math.abs(dy) < STACK_PULL.start || Math.abs(dy) < Math.abs(dx) || stack.classList.contains('scrolls') || reduceMotion()) return;
+        if (Math.abs(dy) < STACK_PULL.start || Math.abs(dy) < Math.abs(dx) || reduceMotion()) return;
         stack.setPointerCapture(e.pointerId);
       }
       at.px = reach(dy);
@@ -120,7 +125,7 @@ export function ticketPart(V) {
       h('div.ah-tkbody', null, h('div.ah-tkrow', null, h('span.ah-tkg', null, `GW${g}`), dlEl, h('span.ah-tkx.m-num', null, h('span.m-skel'))), h('h2.ah-tkhead', null, title)),
       barNode({ cls: '.ah-pbake' }), rest, h('div.ah-tkacts', null, action));
   }
-  function paintTicket(P, w, M, tk = []) { const { S, ctx, dlEl, el, bringDoor, chipsDoor, inkAt, openWeek, rsBtn, setGw, stack, strip } = V;
+  function paintTicket(P, w, M, tk = []) { const { S, ctx, dlEl, bringDoor, chipsDoor, inkAt, openWeek, rsBtn, setGw, stack, strip } = V;
     const block = strip.querySelector(':scope > .ah-ticket');
     if (!block || !w) return;
     paintStand(w);
@@ -137,8 +142,10 @@ export function ticketPart(V) {
     let after = null;
     const refused = P.pins.filter((p) => p.kind === 'notfor' && Number(p.gw) === g).at(-1);
     const swaps = M?.sq ? 0 : w.moves.length, last = cardUndo(ctx, g);
-    const undo = swaps > 1 || (swaps && !last) ? takingBack(() => removeWeek(ctx, g)) : last ?? (refused ? takingBack(() => removeRule(ctx, refused.id)) : null);
-    const undoWords = swaps ? COPY.undoSwaps(swaps) : refused ? COPY.previous : COPY.undoLast;
+    // (a transfer Show a transfer drew: its Previous back to the plan's card)
+    const shown = !swaps && !refused && !last && showingAt(P, g);
+    const undo = swaps > 1 || (swaps && !last) ? takingBack(() => removeWeek(ctx, g)) : last ?? (refused ? takingBack(() => removeRule(ctx, refused.id)) : shown ? () => { showTransfer(P, g, false); V.schedule(); } : null);
+    const undoWords = swaps ? COPY.undoSwaps(swaps) : refused || shown ? COPY.previous : COPY.undoLast;
     let title, line = null, left = null, right = null;
     if (best) {
       const { e, pl } = best.move, gain = swapGain(ctx, P, g, pl);
@@ -149,7 +156,9 @@ export function ticketPart(V) {
       if (!S.wait) S.swapAsk = setTimeout(() => presolveSwap(ctx, P, g, pl));
       title = e.adds.length ? movesWords(P, e.adds) : best.querySelector('.ah-tl').textContent;
       // (what the tabs will change by, over the weeks they show; its solve not in, no number guessed)
-      line = gain == null ? COPY.waitShort : [xpGain(gain), ' ', COPY.overNextWeeks(P.gws.filter((x) => x >= g).length)];
+      // (…and on a week the plan rolls, that it does: its points are what the tabs will do, and the free transfer they spend
+      // is why the plan doesn't; owner, 2026-11-06, "why -0.4 xp but it changed by 0.6")
+      line = gain == null ? COPY.waitShort : [xpGain(gain), ' ', COPY.overNextWeeks(P.gws.filter((x) => x >= g).length), pl.forced ? ` ${COPY.planSaves}` : ''];
       const not = best.dataset.notIn ? { gw: g, out: Number(best.dataset.notOut), in: Number(best.dataset.notIn) } : null;
       left = btn('alt', COPY.showAnother, `tok:not:${g}`, (ev) => (not ? veto(ctx, not, { scope: 'pair' }) : openWeek(ev, g)));
       right = btn('go', COPY.makeTheSwap, `tok:best:${g}`, (ev) => (best.querySelector('.ah-tgo') ? best.take(ev) : best.click()));
@@ -170,8 +179,10 @@ export function ticketPart(V) {
     } else if (ans) {
       title = ans.querySelector('.ah-tl').textContent;
       line = ans.querySelector('.ah-tw')?.textContent ?? null;
-      left = btn('alt', COPY.showATransfer, `tok:ans:${g}`, (ev) => openWeek(ev, g));
-      right = next ? btn('go', COPY.saveThem(w.ft ?? 1), 'tk:next', () => setGw(next)) : onward;
+      left = btn('alt', COPY.showATransfer, `tok:ans:${g}`, () => { showTransfer(P, g); V.schedule(); });
+      // (nothing to do: rolling is the plan, so the button says where it goes; owner, 2026-11-06, "why need to click 'save
+      // them' if its the same as doing nothing")
+      right = onward;
     } else {
       title = M?.live ? M.liveText : S.status?.one ?? '';
       right = next ? onward : null;
@@ -185,8 +196,11 @@ export function ticketPart(V) {
       line = null;
       after = { ...w, xi: w.xi.map(swap), bench: w.bench.map(swap) };
     }
-    const chips = who || inkAt(ctx, P, g) ? null : [bringDoor(P, g), chipsDoor(P, g)];
-    if (chips) { chips[0].textContent = COPY.bringInPlayer; chips[1].textContent = COPY.playAChip; }
+    // (the same two buttons from paint to paint of a week: a paint between a finger's down and up took its tap, a solve
+    // landing as you tap "bring in a player")
+    if (S.doors?.g !== g || S.doors.editable !== P.editable) S.doors = { g, editable: P.editable, of: [bringDoor(P, g), chipsDoor(P, g)] };
+    const chips = who || inkAt(ctx, P, g) ? null : S.doors.of;
+    if (chips) { chips[0].textContent = COPY.bringInPlayer; chips[1].textContent = COPY.playAChip; chips[1].disabled ||= CHIPS_OFF; }
     // the week's points with no transfers of yours, struck before its own, as on its tab (renderRail)
     const was = P.bare?.has(g) ? tickWas(w, P.bare.get(g)) : null;
     const held = rsBtn === document.activeElement;
@@ -196,12 +210,11 @@ export function ticketPart(V) {
         h('span.ah-tkg', null, `GW${g}`), dlEl, h('span.ah-tkx.m-num', null, was ? h('s.ah-was', { 'aria-hidden': 'true' }, was) : null, xpNum(fmt.num(w.points)))),
       h('h2.ah-tkhead', null, title),
       h('div.ah-tkmid', null, line ? h('p.ah-tkline', null, line) : null,
-        who ? null : h('div.ah-tkback', null, undo && left?.dataset.row !== `tk:undo:${g}` ? h('button.ah-rsbtn.undo', { type: 'button', disabled: off, class: { back: !swaps && !!refused }, dataset: { row: `tk:undo:${g}` }, onClick: undo }, undoWords) : null, rsBtn)),
-      chips ? h('p.ah-tkor', null, 'Or ', chips[0], ', or ', chips[1], '.') : null);
+        who ? null : h('div.ah-tkback', null, undo && left?.dataset.row !== `tk:undo:${g}` ? h('button.ah-rsbtn.undo', { type: 'button', disabled: off, class: { back: !swaps && (!!refused || shown) }, dataset: { row: `tk:undo:${g}` }, onClick: undo }, undoWords) : null, rsBtn)),
+      chips ? h('p.ah-tkor', null, 'Or ', chips[0], ', or ', chips[1], CHIPS_OFF ? ` ${COPY.offForNow}.` : '.') : null);
     if (held) rsBtn.focus({ preventScroll: true });
     sizeTitle(block);
     fill(block.querySelector(':scope > .ah-tkacts'), left, right);
-    stack.classList.toggle('scrolls', el.scrollHeight > el.clientHeight + 1);
     V.paintBoard(P, w, who ? null : after);
     playStack(g);
   }

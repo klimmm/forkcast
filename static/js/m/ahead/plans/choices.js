@@ -5,7 +5,7 @@ import { chipName } from '../../../ui.js';
 import { COPY } from '../../calls.js';
 import { MINUS, compare, draftOf, flatMoves, isFrozen, ownCount, removedAt, sameView, valuesFor, valuesKey, viewOfState, weekOf } from '../core.js';
 import { refusedAt, barred, chainOf, chipEdit, keptCells, keptFrom } from '../edits.js';
-import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, rootStill, weekOnto } from '../presolve.js';
+import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, rootStill, showingAt, weekOnto } from '../presolve.js';
 import { inkAt } from '../buys.js';
 import { PREP, PREPS, chipPreps, chipWeekGain, chipWeekOf, chipsAsked, chipsAvail, clearGain, keptBest, plPays, plannedAt, prepItems, prepKeep, squadWeek } from '../pieces.js';
 import { FORK_MAX, PLACE_ALTS, PLANS, SQUAD_CHIPS, earlyOf, movesSig, placesAsked, suggestionsOf } from './suggest.js';
@@ -188,6 +188,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // (read here; asked after the roll's and the rows' own solves, below: rolling's count first)
   const depth = prep ? 0 : 2, tree = owed || followed ? [] : refusalRoads(ctx, P, g, { peek: true, depth });
   const solverRoads = new Set([owed?.road, ...tree.map((n) => n.road)].filter(Boolean));
+  // (the best transfers of a week rolling is best in, one forced, refusalRoads': Show a transfer's)
+  const forcedRoads = new Set(tree.filter((n) => n.forced).map((n) => n.road)), forced = new Set();
   // (your GW-g transfers' own plan, the reference `yours` counts against, where a solver road makes no move beside
   // them: that road, never a fork of its own; owner, 2026-11-02, at most 6 solves after an action)
   const selfRoads = new Map();
@@ -208,6 +210,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
       if (own || m) selfRoads.set(yours, { road: r, m });
     }
     if (r === tree[0]?.road || r === owed?.road) roots.add(forkKey(x.choice, g));
+    if (forcedRoads.has(r)) forced.add(forkKey(x.choice, g));
     if (!choices.has(forkKey(x.choice, g))) {
       const e = earlyAt(x.choice);
       if (e) late.push({ c: x.choice, e }); else add(x.choice);
@@ -288,8 +291,10 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     for (const gr of gs) {
       const q = groupOf(gr), qk = forkKey(q, g);
       if (!fitsAt(ctx, P, g, q, d0)) continue;
-      if (!choices.has(qk) && room()) { add(q); if (choices.has(qk)) parts.add(qk); }
-      if (choices.has(qk)) ks.push(qk);
+      // (a part some other road listed first is the solver's as much: the mark went with who came first, and with it the
+      // card's move; owner, 2026-11-05: "why gavardiol to hill first")
+      if (!choices.has(qk) && room()) add(q);
+      if (choices.has(qk)) { parts.add(qk); ks.push(qk); }
     }
     if (ks.length === gs.length) choices.delete(k);
     else if (ks.length) wholes.set(k, ks);
@@ -591,7 +596,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // (a row numbered by the solver's own count that beats the roll is no early one: its window counts making it next
     // week instead, so a count past the 0.05 bar says now; owner, 2026-10-28)
     .map((x) => (early.has(forkKey(x.choice, g)) && !(x.cmp?.count && x.cmp.delta > 0.05) ? { ...x, early: early.get(forkKey(x.choice, g)) } : x))
-    .map((x) => (placed.has(forkKey(x.choice, g)) ? { ...x, placed: true } : x));
+    .map((x) => (placed.has(forkKey(x.choice, g)) ? { ...x, placed: true } : x))
+    // (a forced one a row only once Show a transfer asks: the week rolls)
+    .filter((x) => !forced.has(forkKey(x.choice, g)) || showingAt(P, g)).map((x) => (forced.has(forkKey(x.choice, g)) ? { ...x, forced: true } : x));
   // (a week kept whole, `wholes`: the whole and its parts both, the whole the solver's own pick; owner, 2026-11-03, "why
   // it not shows solver actual transfers", reversing 2026-11-02's parts in its place)
   const all = each.filter((x) => x.state !== 'idle');

@@ -63,8 +63,11 @@ export function decksPart(V) {
     // a hidden heading names it for VoiceOver, only while it holds a choice
     const b = root.getBoundingClientRect(), W = root.clientWidth;
     const boxes = cardBoxes(root);
-    // (the best move's places in its plate's top-most row, for its token: tokensOf)
-    const lead = topRow(D.filter((d) => lit.get(d.a)?.best).map((d) => ({ d, c: boxes.find((x) => x.id === d.a), L: lit.get(d.a) })).filter((x) => x.c))[0];
+    // (the best move's place its plan names first, for its token: tokensOf; never by where a player stands, which differed
+    // between two draws of one week and swapped the card's move; owner, 2026-11-05: "why it first shoed cunha palmer then
+    // gvardiol hill")
+    const inPlan = (x) => { const i = lit.move?.choice.moves.filter((m) => m.gw === g).findIndex((m) => Number(m.out) === x.d.a) ?? -1; return i < 0 ? Infinity : i; };
+    const lead = D.filter((d) => lit.get(d.a)?.best).map((d) => ({ d, c: boxes.find((x) => x.id === d.a), L: lit.get(d.a) })).filter((x) => x.c).sort((p, q) => inPlan(p) - inPlan(q)).slice(0, 1);
     const name = plansHeading(P, g), tk = tokensOf(P, w, toks, lit, lead, M), any = D.length || tk.length;
     V.paintTicket(P, w, M, tk);
     if (any) decks.setAttribute('aria-label', name);

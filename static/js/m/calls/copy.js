@@ -293,7 +293,6 @@ export const COPY = Object.freeze({
    *  tools/qa/scenarios/about-clips.mjs); no Reddit figure on the page. Results are finishing ranks inside a season,
    *  never points across seasons; nothing says when to play a chip. Never "beats", "proven" or "guaranteed". */
   whyTitle: 'About Forkcast',
-  whyHero: 'Your team\'s questions, answered before the deadline.',
   whySub: 'Roll or transfer, A or B, who to bench, whether the −4 pays: Forkcast works it out for your squad, your bank and your free transfers, in points over the next four gameweeks.',
   whyStart: 'Find my team',
   /** One a question (`clip`: static/m/clips/<clip>.webp, recorded on the real app), the most asked first. */
@@ -800,10 +799,10 @@ export const COPY = Object.freeze({
   undoLast: 'Undo',
   seeChanges: 'See the changes',
   onToWeek: (g) => `On to GW${g}`,
-  saveThem: (ft) => (ft > 1 ? 'Save them' : 'Save it'),
   setInFplGo: 'Set in FPL',
   overNextWeeks: (n) => `over the next ${n} week${n === 1 ? '' : 's'}.`,
   bringInPlayer: 'bring in a player you want',
+  offForNow: '(off for now)',
   /** The card while the pitch asks who he replaces, and what the money lacks under a name there. */
   bringWho: (name) => `Who does ${name} replace?`,
   bringCancel: 'Cancel',
@@ -813,6 +812,7 @@ export const COPY = Object.freeze({
   playAChip: 'play a chip',
   yourFplTeam: 'Your FPL team:',
   answerSave: (ft) => (ft > 1 ? 'Save your free transfers' : 'Save your free transfer'),
+  planSaves: 'Too small to spend a free transfer.',
   answerDone: 'Nothing more to do this week',
   /** The band's number's scope and its toss-up (ahead tokensOf; owner, 2026-11-03, design_1103b): "· 4 GW", "Close call". */
   overGws: (n) => `· ${n} GW`,

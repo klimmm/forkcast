@@ -7,7 +7,6 @@ import { COPY, gwFlags } from '../calls.js';
 import { chipsAvail, squadWeek } from './pieces.js';
 import { tickWas, totalShift } from './edits.js';
 import * as E from '../../plan/engine.js';
-import { pitchCard } from '../../plan/pitch.js';
 import { fitNum, oneLook } from './screen.js';
 
 export function pitchPart(V) {
@@ -25,37 +24,35 @@ export function pitchPart(V) {
       else delete pf.dataset.need;
     }
   }
-  /** The card's swap on the pitch before its tap, a substitution board (design_1105h; owner, 2026-11-05: "Yes, build it"): at
-   *  each place that changes, the player who would stand there, his whole shirt, his name in the go colour over the struck
-   *  name of the one he replaces; a player going to the bench in white; the armband where it would go. Nothing moves. `after`:
-   *  GW w's team with the swap made (swapWeek), null none. The cards keep their ids, the team as it is, for the card's tokens
-   *  (renderDecks). */
-  function paintBoard(P, w, after) { const { S, ctx, pitchHost } = V;
+  /** The card's swap on the pitch before its tap, a substitution board (design_1105h; owner, 2026-11-05: "Yes, build it"): the
+   *  team you would have, in its own formation ("why the fuck rice is fwd": a slot of the team as it is put a midfielder up
+   *  front), each new name in the go colour over the struck name of the one whose place he takes, a player going to the bench
+   *  in white, a moved armband in the go colour. `after`: GW w's team with the swap made (swapWeek), null none. Each card keeps
+   *  the id of the place it stands for, the team as it is, for the card's tokens (renderDecks). */
+  function paintBoard(P, w, after) { const { S, pitchHost } = V;
+    // (never under an open place: a pitch drawn anew shuts it; drawn once it is shut)
+    if (S.place) return;
     const key = after ? JSON.stringify([w.gw, after.xi, after.bench, after.captain, after.vice]) : null;
     if (key === (S.board?.key ?? null) && (!key || S.board.pitch === S.pitch)) return;
     if (S.board?.key) { S.pitch = null; renderPitch(P, w); paintChoosing(P, w); }
     S.board = { key, pitch: S.pitch };
     if (!after) return;
-    const card = (id) => pitchHost.querySelector(`.pm-card[data-id="${id}"]`), nm = P.L.name, pos = P.L.pos;
+    const nm = P.L.name, pos = P.L.pos;
     /** Who takes whose place between lists `was` and `now`: of his own position first. → [[out, in]] */
     const places = (was, now) => { const outs = was.filter((x) => !now.includes(x));
       return now.filter((x) => !was.includes(x)).map((x) => { const i = Math.max(0, outs.findIndex((o) => pos(o) === pos(x))); return [outs.splice(i, 1)[0], x]; }).filter(([o]) => o != null); };
     const swaps = [...places(w.xi, after.xi), ...places(w.bench, after.bench)];
-    const bands = ['c', 'v'].map((k) => pitchHost.querySelector(`.pm-badge[data-badge="${k}"]`));
-    for (const [out, id] of swaps) {
-      const c = card(out), d = pitchCard(id, { players: ctx.data.byId, gw: w.gw, horizon: ctx.data.xpGws });
-      if (!c) continue;
-      c.querySelector('.pm-kit').replaceWith(d.querySelector('.pm-kit'));
-      const pn = c.querySelector('.pm-pn'), off = h('span.sb-off', { 'aria-hidden': 'true' }, nm(out));
-      pn.textContent = nm(id);
+    mountHere({ ...pitchProps(P, w), xi: after.xi, bench: after.bench, captain: after.captain, vice: after.vice });
+    const marked = swaps.map(([out, id]) => [out, id, pitchHost.querySelector(`.pm-card[data-id="${id}"]`)]).filter(([, , c]) => c);
+    for (const [out, id, c] of marked) {
       c.querySelector('.pm-pf')?.remove();
-      pn.after(off);
+      c.querySelector('.pm-pn').after(h('span.sb-off', { 'aria-hidden': 'true' }, nm(out)));
       c.classList.add('sb-card', w.xi.includes(id) ? 'sb-down' : 'sb-in');
       c.setAttribute('aria-label', COPY.boardSaid(nm(id), nm(out)));
+      c.dataset.id = out;
     }
-    for (const [i, k] of ['captain', 'vice'].entries()) {
-      const b = bands[i], at = swaps.find(([, id]) => id === after[k])?.[0] ?? after[k];
-      if (b && !card(at)?.querySelector('.pm-kit').contains(b)) { card(at)?.querySelector('.pm-kit').append(b); b.classList.add('sb-arm'); }
+    for (const [k, was, now] of [['c', w.captain, after.captain], ['v', w.vice, after.vice]]) {
+      if (was !== now) pitchHost.querySelector(`.pm-badge[data-badge="${k}"]`)?.classList.add('sb-arm');
     }
   }
   /** The pitch's props for week w of plan view P (renderPitch's): its lineup, buys, plate and taps. */
@@ -231,7 +228,9 @@ export function pitchPart(V) {
    *  struck number last (owner, 2026-10-27); one look across the rail's marked tiles, as the pitch's plates (oneLook).
    *  Again on a resize or a new text size (refitPitch). */
   function fitRail() { const { ticks } = V;
-    const marked = [...ticks.querySelectorAll('.ah-tick:has(.ah-was)')];
+    // (the tabs on screen: the viewed week's is the card, no size of its own, and its "no room" went to every tab, its struck
+    // number with it; owner, 2026-11-05: "why crosed points only this week")
+    const marked = [...ticks.querySelectorAll('.ah-tick:has(.ah-was)')].filter((t) => t.offsetWidth);
     for (const t of marked) {
       const p = t.querySelector('.p'), cs = getComputedStyle(t);
       fitNum(t, () => p.getBoundingClientRect().width > t.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) + 0.5, ['close', 'noxp', 'nowas']);

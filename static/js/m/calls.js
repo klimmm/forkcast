@@ -40,6 +40,11 @@
 // liveCheck(published, week, L) → GW A's live line: FPL's published squad against the plan's GW A (squad only)
 // sentence(text) → text ending in one full stop; COPY (the phone's strings)
 
+/** Help and About Forkcast switched off: the You sheet's rows say so, the start page has no About under its form (owner,
+ *  2026-11-05: "disable help and about forkcast", "why still displayed"; QA's why scenario asked alone, hints without
+ *  them). false brings them back. */
+export const HELP_OFF = true;
+
 export {
   FORGET_MS, gwFlags, OUT, newsReason, statusText, hitCap, horizonFeature, planWeeks
 } from './calls/helpers.js';

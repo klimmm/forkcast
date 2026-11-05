@@ -5,7 +5,7 @@ import { chipName, shownGain } from '../../../ui.js';
 import { COPY } from '../../calls.js';
 import { capFirst, estimate, flatMoves, problemOf, problemShort, problemsOf, weekOf } from '../core.js';
 import { chipBackOf } from '../edits.js';
-import { owedAt, paysBack, pinOfMove, planTakeDraft, rollingAt, yoursTakenBack } from '../presolve.js';
+import { owedAt, paysBack, pinOfMove, planTakeDraft, rollingAt, showingAt, yoursTakenBack } from '../presolve.js';
 import { plPays, squadWeek } from '../pieces.js';
 import { SQUAD_CHIPS } from './suggest.js';
 import { litEdges } from './choices.js';
@@ -42,7 +42,7 @@ export function litOf(P, w, M, D, toks = []) {
 }
 /** Whether litOf lights choice pl: the solver's own move (plPays; owner, 2026-11-02: no threshold); where your plan
  *  leaves the week short of money (owedAt), one that pays it back keeping your transfers (paysBack). → (pl) → bool */
-const litCan = (P, w) => (owedAt(P, w) ? (pl) => pl?.state === 'ready' && paysBack(w, pl) : plPays);
+const litCan = (P, w) => (owedAt(P, w) ? (pl) => pl?.state === 'ready' && paysBack(w, pl) : (pl) => plPays(pl) || (pl?.state === 'ready' && !!pl.forced && showingAt(P, w.gw)));
 /** The places choice pl is drawn at (decksOf): behind each player it replaces; a take-back of a transfer of yours behind
  *  your buy. → [deck] */
 const placesOf = (D, pl) => D.filter((d) => d.entries.some((e) => e.pl === pl));

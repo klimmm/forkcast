@@ -87,7 +87,8 @@ const HORIZON_KEY = (entry) => `fc:horizon:${entry}`;
 /** Settings → Solver gap (owner, 2026-11-03, "add solver gap to settings, also relax solver gap for future rounds"):
  *  GW A's round exact, every round after it at 0.1% by default (main.py --gap / --later-gap; on one plan solve 10.6 s
  *  → 8.3 s, GW A's choices unchanged), in localStorage for every team. */
-const GAP_KEY = 'fc:gap';
+// (a new key, owner 2026-11-06: one browser's stored 1% against the default's 0.1% was two ways of solving one team)
+const GAP_KEY = 'fc:gap2';
 const GAP_DEFAULT = Object.freeze({ now: 0, later: 0.001 });
 const gapOf = () => { try { return { ...GAP_DEFAULT, ...JSON.parse(api.local.get(GAP_KEY) || '{}') }; } catch { return { ...GAP_DEFAULT }; } };
 const weeksOf = (entry, b = store.get('bundle')) => calls.planWeeks(api.local.get(HORIZON_KEY(entry)), b?.meta?.locked, b?.meta ? reachOf(b.meta).length : null);
@@ -630,16 +631,16 @@ function showConnect({ error = '', tone = '', retry = null, value = '' } = {}) {
   const where = h('button.m-where', { type: 'button', onClick: () => whereSheet(readId(picker.field.value)) }, PICK.where);
   // About Forkcast under it all (sheets/about.js landing; owner, 2026-10-14); its own Find my team at its foot brings
   // you back to the field
-  const land = h('div.m-land');
+  const land = calls.HELP_OFF ? null : h('div.m-land');
   const start = () => { gate.scrollTo({ top: 0 }); if (picker.field.value.trim()) picker.submit(); else picker.focus(); };
-  import('./sheets/about.js').then((m) => land.replaceWith(m.landing(ctx, { start }))).catch(() => land.remove());
+  if (land) import('./sheets/about.js').then((m) => land.replaceWith(m.landing(ctx, { start }))).catch(() => land.remove());
   showGate(
-    h('div.m-wordmark', null, h('h1', null, 'Forkcast'), h('p', null, calls.COPY.whyHero)),
+    h('div.m-wordmark', null, h('h1', null, 'Forkcast')),
     // an error sits right under its field
     h('div.m-form', null, picker.el, err, h('div.m-go', null, go), where),
     h('div.m-prog', { 'aria-live': 'polite' }),
     picker.recent,
-    land,
+    ...(land ? [land] : []),
     h('p.m-legal', null, calls.COPY.whyLegal));
   setTimeout(() => { if (!gate.classList.contains('loading')) picker.focus(); }, 350);
 }

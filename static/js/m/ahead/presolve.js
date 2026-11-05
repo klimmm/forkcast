@@ -44,6 +44,11 @@ export let DRY = null;
 // (null before the first: a page's load is no action), tappedOn: the team it was on
 export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map(), landed: new Set(), took: null, tapped: null, tappedOn: null };
 const teamOn = () => AHEAD.ctx?.store.get('entry') ?? null;
+/** The weeks whose card shows a transfer though the plan rolls them (their Show a transfer; owner, 2026-11-06: shown as any
+ *  other transfer, not a list, and there when you come back), till its Previous. */
+const SHOWING = new Set();
+export const showTransfer = (P, g, on = true) => { SHOWING[on ? 'add' : 'delete'](`${P.entry}|${g}`); PAIR.rev++; };
+export const showingAt = (P, g) => SHOWING.has(`${P.entry}|${g}`);
 /** Your last tap on this team has asked the 6 it may (SOLVE_MAX). No tap yet is no action, nor the tap that opened it, a
  *  load like any other: its own solves spent the 6 and left Make the swap and Show another unsolved (owner, 2026-11-05,
  *  "Yes, full preparation"). */
@@ -300,7 +305,7 @@ export function owedRoad(ctx, P, g, { peek = false, prep = false } = {}) {
  *  plans it under your rules, its GW-g move on top of yours the week's best; that move refused in GW g alone (Show another's "Not … for …") `depth` refusals ahead (2: the next
  *  is solved before you refuse), its sale kept (the lock's Keep) at the first refusal alone: 4 solves a plan view
  *  (owner, 2026-11-02: "follow the ✕ only", at most 6 solves after an action); a road with no move of its own in GW g
- *  ends its branch (rolling is best there). Each asked as a fork is (forkAsk; read only when `peek`). → [{key, road}], the
+ *  (rolling is best there) goes on with one transfer forced (--min-buys-gw). Each asked as a fork is (forkAsk; read only when `peek`). → [{key, road}], the
  *  root first */
 /** Each week's last root (refusalRoads): `${entry}|${g}` → {version, values, road}. */
 const ROOTS = new Map();
@@ -350,11 +355,11 @@ export function rootStill(was, now, road) {
  *  alike: the solver's moves on top of yours, or in place of your roll, "instead of rolling", are the week's choices;
  *  with the Roll kept the root after a take was the take's own solve again, and under your Roll no move was offered:
  *  2026-11-02). With a tap's pins made dry (askOf): the root that tap's plan will ask, solved ahead. */
-function rootValues(ctx, P, g, extra = [], drop = []) {
+function rootValues(ctx, P, g, extra = [], drop = [], forced = false) {
   const cap = hitCap(P.base) ?? 2, roll = `roll:${g}`;
   // (solved to GW g alone, `to`, as a choice's (forkValues): only its GW-g moves are read, the weeks after it your
   // plan's (planOfRoad); owner, 2026-11-03, "why anytime goes to GW11–13": the ✕ and Keep refusals 8-10 s, GW10 0.3 s)
-  return { ...valuesFor(ctx, [...P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x)), ...extra.filter((p) => p.id !== roll)], [...drop, ...P.pins.filter((p) => p.id === roll).map((p) => p.id)]), to: g };
+  return { ...valuesFor(ctx, [...P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x)), ...extra.filter((p) => p.id !== roll)], [...drop, ...P.pins.filter((p) => p.id === roll).map((p) => p.id)]), to: g, ...(forced ? { min_buys_gw: `${g}:1` } : {}) };
 }
 /** `lead`: the move the week's best token shows (plansOf: the solver's row with the highest number), the one its ✕
  *  refuses, refused first at the root; else, and below the root, the road's first move as the week draws it (owner,
@@ -380,8 +385,8 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1,
       forkAsk(ctx, P, { key, values, gw: g, side: true, prep: true });
     }
   };
-  const walk = (extra, d, ahead = false) => {
-    const values = rootValues(ctx, P, g, extra), key = valuesKey(P, values);
+  const walk = (extra, d, ahead = false, forced = false) => {
+    const values = rootValues(ctx, P, g, extra, [], forced), key = valuesKey(P, values);
     if (seen.has(key)) return;
     seen.add(key);
     // (the root's flight never let go by a later view: plansOf; an Undo back finds it. A refusal ahead is the plan
@@ -395,16 +400,21 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1,
     const got = peek || busy ? forkRead(key) : forkAsk(ctx, P, { key, values, gw: g, side: true, ...(prep || !root ? { prep: true } : {}), ...(root ? { root: true } : {}) });
     const road = got?.weeks ? got : null;
     if (root && road) ROOTS.set(`${P.entry}|${g}`, { version: P.b.version, values, road });
-    out.push({ key, road });
+    out.push({ key, road, forced });
     if (ahead && road && !peek) partsAhead(road, extra);
     const w = road && d > 0 ? road.weeks.find((x) => Number(x.gw) === g) : null;
     // (its first move as the week draws it, planOfRoad's: the one the best token's ✕ refuses)
     const ms = w ? (planOfRoad(ctx, P, road, g, d0)?.choice.moves ?? pairedMoves(w.out || [], w.in || [], P.L)).filter((m) => !yours.some((y) => Number(y.out) === Number(m.out) && Number(y.in) === Number(m.in))) : [];
     const lead = (root && best && ms.find((m) => Number(m.out) === Number(best.out) && Number(m.in) === Number(best.in))) || ms[0] || null;
-    if (!lead) return;
+    // (rolling best here: the best transfer all the same and the next, Show a transfer's rows, never the card's; owner,
+    // 2026-11-06, "fix so it still show next suggestions": the week showed Roll alone)
+    if (!lead) {
+      if (w && !forced && !yours.length) walk(extra, d - 1, false, true);
+      return;
+    }
     // (Show another, the card's one refusal: no Keep or per-name refusal solved ahead since the ticket took their buttons
     // off the screen; owner, 2026-11-05, "delete all solves which are not needed")
-    walk([...extra, pinNotFor(lead.out, lead.in, g)], d - 1, root);
+    walk([...extra, pinNotFor(lead.out, lead.in, g)], d - 1, root, forced);
   };
   walk([], depth);
   return out;

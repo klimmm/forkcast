@@ -416,7 +416,8 @@ export function mount(el, ctx) {
   // the screen top to bottom: the pitch, then the weeks as one stack, the front week's ticket among them (screen-ticket.js)
   const flag = h('button.ah-fplflag', { type: 'button', hidden: true, dataset: { row: 'fpl' } });
   const stand = h('div.ah-stand');
-  const stack = h('div.ah-stack', null, ctl, strip);
+  // (nopull: a swipe down on it is the next week, never the page's refresh; owner, 2026-11-06, "what it loading")
+  const stack = h('div.ah-stack', { dataset: { nopull: '' } }, ctl, strip);
   bindStack();
   el.append(head, slot, h('div.ah-pitchwrap', null, pitchHost, flag), noticeSaid, stack, remProbe);
   // the node Ahead keeps drawing into, placed in the Week sheet: your rules (every GW's)

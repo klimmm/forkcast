@@ -8,7 +8,7 @@
 // rank.cheer is there.
 // Sheet contract: static/js/m/app.js (open(ctx, what) → sheet; ctx.openSheet('you'[, 'help' | 'settings'])).
 
-import { COPY, horizonFeature } from '../calls.js';
+import { COPY, HELP_OFF, horizonFeature } from '../calls.js';
 import { initials, resetPlan, inputsOf, plan, hitsChoices, setHitsMaxWithUndo, showTipsAgain, presolveTaps, planHasYours } from '../ahead.js';
 import { clip } from './about.js';
 
@@ -29,6 +29,7 @@ function solvedAt(road) {
   return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() / 1000 + (Number(road.elapsed) || 0) : null;
 }
 
+const offNote = HELP_OFF ? ` ${COPY.offForNow}` : null;
 /** The You sheet; `what` 'help': Help alone; 'settings': the Settings sheet (Ahead's header gear). */
 export function open(ctx, what = null) {
   if (what === 'help') return helpSheet(ctx);
@@ -93,9 +94,9 @@ export function open(ctx, what = null) {
           // the front end's release (api.access), "dev" for the tree's own; none until the server has said
           acc ? h('div.m-kv', null, h('span', null, 'Version'), h('span.m-num', null, acc.release ?? 'dev')) : null,
           // (rows to their sheets, green with ›, not buttons: design 1028d K2)
-          h('button.m-nav', { type: 'button', onClick: () => helpSheet(ctx) }, COPY.helpShort),
+          h('button.m-nav', { type: 'button', disabled: HELP_OFF, onClick: () => helpSheet(ctx) }, COPY.helpShort, offNote),
           // the app's pitch, from inside it too (owner, 2026-10-14)
-          h('button.m-nav', { type: 'button', onClick: () => ctx.openSheet('about') }, COPY.whyTitle));
+          h('button.m-nav', { type: 'button', disabled: HELP_OFF, onClick: () => ctx.openSheet('about') }, COPY.whyTitle, offNote));
         paintDev();
       }
 
