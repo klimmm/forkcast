@@ -682,16 +682,18 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // week's other checks: the ✕ is there as soon as the best is (owner, 2026-11-02, a new team's first ✕ greyed while
   // its other choices were still checked); the best token's move, weekBest's: the solver's row with the highest
   // number, its ✕ the likeliest tap (asked again with it as its rows land)
-  if (!list.pending && !peek && !owed && !followed && depth) {
+  if (!list.pending) {
     const best = list.filter((x) => x.solver && x.state === 'ready' && !x.refRow && !x.placeOnly).reduce((m, x) => (!m || x.cmp.delta > m.cmp.delta ? x : m), null);
     const adds = best?.choice.moves.filter((m) => (m.gw ?? g) === g && !now.some((y) => sameMove(y, m))) ?? [];
-    refusalRoads(ctx, P, g, { prep, depth, lead: adds[0] ?? null });
+    if (!owed && !followed && depth) refusalRoads(ctx, P, g, { prep, depth, lead: adds[0] ?? null });
+    // (the next week prepared once this week's own plan and roll are in, not after every row is checked: the band's
+    // "Next transfers GW11: …" is tapped within seconds of a take; owner, 2026-11-03, "when move to gw 11 it grey out")
+    // (…and once the solver's own rows, its week's parts, are in too: each one landing can change the week's best, and
+    // the next week prepared under the one before is let go; 2026-11-03, a five-move GW10: GW11's asked seven times)
+    // (…and never while the week's card offers a move: every solve of the next week stands on this week's squad, so
+    // Make the swap threw them away, a third of a new team's load; owner, 2026-11-05, "fix waste")
+    if (!adds.length && !list.some((x) => x.solver && x.state === 'solving')) prepNext(ctx, P, g);
   }
-  // (the next week prepared once this week's own plan and roll are in, not after every row is checked: the band's
-  // "Next transfers GW11: …" is tapped within seconds of a take; owner, 2026-11-03, "when move to gw 11 it grey out")
-  // (…and once the solver's own rows, its week's parts, are in too: each one landing can change the week's best, and
-  // the next week prepared under the one before is let go; 2026-11-03, a five-move GW10: GW11's asked seven times)
-  if (!list.pending && !list.some((x) => x.solver && x.state === 'solving')) prepNext(ctx, P, g);
   return list;
 }
 /** A week's choices (plansOf's list) settled: none checks, nor what its rows count against. */
