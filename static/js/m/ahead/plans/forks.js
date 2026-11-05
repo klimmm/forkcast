@@ -216,8 +216,9 @@ function rulesWords(P, gw, values, base) {
   // (a verb's run over one week grouped, its players named up to three: "keep 15 players GW10")
   const by = new Map();
   for (const x of out) { const [, v, rest] = /^(\S+(?: \S+)?) (.+) (GW[\d-]+)$/.exec(x) ? [, x.replace(/ .+$/, ''), x] : [, x, x]; const g = /GW[\d-]+$/.exec(x)?.[0] ?? ''; const k = `${v} ${g}`; by.set(k, [...(by.get(k) ?? []), rest]); }
-  // (the rolls after the players, never counted among them)
-  return [...[...by].map(([k, xs]) => (xs.length > 3 ? `${k.split(' ')[0]} ${xs.length} players ${k.split(' ').at(-1)}` : xs.join(', '))), ...rolls].join(', ');
+  // (a transfer refused as its toast says it, "not Hill for Murillo GW10"; the rolls after the players, never counted among them)
+  const was = set(base?.not_for), refused = [...set(values?.not_for)].filter((x) => !was.has(x)).map((x) => { const [g, o, i] = x.split(':'); return `not ${nm(i)} for ${nm(o)} GW${g}`; });
+  return [...[...by].map(([k, xs]) => (xs.length > 3 ? `${k.split(' ')[0]} ${xs.length} players ${k.split(' ').at(-1)}` : xs.join(', '))), ...refused, ...rolls].join(', ');
 }
 // (what a solve asks beyond the plan as it stands, then your own rules it is solved under, apart: two lines in the same
 // words the same solve; owner, 2026-11-03, "why these are different solves": GW11's preparation after each ✕ of yours
@@ -279,10 +280,11 @@ export function forkPump(ctx, P, ask) {
   const ours = () => (lane ? FORK_FLIGHTS.get(lane) : PAIR.flight) === flight;
   const purpose = ask.ahead ? 'presolve' : prep ? 'pairnext' : 'pair';
   if (ask.ahead) AHEAD.asked.push({ at: Date.now(), key: ask.key, src: ask.src });
-  // (a week prepared before you open it, "ahead", never "next week": its GW says which; owner, 2026-11-03, "what means
-  // gw11 and 'next week' in same line")
+  // (each named by the button or line it is for on the screen, owner 2026-11-05, "what means next x"; a week prepared
+  // before you open it, "ahead", never "next week": its GW says which; owner, 2026-11-03, "what means gw11 and 'next
+  // week' in same line")
   const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, lane ? { slot: `fork${lane}` } : undefined,
-    { gw: ask.gw, kind: ask.ahead ? 'a tap, ahead' : ask.root ? 'the week\'s plan' : side ? (ask.tap === 'keep' ? 'the next Keep' : 'the next ✕') : ask.need ? 'what it draws, ahead' : prep ? 'a choice, ahead' : 'a choice', what: solveWords(ctx, P, ask), key: ask.key });
+    { gw: ask.gw, kind: ask.ahead ? ({ take: 'Make the swap', root: 'After the swap' }[ask.kind] ?? 'A tap, ahead') : ask.root ? 'The week\'s plan' : ask.side ? 'Show another' : `${ask.said ?? 'A choice'}${prep ? ', ahead' : ''}`, what: solveWords(ctx, P, ask), key: ask.key });
   flight.cancel = () => p.cancel?.();
   p.then((res) => {
       // a tap's solve asked ahead: its answer memory's for exactly those values (presolve); one that failed for another

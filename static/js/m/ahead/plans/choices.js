@@ -185,12 +185,11 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const late = [];  // [{c, e}]: the choices offered after those that pass the bars
   // a week your plan leaves short of money (owedAt): Forkcast's way to pay it back (owedRoad), offered at once like the
   // model's own (owner, 2026-10-28); else the solver's moves refusal by refusal (refusalRoads: the week's best, then
-  // the best once its sale is kept or its buy kept out, two refusals ahead; one, the best alone, for a week prepared
-  // ahead), each offered at once (owner, 2026-11-02)
+  // the next best once it is refused, Show another's, two refusals ahead (owner, 2026-11-05, "is this move and the next
+  // one or two presolved"); the best alone for a week prepared ahead), each offered at once (owner, 2026-11-02)
   const owed = owedAt(P, w) ? owedRoad(ctx, P, g, { peek, prep }) : null;
   // (read here; asked after the roll's and the rows' own solves, below: rolling's count first)
-  // (one refusal ahead, the next tap's: owner, 2026-11-03, "why it running 17 solves on one team just at loading")
-  const depth = prep ? 0 : 1, tree = owed || followed ? [] : refusalRoads(ctx, P, g, { peek: true, depth });
+  const depth = prep ? 0 : 2, tree = owed || followed ? [] : refusalRoads(ctx, P, g, { peek: true, depth });
   const solverRoads = new Set([owed?.road, ...tree.map((n) => n.road)].filter(Boolean));
   // (your GW-g transfers' own plan, the reference `yours` counts against, where a solver road makes no move beside
   // them: that road, never a fork of its own; owner, 2026-11-02, at most 6 solves after an action)
@@ -456,7 +455,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     if (!refs.has(k) && !parts.has(k) && !placeOnly.has(k) && !placed.has(k) && c.moves.length && !Object.keys(c.chips).length && !forkRead(key) && !forkFlights().some(([, f]) => f.key === key)) return [];
     // (a week prepared ahead: its roll and refs, what it needs to draw with nothing grey, `need`: never given up for
     // another week's refusal or tap ahead, forks.js; owner, 2026-11-03, "when move to gw 11 it grey out")
-    return [{ k, c, roads, ask: { key, values, gw: g, ...(prep ? { prep, ...(refs.has(k) ? { need: true } : {}) } : {}) } }];
+    return [{ k, c, roads, ask: { key, values, gw: g, said: k === rollK ? 'No transfer' : parts.has(k) ? 'One move alone' : 'A choice', ...(prep ? { prep, ...(refs.has(k) ? { need: true } : {}) } : {}) } }];
   });
   // (stable: choices with no estimate keep their offered order; those the bars keep from being the week's suggestion go
   // after the rest, so a lit-able choice never waits behind one; a pair's move alone after the rest of its pair's kind)
@@ -690,7 +689,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   if (!list.pending && !peek && !owed && !followed && depth) {
     const best = list.filter((x) => x.solver && x.state === 'ready' && !x.refRow && !x.placeOnly).reduce((m, x) => (!m || x.cmp.delta > m.cmp.delta ? x : m), null);
     const adds = best?.choice.moves.filter((m) => (m.gw ?? g) === g && !now.some((y) => sameMove(y, m))) ?? [];
-    refusalRoads(ctx, P, g, { prep, depth, lead: adds[0] ?? null, also: adds });
+    refusalRoads(ctx, P, g, { prep, depth, lead: adds[0] ?? null });
   }
   // (the next week prepared once this week's own plan and roll are in, not after every row is checked: the band's
   // "Next transfers GW11: …" is tapped within seconds of a take; owner, 2026-11-03, "when move to gw 11 it grey out")

@@ -64,9 +64,7 @@ export function mountSolveLog(ctx) {
       const g = by.get(x.key) ?? { ...x, kinds: [], n: 0 };
       if (!by.has(x.key)) by.set(x.key, g);
       g.n++;
-      // (each asker by its newest words only: an ask logged before a solve's words changed never names it twice)
-      const who = /^the next /.test(x.kind) ? 'the next' : x.kind;
-      if (!g.kinds.some((k) => (/^the next /.test(k) ? 'the next' : k) === who)) g.kinds.push(x.kind);
+      if (!g.kinds.includes(x.kind)) g.kinds.push(x.kind);
       if (x.state !== 'already solved' && (g.state === 'already solved' || x.at < g.at)) Object.assign(g, { at: x.at, state: x.state, ms: x.ms, what: x.what, gw: x.gw });
     }
     const mine = [...by.values()].sort((x, y) => y.at - x.at), ran = (xs) => xs.filter((x) => x.state !== 'already solved');
