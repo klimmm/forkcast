@@ -45,9 +45,9 @@
  *  them). false brings them back. */
 export const HELP_OFF = true;
 /** "play a chip" switched off, the card's link, the pitch's holds and their hint, its note beside the link, its QA scenarios
- *  `asked` alone (owner, 2026-11-05: "disable 'play a chip' button and leave a note there and skip chips tests"). false
- *  brings it back. */
-export const CHIPS_OFF = true;
+ *  `asked` alone (owner, 2026-11-05: "disable 'play a chip' button and leave a note there and skip chips tests"). Back on
+ *  (owner, 2026-11-06: "why play a chip is not underlined and why off for now displayed in card fix bug"). */
+export const CHIPS_OFF = false;
 
 export {
   FORGET_MS, gwFlags, OUT, newsReason, statusText, hitCap, horizonFeature, planWeeks

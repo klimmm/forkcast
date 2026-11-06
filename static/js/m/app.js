@@ -130,7 +130,8 @@ function preloadModules() {
 }
 
 function linkCss(href) {
-  if (!href || $(`link[data-m-css="${href}"]`)) return Promise.resolve();
+  // (a stamped page has it at its own URL, ?v=: tools/stamp_static.py)
+  if (!href || $(`link[data-m-css="${href}"], link[href^="${href}"]`)) return Promise.resolve();
   return new Promise((res) => {
     const l = h('link', { rel: 'stylesheet', href, dataset: { mCss: href } });
     l.onload = l.onerror = () => res();
@@ -727,8 +728,13 @@ for (const t of ['pointerdown', 'keydown']) document.addEventListener(t, (e) => 
 let ownRelease = null;
 async function reloadIfReleased() {
   const now = await api.servedRelease();
-  if (!ownRelease) { ownRelease = now; return false; }
+  // (a stamped page names its own: an old page from any cache is seen at its first look; tools/stamp_static.py)
+  ownRelease ??= $('meta[name="forkcast-release"]')?.content ?? now;
   if (!now || now === ownRelease) return false;
+  // (once per release: a page still old after it stays up rather than reloads for ever)
+  const key = 'fc:reloaded', tried = (() => { try { return sessionStorage.getItem(key); } catch { return null; } })();
+  if (tried === now) return false;
+  try { sessionStorage.setItem(key, now); } catch {}
   location.reload();
   return true;
 }
