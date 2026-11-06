@@ -1390,12 +1390,11 @@ wider system font took a second line at the largest sizes and ran the rows toget
 /* the card's swap on the pitch before its tap (screen-pitch.js paintBoard): green is who your tap buys, struck who it sells;
 an arrow a place changed between pitch and bench, no transfer; white for green a transfer the plan would not make; the shirt
 whole, nothing moves */
-.m-screen.ah .pm .pm-card.sb-in .pm-plate { display: inline-grid; grid-template-columns: minmax(0, max-content); justify-content: center; justify-items: center; width: max-content; max-width: calc(100% + 18px); margin-inline: -9px; gap: 0; }
-.m-screen.ah .pm .pm-card.sb-in .pm-pn { display: block; position: static; left: auto; width: auto; max-width: none; height: var(--pm-plate); padding: 0 5px; border-radius: 3px; background: var(--tk-go); color: var(--tk-ink); line-height: var(--pm-plate); text-align: center; font-weight: 700; transform: none; }
+.m-screen.ah .pm .pm-card.sb-in .pm-pn { background: var(--tk-go); color: var(--tk-ink); font-weight: 700; }
 .m-screen.ah .pm .pm-card.sb-up .pm-pn::before { content: '↑\00a0'; }
 .m-screen.ah .pm .pm-card.sb-down .pm-pn::before { content: '↓\00a0'; }
 .m-screen.ah .sb-small .pm { --tk-go: #fff; }
-.m-screen.ah .pm .pm-card.sb-in .sb-off { display: block; height: var(--pm-plate); overflow: hidden; color: rgb(255 255 255 / .72); font: 500 var(--tk4)/var(--pm-plate) var(--f-text); text-align: center; text-decoration: line-through 1px; text-overflow: ellipsis; white-space: nowrap; }
+.m-screen.ah .pm .pm-card.sb-in .sb-off { text-decoration: line-through 1px; }
 .m-screen.ah .pm .pm-badge.sb-arm { background: var(--tk-go); color: var(--tk-ink); }
 @media (prefers-reduced-motion: no-preference) {
   .m-screen.ah .pm :is(.sb-card .pm-pn, .sb-off, .sb-arm) { animation: ah-in .16s ease-out 1; }

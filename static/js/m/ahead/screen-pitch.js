@@ -43,7 +43,7 @@ export function pitchPart(V) {
     for (const { place, id, sold, kind, c } of marked) {
       if (kind === 'in') {
         c.querySelector('.pm-pf')?.remove();
-        c.querySelector('.pm-pn').after(h('span.sb-off', { 'aria-hidden': 'true' }, nm(sold)));
+        c.querySelector('.pm-pn').after(h('span.pm-pf.sb-off', { 'aria-hidden': 'true' }, h('span.pm-fx', null, nm(sold))));
       }
       c.classList.add('sb-card', `sb-${kind}`);
       c.setAttribute('aria-label', kind === 'down' ? COPY.boardBench(nm(id)) : COPY.boardSaid(nm(id), nm(sold ?? place)));
