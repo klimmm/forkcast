@@ -336,6 +336,7 @@ export function resetForks() {
   clearRoots();
   AHEAD.srcs.clear();
   AHEAD.failed.clear();
+  AHEAD.showing.clear();
   AHEAD.at = null;
   AHEAD.asked = [];
   AHEAD.dropped.clear();

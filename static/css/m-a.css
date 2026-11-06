@@ -75,7 +75,7 @@ one in the selected look's tint and green ring, 600, with its arrow (a second ta
 
 /* ---------------------------------------------------------------- A17: the FDR legend */
 .ah-fdr { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 14px 0 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
-.ah-fdrc { padding: 0 5px; border-radius: 3px; color: var(--plate-ink); }  /* the marks: plan-pitch.css, with the plates' */
+.ah-fdrc { padding: 0 5px; border-radius: 3px; color: var(--plate-ink); }
 .ah-fdrc.fdr-1 { background: var(--fdr-1); }
 .ah-fdrc.fdr-2 { background: var(--fdr-2); }
 .ah-fdrc.fdr-3 { background: var(--fdr-3); }

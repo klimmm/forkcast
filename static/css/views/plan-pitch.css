@@ -447,11 +447,3 @@ ink, the plate's. */
 .pm .pm-opp.fdr-4 { --fdr-c: var(--fdr-4); }
 .pm .pm-opp.fdr-5 { --fdr-c: var(--fdr-5); }
 .pm .pm-opp[class*="fdr-"] { padding: 0; border-radius: 2px; background: var(--fdr-c); box-shadow: 0 0 0 1.5px var(--fdr-c); color: var(--plate-ink); }
-/* the ends marked without colour too: hard (4-5) underlined, easy (1-2) a dotted underline, average plain. The
-underline sits an em clear of the plate's edge. The legend's chips (m-a.css .ah-fdrc) carry the same marks, from this
-one rule */
-.pm .pm-opp.fdr-1, .pm .pm-opp.fdr-2, .ah-fdrc.fdr-1, .ah-fdrc.fdr-2,
-.pm .pm-opp.fdr-4, .pm .pm-opp.fdr-5, .ah-fdrc.fdr-4, .ah-fdrc.fdr-5 {
-  text-decoration-line: underline; text-decoration-thickness: 1px; text-underline-offset: .15em;
-}
-.pm .pm-opp.fdr-1, .pm .pm-opp.fdr-2, .ah-fdrc.fdr-1, .ah-fdrc.fdr-2 { text-decoration-style: dotted; }

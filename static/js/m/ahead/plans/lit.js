@@ -46,6 +46,9 @@ const litCan = (P, w) => (owedAt(P, w) ? (pl) => pl?.state === 'ready' && paysBa
 /** The places choice pl is drawn at (decksOf): behind each player it replaces; a take-back of a transfer of yours behind
  *  your buy. → [deck] */
 const placesOf = (D, pl) => D.filter((d) => d.entries.some((e) => e.pl === pl));
+/** Show a transfer's rows still to come in: a row's solve out, its number not in (weekModel's pl.gain; a failed row comes to
+ *  nothing). → boolean */
+export const shownWaits = (plans) => plans.some((pl) => pl.forced && pl.state !== 'failed' && pl.gain == null);
 /** The week's one best (design_marks/design.md: one ink plate): the solver's own move for the week (litCan: plansOf
  *  `solver`; owner, 2026-11-02, "remove all threshold and suggest what solver suggests"), the highest of its moves
  *  offered apart, never one whose take would also take back a buy of yours elsewhere (litEdges); a Wildcard or Free Hit
@@ -57,8 +60,11 @@ export function weekBest(P, w, M, D, toks = []) {
   const can = litCan(P, w);
   // (the 2026-10-18 bars, `early`, no part of it: the solver's move lights whatever they say; owner, 2026-11-02)
   const ok = (pl) => !pl.refRow && !pl.placeOnly;
-  const moves = M.plans.filter((pl) => ok(pl) && can(pl) && placesOf(D, pl).length && !placesOf(D, pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl))));
-  const move = moves.reduce((m, pl) => (!m || pl.cmp.delta > m.cmp.delta ? pl : m), null);
+  // (Show a transfer's by the number the card shows, each swap solved first: the solver's order put +0.7 before +1.0;
+  // owner, 2026-11-06, "why muha to hill +1 but it goes after murillo to hill")
+  const waits = shownWaits(M.plans), worth = (pl) => (pl.forced ? pl.gain : pl.cmp.delta);
+  const moves = M.plans.filter((pl) => ok(pl) && can(pl) && (!pl.forced || (!waits && pl.gain > -Infinity)) && placesOf(D, pl).length && !placesOf(D, pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl))));
+  const move = moves.reduce((m, pl) => (!m || worth(pl) > worth(m) ? pl : m), null);
   const chips = toks.filter((pl) => ok(pl) && pl.state === 'ready' && !rollOnly(pl) && !!pl.choice.chips?.[g] && pl.cmp.delta > (move?.cmp.delta ?? 0));
   return chips.reduce((m, pl) => (!m || pl.cmp.delta > m.cmp.delta ? pl : m), null) ?? move;
 }
@@ -132,7 +138,7 @@ export function decksOf(P, w, M) {
     const { chipNow, adds, taken, lost, gone, rolls } = planBack(P, g, pl);
     if (chipNow || (!adds.length && !taken.length)) toks.push(pl);
     else if (adds.length) {
-      if (benchOnly(g, pl, adds)) return;
+      if (benchOnly(g, pl, adds) && !pl.forced) return;
       for (const m of adds) {
         const pair = adds.filter((x) => x !== m).map((x) => ({ a: anchorOf(x.out), out: Number(x.out), in: Number(x.in) }));
         put(anchorOf(m.out), { pl, inId: Number(m.in), adds, pair, taken, lost, gone, rolls }, i);

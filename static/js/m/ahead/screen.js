@@ -3,12 +3,12 @@
 import * as E from '../../plan/engine.js';
 import { h, svg, fmt, fill, append, toast, toastRegion, chipName, plural, icon, statusInfo, roving, reduceMotion, holdTouch, flick, focusKey, refocus, xpNum, xpGain, shownGain } from '../../ui.js';
 import { subOrder, fitFixtures } from '../../plan/pitch.js';
-import { COPY, captainGap, priceMorning, pricePlate, gwFlags, liveCheck, clockText, stepShare } from '../calls.js';
+import { CHIPS_OFF, COPY, captainGap, priceMorning, pricePlate, gwFlags, liveCheck, clockText, stepShare } from '../calls.js';
 import { rollKeeps } from '../memory.js';
 import { EDGE_PX, FLASH, GRIP_MS, LEARN_KEY, LONG_MS, MINUS, NIGHT_KEY, SPENT_PX, SWIPE_MS, SWIPE_PX, TC_MS, WAIT_KEY, boughtIn, capFirst, closedOf, clubCounts, compare, draftOf, dropMove, editable, flatMoves, ids, inFor, info, inputs, lockedFrom, memOf, memPlan, num, paintWaitView, plan, removedAt, span, squadBefore, takeRulesAsk, viewedGw, waitView, weekOf } from './core.js';
 import { aboutRules, asksOf, benchedBuys, captain, clashLine, clashParts, driftSay, edit, keep, pendingAgain, pendingTick, removeRule, rescope, resetLineup, ruleOf, sayCheer, scopeLabels, sub, subChoices, tickWas, toastOf, totalShift, useChip, veto, vice, vsPrev } from './edits.js';
 import { PLACE_SLOTS, SQUAD_CHIPS, approxAt, asTaken, askPlace, byGain, choiceVs, countedAfter, decksOf, failedWords, forkKey, lineMoves, lineNotices, listedOf, litOf, litShown, mineAny, multiMove, noteOf, placeBuys, placeFirst, placeOrder, placePages, placeSplit, planBack, planBaseline, planWeeks, plansOf, rollOnly, settleDue, singleMove, slotsBeside, squadChanges, takesBack, weekKey, weekRollOf, weekSettled, weekWait, yoursAt } from './plans.js';
-import { addPlan, fundingOf, moveTo, movesInOrder, pairOf, pinOfMove, planTake, presolveTaps, removeMove, rollingAt, rowGains, takenKeep, weekTaps, whenOf, whenOnBase, whyFacts } from './presolve.js';
+import { AHEAD, addPlan, fundingOf, moveTo, movesInOrder, pairOf, pinOfMove, planTake, presolveTaps, removeMove, rollingAt, rowGains, takenKeep, weekTaps, whenOf, whenOnBase, whyFacts } from './presolve.js';
 import { choosing, deadlineInfo, fplOf, fplSets, freedBy, gwMode, initials, inkAt, isLive, liftsLive, planHasYours, resetPlan, rowName, watchOf, watchView } from './buys.js';
 import { chipBack, chipWeekGain, chipsAvail, clearGain, emptyHead, factsWords, itbWords, plPays, rollFt, shirtOf, squadWeek, weekFacts, xpShown } from './pieces.js';
 import { headPart } from './screen-head.js';
@@ -597,7 +597,7 @@ export function mount(el, ctx) {
     if (badge && P) {
       st.badge = badge.dataset.badge;
       st.timer = setTimeout(() => { st.held = true; }, GRIP_MS);
-      if (st.badge === 'c' && P.editable) {
+      if (st.badge === 'c' && P.editable && !CHIPS_OFF) {
         st.fill = holdFill(e.clientX, e.clientY, TC_MS, 'TC');
         st.chip = setTimeout(() => { unfill(st); if (!st.flying) pitchChip(st, 'tc'); }, TC_MS);
       }
@@ -606,7 +606,7 @@ export function mount(el, ctx) {
     if (pl && P?.editable && !choosing(ctx, P)) st.timer = setTimeout(() => liftShirt(st, e), LONG_MS);
     // the bench held where no shirt is (its labels, its edges): the Bench Boost there, or off (owner, 2026-10-13); its
     // progress fills at the finger (holdFill)
-    else if (bare && P?.editable) {
+    else if (bare && P?.editable && !CHIPS_OFF) {
       st.fill = holdFill(e.clientX, e.clientY, LONG_MS, 'BB');
       st.timer = setTimeout(() => { unfill(st); pitchChip(st, 'bb'); }, LONG_MS);
     }
@@ -679,7 +679,7 @@ export function mount(el, ctx) {
       if (away) t.dataset.chip = `GW${m[1]}:`;
     }
   };
-  const offs = [ctx.store.on('gw', () => { awayToasts(); schedule(); }), ctx.store.on('memory', () => schedule('mem')), ctx.store.on('aheadRev', () => schedule()), ctx.store.on('bringing', () => schedule()),
+  const offs = [ctx.store.on('entry', () => AHEAD.showing.clear()), ctx.store.on('gw', () => { awayToasts(); schedule(); }), ctx.store.on('memory', () => schedule('mem')), ctx.store.on('aheadRev', () => schedule()), ctx.store.on('bringing', () => schedule()),
     ctx.store.on('learnt', () => { S.learnt = new Set(); schedule(); }),
     ctx.store.on('aheadPair', () => schedule('pair'))];
   // (plan memory at once: it asks the plan, renderBaking waits for it)

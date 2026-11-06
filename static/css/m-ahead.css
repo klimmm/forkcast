@@ -1043,7 +1043,7 @@ the same edge; a second line (the seller's price now, a flag's reason) under it,
 .wy-cmp .c > .v { grid-area: 1 / 1 / 2 / -1; justify-self: end; min-width: 0; overflow-wrap: break-word; }  /* a status of two words ("● Not available") wraps between them, its dot on the first */
 .wy-cmp .c > .a { grid-area: 1 / 1; justify-self: end; min-width: 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
 .wy-cmp .c > .a > span { display: block; white-space: nowrap; }  /* a double GW's opponents one a line: the slot holds */
-/* …each in its FDR tint and mark as on the pitch and the card (m-a.css .ah-fdrc, plan-pitch.css), tight to its words,
+/* …each in its FDR tint as on the pitch and the card (m-a.css .ah-fdrc, plan-pitch.css), tight to its words,
 on the right edge of its slot */
 .wy-cmp .c > .a > .ah-fdrc { width: fit-content; margin-left: auto; padding: 0 3px; }
 .wy-cmp .c > .a.on { color: var(--ink); }  /* a stats row's better rank (no bold: the totals stay the only 600 figures) */
@@ -1341,8 +1341,8 @@ card is under "Keep" */
 .ah-pitch.band .ah-tok.st.best.ah-ans > .ah-tw { grid-row: 2; position: static; transform: none; margin: 0; text-align: left; font-size: var(--t-sub); }
 
 /* ================================================================ the week ticket (owner, 2026-11-05; design_1105f ticket.html)
-   One font, four sizes. Dark pitch, shirts and names on the grass, the weeks one stack top to bottom, the front week's
-   ticket in its place: one decision, one line, two buttons. */
+   One font, four sizes. The weeks one stack top to bottom under the pitch, the front week's ticket in its place: one
+   decision, one line, two buttons. */
 .m-screen.ah {
   --tk-night: #103f26; --tk-paper: #fff; --tk-paper2: #e6e9ee; --tk-ink: #14171a; --tk-mute: #5f6670; --tk-go: #01FC7A; --tk-out: #d8342b; --tk-wait: #475D50;
   --tk-xp: #2B5BB8; --tk-xp-d: #9CC0FF;
@@ -1363,38 +1363,40 @@ card is under "Keep" */
 .m-screen.ah .ah-stand b.ah-short { color: #ff8a80; }  /* the money short, a light red for the dark header */
 .m-screen.ah .ah-set { color: rgb(255 255 255 / .8); }
 .m-screen.ah .ah-avatar { flex: none; width: 32px; height: 32px; background: none; color: #fff; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .5); font: 600 var(--tk4)/1 var(--f-text); }
-/* the pitch: dark, striped, its lines quiet; no goal, plates, tiles or marks: the shirts and names alone */
+/* the pitch: FPL's green, its goal and lines in perspective, Player data in the corner (owner, 2026-11-06: "why pich look with
+greene pitch and perspective and fdr/ others ratings / price changes steichs dissapeared fix"); the name and data plates
+FPL's, no shirt tiles */
 .m-screen.ah .ah-pitchwrap { position: relative; flex: none; }
-.m-screen.ah .ah-pitch { --turf-1: #14502f; --turf-2: #175a35; --chalk: rgb(255 255 255 / .28); flex: none; height: max(var(--ah-pitch-floor), var(--ah-pitch-fit, 300px)); margin: 0; border-radius: 0; container-type: size; }
+.m-screen.ah .ah-pitch { flex: none; height: max(var(--ah-pitch-floor), var(--ah-pitch-fit, 300px)); margin: 0; border-radius: 0; container-type: size; }
 .m-screen.ah .ah-pitch.band { --ah-band: 0px !important; margin-top: 0; }
 .m-screen.ah .ah-pitch .pm { --pm-x2: 0px; --pm-plate: max(calc(var(--tk4) * 1.1), 13px); --pm-hlo: calc(var(--tk4) * 1.1 + var(--tk4) * 1.2 + 34px); --pm-kh: calc(var(--pm-h) - var(--tk4) * 1.1 - var(--tk4) * 1.2); --pm-bl: 0px; --pm-bl-gap: 0px; --pm-bench-pad: 3px; --pm-foot: 4px; }
-.m-screen.ah .ah-decks, .m-screen.ah .ah-pitch .ah-pp, .m-screen.ah .ah-cheer, .m-screen.ah .ah-hint, .m-screen.ah .ah-thumb, .m-screen.ah .pm-goal, .m-screen.ah .pm-bl, .m-screen.ah .pm-turf, .m-screen.ah .pm-field > svg { display: none !important; }
-.m-screen.ah .pm-field { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='rgba(255,255,255,.28)' stroke-width='1.5'%3E%3Crect x='110' y='-2' width='180' height='46'/%3E%3Crect x='160' y='-2' width='80' height='18'/%3E%3Cpath d='M170 44a32 32 0 0 0 60 0M0 300V0M400 300V0M0 298H400M140 298a60 60 0 0 1 120 0'/%3E%3C/g%3E%3C/svg%3E") center / 100% 100% no-repeat, repeating-linear-gradient(180deg, var(--turf-1) 0 34px, var(--turf-2) 34px 68px); }
+.m-screen.ah .ah-decks, .m-screen.ah .ah-cheer, .m-screen.ah .ah-hint, .m-screen.ah .ah-thumb, .m-screen.ah .pm-bl { display: none !important; }
 .m-screen.ah .pm-card .pm-kit { width: 100%; height: var(--pm-kh); background: none; box-shadow: none; }
 .m-screen.ah .pm-card .pm-flip { overflow: visible; }
 .m-screen.ah .pm-card .pm-face { position: absolute; left: 0; top: 0; width: 100%; height: calc(var(--pm-kh) / .64); display: flex; justify-content: center; transform: none; }
 .m-screen.ah .pm-card .pm-face.back { display: none; }
 .m-screen.ah .pm-card .pm-face :is(svg, img) { width: auto; height: 100%; max-width: none; }
 .m-screen.ah .pm-card .pm-face img { height: var(--pm-kh); }
-.m-screen.ah .pm-card .pm-plate, .m-screen.ah .pm-card .pm-plate.chg { background: none; box-shadow: none; border: 0; padding: 0; color: #fff; overflow: visible; text-align: center; }
-.m-screen.ah .pm-card .pm-pn { display: block; width: max-content; position: relative; left: 50%; transform: translateX(-50%); height: auto; padding: 0 2px; background: none; box-shadow: none !important; color: #fff; font: 600 var(--tk4)/1.1 var(--f-text); white-space: nowrap; max-width: calc(100% + 8px); overflow: hidden; text-overflow: ellipsis; }
-.m-screen.ah .pm-bs .pm-pn { max-width: calc(100% + 28px); }
 .m-screen.ah .pm-card .pm-badge { position: absolute; left: calc(50% - 30px); top: 1px; z-index: 2; width: 14px; height: 14px; margin: 0; padding: 0; border: 0; border-radius: 50%; box-shadow: none; background: #fff; color: var(--tk-ink); font: 700 9px/14px var(--f-text); text-align: center; }
-.m-screen.ah .pm-card .pm-pf { height: auto; background: none; justify-content: center; font: 500 var(--tk4)/1.2 var(--f-text); color: rgb(255 255 255 / .75); }
 /* (one line always, at every text size: a row is the height the pitch was fitted for, the longest fixture ellipsises; the
 wider system font took a second line at the largest sizes and ran the rows together, QA fit 2026-11-05) */
 .m-screen.ah .pm-card .pm-pf.two:has(.xp-u) { display: flex; flex-direction: row; height: auto; column-gap: 3px; }
-.m-screen.ah .pm-card .pm-opp { background: none !important; box-shadow: none; color: inherit; text-decoration: none; border: 0; padding: 0; }
-.m-screen.ah .pm-card .pm-px { color: var(--tk-xp-d); font-weight: 600; }
 .m-screen.ah .pm-card .xp-u { display: none; }
+/* the fixture's tint a small chip inside its plate, clear of both edges, no underline: filling the plate it was cut by it
+(owner, 2026-11-06, "this looks ugly") */
+.m-screen.ah .pm-card .pm-opp[class*="fdr-"] { display: inline-block; padding: 0 2px; box-shadow: none; line-height: 1.1; vertical-align: middle; }
+.m-screen.ah .pm .pm-card.bought:not(.is-in) .pm-pn { padding: 0 1px; box-shadow: none; }
 .m-screen.ah .pm-card.ah-sold .pm-pn { background: var(--tk-out); padding: 0 4px; }
 .m-screen.ah .pm-card.is-in .pm-pn { background: var(--tk-go); color: var(--tk-ink); padding: 0 4px; }
-/* the card's swap on the pitch before its tap (screen-pitch.js paintBoard): green is what your tap brings, struck what it
-replaces, as the card's struck number; the shirt whole, nothing moves */
-.m-screen.ah .pm .pm-card.sb-card .pm-plate { display: inline-grid; grid-template-columns: minmax(0, max-content); justify-content: center; justify-items: center; width: max-content; max-width: calc(100% + 18px); margin-inline: -9px; gap: 0; }
-.m-screen.ah .pm .pm-card.sb-card .pm-pn { display: block; position: static; left: auto; width: auto; max-width: none; height: var(--pm-plate); padding: 0 5px; border-radius: 3px; background: var(--tk-go); color: var(--tk-ink); line-height: var(--pm-plate); text-align: center; font-weight: 700; transform: none; }
-.m-screen.ah .pm .pm-card.sb-card.sb-down .pm-pn { padding: 0; background: none; color: #fff; font-weight: inherit; }
-.m-screen.ah .pm .pm-card.sb-card .sb-off { display: block; height: var(--pm-plate); overflow: hidden; color: rgb(255 255 255 / .72); font: 500 var(--tk4)/var(--pm-plate) var(--f-text); text-align: center; text-decoration: line-through 1px; text-overflow: ellipsis; white-space: nowrap; }
+/* the card's swap on the pitch before its tap (screen-pitch.js paintBoard): green is who your tap buys, struck who it sells;
+an arrow a place changed between pitch and bench, no transfer; white for green a transfer the plan would not make; the shirt
+whole, nothing moves */
+.m-screen.ah .pm .pm-card.sb-in .pm-plate { display: inline-grid; grid-template-columns: minmax(0, max-content); justify-content: center; justify-items: center; width: max-content; max-width: calc(100% + 18px); margin-inline: -9px; gap: 0; }
+.m-screen.ah .pm .pm-card.sb-in .pm-pn { display: block; position: static; left: auto; width: auto; max-width: none; height: var(--pm-plate); padding: 0 5px; border-radius: 3px; background: var(--tk-go); color: var(--tk-ink); line-height: var(--pm-plate); text-align: center; font-weight: 700; transform: none; }
+.m-screen.ah .pm .pm-card.sb-up .pm-pn::before { content: '↑\00a0'; }
+.m-screen.ah .pm .pm-card.sb-down .pm-pn::before { content: '↓\00a0'; }
+.m-screen.ah .sb-small .pm { --tk-go: #fff; }
+.m-screen.ah .pm .pm-card.sb-in .sb-off { display: block; height: var(--pm-plate); overflow: hidden; color: rgb(255 255 255 / .72); font: 500 var(--tk4)/var(--pm-plate) var(--f-text); text-align: center; text-decoration: line-through 1px; text-overflow: ellipsis; white-space: nowrap; }
 .m-screen.ah .pm .pm-badge.sb-arm { background: var(--tk-go); color: var(--tk-ink); }
 @media (prefers-reduced-motion: no-preference) {
   .m-screen.ah .pm :is(.sb-card .pm-pn, .sb-off, .sb-arm) { animation: ah-in .16s ease-out 1; }
@@ -1404,24 +1406,24 @@ lacks in the fixture's place */
 .m-screen.ah .ah-choosing .pm-card.ah-cant { opacity: .35; }
 .m-screen.ah .ah-choosing .pm-card.ah-cant .pm-pn { background: none; color: #fff; }
 .m-screen.ah .ah-choosing .pm-card.ah-can .pm-pn { background: var(--tk-go); color: var(--tk-ink); padding: 0 4px; }
-.m-screen.ah .ah-choosing .pm-pf[data-need] { overflow: visible; }
-.m-screen.ah .ah-choosing .pm-pf[data-need] > * { display: none; }
-.m-screen.ah .ah-choosing .pm-pf[data-need]::after { content: attr(data-need); color: #fff; white-space: nowrap; }
 .m-screen.ah .pm-card.f-red { opacity: .55; }
 .m-screen.ah .ah-pitch .pm .pm-benchzone { background: #0d3620 !important; border-radius: 0; margin: 0; box-shadow: none; }
 /* waiting, the whole frame greys with the turf: the header, the bench and what is round the stack (owner, 2026-11-05: "why
 bench never grey out only pitch", "the top panel must also grey out"; .ah-pitch.ah-wait the turf's) */
 .m-screen.ah.ah-wait, .m-screen.ah.ah-wait .ah-head, .m-screen.ah.ah-wait .ah-pitch .pm .pm-benchzone { background: var(--tk-wait) !important; }
-.m-screen.ah.ah-wait .ah-fplflag { background: rgb(71 93 80 / .86); }
+.m-screen.ah.ah-wait :is(.ah-fplflag, .ah-pdbtn) { background: rgb(71 93 80 / .86); }
 .m-screen.ah .pm-card .pm-flag { position: absolute; right: 4px; top: 0; transform: scale(.85); transform-origin: top right; }
 .m-screen.ah .ah-fplflag { position: absolute; left: 0; top: 0; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 4px 9px 4px 7px; border: 0; border-left: 3px solid var(--tk-go); background: rgb(13 54 32 / .86); color: #fff; font: 500 var(--tk4)/1.15 var(--f-text); cursor: pointer; }
 .m-screen.ah .ah-fplflag[hidden] { display: none; }
+/* Player data: the flag's strip in the other top corner, no pill of its own (owner, 2026-11-06, "this ont fit in design"), a
+44 pt target downwards, never over the header */
+.m-screen.ah .ah-pitch .pm > .ah-pdbtn { top: 0; right: 0; height: auto; padding: 4px 7px 4px 9px; border-radius: 0; background: rgb(13 54 32 / .86); box-shadow: none; color: #fff; font: 500 var(--tk4)/1.15 var(--f-text); }
+.m-screen.ah .ah-pitch .pm > .ah-pdbtn::before { inset: 0 0 -20px -6px; }
+.m-screen.ah .ah-pitch .pm > .ah-pdbtn:active { background: var(--tk-night); }
 .m-screen.ah .ah-fplflag b { font-weight: 600; }
 .m-screen.ah .ah-pitch .pm .pm-bench { background: none !important; border: 0; box-shadow: none; border-radius: 0; margin: 0; padding: 0; }
 .m-screen.ah .ah-pitch .pm .pm-bs, .m-screen.ah .ah-pitch .pm .pm-pl { outline: 0; box-shadow: none !important; background: none; border: 0; }
 .m-screen.ah .ah-pitch .pm .pm-card.ah-sold::before, .m-screen.ah .ah-pitch .pm .pm-card.ah-sold::after { content: none; }
-.m-screen.ah .pm-card.f-red .pm-pn { background: none; box-shadow: none !important; outline: 0; color: #fff; }
-.m-screen.ah .pm-card.f-red .pm-plate { background: none; }
 /* the stack: one list top to bottom, GW13 to GW10: later weeks above the ticket, earlier ones under it, the nearest widest
    (order: renderRail) */
 .m-screen.ah .ah-stack { flex: 1 1 auto; position: relative; display: flex; flex-direction: column; margin: var(--ah-stack-gap) 12px 0; touch-action: none; }

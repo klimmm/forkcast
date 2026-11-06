@@ -8,7 +8,7 @@ import { pinSell, isRoll, composePins, parseSpans, deadlinePassed } from '../mem
 import { OFFLINE_EDIT, REMOVED, addMove, asYours, clone, compare, draftOf, dropMove, editable, flashLanding, flatMoves, ids, info, inputs, isFrozen, lineups, memOf, movedFrom, num, pairedMoves, plan, problemText, problemsOf, removedBy, setLineups, solveFor, squadBefore, weekOf, wishDrop, wishPin } from './core.js';
 import { asksOf, buyCandidates, clashing, derivedPin, edit, endingOf, forgetEdit, keptFrom, ruleOf, say, subjectOf, toastOf, undoOf, vsPrev, withTaken } from './edits.js';
 import { planBaseline, takenBy } from './plans.js';
-import { pairMovesOf } from './presolve.js';
+import { pairMovesOf, showTransfer } from './presolve.js';
 import { squadWeek } from './pieces.js';
 
 // ---------------------------------------------------------------- A1: a buy does only what it says
@@ -372,6 +372,8 @@ export function resetPlan(ctx) {
   const lus = clone(lineups(ctx, I)), gone = clone(removedBy(I));
   const prevP = plan(ctx), at = ctx.store.get('gw');
   forgetEdit();
+  stopChoosing(ctx);
+  prevP?.gws.forEach((g) => showTransfer(prevP, g, false));
   const r = memOf(ctx).reset();
   setLineups(ctx, I, {});
   REMOVED.by = {};  // nothing of yours: no move "removed by you" either (B129)

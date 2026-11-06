@@ -3,10 +3,11 @@
 import { h, fill, append, toast, icon, roving, reduceMotion, focusKey, refocus } from '../../ui.js';
 import { aboutRules, clashLine, clashParts, edit, pendingAgain, pendingTick, removeRule, rescope, resetLineup, ruleOf, sayCheer, scopeLabels, toastOf, vsPrev } from './edits.js';
 import { deadlineInfo, fplSets, initials, inkAt, isLive, liftsLive, resetPlan, rowName, stopChoosing, watchOf, watchView } from './buys.js';
-import { COPY, liveCheck, clockText, stepShare } from '../calls.js';
+import { CHIPS_OFF, COPY, liveCheck, clockText, stepShare } from '../calls.js';
 import { FLASH, LEARN_KEY, WAIT_KEY, editable, info, lockedFrom, memOf, memPlan, num, paintWaitView, plan, span, takeRulesAsk, viewedGw, weekOf } from './core.js';
 import { factsWords, itbWords, squadWeek } from './pieces.js';
-import { decksOf, forkKey, listedOf, litOf, litShown, planBack, plansOf, settleDue, weekKey, weekSettled, weekWait } from './plans.js';
+import { presolveTaps, shownGain, weekTaps } from './presolve.js';
+import { decksOf, forkKey, listedOf, litOf, litShown, planBack, plansOf, settleDue, shownWaits, weekKey, weekSettled, weekWait } from './plans.js';
 import { countdownParts, cssPx, deadlineOf, listedRules, pitchLeast } from './screen.js';
 
 export function headPart(V) {
@@ -519,7 +520,16 @@ export function headPart(V) {
     const g = w.gw, sq = squadWeek(w);
     const ink = inkAt(ctx, P, g);
     const all = plansOf(ctx, P, g);
-    const plans = ink ? [] : listedOf(heldOrder(P, g, all));
+    // (chips off: no chip to play from the card or the Week sheet, a row of yours kept; calls.js CHIPS_OFF)
+    const plans = ink ? [] : listedOf(heldOrder(P, g, all)).filter((pl) => !CHIPS_OFF || !pl.choice.chips?.[g] || pl.self || pl.refRow);
+    // (Show a transfer's rows: each one's swap asked, its number the card's order; one with no number to come is left out)
+    const forced = plans.filter((pl) => pl.forced && pl.state === 'ready');
+    if (forced.length) {
+      const { takes, sig } = weekTaps(ctx, P, g, forced);
+      presolveTaps(ctx, takes, { gw: g, sig, owner: 'shown' });
+      forced.forEach((pl) => { pl.gain = shownGain(ctx, P, g, pl); });
+    }
+    const shownOut = !!all.forcedOut || shownWaits(plans);
     // none lit on the pitch until none checks (weekSettled, litOf), each behind the card of the player it would replace
     // (decksOf), for the pitch (renderDecks) and the checking line. Lit while the first plan's other roads still bake
     // too: what is lit is the solver's own move (plansOf `solver`), which a bake road landing never changes (owner,
@@ -557,7 +567,7 @@ export function headPart(V) {
       watching && { text: watching.short, warn: watching.tone === 'act', row: () => watchView(watching, { cls: '.ah-pwatch', wait: () => waitWatch(P, watching) }) },
       news && { text: news, row: () => noteRow('.ah-news', news) },
       sets && { text: COPY.setInFpl(sets), quiet: true, row: () => noteRow('.ah-fplset', COPY.setInFplRow(sets)) }].filter(Boolean);
-    return { key, all, sq, plans, decks, toks, lit, shown, wait, settled, sharedBack, live, liveText: live ? liveCheck(ctx.bundle?.entry?.published, w, P.L) : null, notices };
+    return { key, all, sq, plans, decks, toks, lit, shown, shownOut, wait, settled, sharedBack, live, liveText: live ? liveCheck(ctx.bundle?.entry?.published, w, P.L) : null, notices };
   }
   const waited = () => { const { S } = V; return clockText((Date.now() - S.wait.t0) / 1000); };
   const clockShown = (n) => { const { LATE_S, S } = V; return ((Date.now() - S.wait.t0) / 1000 < LATE_S && n.dataset.late != null ? n.dataset.pre ?? '' : `${n.dataset.sep ?? ''}${waited()}`); };

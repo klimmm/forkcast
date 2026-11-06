@@ -44,6 +44,10 @@
  *  2026-11-05: "disable help and about forkcast", "why still displayed"; QA's why scenario asked alone, hints without
  *  them). false brings them back. */
 export const HELP_OFF = true;
+/** "play a chip" switched off, the card's link, the pitch's holds and their hint, its note beside the link, its QA scenarios
+ *  `asked` alone (owner, 2026-11-05: "disable 'play a chip' button and leave a note there and skip chips tests"). false
+ *  brings it back. */
+export const CHIPS_OFF = true;
 
 export {
   FORGET_MS, gwFlags, OUT, newsReason, statusText, hitCap, horizonFeature, planWeeks

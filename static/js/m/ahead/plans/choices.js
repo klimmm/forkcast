@@ -639,6 +639,8 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // week's best is its move, so it never settles on another before it lands. Once you have one there the root only
   // looks for a further move: your numbers stand, nothing waits on it (owner, 2026-11-02: "why it grey out current gw
   // when solving"). A week prepared ahead asks it as a lane frees, never waiting on it)
+  // (a Show a transfer road still solving: its row is to come; screen-head.js)
+  list.forcedOut = tree.some((n) => n.forced && !n.road);
   list.pending = !followed && ([ref, mineRef, solved.get(yours)].some((x) => x?.state === 'solving') || (!prep && !now.length && !!tree.length && forkRead(tree[0].key) == null));
   // a Wildcard or Free Hit the week lists no row of (not its best week, or planned elsewhere) from a plan of it solved
   // apart (chipPreps' road: your rules' preparation, the plan its tap lands), counted against the week's roll plan

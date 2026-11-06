@@ -379,6 +379,19 @@ export const squadBefore = (P, g) => squadInto((x) => weekOf(P, x), g, P.A, P.ow
  *  the week's alone (its sales would be buyable again). → Set(id) */
 export const inTeamAt = (P, g) => new Set([...squadBefore(P, g), ...(weekOf(P, g)?.squad ?? [])]);
 
+/** Who takes whose place between lists `was` and `now`: of his own position first. → [[out, in]] */
+const placesTaken = (was, now, pos) => { const outs = was.filter((x) => !now.includes(x));
+  return now.filter((x) => !was.includes(x)).map((x) => { const i = Math.max(0, outs.findIndex((o) => pos(o) === pos(x))); return [outs.splice(i, 1)[0], x]; }).filter(([o]) => o != null); };
+/** What the card's swap changes on the pitch, week view `w` to `after` (paintBoard): `place`, the one he stands where in the
+ *  team as it is; `sold`, who a transfer sells for him, null for a player only changing places; `kind`: 'in' bought, 'up'
+ *  bench to pitch, 'down' pitch to bench. → [{place, id, sold, kind}] */
+export function boardMarks(w, after, pos) {
+  const sells = new Map(placesTaken([...w.xi, ...w.bench], [...after.xi, ...after.bench], pos).map(([out, id]) => [id, out]));
+  return [...placesTaken(w.xi, after.xi, pos), ...placesTaken(w.bench, after.bench, pos)].map(([place, id]) => {
+    const sold = sells.get(id) ?? null;
+    return { place, id, sold, kind: sold != null ? 'in' : w.xi.includes(id) ? 'down' : 'up' };
+  });
+}
 /** {id: name} for the players week w buys, each with the player he replaces (pitch.js). A Wildcard or Free Hit week is
  *  a new squad, not swaps: each buy is just "IN" (owner, 2026-10-07). */
 export function inFor(P, w) {

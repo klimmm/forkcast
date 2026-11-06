@@ -800,15 +800,15 @@ export const COPY = Object.freeze({
   seeChanges: 'See the changes',
   onToWeek: (g) => `On to GW${g}`,
   setInFplGo: 'Set in FPL',
-  overNextWeeks: (n) => `over the next ${n} week${n === 1 ? '' : 's'}.`,
+  overNextWeeks: (n) => (n === 1 ? 'over the next week.' : `over the next ${n} weeks.`),
   bringInPlayer: 'bring in a player you want',
   offForNow: '(off for now)',
   /** The card while the pitch asks who he replaces, and what the money lacks under a name there. */
   bringWho: (name) => `Who does ${name} replace?`,
   bringCancel: 'Cancel',
-  bringNeeds: (x) => `needs ${fmt.money(x)}`,
   /** A place on the pitch the card's swap would change, said. */
   boardSaid: (name, out) => `${name} would come in for ${out}`,
+  boardBench: (name) => `${name} would go to the bench`,
   playAChip: 'play a chip',
   yourFplTeam: 'Your FPL team:',
   answerSave: (ft) => (ft > 1 ? 'Save your free transfers' : 'Save your free transfer'),

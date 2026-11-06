@@ -42,13 +42,12 @@ export let DRY = null;
 // srcs: 'week' | 'sheet' → {P, gw, sig, owner, asks: [ask], made: [ask], tried: Set(tap id)}; failed: keys of failed
 // solves (not your rules'); at: viewed week {P, g} (plansOf); ctx: the page's; tapped: SOLVES.asked at your last tap
 // (null before the first: a page's load is no action), tappedOn: the team it was on
-export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map(), landed: new Set(), took: null, tapped: null, tappedOn: null };
+export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map(), landed: new Set(), took: null, tapped: null, tappedOn: null, showing: new Set() };
 const teamOn = () => AHEAD.ctx?.store.get('entry') ?? null;
-/** The weeks whose card shows a transfer though the plan rolls them (their Show a transfer; owner, 2026-11-06: shown as any
- *  other transfer, not a list, and there when you come back), till its Previous. */
-const SHOWING = new Set();
-export const showTransfer = (P, g, on = true) => { SHOWING[on ? 'add' : 'delete'](`${P.entry}|${g}`); PAIR.rev++; };
-export const showingAt = (P, g) => SHOWING.has(`${P.entry}|${g}`);
+/** The weeks whose card shows a transfer though the plan rolls them (their Show a transfer, AHEAD.showing; owner, 2026-11-06:
+ *  shown as any other transfer, not a list, and there when you come back), till its Previous or Reset all weeks. */
+export const showTransfer = (P, g, on = true) => { AHEAD.showing[on ? 'add' : 'delete'](`${P.entry}|${g}`); PAIR.rev++; };
+export const showingAt = (P, g) => AHEAD.showing.has(`${P.entry}|${g}`);
 /** Your last tap on this team has asked the 6 it may (SOLVE_MAX). No tap yet is no action, nor the tap that opened it, a
  *  load like any other: its own solves spent the 6 and left Make the swap and Show another unsolved (owner, 2026-11-05,
  *  "Yes, full preparation"). */
@@ -154,6 +153,14 @@ export function presolveSwap(ctx, P, g, pl) {
 export function swapGain(ctx, P, g, pl) {
   const road = swapRoad(ctx, P, g, pl);
   return road ? sum(asYours(ctx, road).weeks.map((w) => w.points)) - P.total : null;
+}
+/** What Show a transfer's row pl is ordered by (swapGain): -Infinity where no number will come, no swap of it to solve, its
+ *  solve failed or your tap's 6 spent. → number | null while its solve is out */
+export function shownGain(ctx, P, g, pl) {
+  const gain = swapGain(ctx, P, g, pl);
+  if (gain != null) return gain;
+  const [take] = weekTaps(ctx, P, g, [pl]).takes, a = take ? askOf(ctx, P, take, 'week') : null;
+  return !a || AHEAD.failed.has(a.key) || tapSpent() ? -Infinity : null;
 }
 /** The plan Make the swap brings, as yours. → {weeks} | null till its solve is in */
 const swapRoad = (ctx, P, g, pl) => {

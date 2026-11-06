@@ -1,55 +1,53 @@
 // screen.js mount: the pitch, the GW rail, the total and Player data
 
-import { FLASH, MINUS, boughtIn, inFor, plan, span } from './core.js';
+import { FLASH, MINUS, boardMarks, boughtIn, inFor, plan, span } from './core.js';
 import { choosing, fplOf, inkAt, planHasYours, replaceable, replaceWith } from './buys.js';
 import { h, fmt, fill, toastRegion, chipName, plural, icon, roving, xpNum, xpGain } from '../../ui.js';
-import { COPY, gwFlags } from '../calls.js';
+import { CHIPS_OFF, COPY, gwFlags } from '../calls.js';
 import { chipsAvail, squadWeek } from './pieces.js';
 import { tickWas, totalShift } from './edits.js';
 import * as E from '../../plan/engine.js';
 import { fitNum, oneLook } from './screen.js';
 
 export function pitchPart(V) {
-  /** Bring in's second step on the pitch: who he can replace in green, what the money lacks under the name, the rest quiet
-   *  (choosing). */
+  /** Bring in's second step on the pitch: who he can replace in green, the rest quiet (choosing). */
   function paintChoosing(P, w) { const { ctx, pitchHost } = V;
-    const who = choosing(ctx, P, w.gw), can = new Map(who ? replaceable(ctx, who.id, w.gw).map((x) => [x.out, x.short]) : []);
+    const who = choosing(ctx, P, w.gw), can = new Set(who ? replaceable(ctx, who.id, w.gw).map((x) => x.out) : []);
     pitchHost.classList.toggle('ah-choosing', !!who);
     for (const c of pitchHost.querySelectorAll('.pm-card[data-id]')) {
-      const id = Number(c.dataset.id), short = can.get(id), pf = c.querySelector('.pm-pf');
+      const id = Number(c.dataset.id);
       c.classList.toggle('ah-can', can.has(id));
       c.classList.toggle('ah-cant', !!who && !can.has(id));
-      if (!pf) continue;
-      if (short) pf.dataset.need = COPY.bringNeeds(short);
-      else delete pf.dataset.need;
     }
   }
   /** The card's swap on the pitch before its tap, a substitution board (design_1105h; owner, 2026-11-05: "Yes, build it"): the
    *  team you would have, in its own formation ("why the fuck rice is fwd": a slot of the team as it is put a midfielder up
-   *  front), each new name in the go colour over the struck name of the one whose place he takes, a player going to the bench
-   *  in white, a moved armband in the go colour. `after`: GW w's team with the swap made (swapWeek), null none. Each card keeps
-   *  the id of the place it stands for, the team as it is, for the card's tokens (renderDecks). */
-  function paintBoard(P, w, after) { const { S, pitchHost } = V;
+   *  front), each player you buy in the go colour over the struck name of the one you sell, as the card's title says it, a
+   *  player only changing places between pitch and bench under an arrow, his card otherwise as it was (owner, 2026-11-06, "it
+   *  looks like i replacing de cuper by transfer even when it is just bench swap"), a moved armband in the go colour. `after`:
+   *  GW w's team with the swap made (swapWeek), null none; `small`: a transfer the plan would not make, in white, no go colour
+   *  (owner, 2026-11-06, "transfer model will make and that it consider small look just same"). Each card keeps the id of the
+   *  place it stands for, the team as it is, for the card's tokens (renderDecks). */
+  function paintBoard(P, w, after, small = false) { const { S, pitchHost } = V;
     // (never under an open place: a pitch drawn anew shuts it; drawn once it is shut)
     if (S.place) return;
-    const key = after ? JSON.stringify([w.gw, after.xi, after.bench, after.captain, after.vice]) : null;
+    const key = after ? JSON.stringify([w.gw, after.xi, after.bench, after.captain, after.vice, small]) : null;
     if (key === (S.board?.key ?? null) && (!key || S.board.pitch === S.pitch)) return;
     if (S.board?.key) { S.pitch = null; renderPitch(P, w); paintChoosing(P, w); }
     S.board = { key, pitch: S.pitch };
+    pitchHost.classList.toggle('sb-small', !!after && small);
     if (!after) return;
-    const nm = P.L.name, pos = P.L.pos;
-    /** Who takes whose place between lists `was` and `now`: of his own position first. → [[out, in]] */
-    const places = (was, now) => { const outs = was.filter((x) => !now.includes(x));
-      return now.filter((x) => !was.includes(x)).map((x) => { const i = Math.max(0, outs.findIndex((o) => pos(o) === pos(x))); return [outs.splice(i, 1)[0], x]; }).filter(([o]) => o != null); };
-    const swaps = [...places(w.xi, after.xi), ...places(w.bench, after.bench)];
+    const nm = P.L.name, marks = boardMarks(w, after, P.L.pos);
     mountHere({ ...pitchProps(P, w), xi: after.xi, bench: after.bench, captain: after.captain, vice: after.vice });
-    const marked = swaps.map(([out, id]) => [out, id, pitchHost.querySelector(`.pm-card[data-id="${id}"]`)]).filter(([, , c]) => c);
-    for (const [out, id, c] of marked) {
-      c.querySelector('.pm-pf')?.remove();
-      c.querySelector('.pm-pn').after(h('span.sb-off', { 'aria-hidden': 'true' }, nm(out)));
-      c.classList.add('sb-card', w.xi.includes(id) ? 'sb-down' : 'sb-in');
-      c.setAttribute('aria-label', COPY.boardSaid(nm(id), nm(out)));
-      c.dataset.id = out;
+    const marked = marks.map((m) => ({ ...m, c: pitchHost.querySelector(`.pm-card[data-id="${m.id}"]`) })).filter((m) => m.c);
+    for (const { place, id, sold, kind, c } of marked) {
+      if (kind === 'in') {
+        c.querySelector('.pm-pf')?.remove();
+        c.querySelector('.pm-pn').after(h('span.sb-off', { 'aria-hidden': 'true' }, nm(sold)));
+      }
+      c.classList.add('sb-card', `sb-${kind}`);
+      c.setAttribute('aria-label', kind === 'down' ? COPY.boardBench(nm(id)) : COPY.boardSaid(nm(id), nm(sold ?? place)));
+      c.dataset.id = place;
     }
     for (const [k, was, now] of [['c', w.captain, after.captain], ['v', w.vice, after.vice]]) {
       if (was !== now) pitchHost.querySelector(`.pm-badge[data-badge="${k}"]`)?.classList.add('sb-arm');
@@ -133,7 +131,7 @@ export function pitchPart(V) {
   function placeHint(P = V.S.hintAt?.P, w = V.S.hintAt?.w) { const { HINTS, S, pitchHost } = V;
     S.hintAt = { P, w };
     for (const [n, k] of HINTS) {
-      n.hidden = !P?.editable || !w || S.learnt.has(k) || !chipsAvail(P, w.gw).some((c) => c === 'bb' || c === 'tc');
+      n.hidden = CHIPS_OFF || !P?.editable || !w || S.learnt.has(k) || !chipsAvail(P, w.gw).some((c) => c === 'bb' || c === 'tc');
       if (n.hidden || !n.isConnected) continue;
       // a line wider than its room (each kept whole: m-ahead.css) is no hint there either
       if (n.scrollWidth > n.clientWidth + 1) { n.hidden = true; continue; }
@@ -342,7 +340,7 @@ export function pitchPart(V) {
         // Shirts: Drawn | Official (kits.js kitSourceRow: this browser's, applies to every shirt at once; the sheet stays)
         body.append(ctx.kits.kitSourceRow());
         // what the opponents' colours mean, in one line (FPL's fixture difficulty in pale tints, app.css --fdr-2..4,
-        // plan-pitch.css --fdr-1 and --fdr-5), each chip marked as the plates are (the ends underlined)
+        // plan-pitch.css --fdr-1 and --fdr-5)
         body.append(h('p.ah-fdr', { 'aria-label': 'Opponent colours: fixture difficulty from very easy to very hard' }, h('span', null, 'Opponent colour:'),
           [['1', 'very easy'], ['2', 'easy'], ['3', 'average'], ['4', 'hard'], ['5', 'very hard']].map(([n, t]) => h(`span.ah-fdrc.fdr-${n}`, { 'aria-hidden': 'true' }, t))));
         // …and its case, the venue (pitch.oppText: one style on every screen)
