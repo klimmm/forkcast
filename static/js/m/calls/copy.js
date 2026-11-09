@@ -836,6 +836,8 @@ export const COPY = Object.freeze({
   /** What a plan counts against, said on its heading, row and Why sheet ("· vs no transfers": your team as it is, every
    *  week rolled; "· vs your plan" once your plan has a transfer in any week), and its Why sheet's two sides. */
   planVs: (mine = false) => (mine ? 'your plan' : 'no transfers'),
+  /** The ?solves=1 panel's words for your plan's solve with nothing of yours added (memory/live-heal.js runHeal). */
+  healNone: 'no transfers added',
   /** Under the hold a plan counts against rolling (ahead.plansOf; owner, 2026-10-19: "Gain over rolling"): its row,
    *  heading and Why sheet say so; the Roll row is what they count against (spoken, no number); a +'s toast says no
    *  number (owner, 2026-10-27), nor a × that rolls the week again; what your total moves by is the header's change,

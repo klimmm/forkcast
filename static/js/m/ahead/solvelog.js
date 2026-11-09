@@ -4,6 +4,9 @@
 // first, in words: its week, what for, what it asks beyond the plan as it stands, how long it took and how it ended.
 // Only with ?solves=1 in the address; a tap folds it.
 
+import { ANSWERED } from '../memory/values.js';
+import { ROADS } from '../memory/live.js';
+
 export function mountSolveLog(ctx) {
   if (!/[?&]solves=1\b/.test(location.search) || document.querySelector('.ah-solvelog')) return;
   const el = document.createElement('div');
@@ -47,7 +50,9 @@ export function mountSolveLog(ctx) {
   clear.addEventListener('click', (ev) => {
     ev.stopPropagation(); cleared = Date.now(); acted = 0; shown?.remove(); shown = null; paint();
     const e = ctx.store.get('entry');
-    if (e != null) ctx.api.clearSolves(e).then(() => location.reload(), () => {});
+    // (…and the plan this device keeps (memory/live.js ROADS: the solver's best, read at once on a reload), so the reload
+    // asks it too; owner, 2026-11-09, "remove any 'server plans' so all solves requested and cached by page")
+    if (e != null) ctx.api.clearSolves(e).then(() => { try { localStorage.removeItem(ROADS(String(e))); } catch { /* no storage */ } location.reload(); }, () => {});
   });
   // (the lines redrawn every half second in a list of their own, the buttons never: a tap spanning a redraw kept)
   const list = document.createElement('div');
@@ -81,16 +86,28 @@ export function mountSolveLog(ctx) {
     // (since your tap: the solves this browser ran, each once, from its own first ask; another page's or device's on the same
     // team are listed, marked, never counted against your tap; QA trace f, 2026-11-08: three pages on one team read 15)
     const running = mine.filter(live).length, sinceTap = mine.filter((x) => x.ownAt != null && (!acted || x.ownAt >= acted)).length;
-    const ends = (x) => (x.state === 'running' ? `solving, ${secs(now - x.at)}` : x.state === 'queued' ? `waiting, ${secs(now - x.at)}`
+    // (an ask answered with no solve of its own (memory/values.js ANSWERED): the solve whose road answers it, by its key, and
+    // when that one ran where it is no line here (kept on this device from an earlier visit); owner, 2026-11-09, "fix so
+    // no solves are missing from the list")
+    const answered = [...ANSWERED.values()].filter((x) => x.at >= cleared).map((x) => ({ ...x, kinds: [x.kind], n: 1, mine: true, state: 'answered', key: x.byKey }));
+    const at = (job) => { const m = /^\d{8}-(\d\d)(\d\d)/.exec(job ?? ''); return m ? `${m[1]}:${m[2]}` : null; };
+    const listed = new Set(mine.map((x) => x.key));
+    const ends = (x) => (x.state === 'answered' ? `answered by #${x.key}${listed.has(x.key) || !at(x.job) ? '' : ` (solved at ${at(x.job)}, kept on this device)`}`
+      : x.state === 'running' ? `solving, ${secs(now - x.at)}` : x.state === 'queued' ? `waiting, ${secs(now - x.at)}`
       : x.state === 'already solved' ? 'cached' : x.state === 'done' ? `solved in ${secs(x.ms ?? 0)}` : x.ms != null ? `${x.state} in ${secs(x.ms)}` : x.state);
-    const head = `${running} running · ${sinceTap} since tap · ${ran(mine).length} solved · ${mine.length - ran(mine).length} cached · ${asks.length} asks`;
+    const head = `${running} running · ${sinceTap} since tap · ${ran(mine).length} solved · ${mine.length - ran(mine).length} cached · ${answered.length} answered · ${asks.length} asks`;
     // (each line starts "•", a wrapped one indented under it: where a line starts is seen at once; owner, 2026-11-03)
-    const line = (x) => `• ${x.gw != null ? `GW${x.gw}` : 'GW?'} · ${x.kinds.join(' + ')} · ${x.what} · ${ends(x)}${x.n > 1 ? ` · asked ${x.n}×` : ''}${x.mine ? '' : ' · another page'}`;
-    // (the copy names each solve's key too)
-    said = [head, ...mine.map((x) => `${line(x)} · #${x.key}`)];
+    // (a solve with no words beyond its kind: none, never the server's stand-in for none, "your rules as set")
+    const what = (x) => (x.what && x.what !== 'your rules as set' ? ` · ${x.what}` : '');
+    const line = (x) => `• ${x.gw != null ? `GW${x.gw}` : 'GW?'} · ${x.kinds.join(' + ')}${what(x)} · ${ends(x)}${x.n > 1 ? ` · asked ${x.n}×` : ''}${x.mine ? '' : ' · another page'}`;
+    // (each solve's key on screen as in the copy, so "answered by #…" names a line you can see; an answered line's own
+    // key is the one it names, never twice; owner, 2026-11-09, "why '#6e6b2979' not displayed in logs only when i copy")
+    const all = [...mine, ...answered].sort((x, y) => y.at - x.at);
+    const full = (x) => (x.state === 'answered' ? line(x) : `${line(x)} · #${x.key}`);
+    said = [head, ...all.map(full)];
     list.replaceChildren(
       Object.assign(document.createElement('b'), { textContent: head }),
-      ...mine.slice(0, 30).map((x) => Object.assign(document.createElement('div'), { className: live(x) ? 'solving' : x.state === 'done' ? 'solved' : x.state, textContent: line(x) })));
+      ...all.slice(0, 30).map((x) => Object.assign(document.createElement('div'), { className: live(x) ? 'solving' : x.state === 'done' ? 'solved' : x.state, textContent: full(x) })));
   };
   ask();
   setInterval(ask, 1000);

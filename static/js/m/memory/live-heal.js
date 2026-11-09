@@ -1,7 +1,7 @@
 // live.js createMemory: re-plans and heals: the solver asked for your rules' plan
 
 import { detectDrift, madeOn, planOfRoad, sigOf, solvedKey } from './drift.js';
-import { brokenCells, findRoad, planValues, solveKept } from './values.js';
+import { SOLVE_KINDS, brokenCells, findRoad, noteAnswer, planValues, ruleText, solveKept } from './values.js';
 import { OFFERED_MAX, SOLVED_MAX, TIMING, idsKey, nowS, num, pinsAfter, squadKey, weekAt } from './pins.js';
 import { COPY } from '../calls.js';
 
@@ -10,6 +10,14 @@ export function healPart(V) {
   // ---------------------------------------------------------------- planning
   /** Your plan's road for the current pins: a bundle road (or one offered: offer) when one fits, else a heal
    *  (debounced). */
+  // (the ?solves=1 panel's words for your plan, under its kind "Your team": the transfers and rules you added, each
+  // named; none: no transfers; owner, 2026-11-09, "what means 'your plan / your rules as set' - what my plan, what rules?")
+  const healWords = () => { const { S } = V;
+    const mine = V.pinsNow().filter((p) => p.id !== 'hold' && p.id !== 'hits');
+    return mine.length ? mine.map((p) => ruleText(p, V.lookupNow().name, { start: S.A, end: V.endNow() }).text).join(', ') : COPY.healNone;
+  };
+  // (your plan answered with no solve of its own, `road` its answer: listed in the panel all the same, ANSWERED)
+  const healAnswered = (road) => { try { noteAnswer(keyNow(), { gw: V.S.A, kind: SOLVE_KINDS.heal, what: healWords() }, road); } catch { /* the panel's words only */ } };
   function replan(why = 'pins') { const { S, accNow, composeNow, ctx, emit, ensure, gwsNow, holdNow, lockedNow, markSeen, mutate, pinsNow, receipt, versionNow } = V;
     if (S.batch) { S.batch.why = why; return; }
     const acc = accNow();
@@ -32,6 +40,7 @@ export function healPart(V) {
     const hit = findRoad(V.model().road, c, gwsNow(), also);
     if (hit) {
       globalThis.__fcTrace?.('plan', hit.key);  // (the QA's solve audit)
+      healAnswered(hit);
       cancelHeal();
       S.error = null;  // these rules have a plan: an earlier "can't keep them all" is over
       S.aheadSig = null;
@@ -50,6 +59,7 @@ export function healPart(V) {
     if (acc?.plan?.sig === sig && [v, ctx.bundle?.version].includes(acc.plan.version) && spans(acc.plan) && !brokenCells(acc.plan, c).length) {
       // the plan is already the one for these rules (an Undo took the failing one back): nothing to solve. Never one
       // whose squads break them
+      healAnswered(acc.plan);
       cancelHeal();
       S.aheadSig = null;
       if (S.error) { S.error = null; emit('plan'); }
@@ -59,7 +69,7 @@ export function healPart(V) {
     // once (owner, 2026-10-26)
     const k = keyNow();
     const got = k && S.offered.v === v ? S.offered.solved.get(k) : null;
-    if (got) { globalThis.__fcTrace?.('plan', got.road?.key); cancelHeal(); took(got, sig, why, true); return; }
+    if (got) { globalThis.__fcTrace?.('plan', got.road?.key); healAnswered(got.road); cancelHeal(); took(got, sig, why, true); return; }
     // the plan heal is a user-class solve (api/mobile.py PURPOSES): one per client, a newer one supersedes it.
     // Debounced for an edit; a re-plan of no edit (a team opened, new roads: 'sync') asks at once
     scheduleHeal('heal', { reason: why, now: why === 'sync', ahead: k });
@@ -150,7 +160,7 @@ export function healPart(V) {
     const reason = S.pending?.reason;
     const p = solveKept(ctx.api, { entry: Number(S.entry), purpose, values: vals }, {
       onUpdate: (s) => { if (my === S.healSeq && S.pending) { Object.assign(S.pending, { key: s.key, state: s.state, position: s.position ?? null }); emit('heal'); } },
-    });
+    }, { what: healWords() });
     if (S.pending) S.pending.cancel = p.cancel;
     try {
       const r = await p;

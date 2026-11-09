@@ -23,7 +23,10 @@ import {
 
 /** WhoScored's predicted lineup for the next deadline's GW (data_io/data.py ws_preview), as the card words it. */
 const PREVIEW = { S: 'Predicted to start', B: 'Predicted bench', O: 'Predicted out', D: 'Predicted doubtful', DS: 'Predicted doubtful' };
-const LAST_N = 7;  // api/card_conf.py LAST_N: past columns held open while loading
+const LAST_N = 6;  // api/card_conf.py LAST_N: past columns held open while loading
+// the forecast's weeks the strip draws: the first six (owner, 2026-11-09, "show last 6 and next 6"); the comparison
+// reads them all (pairView: the next four from the week it was opened from)
+export const NEXT_N = 6;
 export const WORD = { GK: 'goalkeepers', DEF: 'defenders', MID: 'midfielders', FWD: 'forwards' };
 // stats' rows (api/stats_pick.json, tools/stats_pick.py ACTIONS): label, decimals; defensive contribution shortened,
 // still in words, to fit the 124 px label column; calls.test.mjs checks each has one
@@ -164,7 +167,7 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
           two ? null : askLine(P),
           two ? null : statusLines(row, P, { available: false, lineup: false }),
           // (two compared: one strip, the two in every GW column, league games only)
-          stripSection(two ? { ...m, two: true, rows: [row, orow], nameA: P.L.name(id) } : m, G, chartKey),
+          stripSection(two ? { ...m, two: true, rows: [row, orow], nameA: P.L.name(id), from: g } : m, G, chartKey),
           statsSection(card, W, { view, setView, among, setAmong }, two));
         if (kept) main.querySelector(kept)?.focus({ preventScroll: true });
         // his controls' taps solved ahead while the sheet is open (AH.presolveTaps; owner, 2026-10-26): each option not
@@ -316,6 +319,14 @@ function model(ctx, P, row, id, card, state, local = false, vs = null, vsCard = 
   // (`vs`: the player he'd replace in a transfer the card offers, not yet in the plan)
   const out = vs ?? w?.moves.find((m) => m.in === id)?.out;
   const orow = out != null ? d.byId.get(Number(out)) : null;
+  const futAll = d.xpGws.map((g) => ({
+    gw: g,
+    xp: ctx.pitch.xpAt(row, g, d.xpGws),
+    rank: xpRank(ctx, pos, ctx.pitch.xpAt(row, g, d.xpGws), g),
+    runs: local ? runsOf(id, g) : [],
+    fx: ctx.pitch.fixturesAt(row, g, d.xpGws) ?? [],
+    inPlan: !!weekOf(P, g),
+  }));
   const past = card?.last_matches ?? [];
   return {
     pos,
@@ -326,14 +337,8 @@ function model(ctx, P, row, id, card, state, local = false, vs = null, vsCard = 
     unavailable: state !== 'loading' && !past.length,
     cups: card?.cups ?? [],
     cupNext: card?.cup_next ?? [],
-    fut: d.xpGws.map((g) => ({
-      gw: g,
-      xp: ctx.pitch.xpAt(row, g, d.xpGws),
-      rank: xpRank(ctx, pos, ctx.pitch.xpAt(row, g, d.xpGws), g),
-      runs: local ? runsOf(id, g) : [],
-      fx: ctx.pitch.fixturesAt(row, g, d.xpGws) ?? [],
-      inPlan: !!weekOf(P, g),
-    })),
+    fut: futAll.slice(0, NEXT_N),
+    futAll,
     comp: out == null ? null : {
       name: P.L.name(out), chance: orow?.chance ?? null,
       xp: d.xpGws.map((g) => ctx.pitch.xpAt(orow, g, d.xpGws)),
@@ -405,10 +410,10 @@ function measure(s, wt = 400) {
 /** The strip's geometry (strip.js layout): his EPL and cup matches over the forecast GWs and coming cup ties, two lines
  *  of one column width; no past columns: forecast alone. */
 function geometry(m, W) {
-  // (league games only: his cup and international matches no columns of their own; with the last 7 they broke the strip
-  // into four lines; owner, 2026-11-09, "remove non epl games", "what this shit")
-  const { cols: past, after } = S.pastColumns(m.past.map((x) => ({ ...x, opp: x.opp == null ? null : String(x.opp).toUpperCase() })), []);
-  const fut = S.futureColumns(m.fut.map((f) => ({ ...f, value: f1(f.xp), codes: f.fx.map((o) => o.opp) })), [], after ?? []).cols;
+  // (his cup and international matches among them as before v1.3.217; owner, 2026-11-09, "fix bug with missing non
+  // epls", "it should look the same as it looked before you removed it")
+  const { cols: past, after } = S.pastColumns(m.past.map((x) => ({ ...x, opp: x.opp == null ? null : String(x.opp).toUpperCase() })), m.cups);
+  const fut = S.futureColumns(m.fut.map((f) => ({ ...f, value: f1(f.xp), codes: f.fx.map((o) => o.opp) })), m.cupNext, after ?? []).cols;
   return S.layout({ pastCols: past, futCols: fut, W, measure, slots: m.past.length ? 0 : m.slots });
 }
 
@@ -484,11 +489,13 @@ function oppChip(c, opp, home, fdr, y, W) {
  *  it). Over it his and his totals, a ✓ at the better. rows: the two players' bundle rows. → node */
 function pairView(m, rows, W) {
   const c2 = m.comp;
-  const past = m.past.filter((x) => x.gw != null), fut = m.fut;
+  const past = m.past.filter((x) => x.gw != null), fut = m.futAll ?? m.fut;
   const ptsA = past.map((x) => (x.minutes ? Number(x.points ?? 0) : null));
   const ptsB = past.map((x) => { const o = c2?.past?.get(Number(x.gw)); return o?.minutes ? Number(o.points ?? 0) : null; });
-  // (the forecast for your plan's weeks alone: the next four)
-  const plan4 = fut.filter((f) => f.inPlan), xp4A = plan4.map((f) => f.xp ?? null), xp4B = plan4.map((f) => c2?.xp[fut.indexOf(f)] ?? null);
+  // (the forecast's next four from the week it was opened from (`from`, GW g): from GW13, GW13-16, never the plan's
+  // GW11-14; owner, 2026-11-09, "why it not shows forecast for next gws when i click compare from gw13")
+  const from = m.from ?? fut.find((f) => f.inPlan)?.gw ?? fut[0]?.gw;
+  const plan4 = fut.filter((f) => f.gw >= from).slice(0, 4), xp4A = plan4.map((f) => f.xp ?? null), xp4B = plan4.map((f) => c2?.xp[fut.indexOf(f)] ?? null);
   const tot = (xs) => xs.reduce((t, v) => t + (v ?? 0), 0);
   const lines = [
     past.length ? [`Points ${COPY.span(past.map((x) => x.gw))}`, tot(ptsA), tot(ptsB), String] : null,

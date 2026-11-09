@@ -1569,5 +1569,7 @@ back the next card rises over it */
 .ps-pairline { margin-top: 16px; }
 /* the opening card's Show suggestion, in its body under the heading (screen-ticket.js) */
 .m-screen.ah .ah-tksug { margin-top: 12px; }
+/* (a transfer's Compare players link under its line, v1.3.217: the card 2.8 px past the bottom at 320 × 568; qa-tk116 ticket) */
+@media (max-height: 620px) { .m-screen.ah .ah-tksug { margin-top: 6px; } }
 /* (its words in the card's buttons' font, 700, underlined as the card's links: owner, 2026-11-09, "fix show suggestion font") */
 .m-screen.ah .ah-tksug .ah-rsbtn { font-weight: 700; color: var(--tk-ink); }

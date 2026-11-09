@@ -3,7 +3,7 @@
 import * as E from '../../plan/engine.js';
 import { COPY, hitBook, hitCap } from '../calls.js';
 import { chipName } from '../../ui.js';
-import { capsOf, composePins, heldAt, ids, idsKey, isExact, isRoll, kindOf, makePin, movedAt, movesIn, num, parseCaps, pinFrozen, range, rollKeeps, scopeOf, span, squadKey, squadOf, weekAt } from './pins.js';
+import { capsOf, composePins, parseSpans, spanString, heldAt, ids, idsKey, isExact, isRoll, kindOf, makePin, movedAt, movesIn, num, parseCaps, pinFrozen, range, rollKeeps, scopeOf, span, squadKey, squadOf, weekAt } from './pins.js';
 import { sigOf } from './drift.js';
 
 // ================================================================ the default plan: your team, no transfers
@@ -124,6 +124,18 @@ export const firstPlanValues = (cctx, planDefault = 'hold') => {
   const values = planValues(cctx, []);
   return planDefault === 'hold' ? { ...values, to: values.from_r } : values;
 };
+/** Excludes `spec` ("id@a-b,…") less the weeks no rule could ever put him in: a player you don't have, in a week that
+ *  every week from the plan's first, `from`, up to it makes no buy (rolled: --no-buys-gw), is not in your squad there
+ *  whatever the solver does, so "not him" those weeks binds nothing; the span starts at the first week that can buy.
+ *  owner, 2026-11-09: GW13's swap of Muharemović → Murillo solved with "not Murillo GW11-12" under no buys in
+ *  GW11-12 ("if not buys in gw11-12 how it will buy murillo"). → the excludes left ('' none) */
+export function unbuyableDropped(spec, rolls, from, squad = []) {
+  if (!spec) return '';
+  const owned = new Set(ids((squad || []).map((s) => s?.id ?? s))), rolled = new Set(ids(rolls));
+  let free = from;
+  while (rolled.has(free)) free++;
+  return spanString(parseSpans(spec).map(([id, a, b]) => [id, owned.has(id) ? a : Math.max(a, free), b]).filter(([, a, b]) => a <= b));
+}
 export function planValues(cctx, list) {
   const gws = cctx.gws;
   const c = composePins(list, { from: gws[0], to: gws.at(-1) });
@@ -134,7 +146,8 @@ export function planValues(cctx, list) {
     chipDefaults: cctx.meta?.chip_defaults, players: cctx.players,
   });
   if (c.must_have) values.must_have = c.must_have;
-  if (c.exclude) values.exclude = c.exclude;
+  const exclude = unbuyableDropped(c.exclude, c.rolls, gws[0], cctx.base?.squad);
+  if (exclude) values.exclude = exclude;
   if (c.rolls.length) values.no_buys_gw = c.rolls.join(',');
   const capped = Object.entries(c.caps).sort(([a], [b]) => a - b);
   if (capped.length) values.max_buys_gw = capped.map(([g, n]) => `${g}:${n}`).join(',');
@@ -238,7 +251,17 @@ export const SOLVES = { asked: 0 };
  */
 // (what each purpose's solve is for, in the ?solves=1 panel's words, where its caller says nothing more: the server
 // logs every ask with them, GET /api/m/solves)
-const SOLVE_KINDS = { heal: 'your plan', chip: 'your chip', cash: 'your bank', wish: 'a wish', speculative: 'without your transfers', chipprep: 'a chip, ahead', pair: 'a choice', pairnext: 'a choice, ahead', presolve: 'a tap, ahead', plan: 'the plan' };
+export const SOLVE_KINDS = { heal: 'Your team', chip: 'your chip', cash: 'your bank', wish: 'a wish', speculative: 'without your transfers', chipprep: 'a chip, ahead', pair: 'a choice', pairnext: 'a choice, ahead', presolve: 'a tap, ahead', plan: 'the plan' };
+/** The asks this page answered with no solve of their own, for the ?solves=1 panel beside the server's list (ahead/
+ *  solvelog.js): ask key → {at, gw, kind, what, byKey (the answering road's solve key, as the panel names solves), job
+ *  (its solve's job: when it ran)}; owner, 2026-11-09, "fix so no solves are missing from the list", "what other solves
+ *  'clear' and / or logs missing". */
+export const ANSWERED = new Map();
+export function noteAnswer(key, said, road) {
+  if (key == null) return;
+  // (its first answer's time: a re-plan answering it again on every draw never moves its line)
+  ANSWERED.set(key, { at: ANSWERED.get(key)?.at ?? Date.now(), ...said, byKey: String(road?.from ?? road?.key ?? '').slice(-8), job: road?.job ?? null });
+}
 export function solveKept(api, args, opts, said = {}) {
   SOLVES.asked++;
   const p = api.solve({ ...args, said: { gw: said.gw ?? (Number(args.values?.from_r) || null), kind: said.kind ?? SOLVE_KINDS[args.purpose] ?? args.purpose, what: said.what ?? 'your rules as set' } }, opts);

@@ -2,10 +2,12 @@
 
 import * as E from '../../../plan/engine.js';
 import { hitCap } from '../../calls.js';
-import { attach, makePin, pinSell, pinHits, pinRoll, solveKept, solvedLineup } from '../../memory.js';
+import { attach, makePin, pinSell, pinHits, pinRoll, isRoll, solveKept, solvedLineup } from '../../memory.js';
+import { noteAnswer } from '../../memory/values.js';
+import { range } from '../../memory/pins.js';
 import { baseOf, compare, draftOf, flatMoves, info, inputs, leftBehind, memOf, num, problemOf, roadDraft, sameMove, valuesFor, valuesKey, weekOf, withMoves } from '../core.js';
 import { chainOf, chipBackOf, chipEdit, chipOffParts, derivedPin } from '../edits.js';
-import { AHEAD, PAIR, PAIR_AGAIN_MS, PAIR_HOLD_MS, PAIR_TAKES, PREP_BESIDE, aheadAsks, aheadWaited, clearRoots, madeEarlier, pairChanged, pinOfMove, pumpAhead, repicks, rootStill, tapSpent } from '../presolve.js';
+import { AHEAD, PAIR, PAIR_AGAIN_MS, PAIR_HOLD_MS, PAIR_TAKES, PREP_BESIDE, aheadAsks, aheadWaited, clearRoots, madeEarlier, noHitsFrom, pairChanged, pinOfMove, pumpAhead, repicks, rootStill, tapSpent } from '../presolve.js';
 import { prepsWaiting, squadWeek } from '../pieces.js';
 import { SQUAD_CHIPS, ownAfter } from './suggest.js';
 import { keepNewest } from './choices.js';
@@ -128,11 +130,13 @@ export function forkValues(ctx, P, g, c, more = []) {
   // the + gets; nor for the roll it counts against, `held`: like with like, plansOf)
   const follow = !(P.mem?.hold && (c.chips?.[g] === 'wc' || c.held));
   if (follow) for (const x of P.gws.filter((y) => y > g && !SQUAD_CHIPS.has(c.chips?.[y]) && !squadWeek(weekOf(P, y)) && !ruled(y))) extra.push(pinHits(cap, x));
+
   // every choice's solve commits its own week only (`to`; owner, 2026-10-28): its number is the solver's count over GW
   // g's window (calls.counted), which later weeks never change, and its later weeks are your plan's (planOfRoad). A
   // roll's and a chip's too (owner, 2026-11-03, "why anytime goes to GW11–13", "fix bugs in fh / wc so they not use
   // other weeks")
-  return { ...valuesFor(ctx, extra, drop), to: g };
+  // (a week after GW A without hits from g on, its own week the choice's: noHitsFrom)
+  return { ...noHitsFrom(P, g, valuesFor(ctx, extra, drop), true), to: g };
 }
 
 // (the newest FORK_ROADS_MAX by their last use, keepNewest: a week drawn before an edit asked its solves first, and an
@@ -163,12 +167,21 @@ export function answeredBy(P, key, values) {
   const own = r && past(r)
     ? { weeks: r.weeks.filter((w) => Number(w.gw) <= to), ...(r.objective ? { objective: cut(r.objective) } : {}), ...(r.windows ? { windows: Object.fromEntries(Object.entries(r.windows).filter(([x]) => Number(x) === to)) } : {}) }
     : {};
-  return r ? { ...r, ...own, key, values } : null;
+  // (`from`: the answering road's own key, the server's solve key, as the ?solves=1 panel names it: ANSWERED)
+  return r ? { ...r, ...own, key, values, from: r.from ?? r.key } : null;
+}
+/** `ask` answered by `road` (a solve this page asked, or the plan's own kept on this device) with no solve, written
+ *  down for the panel (ANSWERED). */
+export function noteAnswered(ctx, P, ask, road) {
+  try { noteAnswer(ask.key, forkSaid(ctx, P, ask, !!ask.prep), road); } catch { /* the panel's words only */ }
 }
 export function forkAsk(ctx, P, ask) {
   const { key } = ask;
   const sent = !FORK_ROADS.has(key) && answeredBy(P, key, ask.values);
-  if (sent) return keepNewest(FORK_ROADS, key, sent, FORK_ROADS_MAX);
+  if (sent) {
+    noteAnswered(ctx, P, ask, sent);
+    return keepNewest(FORK_ROADS, key, sent, FORK_ROADS_MAX);
+  }
   const got = FORK_ROADS.get(key);
   if (got?.failedAt != null) {
     const left = got.failedAt + PAIR_HOLD_MS - Date.now();
@@ -202,21 +215,39 @@ export const FORK_FLIGHTS = new Map();  // lane (1..) → {key, fork, cancel, gw
 /** Every fork solve in flight as [lane, flight]: lane 0 while a fork holds PAIR.flight, then lanes 1.. */
 export const forkFlights = () => [...(PAIR.flight?.fork ? [[0, PAIR.flight]] : []), ...FORK_FLIGHTS];
 // (a solve's rules in words: what its values ask beyond `base`'s, by player and week)
-function rulesWords(P, gw, values, base) {
+export function rulesWords(P, gw, values, base, freed = null) {
   const set = (v) => new Set(String(v ?? '').split(',').filter(Boolean));
   const nm = (id) => P.L?.name?.(Number(id)) ?? id, squad = new Set((weekOf(P, gw)?.squad ?? []).map(Number));
   const span = (x) => { const [id, w] = x.split('@'); const [a, b] = (w ?? '').split('-'); return { id, at: a === b || !b ? `GW${a}` : `GW${a}-${b}` }; };
   const out = [];
+  // (a week before GW gw kept as your plan has it, forkValues' "Your weeks before", is the plan as it stands, no rule:
+  // owner, 2026-11-09, "what difference between 'no transfer, ahead' and 'keep 15 players gw11'")
+  // (…over a run of weeks too, "keep 15 players GW11-12": each of them before GW gw with him in your plan's squad)
+  const asPlanned = (x) => { const [id, w] = x.split('@'); const [a, b = a] = (w ?? '').split('-').map(Number); return a <= b && b < gw && range(a, b).every((y) => (weekOf(P, y)?.squad ?? []).map(Number).includes(Number(id))); };
   for (const [k, on, off] of [['must_have', 'keep', 'buy'], ['exclude', 'sell', 'not']]) {
     const now = set(values?.[k]), was = set(base?.[k]);
-    for (const x of now) if (!was.has(x)) { const s = span(x); out.push(`${squad.has(Number(s.id)) ? on : off} ${nm(s.id)} ${s.at}`); }
+    for (const x of now) if (!was.has(x) && !(k === 'must_have' && asPlanned(x))) { const s = span(x); out.push(`${squad.has(Number(s.id)) ? on : off} ${nm(s.id)} ${s.at}`); }
     for (const x of was) if (!now.has(x)) { const s = span(x); out.push(`drop ${k === 'must_have' ? 'keep' : 'not'} ${nm(s.id)} ${s.at}`); }
   }
   // (rolls added and dropped both, in runs of weeks: "roll GW10, drop roll GW11-13"; owner, 2026-11-03, "what
   // difference in these": GW10's Roll choice, your GW11-13 rolls dropped, read "the plan as it stands")
   const roll = set(values?.no_buys_gw), rolled = set(base?.no_buys_gw);
   const runs = (gs) => [...gs].map(Number).sort((a, b) => a - b).reduce((rs, g) => (rs.at(-1)?.[1] === g - 1 ? (rs.at(-1)[1] = g) : rs.push([g, g]), rs), []).map(([a, b]) => (a === b ? `GW${a}` : `GW${a}-${b}`));
-  const rolls = [...runs([...roll].filter((g) => !rolled.has(g))).map((at) => `roll ${at}`), ...runs([...rolled].filter((g) => !roll.has(g))).map((at) => `drop roll ${at}`)];
+  // (a week the hold rolls by itself, "no transfers unless you add them", is no rule of yours: freed it is `freed`'s
+  // words, "Forkcast's transfers GW13-14", or none; "drop roll" only for a Roll you set (a + of a suggestion: pinRoll);
+  // owner, 2026-11-09, "my plan not have such rules")
+  const own = new Set(P.pins.filter((p) => isRoll(p) && !derivedPin(p)).map((p) => String(p.gw)));
+  const dropped = [...rolled].filter((g) => !roll.has(g));
+  // (…a solve that commits one week (`to`, every choice's: forkValues): no words for the weeks it frees, its kind ("The
+  // week's plan", "No transfer") says what it picks and every such solve looks ahead alike; owner, 2026-11-09, "why
+  // forkast transfers gw12-14 if it solves full 4 gw window each time", "what the fuck means 'Forkcast picks GW13, plans
+  // GW14-16 to judge it'")
+  // (a week capped at your own moves, values.max_buys_gw (Make the swap's: buys GW13 ≤ 1, the swap), is no week Forkcast
+  // picks in)
+  const capped = new Set(String(values?.max_buys_gw ?? '').split(',').filter(Boolean).map((t) => Number(t.split(':')[0])));
+  const to = num(values?.to), hold = dropped.filter((g) => !own.has(g)).map(Number).filter((g) => !capped.has(g));
+  const freedWords = !freed || to != null ? [] : runs(hold).map((at) => `${freed} ${at}`);
+  const rolls = [...runs([...roll].filter((g) => !rolled.has(g))).map((at) => `roll ${at}`), ...runs(dropped.filter((g) => own.has(g))).map((at) => `drop roll ${at}`), ...freedWords];
   // (a verb's run over one week grouped, its players named up to three: "keep 15 players GW10")
   const by = new Map();
   for (const x of out) { const [, v, rest] = /^(\S+(?: \S+)?) (.+) (GW[\d-]+)$/.exec(x) ? [, x.replace(/ .+$/, ''), x] : [, x, x]; const g = /GW[\d-]+$/.exec(x)?.[0] ?? ''; const k = `${v} ${g}`; by.set(k, [...(by.get(k) ?? []), rest]); }
@@ -233,8 +264,13 @@ function solveWords(ctx, P, ask) {
     now = valuesFor(ctx);
     free = memOf(ctx).values({ drop: P.pins.filter((p) => !derivedPin(p)).map((p) => p.id) });
   } catch { /* no plan memory: its rules whole */ }
-  const asked = rulesWords(P, ask.gw, ask.values, now) || 'the plan as it stands', yours = rulesWords(P, ask.gw, now, free);
+  // (a one-week solve with nothing beyond its kind: no words; else nothing asked is the plan as it stands)
+  const asked = rulesWords(P, ask.gw, ask.values, now, 'Forkcast\'s transfers') || (ask.values?.to != null ? '' : 'the plan as it stands'), yours = rulesWords(P, ask.gw, now, free);
   return yours ? `${asked} · your rules: ${yours}` : asked;
+}
+/** A fork's ask in the ?solves=1 panel's words, solved (forkPump) or answered with no solve (forkAsk: ANSWERED). */
+function forkSaid(ctx, P, ask, prep) {
+  return { gw: ask.gw, kind: ask.ahead ? ({ take: 'Make the swap', root: 'After the swap' }[ask.kind] ?? 'A tap, ahead') : ask.root ? 'The week\'s plan' : ask.side ? 'Show another' : `${ask.said ?? 'A choice'}${prep ? ', ahead' : ''}`, what: solveWords(ctx, P, ask), key: ask.key };
 }
 export function forkPump(ctx, P, ask) {
   const prep = !!ask.prep;
@@ -290,8 +326,7 @@ export function forkPump(ctx, P, ask) {
   // (each named by the button or line it is for on the screen, owner 2026-11-05, "what means next x"; a week prepared
   // before you open it, "ahead", never "next week": its GW says which; owner, 2026-11-03, "what means gw11 and 'next
   // week' in same line")
-  const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, lane ? { slot: `fork${lane}` } : undefined,
-    { gw: ask.gw, kind: ask.ahead ? ({ take: 'Make the swap', root: 'After the swap' }[ask.kind] ?? 'A tap, ahead') : ask.root ? 'The week\'s plan' : ask.side ? 'Show another' : `${ask.said ?? 'A choice'}${prep ? ', ahead' : ''}`, what: solveWords(ctx, P, ask), key: ask.key });
+  const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, lane ? { slot: `fork${lane}` } : undefined, forkSaid(ctx, P, ask, prep));
   flight.cancel = () => p.cancel?.();
   p.then((res) => {
       // a tap's solve asked ahead: its answer memory's for exactly those values (presolve); one that failed for another

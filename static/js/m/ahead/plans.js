@@ -14,5 +14,5 @@ export {
 } from './plans/lit.js';
 export {
   planOfRoad, asTaken, planBaseline, takenBy, forkValues, forkAsk, forkKept, forkRead, FORK_FLIGHTS, forkFlights, forkPump, answeredBy,
-  forkAgain, resetForks
+  forkAgain, resetForks, noteAnswered
 } from './plans/forks.js';

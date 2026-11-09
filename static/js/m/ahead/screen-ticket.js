@@ -5,7 +5,7 @@ import { h, fill, fmt, plural, reduceMotion, xpGain, xpNum } from '../../ui.js';
 import { CHIPS_OFF, COPY } from '../calls.js';
 import { MINUS, pairAsPlaced, plan, viewOfRoadWeek, weekOf } from './core.js';
 import { itbWords } from './pieces.js';
-import { cardGain, owedAt, pinOfMove, presolveSwap, swapGain, removeWeek, showSuggestion, showTransfer, showingAt, suggestedAt, swapWeek, tappedSuggestion, tookOf } from './presolve.js';
+import { cardGain, owedAt, pinOfMove, presolveSwap, swapComing, swapGain, removeWeek, showSuggestion, showTransfer, showingAt, suggestedAt, swapWeek, tappedSuggestion, tookOf } from './presolve.js';
 import { choosing, placedAt, placedDone, stopChoosing } from './buys.js';
 import { cardUndo, removeRule, takingBack, tickWas, veto } from './edits.js';
 
@@ -172,7 +172,8 @@ export function ticketPart(V) {
     paintStand(w);
     paintFlag(P, w);
     const g = w.gw, next = P.gws[P.gws.indexOf(g) + 1] ?? null, off = !P.editable;
-    const btn = (kind, text, row, onClick) => h(`button.ah-${kind}`, { type: 'button', disabled: off, dataset: { row }, onClick }, text);
+    // (its handler a property, so a repaint drawing the same button keeps the one on screen with the new handler: keptActs)
+    const btn = (kind, text, row, onClick) => { const b = h(`button.ah-${kind}`, { type: 'button', disabled: off, dataset: { row } }, text); b.onclick = onClick ?? null; return b; };
     const onward = next ? btn('go', COPY.onToWeek(next), 'tk:next', () => setGw(next)) : btn('go', COPY.setInFplGo, 'tk:fpl', (ev) => openWeek(ev, P.A));
     // the card's take-back, whatever it offers: this week's swaps all back ("Undo 2 swaps"), your last Show another
     // ("Previous"), else your last edit of any kind, a chip, a lineup, Hits ("Undo"), each exactly as the black tab's Undo
@@ -200,6 +201,14 @@ export function ticketPart(V) {
     const toChoice = !swaps && !refused && !prev && !(undo && undoWords === COPY.previous) && tappedSuggestion(P, g)
       ? h('button.ah-rsbtn.undo.back', { type: 'button', disabled: off, dataset: { row: `tk:choice:${g}` }, onClick: () => { showSuggestion(P, g, false); showTransfer(P, g, false); V.schedule(); } }, COPY.previous) : null;
     let title, line = null, left = null, right = null, stamp = false, bringLeft = false, cmpLink = false;
+    // (the transfer card waiting in place (spec state 5): no title, the wait line, both buttons greyed)
+    const waitCard = () => {
+      title = '';
+      line = COPY.waitShort;
+      left = btn('alt', COPY.showAnother, `tok:not:${g}`, null);
+      right = btn('go', COPY.swap, `tok:best:${g}`, null);
+      left.disabled = right.disabled = true;
+    };
     // (a week with your transfers is the made card, whatever the solver would add after them: state 1 is "no transfer of
     // yours yet"; a fresh solve after the take found a third move at 0.0 and the card offered it; qa-cold trace 2026-11-08)
     // (…except a week your transfers leave short of money, owedAt: its best is the way to pay it back (owedRoad, litCan's
@@ -233,7 +242,10 @@ export function ticketPart(V) {
       // its tab counts them), never the solver's count with its free-transfer terms and later weeks scaled; that still
       // orders the cards (cardGain); owner, 2026-11-09, "fix bug with +1.1 points")
       const pts = swapGain(ctx, P, g, pl);
-      line = gain == null || pts == null ? COPY.waitShort : moveLine(pts, !!pl.forced, P.gws.filter((x) => x >= g).length);
+      // (its number's swap the tap's 6 no longer ask (swapComing): its words alone, its buttons live, never a wait that
+      // ends only with your next tap; qa-tk117 j-card-reset)
+      const rounds = P.gws.filter((x) => x >= g).length, noNumber = gain != null && pts == null && !swapComing(ctx, P, g, pl);
+      line = noNumber ? lineRow(COPY.vsSavingNext(rounds)) : gain == null || pts == null ? COPY.waitShort : moveLine(pts, !!pl.forced, rounds);
       // (one transfer: its two players compared from a link under the line, as the title's → does; owner, 2026-11-09, "how
       // i compare players", "fix")
       const one = e.adds.length === 1 ? e.adds[0] : null;
@@ -246,6 +258,10 @@ export function ticketPart(V) {
       // (Swap the right-hand button, Bring in a player among the links under it; owner, 2026-11-09, "move bring in player
       // below if show suggestion clicked and swap button to the place where currently bring in player")
       right = btn('go', COPY.swap, `tok:best:${g}`, (ev) => (best.querySelector('.ah-tgo') ? best.take(ev) : best.click()));
+      // (its number, Make the swap's solve, not in yet: the wait card, never the transfer's title with live buttons and no
+      // number for a frame (a card the spec has no state for); since v1.3.217 the number is that solve's; qa-tk115
+      // j-card-weeks, j-card-reset)
+      if (!owes && !noNumber && (gain == null || pts == null)) waitCard();
     } else if (M?.sq && w.moves.length) {
       // (a Free Hit or Wildcard: the chip, not its whole squad; the Week sheet lists them and takes the chip back)
       title = S.status?.one ?? '';
@@ -289,11 +305,7 @@ export function ticketPart(V) {
       // (Show a transfer's next still solving: the transfer card waiting in place, its buttons greyed, never the roll's card
       // nor an empty one between two transfers; owner, 2026-11-08, "why switching dovin to kinsky then save your transfer,
       // then ajayi to justin")
-      title = '';
-      line = COPY.waitShort;
-      left = btn('alt', COPY.showAnother, `tok:not:${g}`, null);
-      right = btn('go', COPY.swap, `tok:best:${g}`, null);
-      left.disabled = right.disabled = true;
+      waitCard();
     } else if (S.wait && !M?.live) {
       // (the week's answer still solving: the wait line alone, never "No transfer made" and its button as if it were the
       // answer; owner, 2026-11-05)
@@ -370,7 +382,8 @@ export function ticketPart(V) {
       // owner, 2026-11-09, "fix so players font not made smaller", "fix bug so names are displayed")
       h('div.ah-tktitle', null, h('h2.ah-tkhead', null, title), stamp ? h('span.ah-tkstamp', null, COPY.madeStamp) : null),
       line == null ? null : line instanceof Node ? line : lineRow(line));
-    fill(block.querySelector(':scope > .ah-tkacts'), left, right);
+    const acts = block.querySelector(':scope > .ah-tkacts'), kids = keptActs(g, [left, right]);
+    if (kids.length !== acts.children.length || kids.some((k, i) => k !== acts.children[i])) fill(acts, ...kids);
     // every other thing the card does, one row under its two buttons (design_1109a slip): the take-back, Reset all weeks,
     // Bring in a player, Play a chip
     // (one take-back: a Previous where the card has one, the older edit's Undo then on the card it goes back to; owner,
@@ -387,4 +400,24 @@ export function ticketPart(V) {
     playStack(g);
   }
   return { adviceOf, bindStack, firstCard, holdStack, paintTicket, sizeTitle };
+}
+
+/** The card's two buttons as a repaint draws them, each the button this card drew before for the same thing (its row,
+ *  class and words), its handler and greyed state the new one's: a tap across a repaint lands on the button it went
+ *  down on, a wait card between the two paints too (qa-tk116/117 ticket: Bring in a player rebuilt by a landing solve;
+ *  fold tk48, f15-onetap tk49). The buttons drawn kept per week (the card's own element may be drawn anew), the last
+ *  few. → the nodes to show */
+const ACTS_KEPT = 8, ACTS = new Map();
+function keptActs(g, kids) {
+  if (!ACTS.has(g)) ACTS.set(g, new Map());
+  const kept = ACTS.get(g), keyOf = (b) => `${b.tagName}|${b.className}|${b.dataset.row ?? ''}|${b.textContent}`;
+  return kids.filter(Boolean).map((k) => {
+    const key = keyOf(k), old = kept.get(key);
+    kept.delete(key);
+    const use = old ?? k;
+    if (old) { old.disabled = k.disabled; old.onclick = k.onclick; }
+    kept.set(key, use);
+    while (kept.size > ACTS_KEPT) kept.delete(kept.keys().next().value);
+    return use;
+  });
 }
