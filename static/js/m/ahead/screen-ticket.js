@@ -2,21 +2,22 @@
 // and see another suggestion"; "stop wasting space on useless crap"; design_1105f prototype/ticket.html)
 
 import { h, fill, fmt, plural, reduceMotion, xpGain, xpNum } from '../../ui.js';
-import { CHIPS_OFF, COPY, shownDelta } from '../calls.js';
+import { CHIPS_OFF, COPY } from '../calls.js';
 import { MINUS, pairAsPlaced, plan, viewOfRoadWeek } from './core.js';
 import { itbWords } from './pieces.js';
 import { cardGain, owedAt, presolveSwap, removeWeek, showTransfer, showingAt, swapWeek, tookOf, windowRounds } from './presolve.js';
 import { choosing, placedAt, placedDone, stopChoosing } from './buys.js';
 import { cardUndo, removeRule, takingBack, tickWas, veto } from './edits.js';
 
-/** The card's line for a move (its plan's cmp, the solver's count `gain`): the verdict first where the plan saves, its
- *  points against saving, its count with the free transfer, its window, and Close call inside the forecast's noise
- *  (counted's 'coin'); books review 2026-11-08, owner "fix". */
-function moveLine(cmp, gain, forced, rounds) {
+/** The card's line: words at its left, `right` at its right edge (design_1109a slip). */
+const lineRow = (words, right = null, data = null) => h('p.ah-tkline', { dataset: data }, h('span.ah-tkl', null, words), right ? [' ', h('span.ah-tkr.m-num', null, right)] : null);
+/** …for a move: one number, the solver's count `gain` (the saved transfer's own worth counted, what orders the cards),
+ *  over its window (owner, 2026-11-09, design_1109a slip: "+1.2 xP vs saving, −1.1 xP counting the free transfer" and
+ *  "Worse than saving" said one thing three ways). `forced`, a move the plan would not make, rides as data alone: its
+ *  number below 0 says it. */
+function moveLine(gain, forced, rounds) {
   // (a loss in the muted ink, never the gain's blue: books review 2026-11-08; "−0.0" and "0.0" are no loss)
-  const pts = shownDelta(cmp), loss = (d) => (fmt.signed(d).startsWith(MINUS) ? '.neg' : '');
-  return [forced ? `${COPY.planSaves} ` : '', xpGain(pts, `span${loss(pts)}`), ` ${COPY.vsRolling}, `, xpGain(gain, `span.ah-tkcount${loss(gain)}`), ` ${COPY.solverCount}, `,
-    COPY.overNextWeeks(rounds), cmp?.label === 'coin' ? ` ${COPY.closeCall}.` : ''];
+  return lineRow(COPY.vsSavingNext(rounds), xpGain(gain, `span.ah-tkcount${fmt.signed(gain).startsWith(MINUS) ? '.neg' : ''}`), forced ? { forced: '' } : null);
 }
 
 /** "Murillo → Hill"; several, the sellers then the buys. */
@@ -143,8 +144,8 @@ export function ticketPart(V) {
    *  2026-11-05, "why card not displayed correctly at loading"). */
   function firstCard(g, title, action, rest) { const { barNode, dlEl } = V;
     return h('section.ah-block.ah-ticket', { 'aria-label': 'Your plan' },
-      h('div.ah-tkbody', null, h('div.ah-tkrow', null, h('span.ah-tkg', null, `GW${g}`), dlEl, h('span.ah-tkx.m-num', null, h('span.m-skel'))), h('h2.ah-tkhead', null, title)),
-      barNode({ cls: '.ah-pbake' }), rest, h('div.ah-tkacts', null, action));
+      h('div.ah-tkbody', null, h('div.ah-tkrow', null, h('span.ah-tkg', null, `GW${g}`), dlEl, h('span.ah-tkx.m-num', null, h('span.m-skel'))), h('div.ah-tktitle', null, h('h2.ah-tkhead', null, title))),
+      barNode({ cls: '.ah-pbake' }), rest, h('div.ah-tkacts', null, action), h('div.ah-tklinks'));
   }
   function paintTicket(P, w, M, tk = []) { const { S, ctx, dlEl, bringDoor, chipsDoor, inkAt, openWeek, rsBtn, setGw, stack, strip } = V;
     const block = strip.querySelector(':scope > .ah-ticket');
@@ -172,7 +173,7 @@ export function ticketPart(V) {
     const shown = !swaps && !refused && !last && showingAt(P, g) && !none && (!best || !!best.move?.pl?.forced);
     const undo = swaps > 1 || (swaps && !last) ? takingBack(() => removeWeek(ctx, g)) : last ?? (refused ? takingBack(() => removeRule(ctx, refused.id)) : shown ? () => { showTransfer(P, g, false); V.schedule(); } : null);
     const undoWords = swaps ? COPY.undoSwaps(swaps) : refused || shown ? COPY.previous : COPY.undoLast;
-    let title, line = null, left = null, right = null;
+    let title, line = null, left = null, right = null, stamp = false;
     // (a week with your transfers is the made card, whatever the solver would add after them: state 1 is "no transfer of
     // yours yet"; a fresh solve after the take found a third move at 0.0 and the card offered it; qa-cold trace 2026-11-08)
     // (…except a week your transfers leave short of money, owedAt: its best is the way to pay it back (owedRoad, litCan's
@@ -197,7 +198,7 @@ export function ticketPart(V) {
       // transfer's cost and value in it (cardGain, what orders the cards); owner, 2026-11-08, "shows both comparisons")
       // (books review 2026-11-08, owner "fix": the verdict first where the plan saves; a gain inside the forecast's noise
       // (counted's 'coin') says Close call, as the band did)
-      line = gain == null ? COPY.waitShort : moveLine(pl.cmp, gain, !!pl.forced, windowRounds(pl.road, g) || P.gws.filter((x) => x >= g).length);
+      line = gain == null ? COPY.waitShort : moveLine(gain, !!pl.forced, windowRounds(pl.road, g) || P.gws.filter((x) => x >= g).length);
       const not = best.dataset.notIn ? { gw: g, out: Number(best.dataset.notOut), in: Number(best.dataset.notIn) } : null;
       // (…on to a transfer still where the solver's own run out: Show a transfer's on, so the week that then rolls shows its
       // best transfer, never the roll's card; owner, 2026-11-08, "why end up with same save your free transfer if i asked")
@@ -226,7 +227,8 @@ export function ticketPart(V) {
       // (the move you made keeps its numbers and its warning: books review 2026-11-08, "after Make the swap the card shows
       // no number"; the take's own, tookOf, while your plan is what it made)
       const took = tookOf(P, w);
-      if (took?.cmp) line = moveLine(took.cmp, took.cmp.delta, took.forced, took.rounds || P.gws.filter((x) => x >= g).length);
+      if (took?.cmp) line = moveLine(took.cmp.delta, took.forced, took.rounds || P.gws.filter((x) => x >= g).length);
+      stamp = true;
       left = btn('alt', undoWords, `tk:undo:${g}`, undo);
       right = onward;
     } else if ((showingAt(P, g) && !none && (ans || (S.wait && !M?.live))) || (!best && P.editable && !V.frozenAt(P, g) && (!!M?.lit?.move?.choice?.moves?.some((m) => m.gw === g) || !!M?.shownOut))) {
@@ -257,10 +259,18 @@ export function ticketPart(V) {
     }
     const placed = P.healing && !w.moves.length ? placedAt(g) : null;
     if (!placed) placedDone();
-    if (who) { title = COPY.bringWho(P.L.name(who.id)); line = null; left = btn('alt', COPY.bringCancel, 'tk:cancel', () => stopChoosing(ctx)); right = null; }
+    if (who) {
+      const pr = P.L.price(who.id);
+      title = COPY.bringWho(P.L.name(who.id));
+      line = lineRow(COPY.bringTap, pr == null ? null : fmt.money(pr));
+      left = btn('alt', COPY.bringCancel, 'tk:cancel', () => stopChoosing(ctx));
+      right = null;
+      stamp = false;
+    }
     else if (placed) {
       title = movesTitle(ctx, P, g, [placed]);
       line = null;
+      stamp = false;
       after = inPlaces(w, [placed]);
     }
     // (the same two buttons from paint to paint of a week: a paint between a finger's down and up took its tap, a solve
@@ -275,13 +285,15 @@ export function ticketPart(V) {
       // (its tap the Week sheet: every transfer, choice and rule of the week, as the bar was: nothing is lost with the bar)
       h('button.ah-tkrow', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.weekTitle(g), dataset: { row: 'week', moves: w.moves.map((m) => `${m.out}>${m.in}`).join(' ') }, onClick: (ev) => openWeek(ev, g) },
         h('span.ah-tkg', null, `GW${g}`), dlEl, h('span.ah-tkx.m-num', null, was ? h('s.ah-was', { 'aria-hidden': 'true' }, was) : null, xpNum(fmt.num(w.points)))),
-      h('h2.ah-tkhead', null, title),
-      h('div.ah-tkmid', null, line ? h('p.ah-tkline', null, line) : null,
-        who ? null : h('div.ah-tkback', null, undo && left?.dataset.row !== `tk:undo:${g}` ? h('button.ah-rsbtn.undo', { type: 'button', disabled: off, class: { back: !swaps && (!!refused || shown) }, dataset: { row: `tk:undo:${g}` }, onClick: undo }, undoWords) : null, rsBtn)),
-      chips ? h('p.ah-tkor', null, 'Or ', chips[0], ', or ', chips[1], '.') : null);
-    if (held) rsBtn.focus({ preventScroll: true });
+      h('div.ah-tktitle', null, h('h2.ah-tkhead', null, title), stamp ? h('span.ah-tkstamp', null, COPY.madeStamp) : null),
+      line == null ? null : line instanceof Node ? line : lineRow(line));
     sizeTitle(block);
     fill(block.querySelector(':scope > .ah-tkacts'), left, right);
+    // every other thing the card does, one row under its two buttons (design_1109a slip): the take-back, Reset all weeks,
+    // Bring in a player, Play a chip
+    fill(block.querySelector(':scope > .ah-tklinks'), who ? null : h('span.ah-tkback', null, undo && left?.dataset.row !== `tk:undo:${g}` ? h('button.ah-rsbtn.undo', { type: 'button', disabled: off, class: { back: !swaps && (!!refused || shown) }, dataset: { row: `tk:undo:${g}` }, onClick: undo }, undoWords) : null, rsBtn),
+      chips ? h('span.ah-tkor', null, chips[0], chips[1]) : null);
+    if (held) rsBtn.focus({ preventScroll: true });
     V.paintBoard(P, w, who ? null : after);
     playStack(g);
   }

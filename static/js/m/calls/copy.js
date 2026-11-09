@@ -802,24 +802,23 @@ export const COPY = Object.freeze({
   seeChanges: 'See the changes',
   onToWeek: (g) => `On to GW${g}`,
   setInFplGo: 'Set in FPL',
-  overNextWeeks: (n) => (n === 1 ? 'over the next week.' : `over the next ${n} weeks.`),
-  /** The card's two numbers, one name for the alternative (books review 2026-11-08: "saving", the title's word): "+0.3 xP
-   *  vs saving, +0.2 xP counting the free transfer, over the next 4 weeks." */
-  vsRolling: 'vs saving',
-  solverCount: 'counting the free transfer',
-  bringInPlayer: 'bring in a player you want',
+  /** The card's one number's words, at its left (owner, 2026-11-09, design_1109a slip): the move's points over the weeks
+   *  shown against saving the free transfer, the saved transfer's own worth counted (what orders the cards). */
+  vsSavingNext: (n) => (n === 1 ? 'Next week, vs saving it for later' : `Next ${n} weeks, vs saving it for later`),
+  /** The card's stamp beside a move you made (design_1109a slip). */
+  madeStamp: 'Made',
+  bringInPlayer: 'Bring in a player',
   offForNow: '(off for now)',
-  /** The card while the pitch asks who he replaces, and what the money lacks under a name there. */
-  bringWho: (name) => `Who does ${name} replace?`,
+  /** The card while the pitch asks who he replaces (design_1109a slip): "B.Fernandes → ?", the ask under it. */
+  bringWho: (name) => `${name} → ?`,
+  bringTap: 'Tap the player he replaces',
   bringCancel: 'Cancel',
   /** A place on the pitch the card's swap would change, said. */
   boardSaid: (name, out) => `${name} would come in for ${out}`,
   boardBench: (name) => `${name} would go to the bench`,
-  playAChip: 'play a chip',
+  playAChip: 'Play a chip',
   yourFplTeam: 'Your FPL team:',
   answerSave: (ft) => (ft > 1 ? 'Save your free transfers' : 'Save your free transfer'),
-  /** Under a transfer the plan would not make (Show a transfer): owner, 2026-11-08, "Worse than saving". */
-  planSaves: 'Worse than saving your free transfer.',
   answerDone: 'Nothing more to do this week',
   /** The band's number's scope and its toss-up (ahead tokensOf; owner, 2026-11-03, design_1103b): "· 4 GW", "Close call". */
   overGws: (n) => `· ${n} GW`,

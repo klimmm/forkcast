@@ -131,7 +131,7 @@ export function linePart(V) {
         moves: w.moves.map((m) => `${m.out}>${m.in}`).join(' '),
         doors: [],
       }),
-      h('div.ah-tkacts')));
+      h('div.ah-tkacts'), h('div.ah-tklinks')));
     // fitFacts's input: the checks' words, shortest last
     S.line = wln ? { bar: strip.querySelector(':scope > .ah-block > .ah-pbar'), wln, texts: waits } : null;
     fitFacts();

@@ -1465,45 +1465,59 @@ back the next card rises over it */
 .m-screen.ah .ah-tkg { font-weight: 700; color: var(--tk-ink); }
 .m-screen.ah .ah-tkx { margin-left: auto; white-space: nowrap; }
 .m-screen.ah .ah-tkx .xp, .m-screen.ah .ah-tkx .xp-u { color: var(--tk-xp); font-weight: 600; }
-.m-screen.ah .ah-tkhead { margin: 5px 0 3px; font: 700 var(--tk1)/1.08 var(--f-text); color: var(--tk-ink); }
-.m-screen.ah .ah-tkhead.long { font-size: calc(20rem / 17); line-height: 1.1; }
+/* (the card's numbers at the text's one size, their "xP" too: two sizes on the card, design_1109a slip) */
+.m-screen.ah :is(.ah-tkx, .ah-tkline) .xp-u { font-size: 1em; margin-left: .2em; }
+.m-screen.ah .ah-tkx .ah-was { font-size: var(--tk3); }
+/* the slip (owner, 2026-11-09, design_1109a slip): two sizes, the title's and the text's (--tk3); the move, its one number at
+   the right edge, a tear line, the two buttons, then every other action in one row */
+.m-screen.ah .ah-tktitle { display: flex; align-items: center; gap: 8px; margin: 5px 0 3px; }
+.m-screen.ah .ah-tkhead { flex: 1 1 auto; min-width: 0; margin: 0; font: 700 calc(22rem / 17)/1.15 var(--f-text); letter-spacing: -.01em; color: var(--tk-ink); }
+.m-screen.ah .ah-tkhead.long { font-size: var(--tk3); line-height: 1.33; letter-spacing: 0; }
+/* a move you made: the stamp beside it */
+.m-screen.ah .ah-tkstamp { flex: none; padding: 0 6px; border: 2px solid #1f8a4c; border-radius: 4px; color: #1f8a4c; font: 700 var(--tk3)/20px var(--f-text); transform: rotate(-4deg); }
 /* the title's names: each a door to his card, underlined as the line's doors (.ah-tkor .ah-door) */
 /* (above the row's tap area, which reaches down over the title: z-index 1, .ah-tkrow; a tap on a name opened the Week sheet,
    journeys 2026-11-08) */
 .m-screen.ah .ah-tkname { position: relative; z-index: 2; padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; cursor: pointer; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; text-decoration-color: rgb(20 23 26 / .35); }
 .m-screen.ah .ah-tkname::before { content: ""; position: absolute; inset: -8px -2px; }
 .m-screen.ah .ah-tkname:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: 2px; }
-.m-screen.ah .ah-tkline { margin: 0; font: 500 var(--tk3)/1.3 var(--f-text); color: #2b3036; }
+.m-screen.ah .ah-tkline { display: flex; align-items: baseline; gap: 8px; margin: 0; font: 500 var(--tk3)/1.33 var(--f-text); color: var(--tk-mute); }
+.m-screen.ah .ah-tkline .ah-tkl { flex: 1 1 auto; min-width: 0; }
+.m-screen.ah .ah-tkline .ah-tkr { flex: none; white-space: nowrap; color: var(--tk-ink); }
 .m-screen.ah .ah-tkline .xp, .m-screen.ah .ah-tkline .xp-u, .m-screen.ah .ah-tkline .xp-g { color: var(--tk-xp); font-weight: 600; }
 /* (a loss in the muted ink at the line's weight, never the gain's blue; books review 2026-11-08) */
 .m-screen.ah .ah-tkline .xp-g.neg, .m-screen.ah .ah-tkline .xp-g.neg + .xp-u { color: var(--tk-mute); font-weight: 500; }
-/* the week's line, and at its end the one Reset, on every week's card while there's something of yours to take back */
-.m-screen.ah .ah-tkmid { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; }
-/* (the card's take-backs one group at the right, beside the line or under it where they don't fit) */
-.m-screen.ah .ah-tkback { position: relative; z-index: 2; display: flex; gap: 14px; margin-left: auto; }  /* (over the links' reach under them) */
-/* (Reset all weeks quiet and apart from ← Previous, 24 px: a miss there wipes every week; books review 2026-11-08) */
-.m-screen.ah .ah-tkback .ah-rsbtn:not(.undo) { font-weight: 500; }
-.m-screen.ah .ah-tkback .ah-rsbtn.undo + .ah-rsbtn:not(.undo) { margin-left: 10px; }
-.m-screen.ah .ah-rsbtn { position: relative; z-index: 1; margin: -16px 0 -8px; padding: 16px 0 8px; border: 0; background: none; color: var(--tk-mute); font: 600 var(--tk4)/1.3 var(--f-text); white-space: nowrap; cursor: pointer; }
+/* the row under the buttons: the take-back, Reset all weeks, Bring in a player, Play a chip, all alike (no "·" between:
+   a wrapped row began with one; design_1109a's art director) */
+.m-screen.ah .ah-tklinks { display: flex; flex-wrap: wrap; column-gap: 14px; row-gap: 2px; padding: 8px 14px 10px; font: 500 var(--tk3)/20px var(--f-text); }
+.m-screen.ah .ah-tklinks:not(:has(button:not([hidden]))) { padding: 0 0 10px; }
+/* (two groups, the take-backs and the doors, each kept whole: four links are wider than the card at 393 px, so the doors go
+   under the take-backs as one, never "Play a chip" alone on a row) */
+.m-screen.ah .ah-tklinks > span { display: flex; column-gap: 14px; }
+.m-screen.ah .ah-tklinks > span:not(:has(button:not([hidden]))) { display: none; }
+.m-screen.ah .ah-rsbtn { position: relative; z-index: 1; margin: -12px 0 -10px; padding: 12px 0 10px; border: 0; background: none; color: var(--tk-ink); font: 500 var(--tk3)/20px var(--f-text); white-space: nowrap; cursor: pointer; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
 .m-screen.ah .ah-rsbtn[hidden] { display: none; }
 /* (the words alone: a ring round its tall tap area ran over the lines above and under it) */
 .m-screen.ah .ah-rsbtn:focus-visible { outline: none; text-decoration: underline; }
 /* (each sign says its one meaning: back a step, or take a swap back; Reset all weeks wears none, its words and red say it) */
-.m-screen.ah .ah-rsbtn.undo { color: var(--tk-ink); }
-.m-screen.ah .ah-rsbtn.undo::before { content: "\21A9\FE0E" / ""; margin-right: 3px; font-weight: 400; }
+.m-screen.ah .ah-rsbtn.undo::before { content: "\21A9\FE0E" / ""; margin-right: 3px; font-weight: 400; text-decoration: none; display: inline-block; }
 .m-screen.ah .ah-rsbtn.undo.back::before { content: "\2190" / ""; }
-.m-screen.ah .ah-tkor { margin: 6px 0 0; font: 500 var(--tk4)/1.3 var(--f-text); color: var(--tk-mute); }
-.m-screen.ah .ah-tkor .ah-door { position: relative; z-index: 1; display: inline; height: auto; min-height: 0; padding: 20px 0 8px; margin: -20px 0 -8px; border: 0; background: none; color: var(--tk-ink); font: 600 var(--tk4)/1.3 var(--f-text); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
+.m-screen.ah .ah-tkor .ah-door { position: relative; z-index: 1; display: inline; height: auto; min-height: 0; padding: 12px 0 10px; margin: -12px 0 -10px; border: 0; background: none; color: var(--tk-ink); font: 500 var(--tk3)/20px var(--f-text); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
 .m-screen.ah .ah-tkor .ah-door::before, .m-screen.ah .ah-tkor .ah-door::after { content: none; }
-.m-screen.ah .ah-tkor .ah-door:disabled { color: var(--tk-mute); font-weight: 500; text-decoration: none; opacity: 1; }
-/* chips off (calls.js CHIPS_OFF): the link drawn as the one beside it, no note (owner, 2026-11-08: "remove '(off for now)' from text and fix so play a chip underlined") */
-.m-screen.ah .ah-tkor .ah-door.ah-chipsoff:disabled { color: var(--tk-ink); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
-.m-screen.ah .ah-tkacts { display: flex; gap: 8px; margin-top: auto; padding: 0 14px 10px; border-top: 0; }
+.m-screen.ah .ah-tkor .ah-door:disabled { color: var(--tk-mute); text-decoration: none; opacity: 1; }
+/* chips off (calls.js CHIPS_OFF): the link drawn as the one beside it, never pale (owner, 2026-11-08: "fix so play a chip
+   underlined"; design_1109a's art director: pale grey read as switched off) */
+.m-screen.ah .ah-tkor .ah-door.ah-chipsoff:disabled { color: var(--tk-ink); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
+/* the tear: a dashed line, a notch at each edge, between what the move is and the two buttons */
+.m-screen.ah .ah-tkacts { position: relative; display: flex; gap: 8px; margin-top: auto; padding: 18px 14px 0; border-top: 0; }
+.m-screen.ah .ah-tkacts::before { content: ""; position: absolute; left: 12px; right: 12px; top: 8px; border-top: 2px dashed #d5d8de; }
+.m-screen.ah .ah-tkacts::after { content: ""; position: absolute; left: 0; right: 0; top: 2px; height: 14px; pointer-events: none;
+  background: radial-gradient(circle at 0 50%, var(--tk-night) 7px, transparent 7.5px), radial-gradient(circle at 100% 50%, var(--tk-night) 7px, transparent 7.5px); }
 /* (greyed while the card waits, as the app's other disabled controls: they looked live, a tap did nothing; journeys and
    books review, 2026-11-08) */
 .m-screen.ah .ah-tkacts :is(.ah-alt, .ah-go):disabled { opacity: .45; cursor: default; }
-.m-screen.ah .ah-alt, .m-screen.ah .ah-go { flex: 1 1 0; min-width: 0; height: calc(46rem / 17); padding: 0 8px; border-radius: 6px; font: 700 var(--tk2)/1 var(--f-text); color: var(--tk-ink); cursor: pointer; }
-.m-screen.ah .ah-alt { border: 1.5px solid var(--tk-ink); background: none; font-weight: 600; }
+.m-screen.ah .ah-alt, .m-screen.ah .ah-go { flex: 1 1 0; min-width: 0; height: calc(46rem / 17); padding: 0 8px; border-radius: 6px; font: 700 var(--tk3)/1 var(--f-text); color: var(--tk-ink); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-screen.ah .ah-alt { border: 1.5px solid var(--tk-ink); background: none; }
 .m-screen.ah .ah-go { border: 0; background: var(--tk-go); }
 /* an iPhone SE's screen: the whole page in one look */
 @media (max-height: 720px) { .m-screen.ah { --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 28px) + 24px); --ah-ticket-h: calc(204rem / 17); } .m-screen.ah .ah-pitch .pm { --pm-hlo: calc(var(--tk4) * 1.1 + var(--tk4) * 1.2 + 28px); } }
@@ -1512,11 +1526,12 @@ back the next card rises over it */
 −1.0xP vs saving, …") had the page scroll 22 px at 375 × 667, 14 px at 390 × 712 (qa-tk79/80 fit; owner, 2026-11-09:
 "Smaller line text") */
 @media (max-height: 720px) {
-  .m-screen.ah .ah-tkline { font-size: var(--tk4); line-height: 1.25; }
   .m-screen.ah .ah-tkbody { padding: 7px 12px 6px; }
   .m-screen.ah .ah-tkrow { padding: 7px 0 15px; margin: -7px 0 -15px; }  /* (its tap area to the body's new top: 3 px out of the card at 393 × 702, ticket QA; its foot 3 px up too, so its centre stays where it was, off the title names' tap areas: sheet-reach at 375 × 667) */
-  .m-screen.ah .ah-tkacts { padding: 0 12px 8px; }
-  .m-screen.ah .ah-tkor { margin-top: 0; }
+  .m-screen.ah .ah-tkacts { padding: 16px 12px 0; }
+  .m-screen.ah .ah-tkacts::before { top: 7px; }
+  .m-screen.ah .ah-tkacts::after { top: 1px; }
+  .m-screen.ah .ah-tklinks { padding: 4px 12px 6px; }  /* (a wrapped row fits 375 × 667 too: qa-tk108 fit, 1 px of scroll) */
 }
 @media (max-height: 620px) {
   .m-screen.ah { --tk1: calc(23rem / 17); --tk2: calc(16rem / 17); --tk3: calc(14rem / 17); --tk4: calc(12rem / 17); --ah-tab-h: calc(23rem / 17); --ah-ticket-h: calc(164rem / 17); --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 22px) + 32px); }
