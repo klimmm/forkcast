@@ -1051,7 +1051,13 @@ export function removeMove(ctx, m) {
 /** Every transfer of yours in GW g taken back in one edit: the card's Undo, which names them all (owner, 2026-11-05, "why
  *  ... when i click undo it not undo it and keep silva transfer"). → bool */
 export function removeWeek(ctx, g) {
-  const P = plan(ctx), moves = (weekOf(P, g)?.moves || []).map((m) => ({ ...m, gw: g }));
+  const P = plan(ctx), own = (weekOf(P, g)?.moves || []).map((m) => ({ ...m, gw: g }));
+  // …and a later week's swap that buys back a player this week sells: with this week's sale undone he is yours, the
+  // buy can't stand, and the plan it asked for failed, the Undo taking nothing back (qa-tk110 j-moves-undo-earlier: GW11
+  // Muharemović → Van Hecke, GW12 Gabriel → Muharemović, Undo in GW11 left both)
+  const sold = new Set(own.map((m) => Number(m.out)));
+  const back = P.gws.filter((x) => x > g).flatMap((x) => (weekOf(P, x)?.moves || []).filter((m) => sold.has(Number(m.in))).map((m) => ({ ...m, gw: x })));
+  const moves = [...own, ...back];
   if (g === P.A && isLive(ctx)) { toastOf(ctx)(COPY.live(P.A), 'warn'); return false; }
   const taken = P.pins.filter((q) => q.id === `roll:${g}`);
   const what = withTaken(P, COPY.removed(moves.map((m) => moveSaid(P.L.name, m)).join(', ')), taken);

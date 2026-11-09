@@ -1505,9 +1505,6 @@ back the next card rises over it */
 .m-screen.ah .ah-tkor .ah-door { position: relative; z-index: 1; display: inline; height: auto; min-height: 0; padding: 12px 0 10px; margin: -12px 0 -10px; border: 0; background: none; color: var(--tk-ink); font: 500 var(--tk3)/20px var(--f-text); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
 .m-screen.ah .ah-tkor .ah-door::before, .m-screen.ah .ah-tkor .ah-door::after { content: none; }
 .m-screen.ah .ah-tkor .ah-door:disabled { color: var(--tk-mute); text-decoration: none; opacity: 1; }
-/* chips off (calls.js CHIPS_OFF): the link drawn as the one beside it, never pale (owner, 2026-11-08: "fix so play a chip
-   underlined"; design_1109a's art director: pale grey read as switched off) */
-.m-screen.ah .ah-tkor .ah-door.ah-chipsoff:disabled { color: var(--tk-ink); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
 /* the tear: a dashed line, a notch at each edge, between what the move is and the two buttons */
 .m-screen.ah .ah-tkacts { position: relative; display: flex; gap: 8px; margin-top: auto; padding: 18px 14px 0; border-top: 0; }
 .m-screen.ah .ah-tkacts::before { content: ""; position: absolute; left: 12px; right: 12px; top: 8px; border-top: 2px dashed #d5d8de; }

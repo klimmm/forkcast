@@ -277,7 +277,7 @@ export function ticketPart(V) {
     // landing as you tap "bring in a player")
     if (S.doors?.g !== g || S.doors.editable !== P.editable) S.doors = { g, editable: P.editable, of: [bringDoor(P, g), chipsDoor(P, g)] };
     const chips = who || inkAt(ctx, P, g) ? null : S.doors.of;
-    if (chips) { chips[0].textContent = COPY.bringInPlayer; chips[1].textContent = COPY.playAChip; chips[1].disabled ||= CHIPS_OFF; chips[1].classList.toggle('ah-chipsoff', CHIPS_OFF); }
+    if (chips) { chips[0].textContent = COPY.bringInPlayer; chips[1].textContent = COPY.playAChip; }
     // the week's points with no transfers of yours, struck before its own, as on its tab (renderRail)
     const was = P.bare?.has(g) ? tickWas(w, P.bare.get(g)) : null;
     const held = rsBtn === document.activeElement;
@@ -292,7 +292,9 @@ export function ticketPart(V) {
     // every other thing the card does, one row under its two buttons (design_1109a slip): the take-back, Reset all weeks,
     // Bring in a player, Play a chip
     fill(block.querySelector(':scope > .ah-tklinks'), who ? null : h('span.ah-tkback', null, undo && left?.dataset.row !== `tk:undo:${g}` ? h('button.ah-rsbtn.undo', { type: 'button', disabled: off, class: { back: !swaps && (!!refused || shown) }, dataset: { row: `tk:undo:${g}` }, onClick: undo }, undoWords) : null, rsBtn),
-      chips ? h('span.ah-tkor', null, chips[0], chips[1]) : null);
+      // (chips off, calls.js CHIPS_OFF: no Play a chip at all, never a link a tap does nothing on; owner, 2026-11-09, "why play
+      // a chip not respond")
+      chips ? h('span.ah-tkor', null, chips[0], CHIPS_OFF ? null : chips[1]) : null);
     if (held) rsBtn.focus({ preventScroll: true });
     V.paintBoard(P, w, who ? null : after);
     playStack(g);
