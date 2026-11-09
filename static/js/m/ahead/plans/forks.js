@@ -151,12 +151,16 @@ const FORK_ROADS_MAX = 96;
 export function answeredBy(P, key, values) {
   const v = `${P.b?.version}|`, solved = [...FORK_ROADS].filter(([k, r]) => k.startsWith(v) && r?.weeks?.length && r.values).map(([, r]) => r);
   const model = P.base?.weeks?.length && P.base.values ? [P.base] : [];
-  const r = model.find((x) => valuesKey(P, x.values) === key) ?? [...model, ...solved].find((x) => rootStill(x.values, values, x));
+  // (a road solved past the ask's last week answers it only with its own window for that week: cut to none, every card
+  // counted against it lost the solver's count (counted fell back to bare points); the GW12 roll's answer read Raya →
+  // Trafford −0.4 on the root, +0.4 after Previous on the cut, "0.0 / 0.0" between; qa-tk81 trace j)
+  const to = num(values.to), past = (x) => to != null && (x.values?.to == null || num(x.values.to) > to);
+  const r = model.find((x) => valuesKey(P, x.values) === key) ?? [...model, ...solved].find((x) => (!past(x) || x.windows?.[to] != null) && rootStill(x.values, values, x));
   if (r) globalThis.__fcTrace?.('answered', r.key);  // (the QA's solve audit: which solves were ever used)
   // (a road solved past the ask's last week (rootStill) answers it as its own solve would: those weeks and their terms,
   // its last week's window alone, as api/mobile_roads.road_cut)
-  const to = num(values.to), cut = (o) => Object.fromEntries(Object.entries(o ?? {}).map(([t, by]) => [t, Object.fromEntries(Object.entries(by ?? {}).filter(([x]) => Number(x) <= to))]).filter(([, by]) => Object.keys(by).length));
-  const own = r && to != null && (r.values?.to == null || num(r.values.to) > to)
+  const cut = (o) => Object.fromEntries(Object.entries(o ?? {}).map(([t, by]) => [t, Object.fromEntries(Object.entries(by ?? {}).filter(([x]) => Number(x) <= to))]).filter(([, by]) => Object.keys(by).length));
+  const own = r && past(r)
     ? { weeks: r.weeks.filter((w) => Number(w.gw) <= to), ...(r.objective ? { objective: cut(r.objective) } : {}), ...(r.windows ? { windows: Object.fromEntries(Object.entries(r.windows).filter(([x]) => Number(x) === to)) } : {}) }
     : {};
   return r ? { ...r, ...own, key, values } : null;
@@ -264,7 +268,10 @@ export function forkPump(ctx, P, ask) {
   const lane = same ? same[0] : side ? free ?? sideYield?.[0] : prep ? free ?? (!PAIR.flight && !holder && !prepsWaiting(ctx, P) ? 0 : yielded?.[0])
     : !PAIR.flight ? 0 : free ?? other?.[0];
   if (lane === undefined) return;  // every lane busy: a landing re-draws the choices, which asks again
-  if (holder && !(prep ? PREP_BESIDE : PAIR_TAKES).has(holder)) {
+  // (a refusal solved ahead in a fork lane of its own, `side`, is never in the spec slot: it goes beside your rules'
+  // speculative solve as the card's own ask does. It waited out Show another 1's "without your transfers" solve, 5 s on a
+  // cold server, and the next card waited on it; qa-tk81 trace h)
+  if (holder && !(prep && !(side && lane) ? PREP_BESIDE : PAIR_TAKES).has(holder)) {
     const f = ctx.api.whenFree?.('spec');
     if (f) f.then(() => forkAgain(ctx, 0)); else forkAgain(ctx, PAIR_AGAIN_MS);
     return;
@@ -290,7 +297,7 @@ export function forkPump(ctx, P, ask) {
       // a tap's solve asked ahead: its answer memory's for exactly those values (presolve); one that failed for another
       // reason than your rules is never asked again on this page (no cost: the tap heals as before)
       if (ask.ahead && (res.road || res.state === 'error')) {
-        AHEAD.landed.add(ask.key);
+        AHEAD.landed.set(ask.key, res.version ?? null);
         // (kept for the data version the plan service solved it on, never the one the view was drawn on (an older
         // code's roads could be served while it solved on the newer); none told, none kept)
         if (res.version != null) memOf(ctx).offer(res.road, { values: ask.values, error: res.error, version: res.version });

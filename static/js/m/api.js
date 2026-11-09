@@ -92,7 +92,9 @@ export function readAccess(meta, fallback = { local: false, share: [] }) {
   const isLocal = typeof a.local === 'boolean' ? a.local : fallback.local;
   const mode = typeof a.mode === 'string' ? a.mode : null;
   const urls = [a.urls].flat().filter((u) => typeof u === 'string' && /^https?:\/\//.test(u));
-  return { local: isLocal, mode, share: isLocal && (mode === 'lan' || mode === 'public') ? [...new Set(urls)] : [], release: releaseName(a.release) };
+  // (released_at: the release's tag time, epoch s, only where the server tells it; owner, 2026-11-09)
+  const at = Number(a.released_at), released = releaseName(a.release) && Number.isFinite(at) && at > 0 ? { released_at: at } : {};
+  return { local: isLocal, mode, share: isLocal && (mode === 'lan' || mode === 'public') ? [...new Set(urls)] : [], release: releaseName(a.release), ...released };
 }
 
 // ---------------------------------------------------------------- recent team IDs (this browser only)

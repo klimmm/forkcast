@@ -92,7 +92,7 @@ function fromBundle(cards, id, vs) {
     last_matches: me.last_matches, cups: me.cups, cup_next: cards.cup_next?.[me.club] ?? [], stats };
 }
 
-export function open(ctx, rawId, { gw, place = null } = {}) {
+export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
   const id = Number(rawId);
   const d = ctx.data;
   const row = d?.byId.get(id);
@@ -132,7 +132,7 @@ export function open(ctx, rawId, { gw, place = null } = {}) {
         const main = body.querySelector('.ps-main') || body.appendChild(h('div.ps-main'));
         main.dataset.card = cardState;
         const W = widthOf(main);
-        const m = model(ctx, P, row, id, card, cardState, local);
+        const m = model(ctx, P, row, id, card, cardState, local, vs);
         const G = geometry(m, W);
         fill(subEl, headerSub(row, P.L.pos(id), card, entry));
         // focus survives a redraw: a segmented option (ui.roving) in its group, found by name; an ⓘ by its label
@@ -344,7 +344,7 @@ function xpRank(ctx, pos, xp, g) {
 /** Past matches (the card), the five forecasts (bundle row and runs), the replaced player of a buy, opponents (bundle
  *  fixtures + FPL difficulty), his cups and coming ties (card cups, cup_next). Past columns are held open while the
  *  card loads; a card with none draws the forecast across the width. Runs: a local page only (`local`). */
-function model(ctx, P, row, id, card, state, local = false) {
+function model(ctx, P, row, id, card, state, local = false, vs = null) {
   const d = ctx.data;
   const pos = P.L.pos(id) ?? posName(row.pos);
   const runsOf = (pid, g) => {
@@ -353,7 +353,8 @@ function model(ctx, P, row, id, card, state, local = false) {
     return Array.from({ length: s.runs }, (_, r) => s.at(pid, g, r)).filter(Number.isFinite);
   };
   const w = P.weeks.find((x) => x.in.includes(id) && !P.owned.includes(id));
-  const out = w?.moves.find((m) => m.in === id)?.out;
+  // (`vs`: the player he'd replace in a transfer the card offers, not yet in the plan)
+  const out = vs ?? w?.moves.find((m) => m.in === id)?.out;
   const orow = out != null ? d.byId.get(Number(out)) : null;
   const past = card?.last_matches ?? [];
   return {
@@ -374,7 +375,7 @@ function model(ctx, P, row, id, card, state, local = false) {
       inPlan: !!weekOf(P, g),
     })),
     comp: out == null ? null : {
-      name: P.L.name(out), gw: w.gw, chance: orow?.chance ?? null,
+      name: P.L.name(out), chance: orow?.chance ?? null,
       xp: d.xpGws.map((g) => ctx.pitch.xpAt(orow, g, d.xpGws)),
     },
   };

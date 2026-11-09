@@ -111,7 +111,7 @@ export function solvedLineup(roads, g, sq, chip) {
 
 /**
  * engine.solveValues for your pins over the planned GWs (api/mobile.py clean_values whitelists them): the base values
- * (int_rounds = w, chip defaults '0'), your hit caps per GW where they restrict (--max-hits-gw; elsewhere the solver's
+ * (chip defaults '0'), your hit caps per GW where they restrict (--max-hits-gw; elsewhere the solver's
  * default cap, hitCap of the model's plan), your chips through a draft (setChip), your windows, your Rolls (no_buys_gw "7,8"), the
  * weeks whose bank may go below 0 (debt_gw "9,10": the hold's) and cash. A Wildcard or Free Hit week sends neither
  * hits cap nor Roll.

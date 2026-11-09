@@ -25,17 +25,17 @@ export function pitchPart(V) {
    *  front), each player you buy in the go colour over the struck name of the one you sell, as the card's title says it, a
    *  player only changing places between pitch and bench under an arrow, his card otherwise as it was (owner, 2026-11-06, "it
    *  looks like i replacing de cuper by transfer even when it is just bench swap"), a moved armband in the go colour. `after`:
-   *  GW w's team with the swap made (swapWeek), null none; `small`: a transfer the plan would not make, in white, no go colour
-   *  (owner, 2026-11-06, "transfer model will make and that it consider small look just same"). Each card keeps the id of the
+   *  GW w's team with the swap made (swapWeek), null none; a transfer the plan would not make ("too small") drawn just as one
+   *  it would (owner, 2026-11-06, "transfer model will make and that it consider small look just same"; 2026-11-08, "why van
+   *  heck not highlighted"). Each card keeps the id of the
    *  place it stands for, the team as it is, for the card's tokens (renderDecks). */
-  function paintBoard(P, w, after, small = false) { const { S, pitchHost } = V;
+  function paintBoard(P, w, after) { const { S, pitchHost } = V;
     // (never under an open place: a pitch drawn anew shuts it; drawn once it is shut)
     if (S.place) return;
-    const key = after ? JSON.stringify([w.gw, after.xi, after.bench, after.captain, after.vice, small]) : null;
+    const key = after ? JSON.stringify([w.gw, after.xi, after.bench, after.captain, after.vice]) : null;
     if (key === (S.board?.key ?? null) && (!key || S.board.pitch === S.pitch)) return;
     if (S.board?.key) { S.pitch = null; renderPitch(P, w); paintChoosing(P, w); }
     S.board = { key, pitch: S.pitch };
-    pitchHost.classList.toggle('sb-small', !!after && small);
     if (!after) return;
     const nm = P.L.name, marks = boardMarks(w, after, P.L.pos);
     mountHere({ ...pitchProps(P, w), xi: after.xi, bench: after.bench, captain: after.captain, vice: after.vice });

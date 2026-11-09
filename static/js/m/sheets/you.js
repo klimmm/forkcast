@@ -92,7 +92,8 @@ export function open(ctx, what = null) {
           h('div.m-kv', null, h('span', null, 'Plan'), h('span', null, plan)),
           h('div.m-kv', null, h('span', null, 'Connection'), h('span', { class: conn.state === 'offline' ? 'g-loss' : '' }, link)),
           // the front end's release (api.access), "dev" for the tree's own; none until the server has said
-          acc ? h('div.m-kv', null, h('span', null, 'Version'), h('span.m-num', null, acc.release ?? 'dev')) : null,
+          // (…and when it was released, as Forecast and Plan show theirs; owner, 2026-11-09, "why time of version not displayed")
+          acc ? h('div.m-kv', null, h('span', null, 'Version'), h('span.m-num', null, [acc.release ?? 'dev', when(acc.released_at)].filter(Boolean).join(' · '))) : null,
           // (rows to their sheets, green with ›, not buttons: design 1028d K2)
           h('button.m-nav', { type: 'button', disabled: HELP_OFF, onClick: () => helpSheet(ctx) }, COPY.helpShort, offNote),
           // the app's pitch, from inside it too (owner, 2026-10-14)

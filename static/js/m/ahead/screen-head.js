@@ -6,7 +6,7 @@ import { deadlineInfo, fplSets, initials, inkAt, isLive, liftsLive, resetPlan, r
 import { CHIPS_OFF, COPY, liveCheck, clockText, stepShare } from '../calls.js';
 import { FLASH, LEARN_KEY, WAIT_KEY, editable, info, lockedFrom, memOf, memPlan, num, paintWaitView, plan, span, takeRulesAsk, viewedGw, weekOf } from './core.js';
 import { factsWords, itbWords, squadWeek } from './pieces.js';
-import { presolveTaps, shownGain, weekTaps } from './presolve.js';
+import { shownGain } from './presolve.js';
 import { decksOf, forkKey, listedOf, litOf, litShown, planBack, plansOf, settleDue, shownWaits, weekKey, weekSettled, weekWait } from './plans.js';
 import { countdownParts, cssPx, deadlineOf, listedRules, pitchLeast } from './screen.js';
 
@@ -522,21 +522,17 @@ export function headPart(V) {
     const all = plansOf(ctx, P, g);
     // (chips off: no chip to play from the card or the Week sheet, a row of yours kept; calls.js CHIPS_OFF)
     const plans = ink ? [] : listedOf(heldOrder(P, g, all)).filter((pl) => !CHIPS_OFF || !pl.choice.chips?.[g] || pl.self || pl.refRow);
-    // (Show a transfer's rows: each one's swap asked, its number the card's order; one with no number to come is left out)
-    const forced = plans.filter((pl) => pl.forced && pl.state === 'ready');
-    if (forced.length) {
-      const { takes, sig } = weekTaps(ctx, P, g, forced);
-      presolveTaps(ctx, takes, { gw: g, sig, owner: 'shown' });
-      forced.forEach((pl) => { pl.gain = shownGain(ctx, P, g, pl); });
-    }
-    const shownOut = !!all.forcedOut || shownWaits(plans);
+    // (Show a transfer's rows: each its number, the solver's own count (cardGain), the card's order; their swaps no longer
+    // solved for it, the card's own Make the swap solved ahead (presolveSwap); owner, 2026-11-08)
+    plans.filter((pl) => pl.forced && pl.state === 'ready').forEach((pl) => { pl.gain = shownGain(ctx, P, g, pl); });
+    const shownOut = !!all.forcedOut || shownWaits(plans) || (!!all.forcedFlying && !plans.some((pl) => pl.forced));
     // none lit on the pitch until none checks (weekSettled, litOf), each behind the card of the player it would replace
     // (decksOf), for the pitch (renderDecks) and the checking line. Lit while the first plan's other roads still bake
     // too: what is lit is the solver's own move (plansOf `solver`), which a bake road landing never changes (owner,
     // 2026-11-02, "new team cold start": the best waited 16 s on the bake's veto roads after the week was in)
     const settled = weekSettled(P, g, all), key = weekKey(P, g, all);
     const { decks, toks } = decksOf(P, w, { sq, plans });
-    const lit = litOf(P, w, { sq, plans, settled }, decks, toks);
+    const lit = litOf(P, w, { sq, plans, settled, shownOut }, decks, toks);
     // what the pitch shows lit and green, the Week sheet's green too (litShown), as the pitch last drew this week's
     // places (renderDecks' `drawn`, redrawn after this: sheetFollows; owner, 2026-10-22 and -25)
     decks.drawn = S.decks?.gw === g ? S.decks.drawn : null;

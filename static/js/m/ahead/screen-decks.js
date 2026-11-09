@@ -648,7 +648,7 @@ export function decksPart(V) {
       const nx = w.moves.length ? null : nextFts(P, w);
       out.push(h('button.ah-tok.st.best.ah-ans', { type: 'button', dataset: { row: `tok:ans:${g}` }, onClick: (ev) => openWeek(ev, g) },
         h('span.ah-tl', null, w.moves.length ? COPY.answerDone : COPY.answerSave(w.ft ?? 1)),
-        nx != null ? h('small.ah-tw', null, COPY.rollKeeps(nx, g + 1)) : null));
+        nx != null ? h('small.ah-tw', null, COPY.rollKeepsCard(nx, g + 1)) : null));
     }
     // (none beside it: each is its place's plate already; owner, 2026-11-02, "stop dublicating black and other pills on
     // pich", reversing 2026-10-29's two moves in the corner)

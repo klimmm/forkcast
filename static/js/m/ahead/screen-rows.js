@@ -2,7 +2,7 @@
 
 import { h, fmt, chipName } from '../../ui.js';
 import { COPY, shownDelta } from '../calls.js';
-import { addPlan, pairOf, pinOfMove, planTake, removeMove, rollingAt, rowGains, swapGain, takenKeep, whyFacts } from './presolve.js';
+import { addPlan, pairOf, pinOfMove, planTake, removeMove, rollingAt, rowGains, cardGain, takenKeep, whyFacts } from './presolve.js';
 import { WHY_SHEET, capFirst, closedOf, clubCounts, draftOf, ids, plan, removedAt, span, weekOf } from './core.js';
 import { gwMode, inkAt } from './buys.js';
 import { chipBack, emptyHead, plPays, rollFt, shirtOf, squadWeek, weekFacts } from './pieces.js';
@@ -191,8 +191,8 @@ export function rowsPart(V) {
     const why = () => openPlanWhy(P, g, pl, pays);
     // (the Roll its 0.0: the baseline every other row's number counts from; owner, 2026-11-03, design_1103b "Number
     // scope + close call": Saffer, Johnson's Elements of Choice)
-    // (a transfer's number the card's and the tabs': swapGain; its solve asked while this sheet is open)
-    const moved = adds.length && !pl.refRow ? swapGain(ctx, P, g, pl) : null;
+    // (a transfer's number the card's: cardGain; its solves asked while this sheet is open)
+    const moved = adds.length && !pl.refRow ? cardGain(ctx, P, g, pl) : null;
     const gain = pl.refRow ? gainOf({ delta: 0 }) : !adds.length ? gainOf(pl.cmp) : moved == null ? h('span.ah-bq2', null, COPY.waitShort) : gainOf({ delta: moved });
     const top1 = best ?? S.M?.lit?.move === pl;
     const add = rollOnly(pl) ? null : h('button.ah-add.m-swap', {

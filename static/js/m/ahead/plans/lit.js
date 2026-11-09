@@ -62,7 +62,10 @@ export function weekBest(P, w, M, D, toks = []) {
   const ok = (pl) => !pl.refRow && !pl.placeOnly;
   // (Show a transfer's by the number the card shows, each swap solved first: the solver's order put +0.7 before +1.0;
   // owner, 2026-11-06, "why muha to hill +1 but it goes after murillo to hill")
-  const waits = shownWaits(M.plans), worth = (pl) => (pl.forced ? pl.gain : pl.cmp.delta);
+  // (…and none while a row is still to come at all, its solve out (weekModel's `shownOut`: plansOf `forcedOut`): a refusal's
+  // next row landed 6 s after the card had shown the one before it, so the card went Dovin → Kinsky, then Ajayi → Justin;
+  // owner, 2026-11-08, "why switching dovin to kinsky ... then ajayi to justin back and forth")
+  const waits = !!M.shownOut || shownWaits(M.plans), worth = (pl) => (pl.forced ? pl.gain : pl.cmp.delta);
   const moves = M.plans.filter((pl) => ok(pl) && can(pl) && (!pl.forced || (!waits && pl.gain > -Infinity)) && placesOf(D, pl).length && !placesOf(D, pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl))));
   const move = moves.reduce((m, pl) => (!m || worth(pl) > worth(m) ? pl : m), null);
   const chips = toks.filter((pl) => ok(pl) && pl.state === 'ready' && !rollOnly(pl) && !!pl.choice.chips?.[g] && pl.cmp.delta > (move?.cmp.delta ?? 0));

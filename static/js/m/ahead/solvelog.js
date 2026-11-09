@@ -64,16 +64,21 @@ export function mountSolveLog(ctx) {
       const g = by.get(x.key) ?? { ...x, kinds: [], n: 0 };
       if (!by.has(x.key)) by.set(x.key, g);
       g.n++;
+      // (asked by this browser: a key another page asked first and this one too is ours)
+      g.mine ||= x.mine !== false;
+      if (x.mine !== false && x.state !== 'already solved') g.ownAt = Math.min(g.ownAt ?? Infinity, x.at);
       if (!g.kinds.includes(x.kind)) g.kinds.push(x.kind);
       if (x.state !== 'already solved' && (g.state === 'already solved' || x.at < g.at)) Object.assign(g, { at: x.at, state: x.state, ms: x.ms, what: x.what, gw: x.gw });
     }
     const mine = [...by.values()].sort((x, y) => y.at - x.at), ran = (xs) => xs.filter((x) => x.state !== 'already solved');
-    const running = mine.filter(live).length, after = acted ? mine.filter((x) => x.at >= acted) : mine;
+    // (since your tap: the solves this browser ran, each once, from its own first ask; another page's or device's on the same
+    // team are listed, marked, never counted against your tap; QA trace f, 2026-11-08: three pages on one team read 15)
+    const running = mine.filter(live).length, sinceTap = mine.filter((x) => x.ownAt != null && (!acted || x.ownAt >= acted)).length;
     const ends = (x) => (x.state === 'running' ? `solving, ${secs(now - x.at)}` : x.state === 'queued' ? `waiting, ${secs(now - x.at)}`
       : x.state === 'already solved' ? 'cached' : x.state === 'done' ? `solved in ${secs(x.ms ?? 0)}` : x.ms != null ? `${x.state} in ${secs(x.ms)}` : x.state);
-    const head = `${running} running · ${ran(after).length} since tap · ${ran(mine).length} solved · ${mine.length - ran(mine).length} cached · ${asks.length} asks`;
+    const head = `${running} running · ${sinceTap} since tap · ${ran(mine).length} solved · ${mine.length - ran(mine).length} cached · ${asks.length} asks`;
     // (each line starts "•", a wrapped one indented under it: where a line starts is seen at once; owner, 2026-11-03)
-    const line = (x) => `• ${x.gw != null ? `GW${x.gw}` : 'GW?'} · ${x.kinds.join(' + ')} · ${x.what} · ${ends(x)}${x.n > 1 ? ` · asked ${x.n}×` : ''}`;
+    const line = (x) => `• ${x.gw != null ? `GW${x.gw}` : 'GW?'} · ${x.kinds.join(' + ')} · ${x.what} · ${ends(x)}${x.n > 1 ? ` · asked ${x.n}×` : ''}${x.mine ? '' : ' · another page'}`;
     // (the copy names each solve's key too)
     said = [head, ...mine.map((x) => `${line(x)} · #${x.key}`)];
     list.replaceChildren(

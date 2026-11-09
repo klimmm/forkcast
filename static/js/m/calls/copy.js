@@ -103,6 +103,8 @@ export const COPY = Object.freeze({
   noTransfers: 'No transfers',
   forkcastRolls: (gw) => `Forkcast rolls GW${gw}`,
   rollKeeps: (ft, gw) => `${ft} FT in GW${gw}`,
+  /** …on the card, spelled out (books review 2026-11-08: "2 FT" never spelled out under a title that spells it). */
+  rollKeepsCard: (ft, gw) => `${plural(ft, 'free transfer')} in GW${gw}`,
   /** …read out in full (aria-label): "2 free transfers in gameweek 7". */
   rollKeepsSaid: (ft, gw) => `${plural(ft, 'free transfer')} in gameweek ${gw}`,
   /** The week's free transfers, said first on a week with none of yours: "1 FT". */
@@ -801,6 +803,10 @@ export const COPY = Object.freeze({
   onToWeek: (g) => `On to GW${g}`,
   setInFplGo: 'Set in FPL',
   overNextWeeks: (n) => (n === 1 ? 'over the next week.' : `over the next ${n} weeks.`),
+  /** The card's two numbers, one name for the alternative (books review 2026-11-08: "saving", the title's word): "+0.3 xP
+   *  vs saving, +0.2 xP counting the free transfer, over the next 4 weeks." */
+  vsRolling: 'vs saving',
+  solverCount: 'counting the free transfer',
   bringInPlayer: 'bring in a player you want',
   offForNow: '(off for now)',
   /** The card while the pitch asks who he replaces, and what the money lacks under a name there. */
@@ -812,7 +818,8 @@ export const COPY = Object.freeze({
   playAChip: 'play a chip',
   yourFplTeam: 'Your FPL team:',
   answerSave: (ft) => (ft > 1 ? 'Save your free transfers' : 'Save your free transfer'),
-  planSaves: 'Too small to spend a free transfer.',
+  /** Under a transfer the plan would not make (Show a transfer): owner, 2026-11-08, "Worse than saving". */
+  planSaves: 'Worse than saving your free transfer.',
   answerDone: 'Nothing more to do this week',
   /** The band's number's scope and its toss-up (ahead tokensOf; owner, 2026-11-03, design_1103b): "· 4 GW", "Close call". */
   overGws: (n) => `· ${n} GW`,

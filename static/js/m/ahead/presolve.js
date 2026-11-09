@@ -4,10 +4,11 @@ import * as E from '../../plan/engine.js';
 import { fmt, chipName } from '../../ui.js';
 import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
 import { SOLVES, attach, pinSell, pinHits, pinNotFor, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
-import { MINUS, WHY_SHEET, addMove, asYours, sum, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
+import { MINUS, WHY_SHEET, addMove, asYours, sum, ids, baseOf, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
 import { saidNow, sayAgain, asksOf, autoRuleName, barred, refusedAt, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
 import { FORK_FLIGHTS, SQUAD_CHIPS, answeredBy, asTaken, byGain, choiceVs, fitsAt, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, forkValues, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
 import { freedBy, lineupMoved, gwMode, inkAt, isLive } from './buys.js';
+import { windowGap } from '../calls/measure.js';
 import { plPays, squadWeek } from './pieces.js';
 import { rulesOf } from './screen.js';
 
@@ -42,8 +43,12 @@ export let DRY = null;
 // srcs: 'week' | 'sheet' → {P, gw, sig, owner, asks: [ask], made: [ask], tried: Set(tap id)}; failed: keys of failed
 // solves (not your rules'); at: viewed week {P, g} (plansOf); ctx: the page's; tapped: SOLVES.asked at your last tap
 // (null before the first: a page's load is no action), tappedOn: the team it was on
-export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map(), landed: new Set(), took: null, tapped: null, tappedOn: null, showing: new Set() };
+export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map(), landed: new Map(), took: null, tapped: null, tappedOn: null, showing: new Set() };
 const teamOn = () => AHEAD.ctx?.store.get('entry') ?? null;
+// (your taps counted from the page's first: a page reloaded onto a week with your transfer made presolves nothing before
+// its first tap, so the listener watchPage added missed it and that tap's preparation went past the 6; qa-cold trace)
+if (typeof document !== 'undefined' && document.addEventListener)
+  for (const t of ['click', 'keydown']) document.addEventListener(t, () => { AHEAD.tapped = SOLVES.asked; AHEAD.tappedOn = teamOn(); }, { capture: true, passive: true });
 /** The weeks whose card shows a transfer though the plan rolls them (their Show a transfer, AHEAD.showing; owner, 2026-11-06:
  *  shown as any other transfer, not a list, and there when you come back), till its Previous or Reset all weeks. */
 export const showTransfer = (P, g, on = true) => { AHEAD.showing[on ? 'add' : 'delete'](`${P.entry}|${g}`); PAIR.rev++; };
@@ -58,15 +63,16 @@ export const movesKey = (ms) => ms.map((m) => `${m.out}>${m.in}`).sort().join(',
  *  since, its GW-g moves the week's) → its cmp | null. */
 /** Your rules as one key (the derived hold and Settings → Hits' cap left out: the take's landing re-derives them). */
 const rulesKey = (P) => JSON.stringify(P.pins.filter((p) => p.id !== 'hold' && p.id !== 'hits'));
-export function tookCmp(P, w) {
+export function tookOf(P, w) {
   const t = AHEAD.took;
   if (!t || t.g !== w.gw || t.team !== `${P.entry}|${P.A}` || t.version !== P.b.version) return null;
   const pins = rulesKey(P);
   if (pins === t.before) return null;  // not landed yet (or taken back by its Undo)
   if (t.pins === null) t.pins = pins;
   if (t.pins !== pins) { AHEAD.took = null; return null; }
-  return movesKey(w.moves) === t.sig ? t.cmp : null;
+  return movesKey(w.moves) === t.sig ? t : null;
 }
+export const tookCmp = (P, w) => tookOf(P, w)?.cmp ?? null;
 
 /** The rules tap `run` (an edit call: addPlan, removeRule, keep…) would make, made dry → edit's args {pins, drop,
  *  inPlace, hitsMax, was} | null (changes nothing, or refused: no solve). */
@@ -89,7 +95,11 @@ function askOf(ctx, P, t, src) {
   // pitch after it never waits on a solve: 2026-11-02, Raketa GW10 Murillo → Hill greyed 8 s on a cold cache)
   let root = null;
   if (t.kind === 'take') try { const v = rootValues(ctx, P, t.gw ?? P.A, a.pins, a.drop); root = { key: valuesKey(P, v), values: v }; } catch {}
-  return { key: valuesKey(P, values), values, gw: t.gw ?? P.A, kind: t.kind, src, prep: true, ahead: true, root };
+  // (…and what its week's rows count against after it, the roll ("No transfer") under the take's other-week rules: asked
+  // at the tap it greyed GW14 13.9 s on a cold server, a 14.5 s solve; qa-tk91 trace o)
+  let ref = null;
+  if (t.kind === 'take') try { const g = t.gw ?? P.A, v = forkValues(ctx, P, g, { moves: [], chips: {} }, a.pins.filter((p) => num(p.gw) !== g)); ref = { key: valuesKey(P, v), values: v }; } catch {}
+  return { key: valuesKey(P, values), values, gw: t.gw ?? P.A, kind: t.kind, src, prep: true, ahead: true, root, ref };
 }
 
 /** Source `src`'s taps (most likely first) on plan view P: the first PRESOLVE_MAX[src] that make a solve asked; those
@@ -120,6 +130,8 @@ function presolve(ctx, P, src, taps, { gw = P.A, sig = '', owner = null } = {}) 
       if (a && !cur.asks.some((x) => x.key === a.key) && !others.includes(a.key) && !memOf(ctx).solved(a.values)) cur.asks.push({ ...a, pri: t.pri ?? cur.asks.length });
       // (its root after it, just after it: never counted in the source's room)
       if (a?.root && !cur.asks.some((x) => x.key === a.root.key) && !others.includes(a.root.key) && !forkRead(a.root.key)) cur.asks.push({ ...a, ...a.root, kind: 'root', root: null, pri: (t.pri ?? cur.asks.length) + 0.5 });
+      // (its roll reference after the root: never counted in the room either)
+      if (a?.ref && !cur.asks.some((x) => x.key === a.ref.key) && !others.includes(a.ref.key) && !forkRead(a.ref.key)) cur.asks.push({ ...a, ...a.ref, kind: 'ref', root: null, ref: null, pri: (t.pri ?? cur.asks.length) + 0.6 });
     }
     cur.asks.sort((x, y) => x.pri - y.pri);
   }
@@ -154,13 +166,27 @@ export function swapGain(ctx, P, g, pl) {
   const road = swapRoad(ctx, P, g, pl);
   return road ? sum(asYours(ctx, road).weeks.map((w) => w.points)) - P.total : null;
 }
-/** What Show a transfer's row pl is ordered by (swapGain): -Infinity where no number will come, no swap of it to solve, its
+/** The card's number for choice pl of GW g: the solver's whole count over the window it commits GW g from (counted's
+ *  `delta`: every week put on GW g's own scale, the free transfer it spends or keeps counted), the number the solver
+ *  orders its moves by, so the card's first move always reads the highest (owner, 2026-11-08: "why konsa van hecke
+ *  higher if dewsbury hall optimal fix bug": points with no later transfer read Tavernier → Dewsbury-Hall +2.6, Konsa →
+ *  Van Hecke +3.3; each week on its own scale read Konsa → Van Hecke −0.05, a move the solver makes). → number | null
+ *  till its row is in */
+/** The rounds the card's numbers count for GW g: the window the solver committed it from (road.windows[g], every term's
+ *  rounds), never the weeks left in the header's span: GW14 said "over the next week" counting GW14-17 (books review,
+ *  2026-11-08). 0 where the road has none. */
+export const windowRounds = (road, g) => new Set(Object.values(road?.windows?.[g] ?? {}).flatMap((by) => Object.keys(by ?? {}))).size;
+export const cardGain = (ctx, P, g, pl) => (pl?.state === 'ready' && pl.cmp ? pl.cmp.delta : null);
+/** What Show a transfer's row pl is ordered by (cardGain): -Infinity where no number will come, no swap of it to solve, its
  *  solve failed or your tap's 6 spent. → number | null while its solve is out */
 export function shownGain(ctx, P, g, pl) {
-  const gain = swapGain(ctx, P, g, pl);
+  const gain = cardGain(ctx, P, g, pl);
   if (gain != null) return gain;
   const [take] = weekTaps(ctx, P, g, [pl]).takes, a = take ? askOf(ctx, P, take, 'week') : null;
-  return !a || AHEAD.failed.has(a.key) || tapSpent() ? -Infinity : null;
+  if (!a || AHEAD.failed.has(a.key)) return -Infinity;
+  // (a solve already out brings its number, your tap's 6 spent or not: read as none, the card showed the row before it for
+  // 90 ms; owner, 2026-11-08, "back and forth")
+  return tapSpent() && !forkFlights().some(([, f]) => f.key === a.key) ? -Infinity : null;
 }
 /** The plan Make the swap brings, as yours. → {weeks} | null till its solve is in */
 const swapRoad = (ctx, P, g, pl) => {
@@ -218,13 +244,18 @@ export function pumpAhead(ctx) {
     for (const a of s.asks) {
       // (`landed`: its answer came on this page, for these values on this bundle (the key is the version's): never asked
       // again even where memory keeps it under the plan service's version, not the bundle's (a re-bake serving the
-      // previous code's roads); else every landing pumped the same solve again at once, 19,000 times in a suite run)
-      if (AHEAD.failed.has(a.key) || AHEAD.landed.has(a.key) || mem.solved(a.values)) continue;
+      // previous code's roads); else every landing pumped the same solve again at once, 19,000 times in a suite run.
+      // `landed` keeps the version it came for: one for this bundle that memory no longer holds (its store reset or full)
+      // is asked again, else the card waited on it for ever, "planning…" with nothing solving (owner, 2026-11-08, TORPEDO
+      // Tavernier → Dewsbury-Hall)
+      const held = mem.solved(a.values) || (a.kind === 'root' && forkRead(a.key) != null);
+      const lost = !held && AHEAD.landed.get(a.key) === (ctx.bundle?.version ?? null);
+      if (AHEAD.failed.has(a.key) || held || (AHEAD.landed.has(a.key) && !lost)) continue;
       // (one a road in hand answers already, no solve: answeredBy)
       const sent = answeredBy(P, a.key, a.values);
       if (sent) {
         if (a.kind === 'root') forkKept(a.key, sent); else mem.offer(sent, { values: a.values, version: P.b?.version });
-        AHEAD.landed.add(a.key);
+        AHEAD.landed.set(a.key, P.b?.version ?? null);
         continue;
       }
       left = true;
@@ -275,7 +306,6 @@ function watchPage(ctx) {
   AHEAD.ctx = ctx;
   if (AHEAD.watching || typeof document === 'undefined' || !document.addEventListener) return;
   AHEAD.watching = true;
-  for (const t of ['click', 'keydown']) document.addEventListener(t, () => { AHEAD.tapped = SOLVES.asked; AHEAD.tappedOn = teamOn(); }, { capture: true, passive: true });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') stopAhead();
     else if (AHEAD.ctx && attach()?.ctx === AHEAD.ctx) pairChanged(AHEAD.ctx);
@@ -328,7 +358,7 @@ export function rootStill(was, now, road) {
   // leaves every window as solved; one on a later week can change an earlier window's plan though the road keeps it
   // (2 of 3 such pairs solved another plan), unless no transfer is possible up to that week, no buys from the first)
   const toks = (v) => new Set(String(v ?? '').split(',').filter(Boolean));
-  const NARROW = new Set(['must_have', 'exclude', 'no_buys_gw', 'max_buys_gw', 'to', 'quick_before']);
+  const NARROW = new Set(['must_have', 'exclude', 'not_for', 'no_buys_gw', 'max_buys_gw', 'to', 'quick_before']);
   if (road?.anchor != null) return false;
   if ([...new Set([...Object.keys(was), ...Object.keys(now)])].some((k) => !NARROW.has(k) && JSON.stringify(was[k] ?? null) !== JSON.stringify(now[k] ?? null))) return false;
   const first = Number(now.from_r);
@@ -339,6 +369,10 @@ export function rootStill(was, now, road) {
   if (!weeks.has(first)) return false;
   const squad = (g) => { const w = weeks.get(g) ?? weeks.get(first); return new Set([...ids(w.xi), ...ids(w.bench)]); };
   const held = new Set([...toks(was.no_buys_gw)].map(Number));
+  // (a solve to week `to` counts that week over its whole window; a road solved with no `to` committed each week it rolls
+  // from there to its last from that round alone (quick_rolled, rolling.round_window): the plan service's road_answers
+  // alike; GW14 read +149.6 against such a cut, journeys 2026-11-08)
+  if (now.to != null && was.to == null && [...weeks.keys()].filter((g) => g >= Number(now.to)).every((g) => held.has(g))) return false;
   // (a week whose squad is the first week's in every window: no buys in any week from the first to it)
   const fixed = (g) => g === first || Array.from({ length: g - first + 1 }, (_, i) => first + i).every((x) => held.has(x));
   for (const [k, want] of [['must_have', true], ['exclude', false]]) {
@@ -348,6 +382,15 @@ export function rootStill(was, now, road) {
       const [id, span] = t.split('@'), [a, b] = (span ?? '').split('-').map(Number);
       for (let g = a; g <= (b || a); g++) if (!fixed(g) || squad(g).has(Number(id)) !== want) return false;
     }
+  }
+  // (a refusal added, "GW:out:in": the solver's add_not_for forbids buying `in` while selling `out` that week; a road
+  // that doesn't make that pair there keeps its answer; Show another's next root was solved again after each refusal,
+  // 1.5 s before its card could draw: journeys, 2026-11-08)
+  const fw = toks(was.not_for), fn = toks(now.not_for);
+  if ([...fw].some((t) => !fn.has(t))) return false;
+  for (const t of [...fn].filter((x) => !fw.has(x))) {
+    const [g, out, inn] = t.split(':').map(Number), w = weeks.get(g);
+    if (!fixed(g) || (w && ids(w.in).includes(inn) && ids(w.out).includes(out))) return false;
   }
   const nn = new Set([...toks(now.no_buys_gw)].map(Number));
   if ([...held].some((g) => !nn.has(g))) return false;
@@ -366,62 +409,120 @@ function rootValues(ctx, P, g, extra = [], drop = [], forced = false) {
   const cap = hitCap(P.base) ?? 2, roll = `roll:${g}`;
   // (solved to GW g alone, `to`, as a choice's (forkValues): only its GW-g moves are read, the weeks after it your
   // plan's (planOfRoad); owner, 2026-11-03, "why anytime goes to GW11–13": the ✕ and Keep refusals 8-10 s, GW10 0.3 s)
-  return { ...valuesFor(ctx, [...P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x)), ...extra.filter((p) => p.id !== roll)], [...drop, ...P.pins.filter((p) => p.id === roll).map((p) => p.id)]), to: g, ...(forced ? { min_buys_gw: `${g}:1` } : {}) };
+  // A forced road (Show a transfer, its Show another chain) under a made transfer of yours after GW g is solved from
+  // the bank that leaves that move its money (floorCash): solved to GW g alone it never saw your GW13 Muharemović →
+  // Murillo needed GW11's £0.5m, every GW11 buy came out £0.4–0.5m short, measured() dropped them all and Show a
+  // transfer showed "Save your free transfer" (qa-tk86 j-ahead-random-b #13; qa-tk83 trace l; owner, 2026-11-09 "Yes")
+  const own = forced && P.weeks.some((w) => w.gw > g && w.moves.some((m) => pinOfMove(P, { ...m, gw: w.gw })));
+  const cash = own ? floorCash(ctx, P, g) : null;
+  return { ...valuesFor(ctx, [...P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x)), ...extra.filter((p) => p.id !== roll)], [...drop, ...P.pins.filter((p) => p.id === roll).map((p) => p.id)]), to: g, ...(forced ? { min_buys_gw: `${g}:1` } : {}), ...(cash !== null ? { cash } : {}) };
+}
+/** The bank (tenths, --cash: GW A's) a forced road at GW g is solved from so its GW-g buy leaves your later made moves
+ *  their money: GW A's bank less F, F = GW g's bank on your plan minus the lowest bank of any week from g on (what your
+ *  later moves need kept at GW g). Every round's bank falls by F, so "bank ≥ 0" reads "bank ≥ F" at GW g, its window
+ *  and `to` unchanged. null: nothing needed, or a week before g holds less than F (the shift can't be exact there).
+ *  The road's own banks are F off; nothing reads them (planOfRoad takes its GW-g moves, measurePlan re-prices from
+ *  baseOf). */
+function floorCash(ctx, P, g) {
+  const gws = baseline(ctx, P.gws[0])?.gws || [], at = (k) => gws.find((s) => s.gw === k)?.bank ?? 0;
+  const later = gws.filter((s) => s.gw >= g).map((s) => s.bank);
+  const F = later.length ? at(g) - Math.min(...later) : 0;
+  if (!(F > 1e-9) || gws.some((s) => s.gw < g && s.bank < F - 1e-9)) return null;
+  const c = Math.round((baseOf(ctx).bank - F) * 10);
+  return c >= 0 ? c : null;
 }
 /** `lead`: the move the week's best token shows (plansOf: the solver's row with the highest number), the one its ✕
  *  refuses, refused first at the root; else, and below the root, the road's first move as the week draws it (owner,
  *  2026-11-02, Boss of the gym GW10: the token Palmer, the refusal solved ahead Hill's, so each ✕ waited on a solve). */
+/** Another week's refusal solving ahead (a side flight, not a root): what holds GW g's refusals ahead back. */
+/** A refusal ahead's road with no solve of its own: the solver's plan under rules R with a GW-g buy is its forced road
+ *  (R + min_buys g:1), and it makes that buy exactly when the card's own count says so: windowGap(forced, the week's
+ *  roll road, g).ref ≥ 0, the count the card draws (measure.counted), on each road's own window for GW g, the one the
+ *  solver commits GW g from. Else R rolls and the forced road is Show another's card. Asked instead of R: the card
+ *  where the solver's own moves end waited on R, then on its forced road, one after the other (GW13 Show another 3,
+ *  19-42 s on every cold run; qa-tk91 trace o). → true once kept under R's key, false while the forced road solves,
+ *  null where it can't stand in (no roll road or window in hand, a bank floor on the forced road): R solved as before. */
+function rollPart(ctx, P, g, extra, key, values, busy, root = false) {
+  const rv = forkValues(ctx, P, g, { moves: [], chips: {} }), roll = forkRead(valuesKey(P, rv));
+  if (!roll?.weeks || !roll.windows?.[g]) return null;
+  const fv = rootValues(ctx, P, g, extra, [], true);
+  if (fv.cash != null && fv.cash !== values.cash) return null;
+  // (the card on screen's in its place, asked as its root would be: a background one (prep) is dropped once the tap's 6 are
+  // spent, forkPump, and the card then waited on the plan's solve and the forced one after it; qa-tk96 log, 4 asks never sent)
+  const fk = valuesKey(P, fv), f = forkRead(fk) ?? (busy ? null : forkAsk(ctx, P, { key: fk, values: fv, gw: g, side: true, ...(root ? { root: true } : { prep: true }) }));
+  if (f === 'infeasible') { forkKept(key, { ...roll, key, values }); return true; }
+  if (!f?.weeks) return f == null || !f.failedAt ? false : null;
+  const ref = windowGap(f, roll, g)?.ref;
+  if (ref == null) return null;
+  forkKept(key, { ...(ref >= 0 ? f : roll), key, values });
+  return true;
+}
+const sideBusy = (g, key) => forkFlights().some(([, f]) => f.side && !f.root && f.key !== key && f.gw !== g);
 export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1, lead: best = null } = {}) {
   const yours = weekOf(P, g)?.moves || [], out = [], seen = new Set(), d0 = draftOf(ctx);
-  // (the week a lead refusal draws once tapped asks its root's moves each alone, `parts` (plansOf: the solver's week of
-  // two or more moves); solved ahead with that refusal, under its rule (forkValues' `more`), the same values the view
-  // after the tap asks, so it draws at once; 2026-11-03, every week's ✕ greyed 0.6-1.4 s on Hill alone after Not Rice)
-  const partsAhead = (road, extra) => {
-    const w = road.weeks.find((x) => Number(x.gw) === g);
-    const ms = w ? (planOfRoad(ctx, P, road, g, d0)?.choice.moves ?? pairedMoves(w.out || [], w.in || [], P.L)).filter((m) => !yours.some((y) => Number(y.out) === Number(m.out) && Number(y.in) === Number(m.in))) : [];
-    if (ms.length < 2) return;
-    const now = yours.map((m) => ({ gw: g, out: m.out, in: m.in }));
-    for (const m of ms) {
-      const q = { moves: [...now.filter((y) => y.out !== m.out && y.in !== m.in), { gw: g, out: m.out, in: m.in }], chips: {} };
-      if (!fitsAt(ctx, P, g, q, d0)) continue;
-      const values = forkValues(ctx, P, g, q, extra), key = valuesKey(P, values);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      // (one refusal ahead at a time, as the rest: asked on the next draw while another is in flight)
-      if (forkRead(key) || forkFlights().some(([, f]) => f.side && !f.root)) continue;
-      forkAsk(ctx, P, { key, values, gw: g, side: true, prep: true });
-    }
-  };
-  const walk = (extra, d, ahead = false, forced = false) => {
+  const walk = (extra, d, forced = false) => {
     const values = rootValues(ctx, P, g, extra, [], forced), key = valuesKey(P, values);
     if (seen.has(key)) return;
     seen.add(key);
     // (the root's flight never let go by a later view: plansOf; an Undo back finds it. A refusal ahead is the plan
     // service's lowest priority (prep: 'pairnext'), one at a time: 2026-11-02, five at once beside a take's own solves
     // slowed each to 20–50 s)
-    const root = d === depth, busy = !root && forkFlights().some(([, f]) => f.side && !f.root && f.key !== key);
+    // (…but Show a transfer's first transfer, on: the card waits on it, so it is asked at once like the root, never queued
+    // behind the refusals ahead other weeks' loads asked; qa-tk77 j-card-swap, Show a transfer still the roll's card 90 s on)
+    const wanted = forced && showingAt(P, g) && !out.some((n) => n.forced);
+    // (…one at a time against OTHER weeks' refusals only: the viewed week's own chain, the card after next beside the next,
+    // goes at once in a lane of its own. Held behind each other a cold server solved GW13's Show another chain one card
+    // per 4–7 s on one core of four, and a tap waited 11–19 s; qa-tk87 trace n)
+    const root = d === depth && !forced, busy = !root && !wanted && sideBusy(g, key);
     // (the week's last root still its best under rules it already keeps: kept, no solve; owner, 2026-11-02, "nothing
     // greyed out after any choice made")
     const last = root ? ROOTS.get(`${P.entry}|${g}`) : null;
     if (last && !forkRead(key) && last.version === P.b.version && rootStill(last.values, values, last.road)) forkKept(key, { ...last.road, key, values });
-    const got = peek || busy ? forkRead(key) : forkAsk(ctx, P, { key, values, gw: g, side: true, ...(prep || !root ? { prep: true } : {}), ...(root ? { root: true } : {}) });
+    // (a refusal ahead, no move of yours that week: answered off its forced road and the week's roll, rollPart)
+    // (the card on screen too, a refusal's root: QA taps the next Show another 0.3 s after a card lands, so the card
+    // ahead becomes the root before its forced road is in; qa-tk95 [rollPart] log, 3 calls all "forced pending")
+    const part = !forced && !wanted && !peek && extra.length && !yours.length && !weekOf(P, g)?.chip && forkRead(key) == null ? rollPart(ctx, P, g, extra, key, values, busy, root) : null;
+    const got = part !== null ? forkRead(key) : peek || busy ? forkRead(key) : forkAsk(ctx, P, { key, values, gw: g, side: true, ...(prep || (!root && !wanted) ? { prep: true } : {}), ...(root ? { root: true } : {}) });
     const road = got?.weeks ? got : null;
     if (root && road) ROOTS.set(`${P.entry}|${g}`, { version: P.b.version, values, road });
     out.push({ key, road, forced });
-    if (ahead && road && !peek) partsAhead(road, extra);
-    const w = road && d > 0 ? road.weeks.find((x) => Number(x.gw) === g) : null;
+    const wk = road ? road.weeks.find((x) => Number(x.gw) === g) : null, w = d > 0 ? wk : null;
     // (its first move as the week draws it, planOfRoad's: the one the best token's ✕ refuses)
     const ms = w ? (planOfRoad(ctx, P, road, g, d0)?.choice.moves ?? pairedMoves(w.out || [], w.in || [], P.L)).filter((m) => !yours.some((y) => Number(y.out) === Number(m.out) && Number(y.in) === Number(m.in))) : [];
     const lead = (root && best && ms.find((m) => Number(m.out) === Number(best.out) && Number(m.in) === Number(best.in))) || ms[0] || null;
     // (rolling best here: the best transfer all the same and the next, Show a transfer's rows, never the card's; owner,
     // 2026-11-06, "fix so it still show next suggestions": the week showed Roll alone)
     if (!lead) {
-      if (w && !forced && !yours.length) walk(extra, d - 1, false, true);
+      if (wk && !forced && !yours.length) {
+        // (the forced chain one deeper than the solver's own: its card and the next are both in when a Show another lands,
+        // so the card shows the better of the two at once, no flip and no wait; journeys, 2026-11-08)
+        if (d > 0) walk(extra, d, true);
+        // (a refusal ahead that rolls: its first forced transfer asked too, so Show another lands on it solved, as on a
+        // move's own refusal; never a row of this view; owner, 2026-11-08, "why it not pre solve show another")
+        else if (!peek && !(wk.in || []).length) {
+          const values = rootValues(ctx, P, g, extra, [], true), key = valuesKey(P, values), on = showingAt(P, g);
+          if (!seen.has(key) && !forkRead(key) && (on || !sideBusy(g, key))) { seen.add(key); forkAsk(ctx, P, { key, values, gw: g, side: true, ...(on ? {} : { prep: true }) }); }
+        }
+      }
       return;
     }
     // (Show another, the card's one refusal: no Keep or per-name refusal solved ahead since the ticket took their buttons
     // off the screen; owner, 2026-11-05, "delete all solves which are not needed")
-    walk([...extra, pinNotFor(lead.out, lead.in, g)], d - 1, root, forced);
+    const nx = [...extra, pinNotFor(lead.out, lead.in, g)];
+    // (the forced chain's first node, the card on screen: the root its Show another lands on (your plan with this
+    // refusal, no transfer forced) asked ahead beside the next forced road, unless the last root still answers it. In a
+    // week after the window's first it was asked only at the tap, the forced road ahead let go until it landed: two
+    // serial solves after every Show another, 10.9-14.4 s cold; qa-tk87 trace n)
+    if (forced && d === depth && !peek && showingAt(P, g)) {
+      const values = rootValues(ctx, P, g, nx), key = valuesKey(P, values), last = ROOTS.get(`${P.entry}|${g}`);
+      if (last && last.version === P.b.version && rootStill(last.values, values, last.road)) {
+        if (!forkRead(key)) forkKept(key, { ...last.road, key, values });
+      } else if (!seen.has(key) && forkRead(key) == null) {
+        seen.add(key);
+        forkAsk(ctx, P, { key, values, gw: g, side: true, prep: true });
+      }
+    }
+    walk(nx, d - 1, forced);
   };
   walk([], depth);
   return out;
@@ -843,7 +944,7 @@ export function addPlan(ctx, g, pl) {
   // the week line keeps the take's number while your plan is what it made (owner, 2026-11-02: "+1.9" after the take
   // too, not the re-plan's 1.74, a later week solved another way the solver counts the same): weekRollOf, until your
   // rules change again
-  if (!DRY && pl.vsRoll && !pl.refRow) AHEAD.took = { team: `${P.entry}|${P.A}`, version: P.b.version, g, sig: movesKey(pl.choice.moves.filter((m) => (m.gw ?? g) === g)), cmp: pl.cmp, before: rulesKey(P), pins: null };
+  if (!DRY && pl.vsRoll && !pl.refRow) AHEAD.took = { team: `${P.entry}|${P.A}`, version: P.b.version, g, sig: movesKey(pl.choice.moves.filter((m) => (m.gw ?? g) === g)), cmp: pl.cmp, forced: !!pl.forced, rounds: windowRounds(pl.road, g), before: rulesKey(P), pins: null };
   return edit(ctx, {
     pins, drop: [...own.flatMap((m) => wishDrop(P, m.in)), ...drop, ...taken.map((q) => q.id)], road: pl.road, inPlace: chain.keys().next().value ?? null,
     // a GW-g armband the plan moves is said, as every edit's ending says it (B21)

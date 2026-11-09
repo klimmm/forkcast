@@ -235,8 +235,8 @@ export function constraintsFromDraft(draft, { keep = [], avoid = [], horizonEnd,
 }
 
 /**
- * The values for POST /api/jobs {kind: 'solve', values}: the planned GWs from base.gw (--from-r, --w), all solved as
- * integers (--int-rounds H: the default relaxes later GWs, whose rounded plan can overspend), hit caps only where they
+ * The values for POST /api/jobs {kind: 'solve', values}: the planned GWs from base.gw (--from-r, --w), at the solver's
+ * own integer rounds (owner, 2026-11-08: none set here, "remove where it mentioned"), hit caps only where they
  * restrict (F17: --max-hits / --max-hits-gw below the default; maxHits, else hitCap = meta.hit_cap; no --hit-cost),
  * Keep / Avoid, kept moves and the draft's chips in the window (lists of GW strings). A chip with a default round
  * (meta.chip_defaults, main.py:691-696) that the draft doesn't play is set to '0' (main.py:758). A base without
@@ -246,7 +246,7 @@ export function solveValues({ base, draft, horizon = 4, maxHits = null, maxHitsG
   const gws = planGws(base, horizon);
   const from = gws[0], end = gws.at(-1);
   const c = constraintsFromDraft(draft, { keep, avoid, horizonEnd: end, fromGw: from, keepMoves, players: playerLookup({ base, players }) });
-  const values = { season: num(base?.season), from_r: from, w: gws.length, int_rounds: String(gws.length) };
+  const values = { season: num(base?.season), from_r: from, w: gws.length };
   // F17: no --max-hits unless it restricts (main.py resolves its own default cap, hitCap)
   const dflt = num(hitCap);
   const hits = num(maxHits);
