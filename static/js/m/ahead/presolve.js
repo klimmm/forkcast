@@ -353,7 +353,7 @@ export const clearRoots = () => ROOTS.clear();
  *  it keeps, a take of its own move: the best of a narrower choice is the same plan). Pure. */
 export function rootStill(was, now, road) {
   // (the plan service's own test, api/mobile_roads.road_answers, the same rules: owner, 2026-11-03, "find what else
-  // solves do the repeated job between them ... fix all such cases". Under --plan-rolls each week commits from its own
+  // solves do the repeated job between them ... fix all such cases". Under the solver's plan each week commits from its own
   // window, which reaches the weeks after it: a narrower rule on the first week, or the road's stop (`to`) earlier,
   // leaves every window as solved; one on a later week can change an earlier window's plan though the road keeps it
   // (2 of 3 such pairs solved another plan), unless no transfer is possible up to that week, no buys from the first)

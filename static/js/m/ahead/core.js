@@ -392,6 +392,17 @@ export function boardMarks(w, after, pos) {
     return { place, id, sold, kind: sold != null ? 'in' : w.xi.includes(id) ? 'down' : 'up' };
   });
 }
+/** The card's moves paired as the pitch draws them (boardMarks: a buy who starts over the seller who started), so its
+ *  title reads as the board shows it: "Raya, Dovin → Verbruggen, Trafford" when Verbruggen takes Raya's place in goal
+ *  (qa-tk105, two keepers bought, one benched; the engine pairs a position dearest-first). Words only: the moves stay
+ *  as they are for every rule. Unchanged where the board pairs other players. → [{out, in}] */
+export function pairAsPlaced(w, after, pos, moves) {
+  if (!after || moves.length < 2) return moves;
+  const by = new Map(boardMarks(w, after, pos).filter((m) => m.kind === 'in').map((m) => [Number(m.sold), m.id]));
+  const out = moves.map((m) => ({ ...m, in: by.get(Number(m.out)) ?? m.in }));
+  const same = (a, b) => a.map((m) => Number(m.in)).sort().join() === b.map((m) => Number(m.in)).sort().join();
+  return same(out, moves) ? out : moves;
+}
 /** {id: name} for the players week w buys, each with the player he replaces (pitch.js). A Wildcard or Free Hit week is
  *  a new squad, not swaps: each buy is just "IN" (owner, 2026-10-07). */
 export function inFor(P, w) {

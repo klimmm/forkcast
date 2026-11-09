@@ -3,7 +3,7 @@
 
 import { h, fill, fmt, plural, reduceMotion, xpGain, xpNum } from '../../ui.js';
 import { CHIPS_OFF, COPY, shownDelta } from '../calls.js';
-import { MINUS, plan } from './core.js';
+import { MINUS, pairAsPlaced, plan, viewOfRoadWeek } from './core.js';
 import { itbWords } from './pieces.js';
 import { cardGain, owedAt, presolveSwap, removeWeek, showTransfer, showingAt, swapWeek, tookOf, windowRounds } from './presolve.js';
 import { choosing, placedAt, placedDone, stopChoosing } from './buys.js';
@@ -180,12 +180,16 @@ export function ticketPart(V) {
     const owes = !!best && !M?.sq && owedAt(P, w);
     if (best && (!w.moves.length || owes)) {
       const { e, pl } = best.move, gain = cardGain(ctx, P, g, pl);
-      after = swapWeek(ctx, P, g, pl) ?? (e.adds.length ? inPlaces(w, e.adds) : null);
+      // (till Make the swap's own solve is in, the week as the choice's road plays it: the card's title and the pitch
+      // pair the buys as it places them from the first frame, never "Raya, Dovin → Trafford, Verbruggen" for 1 s before
+      // "→ Verbruggen, Trafford"; qa-tk106 j-ahead-random-b)
+      const own = pl.road?.weeks?.find((x) => Number(x.gw) === g);
+      after = swapWeek(ctx, P, g, pl) ?? (own ? viewOfRoadWeek(own, P.L) : null) ?? (e.adds.length ? inPlaces(w, e.adds) : null);
       // (for the card the draw ends on: a first paint before the pitch's rows are placed names another move of the week, a
       // swap solved for nothing)
       clearTimeout(S.swapAsk);
       if (!S.wait) S.swapAsk = setTimeout(() => presolveSwap(ctx, P, g, pl));
-      title = e.adds.length ? movesTitle(ctx, P, g, e.adds) : best.querySelector('.ah-tl').textContent;
+      title = e.adds.length ? movesTitle(ctx, P, g, pairAsPlaced(w, after, P.L.pos, e.adds)) : best.querySelector('.ah-tl').textContent;
       // (what the tabs will change by, over the weeks they show; its solve not in, no number guessed)
       // (…and on a week the plan rolls, that it does: its points are what the tabs will do, and the free transfer they spend
       // is why the plan doesn't; owner, 2026-11-06, "why -0.4 xp but it changed by 0.6")
