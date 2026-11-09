@@ -8,7 +8,7 @@ import { pinSell, isRoll, composePins, parseSpans, deadlinePassed } from '../mem
 import { OFFLINE_EDIT, REMOVED, addMove, asYours, clone, compare, draftOf, dropMove, editable, flashLanding, flatMoves, ids, info, inputs, isFrozen, lineups, memOf, movedFrom, num, pairedMoves, plan, problemText, problemsOf, removedBy, setLineups, solveFor, squadBefore, weekOf, wishDrop, wishPin } from './core.js';
 import { asksOf, buyCandidates, clashing, derivedPin, edit, endingOf, forgetEdit, keptFrom, ruleOf, say, subjectOf, toastOf, undoOf, vsPrev, withTaken } from './edits.js';
 import { planBaseline, takenBy } from './plans.js';
-import { pairMovesOf, showTransfer } from './presolve.js';
+import { pairChanged, pairMovesOf, showSuggestion, showTransfer } from './presolve.js';
 import { squadWeek } from './pieces.js';
 
 // ---------------------------------------------------------------- A1: a buy does only what it says
@@ -373,7 +373,17 @@ export function resetPlan(ctx) {
   const prevP = plan(ctx), at = ctx.store.get('gw');
   forgetEdit();
   stopChoosing(ctx);
-  prevP?.gws.forEach((g) => showTransfer(prevP, g, false));
+  // (…and every week's suggestion shown taken back to its choice; owner, 2026-11-09, "why it still displays suggestions
+  // after i clicked reset all weeks")
+  prevP?.gws.forEach((g) => { showTransfer(prevP, g, false); showSuggestion(prevP, g, false); });
+  // (…and where your plan has nothing of yours, no lineup either, only those views go back: no reset made, no Undo that
+  // brings the suggestion back; owner, 2026-11-09, "why when i click reset it shows undo and when i click undo it shows
+  // first screen")
+  if (!planHasYours(prevP) && !Object.keys(lus).length) {
+    if (prevP) ctx.store.set('gw', prevP.A);
+    pairChanged(ctx);
+    return true;
+  }
   const r = memOf(ctx).reset();
   setLineups(ctx, I, {});
   REMOVED.by = {};  // nothing of yours: no move "removed by you" either (B129)

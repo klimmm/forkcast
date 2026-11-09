@@ -42,11 +42,9 @@ function howItWorks(meta) {
       ],
     },
     {
-      id: 'ownership', title: 'Ownership, EO and crowd calibration',
+      id: 'ownership', title: 'Ownership',
       body: [
         'Ownership comes from the top-100k cohort (`--own-top-rank` picks the cohort, lagged by `--own-lag` rounds) and FPL’s overall selected-by percentage.',
-        'Crowd calibration (`--own-cal`, on by default) brings the crowd’s squad into rebuilds (the season’s first build and later rebuilds). It is gated: the crowd-tilted squad is adopted only if the model rates it at least as high as its own squad for the anchor gameweek (at the season opener, within a τ tolerance), and the tilt is paid on the anchor gameweek only. These defaults are on, so passing `--own-cal`, `--own-cal-gate`, `--own-cal-gate-tau-opener` or `--own-cal-anchor-only` switches the matching part off.',
-        'Effective ownership: `--eo-w` anchors decisions to lagged effective ownership to manage rank risk. It is off (0) by default.',
       ],
     },
     {

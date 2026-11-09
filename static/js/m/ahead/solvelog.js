@@ -39,9 +39,16 @@ export function mountSolveLog(ctx) {
   });
   // (Clear: the team's list emptied where it is kept, on the server, so a reload starts from it too; owner, 2026-11-03,
   // "add button clear next to copy", "why it increased to 15 after i cleared and reload")
+  // (…and the team's solved plans with it, on the server (DELETE /api/m/solves: its roads and finished solves), then this
+  // page reloaded, its own copies gone too: every solve the reload asks starts cold; owner, 2026-11-09, "fix it so it
+  // actually clear cache when i click clear")
   let cleared = 0;
   const clear = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Clear' });
-  clear.addEventListener('click', (ev) => { ev.stopPropagation(); cleared = Date.now(); acted = 0; shown?.remove(); shown = null; paint(); const e = ctx.store.get('entry'); if (e != null) ctx.api.clearSolves(e).catch(() => {}); });
+  clear.addEventListener('click', (ev) => {
+    ev.stopPropagation(); cleared = Date.now(); acted = 0; shown?.remove(); shown = null; paint();
+    const e = ctx.store.get('entry');
+    if (e != null) ctx.api.clearSolves(e).then(() => location.reload(), () => {});
+  });
   // (the lines redrawn every half second in a list of their own, the buttons never: a tap spanning a redraw kept)
   const list = document.createElement('div');
   el.replaceChildren(copy, clear, list);

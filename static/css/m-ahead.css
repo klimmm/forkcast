@@ -1104,6 +1104,19 @@ a larger text size leaves no room */
 .ps-segs .m-seg > button { padding: 0 3px; }
 .ps-segs > .m-seg.ps-among { flex: 0 0 34%; }
 .ps-rk { flex: none; width: 44px; text-align: right; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
+/* two players compared: blue and orange, Okabe-Ito's safe pair; the second told apart by a hollow mark too */
+.ps { --pair-a: #0072b2; --pair-b: #e69f00; }
+.ps-vsmark, .ps-memark { flex: none; width: 9px; height: 9px; border-radius: 50%; box-sizing: border-box; background: var(--surface); border: 2px solid var(--pair-b); }
+.ps-title.ps-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.ps-two .ps-side { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.ps-two .ps-kit { width: 40px; height: 40px; }
+.ps-two .ps-nm { display: flex; align-items: center; gap: 6px; }
+.ps-pick { display: inline-flex; align-items: center; gap: 5px; min-width: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
+.ps-chev { flex: none; width: 10px; height: 6px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23666' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat center; }
+.ps-two .ps-status { margin: 2px 0 0; }
+.ps-two .ps-st { gap: 5px; font: 400 var(--t-sub)/1.3 var(--f-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ps-two .ps-st .dot { width: 6px; height: 6px; }
+.ps-memark { background: var(--pair-a); border-color: var(--pair-a); }
 /* the actions (B1): under the header, two to a row (Keep him, Sell, Ruled out and Bring him in…: a row each) */
 .ps-acts { margin-top: 12px; }
 .ps-acts > .ps-place { display: block; min-height: 44px; margin-top: 4px; }  /* "3 choices for his place ›": his place on the pitch */
@@ -1403,7 +1416,7 @@ lacks in the fixture's place */
 .m-screen.ah .ah-choosing .pm-card.ah-cant { opacity: .35; }
 .m-screen.ah .ah-choosing .pm-card.ah-cant .pm-pn { background: none; color: #fff; }
 .m-screen.ah .ah-choosing .pm-card.ah-can .pm-pn { background: var(--tk-go); color: var(--tk-ink); padding: 0 4px; }
-.m-screen.ah .pm-card.f-red { opacity: .55; }
+.m-screen.ah .pm-card.f-red, .m-screen.ah .pm-card.low { opacity: .55; }
 .m-screen.ah .ah-pitch .pm .pm-benchzone { background: #0d3620 !important; border-radius: 0; margin: 0; box-shadow: none; }
 /* waiting, the whole frame greys with the turf: the header, the bench and what is round the stack (owner, 2026-11-05: "why
 bench never grey out only pitch", "the top panel must also grey out"; .ah-pitch.ah-wait the turf's) */
@@ -1480,6 +1493,7 @@ back the next card rises over it */
    journeys 2026-11-08) */
 .m-screen.ah .ah-tkname { position: relative; z-index: 2; padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; cursor: pointer; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; text-decoration-color: rgb(20 23 26 / .35); }
 .m-screen.ah .ah-tkname::before { content: ""; position: absolute; inset: -8px -2px; }
+.m-screen.ah .ah-tkarrow { text-decoration: none; }
 .m-screen.ah .ah-tkname:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: 2px; }
 .m-screen.ah .ah-tkline { display: flex; align-items: baseline; gap: 8px; margin: 0; font: 500 var(--tk3)/1.33 var(--f-text); color: var(--tk-mute); }
 .m-screen.ah .ah-tkline .ah-tkl { flex: 1 1 auto; min-width: 0; }
@@ -1507,6 +1521,9 @@ back the next card rises over it */
 .m-screen.ah .ah-tkor .ah-door:disabled { color: var(--tk-mute); text-decoration: none; opacity: 1; }
 /* the tear: a dashed line, a notch at each edge, between what the move is and the two buttons */
 .m-screen.ah .ah-tkacts { position: relative; display: flex; gap: 8px; margin-top: auto; padding: 18px 14px 0; border-top: 0; }
+/* (Make the swap at the end of the transfer's row, its own width: the names take what is left; owner, 2026-11-09) */
+/* (…no taller than the names' row: at the buttons' 46 px it grew the card 21 px past its height, off a phone's screen;
+   owner, 2026-11-09, "why cards height increased so it not fit in phone") */
 .m-screen.ah .ah-tkacts::before { content: ""; position: absolute; left: 12px; right: 12px; top: 8px; border-top: 2px dashed #d5d8de; }
 .m-screen.ah .ah-tkacts::after { content: ""; position: absolute; left: 0; right: 0; top: 2px; height: 14px; pointer-events: none;
   background: radial-gradient(circle at 0 50%, var(--tk-night) 7px, transparent 7.5px), radial-gradient(circle at 100% 50%, var(--tk-night) 7px, transparent 7.5px); }
@@ -1539,3 +1556,18 @@ back the next card rises over it */
 /* (the flag on two lines where the keeper's shirt would meet it) */
 @media (max-width: 340px), (max-height: 700px) { .m-screen.ah .ah-fplflag { flex-direction: column; align-items: flex-start; gap: 0; } }
 .m-screen.ah .ah-tick .p .xp-u { display: inline !important; margin-left: .2em; font-size: var(--tk4); font-weight: 500; }
+/* two players compared (sheets/player.js pairView): the totals table, then the line panels */
+.ps-pair { margin-top: 16px; }
+.ps-hh { border: 1px solid var(--hair); border-radius: 10px; overflow: hidden; }
+.ps-hh-r { display: grid; grid-template-columns: 1fr 1.3fr 1fr; align-items: center; padding: 9px 12px; border-top: 1px solid var(--hair); font: 400 var(--t-body)/1.25 var(--f-text); }
+.ps-hh-r:first-child { border-top: 0; }
+.ps-hh-l { text-align: center; font-size: var(--t-sub); color: var(--muted); }
+.ps-hh-v { display: flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; color: var(--ink); }
+.ps-hh-v.b { justify-content: flex-end; }
+.ps-hh-v.best { font-weight: 700; color: #1f8a4c; }
+.ps-ok { font-style: normal; font-size: .85em; color: #1f8a4c; }
+.ps-pairline { margin-top: 16px; }
+/* the opening card's Show suggestion, in its body under the heading (screen-ticket.js) */
+.m-screen.ah .ah-tksug { margin-top: 12px; }
+/* (its words in the card's buttons' font, 700, underlined as the card's links: owner, 2026-11-09, "fix show suggestion font") */
+.m-screen.ah .ah-tksug .ah-rsbtn { font-weight: 700; color: var(--tk-ink); }

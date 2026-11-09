@@ -187,10 +187,13 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   const owed = owedAt(P, w) ? owedRoad(ctx, P, g, { peek, prep }) : null;
   // (read here; asked after the roll's and the rows' own solves, below: rolling's count first)
   const depth = prep ? 0 : 2, tree = owed || followed ? [] : refusalRoads(ctx, P, g, { peek: true, depth });
-  const solverRoads = new Set([owed?.road, ...tree.map((n) => n.road)].filter(Boolean));
-  // (the best transfers of a week rolling is best in, one forced, refusalRoads': Show a transfer's)
-  // (Show a transfer's rows: the chain's first two, its card and the next; the third is only solved ahead: refusalRoads)
-  const chain = tree.filter((n) => n.forced).slice(0, 2);
+  // (the best transfers of a week rolling is best in, refusalRoads': Show a transfer's)
+  // (Show a transfer's row: the chain's first alone, the solver's pick under the refusals made, the card; the next is
+  // only solved ahead (refusalRoads). Two rows, the card lit the better-numbered: a pick for the week alone counted over
+  // the window can number the next one higher, the card skipped the solver's pick and Show another refused another than
+  // the one solved ahead (qa-tk113 flashes); owner, 2026-11-09, "fix so it shows suggestions exactly suggested by solver")
+  const chain = tree.filter((n) => n.forced).slice(0, 1);
+  const solverRoads = new Set([owed?.road, ...tree.filter((n) => !n.forced || chain.includes(n)).map((n) => n.road)].filter(Boolean));
   const forcedRoads = new Set(chain.map((n) => n.road)), forced = new Set();
   // (your GW-g transfers' own plan, the reference `yours` counts against, where a solver road makes no move beside
   // them: that road, never a fork of its own; owner, 2026-11-02, at most 6 solves after an action)

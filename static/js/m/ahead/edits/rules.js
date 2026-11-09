@@ -368,12 +368,14 @@ export function sub(ctx, g, a, b) {
   return lineup(ctx, g, { xi: s.xi, bench: s.bench, ...arm }, subWords(P, w, s), { points: !s.order });
 }
 
-/** A sub's list (owner, 2026-10-21): the starters bench player `id` can replace in GW g (engine.swapCandidates), each
- *  with its sub (subLineup) and points change (calls.subGap); best first. → [{id, s, what, cmp}] */
+/** A sub's list (owner, 2026-10-21): the starters bench player `id` can replace in GW g, or the bench players starter
+ *  `id` can make way for (engine.swapCandidates; his card's Sub, owner, 2026-11-09), each with its sub (subLineup) and
+ *  points change (calls.subGap); best first. → [{id, s, what, cmp}] */
 export function subChoices(ctx, P, g, id) {
   const w = weekOf(P, g);
-  if (!w?.bench.includes(Number(id))) return [];
-  return E.swapCandidates(w, id, P.L.pos).filter((p) => w.xi.includes(p)).map((p) => {
+  const other = w?.bench.includes(Number(id)) ? w.xi : w?.xi.includes(Number(id)) ? w.bench : null;
+  if (!other) return [];
+  return E.swapCandidates(w, id, P.L.pos).filter((p) => other.includes(p)).map((p) => {
     const s = subLineup(w, id, p, P.L);
     return { id: p, s, what: subWords(P, w, s), cmp: subGap(inputs(ctx), w, s) };
   }).sort((x, y) => y.cmp.delta - x.cmp.delta || (P.L.xp(x.id, g) ?? 0) - (P.L.xp(y.id, g) ?? 0));

@@ -8,6 +8,7 @@ import { chipsAvail, squadWeek } from './pieces.js';
 import { tickWas, totalShift } from './edits.js';
 import * as E from '../../plan/engine.js';
 import { fitNum, oneLook } from './screen.js';
+import { showingAt, tappedSuggestion } from './presolve.js';
 
 export function pitchPart(V) {
   /** Bring in's second step on the pitch: who he can replace in green, the rest quiet (choosing). */
@@ -81,7 +82,11 @@ export function pitchPart(V) {
     const d = ctx.data;
     // the one Reset (rsBtn): what of yours it takes back here, its words and name for that (where it fits: placePills,
     // once the pitch is drawn)
-    const lu = !!w.lineup, mine = planHasYours(P);
+    // (…and Show a transfer on in any week: Reset all weeks takes it off too (buys.resetPlan), every card the plan's own;
+    // with nothing of yours a Show a transfer card had no Reset at all; owner, 2026-11-09, "fix bug with missing reset
+    // button")
+    // (…or a suggestion shown in any week: Reset all weeks takes every week back to its choice)
+    const lu = !!w.lineup, mine = planHasYours(P) || P.gws.some((g) => showingAt(P, g) || tappedSuggestion(P, g));
     S.reset = lu || mine ? { lu, plan: mine, gw: w.gw } : null;
     rsBtn.hidden = !S.reset;
     rsBtn.disabled = !P.editable;

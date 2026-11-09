@@ -3,10 +3,9 @@
 import { EDGE_PX, SPENT_PX, SWIPE_MS, SWIPE_PX, editable, inputs, plan, squadBefore, weekOf } from './core.js';
 import { h, fmt, fill, append, reduceMotion, holdTouch, flick, xpNum } from '../../ui.js';
 import { COPY, captainGap } from '../calls.js';
-import { captain, sub, subChoices, useChip, veto, vice } from './edits.js';
+import { captain, sub, useChip, veto, vice } from './edits.js';
 import { inkAt } from './buys.js';
-import { subOrder } from '../../plan/pitch.js';
-import { shirtOf, squadWeek, xpShown } from './pieces.js';
+import { shirtOf, squadWeek } from './pieces.js';
 import * as E from '../../plan/engine.js';
 
 /** What lies under (x, y) past the cards' marks (screen-decks cardMarks: their 44 px targets reach over the cards; review
@@ -186,31 +185,8 @@ export function touchPart(V) {
       },
     });
   }
-  /** A sub's list, as the captain list is the armband's: a tap on his label on the bench ("1", his order: pitch.js
-   *  benchPanel, m-ahead.css .pm-blp) lists the starters he can replace in GW g (subChoices: the drag's legal swaps,
-   *  best first), each with its toast's words and number and the starter's forecast; a tap makes the sub (sub: the
-   *  drag's, its toast with Undo). GW A under way is FPL's: the rows off, and why (COPY.live), as the captain list. */
-  function subSheet(id, g) { const { ctx } = V;
-    const P = plan(ctx), w = weekOf(P, g);
-    if (!P || !w?.bench.includes(Number(id))) return;
-    const can = !inkAt(ctx, P, g);
-    const title = COPY.subIn(subOrder(w.bench, P.L.pos).get(Number(id)), g);
-    ctx.sheets.open({
-      title, detent: 'medium', fit: true, cls: 'cs', label: title,
-      build(body, sheet) {
-        append(body, h('div.ah-list', { role: 'group', 'aria-label': title }, subChoices(ctx, P, g, id).map((c) => {
-          const said = COPY.lineup(c.what, g, c.cmp.delta);
-          return h('button.ah-lrow', {
-            type: 'button', disabled: !can, 'aria-label': `${P.L.name(c.id)}, ${xpShown(ctx, c.id, g)} points, ${said}`,
-            onClick: () => { if (sub(ctx, g, id, c.id)) sheet.close(); },
-          },
-          h('span.mk', { 'aria-hidden': 'true' }, shirtOf(P.L, c.id, 32)),
-          h('span.nm', null, h('b', null, P.L.name(c.id)), h('span', null, said)),
-          h('span.rt.m-num', null, xpNum(xpShown(ctx, c.id, g))));
-        })), can ? null : h('p.m-foot', null, COPY.live(g)));
-      },
-    });
-  }
+  /** A sub's list (sheets/sub.js), from his label on the bench (pitch.js benchPanel, m-ahead.css .pm-blp). */
+  function subSheet(id, g) { const { ctx } = V; ctx.openSheet('sub', id, g); }
 
   /** The shirt's drag to a tick: a lifted ghost follows the finger, valid ticks glow; also onto a player (`subs`: the
    *  ids he can swap with, outlined on the pitch; `onPlayer(id)` the drop there). */

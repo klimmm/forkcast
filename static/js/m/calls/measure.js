@@ -155,7 +155,7 @@ const SLACK = ['ft_short'];
 const POINTS = ['xi', 'bench', 'cap', 'vice', 'doubt_sub', 'hit'];
 
 const LEVEL = 0.005;  // the planner's count rounds to 0.00: level whatever the noise (above it, level is the coin band)
-const CROWD = ['eo', 'own_cal', 'cap_top', 'cap_tie'];
+const CROWD = ['cap_tie'];
 
 /** What the planner's count has and the points don't, signed the planner's way `dir`, biggest first: [[part, Δ]]. */
 function reasonParts(planner, dir) {

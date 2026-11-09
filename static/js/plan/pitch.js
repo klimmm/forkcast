@@ -350,6 +350,10 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
   const mult = isCap && o.capPoints ? (o.tc ? 3 : 2) : 1;
   const tone = availabilityTone(p);
   const blank = Array.isArray(fx) && !fx.length;
+  // (a forecast under 1 xP for the week, less than the point FPL gives any player who comes on: dimmed as a doubtful
+  // player is, no flag (FPL's doubts keep theirs); a week with no fixture keeps its own look; owner, 2026-11-09, "why
+  // walle egely opacity still full", "Yes, dim under 1 xP")
+  const low = !tone && !blank && xp != null && xp < 1;
   const dgw = fx?.length > 1;
   const bought = o.bought?.[id] ?? null;  // the GW he was bought in, when he is not in the real squad
   const sold = o.sold?.[id] ?? null;  // the GW the plan sells him in, when it does after this one
@@ -381,7 +385,7 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
     h('span.pm-plate', { class: { chg: flipFrom != null }, 'aria-hidden': 'true' }, h('span.pm-pn', null, name), plate2),
   ];
   const attrs = {
-    class: [order ? 'pm-bs' : 'pm-pl', 'pm-card', tone && `f-${tone}`, bought != null && 'bought', tagIn && 'is-in', sold != null && 'sold', blank && 'blank',
+    class: [order ? 'pm-bs' : 'pm-pl', 'pm-card', tone && `f-${tone}`, low && 'low', bought != null && 'bought', tagIn && 'is-in', sold != null && 'sold', blank && 'blank',
       o.animate?.has(id) && 'new'],
     dataset: { id, pos: pos || '', pts }, 'aria-label': spoken,
   };

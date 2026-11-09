@@ -18,12 +18,12 @@ import * as AH from '../ahead.js';
 import * as S from './strip.js';
 import { oppText } from '../../plan/pitch.js';
 import {
-  plan, weekOf, squadBefore, shirtOf, keep, never, veto, editable, pinOf, pinsOf, removeRule, ruleOf,
+  plan, weekOf, squadBefore, shirtOf, pinOf, pinsOf, removeRule, ruleOf,
 } from '../ahead.js';
 
 /** WhoScored's predicted lineup for the next deadline's GW (data_io/data.py ws_preview), as the card words it. */
 const PREVIEW = { S: 'Predicted to start', B: 'Predicted bench', O: 'Predicted out', D: 'Predicted doubtful', DS: 'Predicted doubtful' };
-const LAST_N = 6;  // api/card.py LAST_N: past columns held open while loading
+const LAST_N = 7;  // api/card_conf.py LAST_N: past columns held open while loading
 export const WORD = { GK: 'goalkeepers', DEF: 'defenders', MID: 'midfielders', FWD: 'forwards' };
 // stats' rows (api/stats_pick.json, tools/stats_pick.py ACTIONS): label, decimals; defensive contribution shortened,
 // still in words, to fit the 124 px label column; calls.test.mjs checks each has one
@@ -111,11 +111,28 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
   // row's stands)
   const entry = d.base?.squad?.find((r) => Number(r.id) === id);
   const subEl = h('small.ps-sub', null, headerSub(row, P0.L.pos(id), null, entry));
-  return ctx.sheets.open({
-    title: h('span.ps-title', null, h('span.ps-kit', { 'aria-hidden': 'true' }, shirtOf(P0.L, id, 56)),
-      // full name (owner, 2026-10-16), FPL's short one in older data
-      h('span', null, row.full_name || row.name, subEl)),
-    label: `${row.full_name || row.name}, ${row.club}, ${fmt.money(row.price)}`,
+  // (`vs` given: the two compared, the card title's →, yours first; owner, 2026-11-09, "comparison of two players")
+  const orow = vs == null ? null : d.byId.get(Number(vs)) ?? null, two = !!orow;
+  let self = null, vsCard = null;
+  // a compared player's name: a door to his position's players in Bring in a player's own list (wish.js `compare`),
+  // each row's button Compare (`to`: the new pair [first, second]); a pick opens the pair's comparison, a close without
+  // one this one again (owner, 2026-11-09, "how do i type in the player", "same view as in bring player")
+  const pick = (pid, to) => h('button.ps-pick', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.comparePick(P0.L.name(pid)), onClick: () => {
+    ctx.openSheet('wish', null, { gw: g, pos: P0.L.pos(pid), compare: {
+      title: COPY.comparePick(P0.L.name(pid)),
+      pick: (x) => { const [a, b] = to(Number(x)); ctx.openSheet('player', a, { gw: g, vs: b }); },
+      back: () => ctx.openSheet('player', id, { gw: g, vs }),
+    } });
+  } }, P0.L.name(pid), h('i.ps-chev', { 'aria-hidden': 'true' }));
+  const side = (pid, r, sub, me) => h(`span.ps-side${me ? '' : '.vs'}`, null, h('span.ps-kit', { 'aria-hidden': 'true' }, shirtOf(P0.L, pid, 40)),
+    h('span', null, h('span.ps-nm', null, h(`span.${me ? 'ps-memark' : 'ps-vsmark'}`, { 'aria-hidden': 'true' }), pick(pid, (x) => (me ? [x, vs] : [id, x]))), sub,
+      statusLines(r, P0, { available: false, lineup: false })));
+  return self = ctx.sheets.open({
+    title: two ? h('span.ps-title.ps-two', null, side(id, row, subEl, true), side(Number(vs), orow, h('small.ps-sub', null, headerSub(orow, P0.L.pos(vs), null, null)), false))
+      : h('span.ps-title', null, h('span.ps-kit', { 'aria-hidden': 'true' }, shirtOf(P0.L, id, 56)),
+        // full name (owner, 2026-10-16), FPL's short one in older data
+        h('span', null, row.full_name || row.name, subEl)),
+    label: two ? COPY.compareOf(P0.L.name(id), P0.L.name(vs)) : `${row.full_name || row.name}, ${row.club}, ${fmt.money(row.price)}`,
     // full screen (owner, 2026-10-15)
     detent: 'large', cls: 'ps',
     onClose: () => { closed = true; off?.(); AH.presolveTaps(ctx, null, { owner: row }); },
@@ -132,7 +149,7 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
         const main = body.querySelector('.ps-main') || body.appendChild(h('div.ps-main'));
         main.dataset.card = cardState;
         const W = widthOf(main);
-        const m = model(ctx, P, row, id, card, cardState, local, vs);
+        const m = model(ctx, P, row, id, card, cardState, local, vs, vsCard);
         const G = geometry(m, W);
         fill(subEl, headerSub(row, P.L.pos(id), card, entry));
         // focus survives a redraw: a segmented option (ui.roving) in its group, found by name; an ⓘ by its label
@@ -141,12 +158,14 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
         const kept = grp ? `${grp.getAttribute('aria-labelledby') ? `[aria-labelledby="${grp.getAttribute('aria-labelledby')}"]` : `[aria-label="${grp.getAttribute('aria-label')}"]`} [aria-checked="true"]`
           : info ? `.ps-info[aria-label="${info}"]` : null;
         // order: actions (under the header), status, chart, numbers
+        // (two compared: no actions, the GWs as a table, the stats both; his own card as it was)
         fill(main,
-          actions(P),
-          askLine(P),
-          statusLines(row, P, { available: false, lineup: false }),
-          stripSection(m, G, chartKey),
-          statsSection(card, W, { view, setView, among, setAmong }));
+          two ? null : actions(P),
+          two ? null : askLine(P),
+          two ? null : statusLines(row, P, { available: false, lineup: false }),
+          // (two compared: one strip, the two in every GW column, league games only)
+          stripSection(two ? { ...m, two: true, rows: [row, orow], nameA: P.L.name(id) } : m, G, chartKey),
+          statsSection(card, W, { view, setView, among, setAmong }, two));
         if (kept) main.querySelector(kept)?.focus({ preventScroll: true });
         // his controls' taps solved ahead while the sheet is open (AH.presolveTaps; owner, 2026-10-26): each option not
         // in force
@@ -154,17 +173,9 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
       };
       /** His controls' edits as taps (AH.presolveTaps): Keep (this GW, through the end), Not him (this GW; a buy of him
        *  there: its veto), Never, Off for a rule of his (removeRule). */
-      const aheadTaps = (P) => {
-        const keepOn = pinOf(P, 'keep', id, g), outOn = pinOf(P, ['sell', 'veto', 'never'], id, g);
-        const buy = AH.squadWeek(weekOf(P, g)) ? null : weekOf(P, g).moves.find((m) => m.in === id);
-        const keepIs = keepOn ? (ruleOf(P, keepOn).scope === 'gw' ? 'gw' : 'all') : 'off';
-        return [
-          ...(owns(P) ? ['gw', 'all'].filter((k) => k !== keepIs).map((k) => ({ kind: 'keep', gw: g, run: () => keep(ctx, id, { gw: g, scope: k }) })) : []),
-          ...(outOn ? [] : [{ kind: 'veto', gw: g, run: () => veto(ctx, buy ? { ...buy, gw: g } : { gw: g, out: null, in: id }, { scope: 'gw' }) }]),
-          ...(owns(P) || pinOf(P, ['veto', 'never'], id) ? [] : [{ kind: 'never', gw: g, run: () => never(ctx, id) }]),
-          ...[keepOn, outOn].filter(Boolean).map((q) => ({ kind: 'rule', gw: g, run: () => removeRule(ctx, q.id) })),
-        ];
-      };
+      /** His card's taps solved ahead (AH.presolveTaps): the Remove of a rule of his, his only edit left on it. */
+      const aheadTaps = (P) => [pinOf(P, 'keep', id, g), pinOf(P, ['sell', 'veto', 'never'], id, g)].filter(Boolean)
+        .map((q) => ({ kind: 'rule', gw: g, run: () => removeRule(ctx, q.id) }));
       // chart key (ⓘ): shut until asked, kept open across redraws
       const keyOf = () => { const k = { open: false, toggle: () => { k.open = !k.open; draw(); } }; return k; };
       const chartKey = keyOf();
@@ -181,9 +192,8 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
       function askLine(P) {
         // pinOf returns the one pin covering GW g (one rule per player: meeting), so one it doesn't is of another GW;
         // the Sell row's sale shows over a same-GW veto (sale ?? out)
-        const sold = owns(P) && !!pinOf(P, 'sell', id);
-        const pin = (owns(P) ? null : pinOf(P, 'sell', id)) ?? pinOf(P, 'wish', id)
-          ?? pinsOf(P, ['keep', 'veto', 'never'], id).find((q) => pinOf(P, q.kind, id, g) !== q || (sold && q.kind !== 'keep'));
+        // (no week controls on his card since 2026-11-09 (Replace… and Sub…, Bring him in…): any rule of his)
+        const pin = pinOf(P, 'sell', id) ?? pinOf(P, 'wish', id) ?? pinsOf(P, ['keep', 'veto', 'never'], id)[0] ?? null;
         if (!pin) return null;
         const word = pin.kind === 'sell' ? pin.label || 'Sold by your pick' : pin.kind === 'wish' ? pin.label || 'Added by you'
           : ruleOf(P, pin).text;
@@ -192,78 +202,26 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
           h('button.m-chipbtn.m-danger', { type: 'button', disabled: !P.editable || AH.liftsLive(ctx, P, pin), onClick: () => removeRule(ctx, pin.id) }, undo),
           P.editable ? liveWhy(P, pin) : h('p.ps-off.m-foot', null, P.why));
       }
-      /** A rule of his of `kinds` as the shown GW has it: Off / GW6 / all weeks (`opts`: [key, label, spoken]), Off
-       *  when none covers GW g. Off removes it (removeRule); another option makes it (`make`). Serves Force keep and
-       *  both Force outs. → [row, liveWhy's reason when Off is held | null] */
-      function weekSeg(P, kinds, name, label, opts, make, here = pinOf(P, kinds, id, g), mode = !here ? 'off' : ruleOf(P, here).scope === 'gw' ? 'gw' : 'all') {
-        // a Wildcard or Free Hit week offers that week's rule alone: a wider one made there would reach past the chip
-        if (AH.squadWeek(weekOf(P, g)) && mode !== 'all') opts = opts.filter(([k]) => k !== 'all');
-        // Off would re-plan GW A under way (AH.liftsLive): off like Your rules' Remove, reason under the row
-        const held = !!here && AH.liftsLive(ctx, P, here);
-        const set = (k) => {
-          if (k === mode) return;
-          if (k === 'off') { removeRule(ctx, here.id); return; }
-          make(k);
-        };
-        return [h('div.ps-keep.wide', null, h('span.ps-keep-l', { id: `ps-${name}-${id}` }, label),
-          segControl({ opts, current: mode, onPick: set, labelledBy: `ps-${name}-${id}`, disabled: (k) => !editable(ctx) || (k === 'off' && held) })),
-        held ? liveWhy(P, here) : null];
-      }
-      /** Force keep · Off / GW6 / GW6–9, as your Keep holds him in the shown GW (one GW's or through the end); Off is
-       *  "Forkcast decides" (owner, 2026-10-14). The wider option is its Keep's span (yours, else keepPin's), never "To
-       *  GW9" beside "GW9". */
-      function keepSeg(P) {
-        let here = pinOf(P, 'keep', id, g);
-        // a Free Hit week's fifteen takes only that week's Keep (memory.composePins): a wider one is not on
-        if (here && AH.squadWeek(weekOf(P, g)) === 'fh' && ruleOf(P, here).scope !== 'gw') here = null;
-        const wide = COPY.span(AH.windowOf(here && ruleOf(P, here).scope !== 'gw' ? here : AH.keepPin(P, id, { gw: g, scope: 'all' })));
-        // "Keep", as his place's Keep and the rule chip say it (owner, 2026-10-22: one word per concept)
-        return weekSeg(P, 'keep', 'lock', COPY.placeKeep,
-          [['off', 'Off', 'Not kept'], ['gw', `GW${g}`, `Kept in GW${g} only`], ['all', wide, `Kept through GW${P.end}`]],
-          (k) => keep(ctx, id, { gw: g, scope: k }), here);
-      }
-      /** Force out · Off / GW6 only / GW6–9, as your veto keeps him out of the shown GW: one GW's (scope 'gw': the plan
-       *  may buy him later) or every week's (never). */
-      function ruledSeg(P) {
-        const all = COPY.span(P.gws);
-        // the veto's word, "Not", as the rule chip, Why button and swipe say it (owner, 2026-10-22)
-        return weekSeg(P, ['veto', 'never'], 'out', COPY.notHim,
-          [['off', 'Off', 'Not him: off'], ['gw', `GW${g} only`, `Not him in GW${g} only`], ['all', all, `Not him in ${all}`]],
-          (k) => (k === 'gw' ? veto(ctx, { gw: g, out: null, in: id }, { scope: 'gw' }) : never(ctx, id)));
-      }
-      /** Force out · Off / GW7 only / From GW8… (owner, 2026-10-13/14: one verb for sale and veto). GW{g} only: a veto
-       *  of that week alone, offered where the week's squad is remade (Wildcard or Free Hit), the plan brings him in
-       *  that week, or your veto already covers it; a wider veto of yours shows as itself, GW6–9. From GW{n}…: sells
-       *  him from the first week he can be sold in (AH.sellWeek), opens Replace to choose who comes in or let Forkcast
-       *  choose; not offered beside a wider rule. */
-      function sellSeg(P) {
-        const w = weekOf(P, g);
-        const sale = pinOf(P, 'sell', id);
-        const out = pinOf(P, ['veto', 'never'], id, g);
-        const wide = !sale && !!out && ruleOf(P, out).scope !== 'gw';
-        const from = sale ? Number(sale.gw) : AH.sellWeek(ctx, P, id, g);
-        const buy = AH.squadWeek(w) ? null : w.moves.find((m) => m.in === id);
-        const opts = [['off', 'Off', 'Not forced out'],
-          ...(AH.squadWeek(w) || !squadBefore(P, g).includes(id) || out ? [['gw', `GW${g} only`, `Out of GW${g} only`]] : []),
-          ...(wide ? [['all', COPY.span(AH.windowOf(out) ?? P.gws), ruleOf(P, out).text]] : []),
-          ...(from != null && !wide ? [['sell', `From GW${from}…`, sale ? `Sold from GW${from}` : `Sell him from GW${from}: choose who comes in`]] : [])];
-        return weekSeg(P, ['sell', 'veto', 'never'], 'sell', 'Force out', opts,
-          (k) => (k === 'gw' ? veto(ctx, buy ? { ...buy, gw: g } : { gw: g, out: null, in: id }, { scope: 'gw' }) : (close(), ctx.openSheet('replace', id, from))),
-          sale ?? out, sale ? 'sell' : out ? (wide ? 'all' : 'gw') : 'off');
-      }
-      /** Buttons under the header: for a player you have, Force keep and Force out (armband, subs and chips: owner,
-       *  2026-10-13); for one you don't, Bring him in… (whole row) and Force out. */
+      /** Buttons under the header: for a player you have, Replace… (sell him from the first week he can go: who comes in,
+       *  or Forkcast's pick; sheets/replace.js) and Sub… (his week's legal swaps: sheets/sub.js), his Keep and Force out
+       *  hidden (owner, 2026-11-09, "hide this buttons and only add button on replace and sub"); for one you don't,
+       *  Bring him in… (whole row) and Force out. */
       function actions(P) {
-        const b = (label, onClick, cls = '') => h('button', { type: 'button', class: cls, disabled: !P.editable, onClick }, label);
+        const b = (label, onClick, cls = '', off = false) => h('button', { type: 'button', class: cls, disabled: !P.editable || off, onClick }, label);
         let grid;
-        if (owns(P)) grid = [keepSeg(P), sellSeg(P)];
+        if (owns(P)) {
+          const w = weekOf(P, g), from = pinOf(P, 'sell', id) ? null : AH.sellWeek(ctx, P, id, g);
+          grid = [
+            b(COPY.replaceGo, () => { close(); ctx.openSheet('replace', id, from); }, '', from == null),
+            b(COPY.subGo, () => { close(); ctx.openSheet('sub', id, g); }, '', AH.squadWeek(w) || !(w.xi.includes(id) || w.bench.includes(id))),
+          ];
+        }
         else {
           grid = [
             // no ask; a Never of him goes when a week is picked, and the verdict names it (Undo restores it)
             // the week you chose him in is preselected (owner, 2026-10-09); every sheet closes first
-            // a secondary button
+            // a secondary button; no Not him (owner, 2026-11-09, "hide 'not him'")
             b('Bring him in…', () => { ctx.sheets.closeAll(); ctx.openSheet('wish', id, { gw: g }); }, 'wide'),
-            ruledSeg(P),
           ];
         }
         // a plan you can't edit: every button off, its reason (P.why) once. `place` (Ahead's pitch, the card behind):
@@ -273,7 +231,9 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
       }
       draw();
       // the on-disk half: drawn when it lands (at the mounted sheet's width); a failure keeps the forecast
-      cardOf(ctx, id, null, () => !closed).then((c) => { card = c; cardState = 'ready'; }, () => { cardState = 'none'; })
+      // (two compared: his stats on the same rows, stats.vs; and his own card for his matches)
+      if (two) cardOf(ctx, vs, null, () => !closed).then((c) => { vsCard = c; draw(); }, () => {});
+      cardOf(ctx, id, two ? vs : null, () => !closed).then((c) => { card = c; cardState = 'ready'; }, () => { cardState = 'none'; })
         .then(draw);
       // runs as ticks are model internals (as the Why sheet's run strip): shown once a local page's verdict lands
       Promise.resolve(ctx.api?.access?.()).then((a) => { if (a?.local) { local = true; draw(); } }).catch(() => {});
@@ -344,7 +304,7 @@ function xpRank(ctx, pos, xp, g) {
 /** Past matches (the card), the five forecasts (bundle row and runs), the replaced player of a buy, opponents (bundle
  *  fixtures + FPL difficulty), his cups and coming ties (card cups, cup_next). Past columns are held open while the
  *  card loads; a card with none draws the forecast across the width. Runs: a local page only (`local`). */
-function model(ctx, P, row, id, card, state, local = false, vs = null) {
+function model(ctx, P, row, id, card, state, local = false, vs = null, vsCard = null) {
   const d = ctx.data;
   const pos = P.L.pos(id) ?? posName(row.pos);
   const runsOf = (pid, g) => {
@@ -377,12 +337,15 @@ function model(ctx, P, row, id, card, state, local = false, vs = null) {
     comp: out == null ? null : {
       name: P.L.name(out), chance: orow?.chance ?? null,
       xp: d.xpGws.map((g) => ctx.pitch.xpAt(orow, g, d.xpGws)),
+      // (his own matches by GW, his card's, and his coming opponents: the comparison's table)
+      past: new Map((vsCard?.last_matches ?? []).filter((x) => x.gw != null).map((x) => [Number(x.gw), x])),
+      fx: d.xpGws.map((g) => ctx.pitch.fixturesAt(orow, g, d.xpGws) ?? []),
     },
   };
 }
 
 /** A segmented control (m-seg radiogroup, arrow keys: ui.roving): opts [[key, text, spoken]], `current` key,
- *  onPick(key); named by `labelledBy` (an id), else `label`. Serves weekSeg and the stats' Per match / Per 90. */
+ *  onPick(key); named by `labelledBy` (an id), else `label`. Serves the stats' Per match / Per 90. */
 export function segControl({ opts, current, onPick, labelledBy = null, label = null, disabled = () => false, cls = '' }) {
   return roving(h(`div.m-seg${cls}`, { role: 'radiogroup', 'aria-labelledby': labelledBy, 'aria-label': labelledBy ? null : label, style: { '--n': opts.length, '--i': opts.findIndex(([k]) => k === current) } },
     h('span.m-seg-thumb'),
@@ -442,8 +405,10 @@ function measure(s, wt = 400) {
 /** The strip's geometry (strip.js layout): his EPL and cup matches over the forecast GWs and coming cup ties, two lines
  *  of one column width; no past columns: forecast alone. */
 function geometry(m, W) {
-  const { cols: past, after } = S.pastColumns(m.past.map((x) => ({ ...x, opp: x.opp == null ? null : String(x.opp).toUpperCase() })), m.cups);
-  const fut = S.futureColumns(m.fut.map((f) => ({ ...f, value: f1(f.xp), codes: f.fx.map((o) => o.opp) })), m.cupNext, after ?? []).cols;
+  // (league games only: his cup and international matches no columns of their own; with the last 7 they broke the strip
+  // into four lines; owner, 2026-11-09, "remove non epl games", "what this shit")
+  const { cols: past, after } = S.pastColumns(m.past.map((x) => ({ ...x, opp: x.opp == null ? null : String(x.opp).toUpperCase() })), []);
+  const fut = S.futureColumns(m.fut.map((f) => ({ ...f, value: f1(f.xp), codes: f.fx.map((o) => o.opp) })), [], after ?? []).cols;
   return S.layout({ pastCols: past, futCols: fut, W, measure, slots: m.past.length ? 0 : m.slots });
 }
 
@@ -457,13 +422,19 @@ const INFO = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"
 
 /** LAST 6 · NEXT 5 (NEXT 5 alone with no past matches): a cap label (`title`: the player's name where two are
  *  compared), the drawn columns' sums, the key behind ⓘ (key: {open, toggle}); on `scale` (scaleOf) when shared. */
-function stripSection(m, G, key) {
+/** A strip's sums: his past matches' points and minutes, the forecast's xP over its weeks. Each sum unbroken (no-break
+ *  spaces, none after a span's dash: "GW9–" over "15" at 320 px); the forecast's names its weeks, in blue with "xP". */
+function stripSums(m) {
   const { pts, mins } = pastSums(m.past);
   const next = sum(m.fut.map((f) => f.xp));
-  // each sum unbroken (no-break spaces, none after a span's dash: "GW9–" over "15" at 320 px); the forecast's sum names
-  // its weeks ("next 5" beside the plan's four-week sums), its range via COPY.span, in blue with "xP"
   const nb = (x) => x.replace(/ /g, '\u00a0').replace(/–/g, '\u2060–\u2060');
-  const head = h('span.ps-sums', null, m.past.length ? `${nb(`${pts} pts in ${mins}′`)} · ` : null, h('span.ps-sum', null, `${nb(COPY.span(m.fut.map((f) => f.gw)))}\u00a0`, xpNum(f1(next))));
+  return h('span.ps-sums', null, m.past.length ? `${nb(`${pts} pts in ${mins}′`)} · ` : null, h('span.ps-sum', null, `${nb(COPY.span(m.fut.map((f) => f.gw)))}\u00a0`, xpNum(f1(next))));
+}
+
+function stripSection(m, G, key) {
+  // (two compared: the summary and the paired strip, no single player's heading, sums or key)
+  if (m.two) return pairView(m, m.rows, G.W);
+  const head = stripSums(m);
   const info = infoBtn(key, 'What the chart shows');
   return h('div.m-sec.ps-strip', null,
     h('h3', null, h('span', null, m.slots ? `Last ${m.past.length || LAST_N} · next ${m.fut.length}` : `Next ${m.fut.length}`),
@@ -492,6 +463,76 @@ export function stripKey(m, cols) {
     + `${past.length ? ` Dashed: ${COPY.span(past)}, past your plan.` : ''}`
     + `${cups.some((c) => !c.next) ? ' Grey: his other competitions, his minutes in each (0′ an unused sub, — not in the squad).' : ''}`
     + `${among ? ` Among the forecast, grey: ${among}.` : ''}${codes ? ` ${codes}${venue}.` : ''}`;
+}
+
+/** An opponent on FPL's difficulty colour (the pitch's chips) under column c at baseline y, its code's case its venue
+ *  ("COV" at home, "cov" away); an end column's chip slides in to stay on a chart W wide. */
+function oppChip(c, opp, home, fdr, y, W) {
+  const shown = oppText({ opp, home });
+  const chipW = Math.min(c.w - 1, measure(shown, 600) * S.CODE_SCALE + 6);
+  const x = S.within(c.cx, chipW, 0, W) - chipW / 2;
+  return `<g class="opp" data-club="${esc(opp)}" data-fdr="${fdr ?? ''}"><title>${esc(`${fixText(opp, home)}${fdr ? `, FPL difficulty ${fdr} of 5` : ''}`)}</title>`
+    + (fdr ? `<rect x="${x.toFixed(1)}" y="${(y - 11).toFixed(1)}" width="${chipW.toFixed(1)}" height="15" rx="3" fill="var(--fdr-${fdr})"/>` : '')
+    + T(x + chipW / 2, y, shown, { fill: 'var(--ink)', cls: 'v code' }) + '</g>';
+}
+
+/** Two players compared (the card title's →), as chart design guidance has it (owner, 2026-11-09, "find proper
+ *  design"): two time series compared on line graphs (Few, perceptualedge.com/blog/?p=2578), points and the forecast's
+ *  xP each a panel on its own scale; the two players blue and orange (Okabe-Ito, the safe pair), told apart by line and
+ *  marker too (solid, filled: the first; dashed, hollow: the second); each value at its point, the higher over it,
+ *  the lower under it; under the GWs each player's row of fixture difficulty squares (no team names: the colour says
+ *  it). Over it his and his totals, a ✓ at the better. rows: the two players' bundle rows. → node */
+function pairView(m, rows, W) {
+  const c2 = m.comp;
+  const past = m.past.filter((x) => x.gw != null), fut = m.fut;
+  const ptsA = past.map((x) => (x.minutes ? Number(x.points ?? 0) : null));
+  const ptsB = past.map((x) => { const o = c2?.past?.get(Number(x.gw)); return o?.minutes ? Number(o.points ?? 0) : null; });
+  // (the forecast for your plan's weeks alone: the next four)
+  const plan4 = fut.filter((f) => f.inPlan), xp4A = plan4.map((f) => f.xp ?? null), xp4B = plan4.map((f) => c2?.xp[fut.indexOf(f)] ?? null);
+  const tot = (xs) => xs.reduce((t, v) => t + (v ?? 0), 0);
+  const lines = [
+    past.length ? [`Points ${COPY.span(past.map((x) => x.gw))}`, tot(ptsA), tot(ptsB), String] : null,
+    [`Forecast xP ${COPY.span(plan4.map((f) => f.gw))}`, tot(xp4A), tot(xp4B), f1],
+  ].filter(Boolean);
+  const cellOf = (v, w, show, side) => {
+    const best = v > w + 1e-9;
+    return h(`span.ps-hh-v.${side}.m-num`, { class: { best } }, side === 'b' && best ? h('i.ps-ok', null, '✓') : null, show(v), side === 'a' && best ? h('i.ps-ok', null, '✓') : null);
+  };
+  const table = h('div.ps-hh', null, lines.map(([l, a, b, show]) => h('div.ps-hh-r', null, cellOf(a, b, show, 'a'), h('span.ps-hh-l', null, l), cellOf(b, a, show, 'b'))));
+  // (one row: the past points, then the forecast's xP for your plan's weeks, each part its own scale, a rule between;
+  // owner, 2026-11-09, "merge in one row, show forecast only for next 4")
+  const GUT = 14, PH = 78, top = 34;
+  const parts = [
+    past.length ? { title: `Points · ${COPY.span(past.map((x) => x.gw))}`, gws: past.map((x) => x.gw), a: ptsA, b: ptsB, fa: past.map((x) => ({ fdr: x.fdr })), fb: past.map((x) => ({ fdr: c2?.past?.get(Number(x.gw))?.fdr })), xp: false } : null,
+    { title: `Forecast xP · ${COPY.span(plan4.map((f) => f.gw))}`, gws: plan4.map((f) => f.gw), a: xp4A, b: xp4B, fa: plan4.map((f) => f.fx[0]), fb: plan4.map((f) => c2?.fx?.[fut.indexOf(f)]?.[0]), xp: true },
+  ].filter(Boolean);
+  const n = parts.reduce((t, p) => t + p.gws.length, 0), SEP = 10, cw = (W - GUT - SEP * (parts.length - 1)) / n;
+  const out = [];
+  let i0 = 0;
+  parts.forEach((part, k) => {
+    const x0 = GUT + i0 * cw + k * SEP, hi = Math.max(1, ...part.a.map((v) => v ?? 0), ...part.b.map((v) => v ?? 0));
+    const y = (v) => top + PH - (Math.max(v, 0) / hi) * PH;
+    const cx = (i) => x0 + i * cw + cw / 2;
+    const say = (v) => (part.xp ? f1(v) : String(v));
+    out.push(T(x0, 12, part.title, { anchor: 'start' }), L(x0, top + PH, x0 + part.gws.length * cw, top + PH, 'var(--border-2)'));
+    if (k) out.push(L(x0 - SEP / 2, 4, x0 - SEP / 2, top + PH + 60, 'var(--hair)'));
+    const line = (vals, color, dash) => {
+      const runs = [[]];
+      vals.forEach((v, i) => (v == null ? runs.push([]) : runs.at(-1).push(`${cx(i).toFixed(1)},${y(v).toFixed(1)}`)));
+      return runs.filter((r) => r.length > 1).map((r) => `<polyline points="${r.join(' ')}" fill="none" stroke="${color}" stroke-width="2.2"${dash ? ' stroke-dasharray="5 3"' : ''}/>`).join('');
+    };
+    out.push(line(part.b, 'var(--pair-b)', true), line(part.a, 'var(--pair-a)', false));
+    part.gws.forEach((g, i) => {
+      const va = part.a[i], vb = part.b[i], aUp = vb == null || (va != null && va >= vb);
+      if (vb != null) out.push(`<circle cx="${cx(i).toFixed(1)}" cy="${y(vb).toFixed(1)}" r="3.8" fill="var(--surface)" stroke="var(--pair-b)" stroke-width="2"/>`, T(cx(i), y(vb) + (aUp ? 16 : -8), say(vb), { fill: 'var(--pair-b)', cls: 'v' }));
+      if (va != null) out.push(`<circle cx="${cx(i).toFixed(1)}" cy="${y(va).toFixed(1)}" r="3.8" fill="var(--pair-a)"/>`, T(cx(i), y(va) + (aUp ? -8 : 16), say(va), { fill: 'var(--pair-a)', cls: 'v' }));
+      out.push(T(cx(i), top + PH + 30, g));
+      [[part.fa[i], top + PH + 40], [part.fb[i], top + PH + 52]].forEach(([o, yy]) => out.push(R(cx(i) - Math.min(9, cw / 2 - 2), yy, Math.min(18, cw - 4), 7, o?.fdr ? `var(--fdr-${o.fdr})` : 'var(--hair)', 'rx="2"')));
+    });
+    i0 += part.gws.length;
+  });
+  out.push(`<circle cx="4.5" cy="${top + PH + 43.5}" r="3.5" fill="var(--pair-a)"/>`, `<circle cx="4.5" cy="${top + PH + 55.5}" r="3.2" fill="var(--surface)" stroke="var(--pair-b)" stroke-width="1.8"/>`);
+  return h('div.m-sec.ps-pair', null, table, svgEl(W, top + PH + 64, out.join(''), `${c2?.name ?? ''} compared by gameweek`, 'ps-chart.ps-pairline'));
 }
 
 /** A strip's points scale: its lowest score (a negative one) and highest bar over past, forecast and the replaced
@@ -561,14 +602,7 @@ function matchStrip(m, G, { low, peak } = scaleOf(m, G)) {
     const venue = (c, home) => (home == null ? '' : T(c.cx, yGw + RH, home ? 'H' : 'A'));
     // opponent on its FPL difficulty colour (the pitch's chips), a match's as a forecast GW's; an end column's chip
     // slides in to stay on the chart
-    const chip = (c, opp, home, fdr, y) => {
-      const shown = oppText({ opp, home });
-      const chipW = Math.min(c.w - 1, measure(shown, 600) * S.CODE_SCALE + 6);
-      const x = S.within(c.cx, chipW, 0, W) - chipW / 2;
-      return `<g class="opp" data-club="${esc(opp)}" data-fdr="${fdr ?? ''}"><title>${esc(`${fixText(opp, home)}${fdr ? `, FPL difficulty ${fdr} of 5` : ''}`)}</title>`
-        + (fdr ? `<rect x="${x.toFixed(1)}" y="${(y - 11).toFixed(1)}" width="${chipW.toFixed(1)}" height="15" rx="3" fill="var(--fdr-${fdr})"/>` : '')
-        + T(x + chipW / 2, y, shown, { fill: 'var(--ink)', cls: 'v code' }) + '</g>';
-    };
+    const chip = (c, opp, home, fdr, y) => oppChip(c, opp, home, fdr, y, W);
     for (const c of lc) {
       if (c.kind === 'epl') {
         const p = c.points ?? 0, mn = c.minutes ?? 0;
@@ -657,29 +691,35 @@ const statsAmong = (ctx) => { try { return ctx.api?.local?.get?.(STATS_AMONG_KEY
 /** STATS: every peer of his position (faint), him in ink, his value and rank (ties share the better rank), on the stats
  *  the data chose for him (api/stats_pick.json, api/card.py _rows; owner, 2026-10-14), per match he played or per 90
  *  (owner, 2026-10-13: per match first). */
-function statsSection(card, W, { view, setView, among, setAmong }) {
+function statsSection(card, W, { view, setView, among, setAmong }, two = false) {
   // among every position (api/card.py stats.all) or his own
   const of = (s) => (among === 'all' ? s?.all?.[view] : s?.[view]) ?? null;
   const p = of(card?.stats);
   if (!p || !Object.values(p.rows).some((r) => r.value != null)) return null;
+  // (two compared: the other's ring on each line, his value beside this one's, no ranks; owner, 2026-11-09, "fix so this
+  // not take two rows")
+  const o = two ? of(card?.stats?.vs) : null;
   const word = among === 'all' ? 'players' : WORD[p.pos] ?? 'players';
   const per = view === 'p90' ? 'per 90 minutes' : 'a match';
   const labs = Object.keys(p.rows).map((k) => (STAT[k] ?? [k])[0]);
-  const RK = 44, SW = W - RK, AX = Math.min(124, Math.ceil(Math.max(...labs.map((s) => measure(s)))) + 10), RV = 44, span = SW - AX - RV, hh = 26, y = hh / 2;
+  const RK = o ? 0 : 44, SW = W - RK, AX = Math.min(124, Math.ceil(Math.max(...labs.map((s) => measure(s)))) + 10), RV = o ? 84 : 44, span = SW - AX - RV, hh = 26, y = hh / 2;
   const rows = Object.entries(p.rows).map(([k, r]) => {
     const [lab, dp] = STAT[k] ?? [k, 1];
     const vals = p.dist[k] ?? [];
-    const hi = Math.max(...vals, r.value ?? 0) * 1.02 || 1;
+    const ov = o?.rows[k]?.value ?? null;
+    const hi = Math.max(...vals, r.value ?? 0, ov ?? 0) * 1.02 || 1;
     const sx = (v) => AX + (Math.min(Math.max(v, 0), hi) / hi) * span;
     const b = [L(AX, y, AX + span, y, 'var(--hair)'), T(0, y + 4.5, lab, { anchor: 'start' })];
     for (const v of vals) b.push(`<circle class="peer" cx="${sx(v).toFixed(1)}" cy="${y}" r="2.6" fill="var(--border-2)" opacity=".7"/>`);
-    if (r.value != null) b.push(`<circle class="me" cx="${sx(r.value).toFixed(1)}" cy="${y}" r="5" fill="var(--ink)" stroke="var(--surface)" stroke-width="1.5"/>`);
-    b.push(T(SW, y + 4.5, r.value == null ? '–' : r.value.toFixed(dp), { anchor: 'end', fill: 'var(--ink)', cls: 'v' }));
+    if (o && ov != null) b.push(`<circle class="vs" cx="${sx(ov).toFixed(1)}" cy="${y}" r="4.3" fill="var(--surface)" stroke="var(--pair-b)" stroke-width="2"/>`);
+    if (r.value != null) b.push(`<circle class="me" cx="${sx(r.value).toFixed(1)}" cy="${y}" r="5" fill="${o ? 'var(--pair-a)' : 'var(--ink)'}" stroke="var(--surface)" stroke-width="1.5"/>`);
+    b.push(T(o ? SW - 42 : SW, y + 4.5, r.value == null ? '–' : r.value.toFixed(dp), { anchor: 'end', fill: o ? 'var(--pair-a)' : 'var(--ink)', cls: 'v' }));
+    if (o) b.push(T(SW, y + 4.5, ov == null ? '–' : ov.toFixed(dp), { anchor: 'end', fill: 'var(--pair-b)', cls: 'v' }));
     const rank = r.rank == null ? '–' : fmt.ordinal(r.rank);
     const said = `${r.value == null ? 'none' : r.value.toFixed(dp)}, ${r.rank == null ? 'no rank' : `${fmt.ordinal(r.rank)} of ${p.n} ${word}`}`;
     return h('div.ps-srow', { 'data-key': k, 'data-rank': r.rank ?? '', 'data-value': r.value ?? '' },
       svgEl(SW, hh, b.join(''), `${lab} ${per}: ${said}`, 'ps-chart'),
-      h('span.ps-rk.m-num', null, rank));
+      o ? null : h('span.ps-rk.m-num', null, rank));
   });
   const [g0, g1] = card.season_rounds ?? [];
   return h('div.m-sec.ps-stats', { 'data-view': view, 'data-among': among },

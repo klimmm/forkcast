@@ -33,6 +33,11 @@ export const COPY = Object.freeze({
   /** A sub's list title (ahead.subSheet), as his card names him ("substitute 1", the keeper "goalkeeper"); n his place
    *  in the bench order (pitch.subOrder), null for the keeper. */
   subIn: (n, gw) => `${n == null ? 'Goalkeeper' : `Substitute ${n}`} · GW${gw}`,
+  /** A player-you-have's card buttons: sell him and choose who comes in; swap him with a sub. */
+  replaceGo: 'Replace…',
+  subGo: 'Sub…',
+  /** A starter's sub list (his card's Sub): who can come on for him. */
+  subOut: (name, gw) => `Sub off ${name} · GW${gw}`,
   /** Replace's "Let Forkcast choose" (owner, 2026-10-13): the sale alone yours, the buy the full plan's
    *  (ahead.sellAny). */
   autoBuy: 'The full plan picks who comes in',
@@ -224,7 +229,6 @@ export const COPY = Object.freeze({
     ], 'xfer'],
     ['Keep a player, or say Not to one', [
       'Tap the line above the pitch. Swipe a transfer left: Not the player it buys, in that GW.',
-      `On the card of a player you don't have, ${COPY.notHim} keeps him out.`,
       'A Wildcard or Free Hit week\'s changes work the same.',
       'Your rules, at the end of that list, shows what you set. Tap one, then Remove.',
     ], 'rules'],
@@ -741,7 +745,6 @@ export const COPY = Object.freeze({
   placeKeep: 'Keep',
   /** The veto on the card of a player you don't have (sheets/player.js ruledSeg), "Not", as the rule chip ("Not Groß ·
    *  GW8") and the swipe say it. */
-  notHim: 'Not him',
   placeKeepSaid: (name, g) => `Keep ${name} in GW${g}: no transfer sells him`,
   // a card's corner marks (ahead renderDecks: cardMarks): × his place, the lock a GW Keep of him (owner, 2026-11-02)
   cardOutSaid: (name, g) => `Replace ${name} in GW${g}: his choices`,
@@ -791,7 +794,8 @@ export const COPY = Object.freeze({
   /** The strip's answer, in every week you can change (owner, 2026-11-05, design_1105b A, "like save more"): Forkcast's move
    *  under its title, a week it saves, or your moves with nothing to add. */
   answerMove: 'Make this transfer',
-  makeTheSwap: 'Make the swap',
+  /** The transfer card's button beside the names, short so they keep their full size (owner, 2026-11-09, "both"). */
+  swap: 'Swap',
   showAnother: 'Show another',
   showATransfer: 'Show a transfer',
   /** The card's take-backs, each saying what it takes back (owner, 2026-11-05, "fix undo / reset buttions signs and theier
@@ -801,6 +805,7 @@ export const COPY = Object.freeze({
   undoLast: 'Undo',
   seeChanges: 'See the changes',
   onToWeek: (g) => `On to GW${g}`,
+  showSuggestion: 'Show suggestion',
   setInFplGo: 'Set in FPL',
   /** The card's one number's words, at its left (owner, 2026-11-09, design_1109a slip): the move's points over the weeks
    *  shown against saving the free transfer, the saved transfer's own worth counted (what orders the cards). */
@@ -882,6 +887,16 @@ export const COPY = Object.freeze({
   rulesHead: 'Your rules',
   /** A player's name in a Why sheet's comparison, said as what it opens. */
   cardOf: (name) => `${name}'s card`,
+  /** The card title's →: the buy's card against the player he replaces. */
+  compareOf: (inn, out) => `${inn} against ${out}`,
+  /** Its name menus' spoken label. */
+  comparePick: (name) => `Compare instead of ${name}`,
+  /** A row's button in that list. */
+  compareGo: 'Compare',
+  /** The opening card's link: any two players compared, and its first list's title. */
+  comparePlayers: 'Compare players',
+  /** Its second list's title. */
+  compareWith: (name) => `Compare with ${name}`,
   /** A suggested plan while it is solved (on its row): no number guessed, only what it waits for: "planning…" its own
    *  solve (also the week line's while its transfers' plans solve), "waiting" the slot (a sheet's solve, a refused
    *  ask), "waiting for your edit's plan". */

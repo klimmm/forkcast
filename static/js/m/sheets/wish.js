@@ -14,6 +14,9 @@
 // your squad of that week where it ranks (greyed, "In your team", a ⋯ in the +'s place opening his card).
 // From a player's place ("Other…", {pos, out}: ahead.drawPlace) the sale is chosen already: the list is his position's
 // alone (other tabs off, search too) and a + swaps in the list's week at once (swapIn; owner, 2026-10-28).
+// For a comparison (`compare`: {title, pick(id), back()}: a compared player's name, sheets/player.js) the same list of
+// his position, each row's button Compare: a pick hands the player over, a close without one goes back (owner,
+// 2026-11-09, "fix it to display same view as in bring player").
 
 import { h, fmt, fill, norm, icon, xpNum } from '../../ui.js';
 import { COPY } from '../calls.js';
@@ -21,7 +24,7 @@ import { plan, weekOf, squadBefore, barred, barringRule, ruleOf, inkAt, saleBuy,
 import { weekPills, tabs, barTop, bars, ownWeeks, shirt, found, SORTS, sortsOf, orderOf, sortChips } from './buylist.js';
 
 const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
-export function open(ctx, preId = null, { gw = null, pos = null, out = null } = {}) {
+export function open(ctx, preId = null, { gw = null, pos = null, out = null, compare = null } = {}) {
   const P0 = plan(ctx);
   if (!P0) return null;
   const live = (g) => !inkAt(ctx, P0, g);  // a week an arrival can still reach (not frozen, not GW A under way)
@@ -39,11 +42,13 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
   if (preId != null) { pick(Number(preId)); return null; }
   // pos: the position its list opens on (a player's place's "Other…": ahead.drawPlace), else all; place: that player, the
   // sale; lock: opened from his place, the list his position's alone
-  const st = { q: '', g: G, pos: POSITIONS.includes(pos) ? pos : 'all', place: out != null ? Number(out) : null, lock: out != null && POSITIONS.includes(pos), sort: 'pts', flip: false };
+  const st = { q: '', g: G, pos: POSITIONS.includes(pos) ? pos : 'all', place: out != null ? Number(out) : null, lock: (out != null || !!compare) && POSITIONS.includes(pos), sort: 'pts', flip: false };
+  let picked = false;
   const no = barred(P0, P0.A);
 
   return ctx.sheets.open({
-    title: COPY.bringInSheet, detent: 'large', cls: 'ws',
+    title: compare?.title ?? COPY.bringInSheet, detent: 'large', cls: 'ws',
+    onClose: () => { if (compare && !picked) compare.back(); },
     build(body) {
       // the names FPL writes are mostly surnames (a first name finds no one); a club's short name finds its players
       const input = h('input', { type: 'search', placeholder: 'Search by surname', 'aria-label': 'Search by surname', autocomplete: 'off', spellcheck: 'false', enterkeyhint: 'search' });
@@ -82,7 +87,8 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
             // 2026-10-22)
             sub2 ? null : h('span.rt.m-num', null, v == null ? '—' : x.xp ? xpNum(x.num(v), 'span', null, false) : x.num(v), h('small', null, x.unit(P, st.g))),
             // its first letter alone lowered: "in your GW8 plan", never "gw8"
-            mine ? h('button.ws-add.ws-mine', { type: 'button', 'aria-label': `${name}, ${yours[0].toLowerCase()}${yours.slice(1)}: his card`, onClick: () => ctx.openSheet('player', id, { gw: st.g }) }, '⋯')
+            compare ? h('button.ws-add.m-swap.quiet', { type: 'button', 'aria-label': `${COPY.compareGo} ${name}`, onClick: () => { picked = true; ctx.sheets.closeAll(); compare.pick(id); } }, COPY.compareGo)
+            : mine ? h('button.ws-add.ws-mine', { type: 'button', 'aria-label': `${name}, ${yours[0].toLowerCase()}${yours.slice(1)}: his card`, onClick: () => ctx.openSheet('player', id, { gw: st.g }) }, '⋯')
               // from a player's place (st.lock) its tap swaps him in at once: "Swap", outlined (one filled per view; design
               // 1028d K1); else his +
               : st.lock ? h('button.ws-add.m-swap.quiet', { type: 'button', disabled: !P.editable, 'aria-label': `${COPY.bringIn(name, st.g)} for ${P.L.name(st.place)}`, onClick: () => swapIn(id) }, COPY.placeSwap)
@@ -117,9 +123,9 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null } = 
         const top = barTop(L, items, ownWeeks(P, st.g));
         const later = P.weeks.filter((w) => w.gw > g).flatMap((w) => w.in.map((id) => ({ id, gw: w.gw }))).filter((x) => !st.lock || L.pos(x.id) === st.pos);
         // offline: every + off, the reason once above them
-        fill(main, P.editable ? null : h('p.ps-off', null, P.why),
+        fill(main, P.editable || compare ? null : h('p.ps-off', null, P.why),
           h('div.m-sec', null, items.length ? items.map((o) => row(o.id, null, top, o.mine)) : h('p.ah-empty', null, q ? COPY.noneCalled('player', st.q.trim()) : 'No one fits this filter.')),
-          !q && later.length ? h('div.m-sec', null, h('h3', null, 'Your plan buys later'),
+          !q && !compare && later.length ? h('div.m-sec', null, h('h3', null, 'Your plan buys later'),
             later.map(({ id, gw: at }) => row(id, `arrives GW${at} · bring him in earlier`))) : null);
       }
 
