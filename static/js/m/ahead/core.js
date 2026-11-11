@@ -66,7 +66,10 @@ export function info(ctx) {
     owned: ids(d.base.squad.map((s) => s.id)), season: d.base.season,
   };
 }
-export const editable = (ctx) => ctx.store.get('conn')?.state !== 'offline' && !!info(ctx)?.base;
+/** Your plan drawn while the model's is not asked (Settings → Solve ahead Off, memory model): with it On Ahead waits for
+ *  the model's as before. */
+const ownFirst = (ctx, gp = memPlan(ctx)) => ctx.presolveOn?.() === false && !!gp?.road?.weeks?.length;
+export const editable = (ctx) => ctx.store.get('conn')?.state !== 'offline' && !!(info(ctx)?.base || ownFirst(ctx));
 /** Plans of n weeks or more are locked for this browser (the bundle's meta.locked): the reach's n-th GW can't be
  *  planned. */
 export const lockedFrom = (I, n) => I.reach.slice(n - 1).every((_, i) => (I.b.meta?.locked || []).includes(horizonFeature(n + i)));
@@ -285,8 +288,8 @@ export const sameView = (a, b) => a === b || (!!a && !!b && String(a.entry) === 
 
 export function plan(ctx) {
   const I = info(ctx);
-  if (!I || !I.base) return null;
   const gp = ctx.store.get('memory') ?? memPlan(ctx);
+  if (!I || (!I.base && !ownFirst(ctx, gp))) return null;
   const conn = ctx.store.get('conn')?.state;
   const key = [gp, I.b, I.d, conn, rev];
   if (memo.key && key.every((x, i) => x === memo.key[i])) return memo.P;

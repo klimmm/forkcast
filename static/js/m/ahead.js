@@ -60,7 +60,7 @@ export {
   wishPin, isPick, valuesFor, solveFor, baked
 } from './ahead/core.js';
 export {
-  plannerFor, pendingTick, pendingAgain, driftSay, sayCheer, changedOf, weekChanged, tickWas, totalShift,
+  plannerFor, pendingTick, pendingAgain, sayCheer, changedOf, weekChanged, tickWas, totalShift,
   changedCards, clashParts, clashLine, inPlaceOf, sideEffects, endingOf, sellFrom, sellAny, veto, want, keepPin,
   keep, never, scopeLabels, rescope, buyCandidates, asksOf, pinsOf, windowOf, clashing, ruleOf, pinOf, barred,
   keptFrom, keptCells, barringRules, barringRule, sellOut, liftAsk, removeRule, captain, vice, subLineup, sub,
@@ -74,7 +74,7 @@ export {
   planBaseline, takenBy, forkValues, forkFlights, resetForks
 } from './ahead/plans.js';
 export {
-  presolveTaps, owedAt, extraWeek, repicks, addYours, OWN_ALTS, ownAltsOf, tiedBuy, cheaperFirst, otherUseOf, whenOf,
+  presolveTaps, stopAhead, owedAt, extraWeek, repicks, addYours, OWN_ALTS, ownAltsOf, tiedBuy, cheaperFirst, otherUseOf, whenOf,
   moveTo, pairMovesOf, planTake, takenKeep, addPlan, yoursTakenBack, rollingAt, pinOfMove, movesInOrder, fundingOf,
   removeMove, rowGains, onBase, whenOnBase, ifMisses, whyFacts, rootStill
 } from './ahead/presolve.js';

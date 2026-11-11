@@ -124,6 +124,7 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
   const caps = {};  // gw → at most n transfers (the hold's: exact moves after a planner week, holdOf)
   const refused = [];  // [g, out, in]: the transfers you refused (pinNotFor)
   const debts = new Set();  // bank may go below 0 (the hold's, holdOf)
+  const implied = [];  // [id, gw, pin]: what an exact sale implies before its week (the seller kept, the buy not yet)
   for (const pin of list) {
     if (!pin) continue;
     const put = (id, g, want) => {
@@ -147,8 +148,8 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
     if (g1 >= from && g1 <= to) {
       let own = g1;
       while (own >= from && fh(own)) own--;
-      if (own >= from) put(Number(pin.player), own, 'in');
-      for (const g of range(Math.max(from, lastSale(list, Number(pin.in), g1)), g1)) if (!fh(g)) put(Number(pin.in), g, 'out');
+      if (own >= from) { put(Number(pin.player), own, 'in'); implied.push([Number(pin.player), own, pin.id]); }
+      for (const g of range(Math.max(from, lastSale(list, Number(pin.in), g1)), g1)) if (!fh(g)) { put(Number(pin.in), g, 'out'); implied.push([Number(pin.in), g, pin.id]); }
     }
     for (const [g, ids] of ins) if (ids.size >= SQUAD) holds.set(g, { pin: pin.id, ids });
     for (const [g, n] of capsOf(pin, from, to)) hits[g] = n;
@@ -168,9 +169,35 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
   for (const g of rolls) delete caps[g];  // a Roll is the tightest cap
   // a rolled GW makes no transfer, so no hit: no cap is sent (the bake's roll road is solved with none)
   for (const g of rolls) delete hits[g];
+  // (…and in a week of no transfers, what an exact sale implies before it: no one is sold or bought there anyway; owner,
+  // 2026-11-09, "fix bug": a half solve sent --must-have=Tavernier@11-11 under --no-buys-gw=11)
+  for (const [id, g, by] of implied) if (rolls.has(g) && cells.get(id)?.get(g)?.pin === by) cells.get(id).delete(g);
   const cash = cashOf(list);
   const must = [], excl = [];
   for (const [id, byGw] of cells) for (const [g, { want }] of byGw) (want === 'in' ? must : excl).push([id, g, g]);
+  // (the must-haves sent to the solver: a squad held whole in a week capped at exactly your own moves there (a Roll
+  // keeping them, caps[g]) or with no transfers is the week before's but for those moves, so only their buys are sent,
+  // never the other fourteen; `must` and `cells` keep them all, as your plan's record; owner, 2026-11-09, "why it pass
+  // full team in must haves instead of passing only the swap")
+  const implicit = new Set();
+  for (const [g, hd] of holds) {
+    const ex = exactAt(list, g), buys = new Set(ex.map((p) => Number(p.in)));
+    if (!(rolls.has(Number(g)) || (caps[g] != null && Number(caps[g]) === ex.length))) continue;
+    for (const id of hd.ids) if (!buys.has(id) && cells.get(id)?.get(g)?.pin === hd.pin && cells.get(id).get(g).want === 'in') implicit.add(`${id}@${g}`);
+  }
+  // (an exact move of yours in a week, its sale and buy that week both standing: sent as the transfer itself, --for-gw
+  // GW:out:in (main.py), never as a must-have and an exclusion; owner, 2026-11-09, "replace '--must-have=Vuskovic@11-11
+  // --exclude=Thomas@11-11' with --for-gw=11:Thomas:Vuskovic")
+  const made = [];
+  for (const p of list.filter((x) => x && isExact(x))) {
+    const g = num(p.gw), [out, inn] = kindOf(p) === 'slide' ? [Number(p.out), Number(p.player)] : [Number(p.player), Number(p.in)];
+    if (g == null || g < from || g > to || fh(g) || cells.get(inn)?.get(g)?.want !== 'in' || cells.get(out)?.get(g)?.want !== 'out') continue;
+    made.push(`${g}:${out}:${inn}`);
+    implicit.add(`${inn}@${g}`);
+  }
+  const outsMade = new Set(made.map((t) => { const [g, o] = t.split(':'); return `${o}@${g}`; }));
+  const sent = must.filter(([id, g]) => !implicit.has(`${id}@${g}`));
+  const sentExcl = excl.filter(([id, g]) => !outsMade.has(`${id}@${g}`));
   const must_have = spanString(must), exclude = spanString(excl);
   // a refused transfer binds in its own week of the window: never in a Wildcard or Free Hit (a rebuild has no transfers),
   // a squad held whole, a week of no transfers (the roll a Show another's next card counts against is the solve it was,
@@ -179,7 +206,7 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
   const notFor = [...new Set(refused.filter(([g, o, i]) => g >= from && g <= to && !['wc', 'fh'].includes(chips[g]) && !holds.has(g) && !rolls.has(g) && !makesMove(cells, g, o, i))
     .map((x) => x.join(':')))].sort();
   return {
-    must_have, exclude, must: parseSpans(must_have), excl: parseSpans(exclude), hits, notFor, not_for: notFor.join(','),
+    must_have, sent_must: spanString(sent), exclude, sent_exclude: spanString(sentExcl), for_gw: [...new Set(made)].sort().join(','), must: parseSpans(must_have), excl: parseSpans(exclude), hits, notFor, not_for: notFor.join(','),
     rolls: [...rolls].sort((a, b) => a - b), caps, debts: [...debts].sort((a, b) => a - b), chips, cash, cells, overridden,
   };
 }

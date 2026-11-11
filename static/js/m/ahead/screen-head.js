@@ -67,6 +67,10 @@ export function headPart(V) {
     const s = getComputedStyle(x);
     return x.getBoundingClientRect().height + parseFloat(s.marginTop) + parseFloat(s.marginBottom);
   };
+  /** A ticket's height its rows take (each row's own height, never its margins: the buttons' margin-top auto is the
+   *  space the stack gave the card, and counting it grew the reserve on every fit, the pitch 478 -> 360 px), whatever
+   *  height the stack gave it. */
+  const rowsH = (card) => [...card.children].reduce((t, c) => t + c.getBoundingClientRect().height, 0);
   /** The week line as it renders at its width: one strip (the status is on the pitch: statusTok), doors at its right
    *  end, the week's facts (fitFacts), the checks, then "Out: …" or GW A's lineup notice (renderLine). Each is probed,
    *  so the pitch is fitted for the tallest week line and every week keeps that height (--ah-bar-h, m-ahead.css): the
@@ -110,14 +114,18 @@ export function headPart(V) {
     const W = el.clientWidth, H = el.clientHeight, rem = remProbe.getBoundingClientRect().height;
     const drawn = !!strip.querySelector(':scope > .ah-block > .ah-pbar:not(.ah-pbake)');
     const pm = pitchHost.querySelector(':scope > .pm');
-    const key = `${W}x${H}@${rem}|${head.offsetHeight}|${slot.offsetHeight}|${drawn}|${!!pm}|${getComputedStyle(pitchHost).marginTop}`;
+    // (the ticket's own height, its rows as drawn: cardRows keeps every state of it one height)
+    const card = strip.querySelector(':scope > .ah-ticket:not(.ah-tkghost)'), own = card ? Math.ceil(rowsH(card)) : 0;
+    const key = `${W}x${H}@${rem}|${head.offsetHeight}|${slot.offsetHeight}|${drawn}|${!!pm}|${getComputedStyle(pitchHost).marginTop}|${own}`;
     if (!W || !H || ctl.hidden || key === V.fitKey) return;
     V.fitKey = key;
     V.fitDrawn = drawn && !!pm;
     const s = getComputedStyle(el);
     // (under the pitch the weeks' stack, its tabs always the window's less the front one, and the ticket: one height in
     // every week, so the pitch never moves)
-    const [tab, ticket, gap] = cssPx(el, 'var(--ah-tab-h)', 'var(--ah-ticket-h)', 'var(--ah-stack-gap)');
+    // (…and the ticket never less than its rows: under the reserve alone, 208 px for 224 px of card, a tight screen (the
+    // ?solves=1 panel) cut its bottom row off; owner, 2026-11-09, "why different sizes")
+    const [tab, least, gap] = cssPx(el, 'var(--ah-tab-h)', 'var(--ah-ticket-h)', 'var(--ah-stack-gap)'), ticket = Math.max(least, own);
     const tabs = (V.ctx.data?.horizon?.length ?? 4) - 1;
     const above = parseFloat(s.paddingTop) + fitHead() + outerH(slot) + tabs * tab + ticket + 2 * gap + parseFloat(getComputedStyle(pitchHost).marginTop) + parseFloat(s.paddingBottom);
     el.style.setProperty('--ah-pitch-fit', `${Math.floor(H - above)}px`);
@@ -192,7 +200,7 @@ export function headPart(V) {
    *  banner then speaks to assistive tech alone, the total shimmers (totalNum), the strip's wait line says how far
    *  (paintWait). */
   const planWait = () => { const { ctx } = V; return ctx.bundle?.entry ? memOf(ctx)?.model() ?? null : null; };
-  const replanning = () => { const { ctx } = V; const m = planWait(); return ctx.store.get('conn')?.state === 'updating' || (!!m && !m.road && !m.error); };
+  const replanning = () => { const { ctx } = V; const m = planWait(); return ctx.store.get('conn')?.state === 'updating' || (!!m && !m.road && !m.error && m.since != null); };
   /** The strip's wait line (paintWait) says how far a re-plan is; the GW line keeps GW A's deadline. → false (none
    *  shows) */
   function paintPlanStatus() { const { gwline } = V;
@@ -335,7 +343,7 @@ export function headPart(V) {
     const past = edgeTicks({ reach: d.reach ?? d.horizon, gws: d.horizon });
     rail.style.setProperty('--n', d.horizon.length + past.length);
     rail.style.setProperty('--i', 0);
-    fill(ticks, d.horizon.map((x) => { const { style, ...at } = tabAt(x, d.gw); return h('div.ah-tick', { dataset: { gw: x }, style, class: { ...at, pencil: x > d.gw } }, h('span.g', null, `GW${x}`), h('span.a'), h('span.p', null, h('span.m-skel'))); }), past);
+    fill(ticks, d.horizon.map((x) => { const { style, ...at } = tabAt(x, d.gw); return h('div.ah-tick', { dataset: { gw: x }, style, class: { ...at, pencil: x > d.gw } }, h('span.g', null, `GW${x}`), h('span.a'), h('span.b'), h('span.p', null, h('span.m-skel'))); }), past);
     strip.style.order = -d.gw;
     fill(totLine, h('span.k', null, `${span(d.horizon)} `), h('span.m-skel'));
     fill(totalEl, span(d.horizon), ' ', h('span.m-skel'));
@@ -431,7 +439,7 @@ export function headPart(V) {
    * Week sheet (drawWeek), all from one model of the viewed week (weekModel): one order of choices (heldOrder), one
    * +'s re-flow hold (addOnce).
    */
-  function renderWeek(P, w) { const { S, cheerEl, ctx, drawWeek, renderLine, sayCarried, sayDrift } = V;
+  function renderWeek(P, w) { const { S, cheerEl, ctx, drawWeek, renderLine, sayCarried } = V;
     const M = weekModel(P, w);
     S.M = M;
     renderLine(P, w, M);
@@ -440,7 +448,6 @@ export function headPart(V) {
     // addOnce ignores a + tapped this soon after the choices re-flowed: the first draw after a + or the list's re-sort
     // (S.addAt), never a later one that moved nothing (else a + went unanswered while other plans landed)
     if (S.addAt && !(S.flowAt >= S.addAt)) S.flowAt = Date.now();
-    sayDrift(P);
     sayCarried(P);
     pendingAgain(ctx, P.mem);
     // the line every GW: last, so a toast above (a reopened check's, with its Undo) never takes its place at once; through
@@ -576,5 +583,9 @@ export function headPart(V) {
   /** What the viewed week's choices count against and over which weeks, "Suggested plans · GW8–11 · vs rolling"
    *  (COPY.suggested): the Week sheet's plans heading and the pitch choices' spoken name (renderDecks). */
   const plansHeading = (P, g) => { const gws = P.gws.filter((x) => x >= g); return COPY.suggested(gws, null, COPY.plansHead, gws.length < P.gws.length); };
-  return { pageName, resetTap, resetSheet, learn, gwNow, setGw, outerH, fitBlock, fitHead, fitPitch, redeck, schedule, covered, paintAvatar, renderHead, renderGwLine, paintDeadline, replanning, paintPlanStatus, tick, hosts, focusedKeys, keepFocus, renderPair, render, renderBaking, renderRules, ruleSheet, clearAll, driftRoom, owes, priceDrift, heldOrder, renderWeek, waitNow, paintWait, paintDim, weekModel, waited, clockShown, waitClock, plansHeading };
+  /** Whether week model M lists suggested plans under plansHeading: one more than the reference (the Roll's row alone
+   *  counts nothing against itself; card audit 2026-11-10): the Week sheet's plans block and the pitch's heading alike. */
+  const plansListed = (M) => M.plans.some((pl) => !pl.refRow);
+  return { pageName, resetTap, resetSheet, learn, gwNow, setGw, outerH, fitBlock, fitHead, fitPitch, redeck, schedule, covered, paintAvatar, renderHead, renderGwLine, paintDeadline, replanning, paintPlanStatus, tick, hosts, focusedKeys, keepFocus, renderPair, render, renderBaking, renderRules, ruleSheet, clearAll, driftRoom, owes, priceDrift, heldOrder, renderWeek, waitNow, paintWait, paintDim, weekModel, waited, clockShown, waitClock, plansHeading, plansListed };
 }
+

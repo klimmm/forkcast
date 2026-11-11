@@ -1,19 +1,18 @@
 // Forkcast · Replace sheet (large detent). Opened by dropping a shirt on a rail tick, or the Player sheet's Sell · From
 // GW…: open(ctx, outId, gw). Every row is scored on the phone at once (the swap from GW g on, best XI each week but a
 // lineup you saved: ahead.takenBy); one tap makes a row the plan (the shirt changes on Ahead, the heal solve confirms
-// it, the verdict toast has Undo). The first row, "Let Forkcast choose" (autoGuess, sell(null)), makes the sale alone
-// your rule; under the hold the week keeps the rest of its squad and takes that one buy only (memory.holdOf). Selling a
+// it, the verdict toast has Undo); under the hold the week keeps the rest of its squad and takes that one buy only
+// (memory.holdOf). ("Let Forkcast choose", the sale alone, gone: owner, 2026-11-11, "remove it".) Selling a
 // player you asked to keep, or in a GW you roll, goes at once, the verdict naming the Keep or Roll it takes back
 // (ahead.sellOut). A row needing a −4 says so, or, when GW g has other suggested moves, that the full plan may drop one
 // instead; a player your rules keep out (a veto, Never) is blocked as "your rule". A row he can't afford is made as it
 // is (owner, 2026-10-28): the plan goes short as FPL's draft does (ahead.saleBuy → bringIn, memory.holdOf's debts),
-// paid back the pitch's best way (ahead.plansOf, owedRoad). The hit is said once over the list; a buy who wouldn't
-// start that week says "bench in GW6" in grey.
+// paid back the pitch's best way (ahead.plansOf, owedRoad). The hit is said once over the list.
 
 import { h, fmt, fill, toast, norm, posName, icon, xpGain } from '../../ui.js';
 import * as E from '../../plan/engine.js';
 import { COPY } from '../calls.js';
-import { plan, squadBefore, inTeamAt, addMove, draftOf, planBaseline, takenBy, sellOut, problemText, problemShort, barred, barringRules, removeRule, openRules, baseOf, weekOf, saleBuy, bringIn, sayBuyProblem, presolveTaps } from '../ahead.js';
+import { plan, squadBefore, inTeamAt, addMove, draftOf, planBaseline, takenBy, sellOut, problemText, problemShort, barred, barringRules, removeRule, openRules, baseOf, weekOf, saleBuy, bringIn, sayBuyProblem, presolveTaps, buyPlan } from '../ahead.js';
 import { weekPills, sortsOf, orderOf, sortChips, barTop, bars, ownWeeks, who, found } from './buylist.js';
 
 const CAP = 30;
@@ -38,34 +37,44 @@ export function open(ctx, rawOut, rawGw) {
   const titleOf = (g) => `Sell ${P0.L.name(out)} from GW${g}`;
 
   /** Every same-position player for GW g: {id, row, delta, ev, blocked, problem} (memoised per GW). */
+  /** Row `o` the bank can't pay for counted with the sale that pays for him (buyPlan's funded way, as Bring in counts
+   *  it): its delta against `ev0`, GW g's plan as taken; once a row. */
+  function fund(o, g, ev0 = score(g).ev0) {
+    o.funded = true;
+    const bp = buyPlan(ctx, o.id, g, { out });
+    if (bp.kind === 'two') Object.assign(o, { delta: bp.ev.total - ev0.total, fund: bp.fund });
+  }
   function score(g) {
     if (cache.has(g)) return cache.get(g);
     const P = plan(ctx);
     const d0 = draftOf(ctx);
     // as taken (your saved lineups kept, as plan rows and the tap's verdict)
     const ev0 = planBaseline(ctx, P, g);
-    const before = squadBefore(P, g), owned = inTeamAt(P, g);
+    const owned = inTeamAt(P, g);
     const no = barred(P, g);
-    const list = ctx.data.rows.filter((r) => posName(r.pos) === pos && Number(r.id) !== out && (r.buyable || before.includes(Number(r.id)))).map((r) => {
+    // (every player of the position, the solver's ownership gate (r.buyable, 0.3%) none of a pick's: your transfer is a
+    // must-have pin, which the gate exempts (player_data protected); owner, 2026-11-11, "why it not show players owned
+    // less than 0.3")
+    const list = ctx.data.rows.filter((r) => posName(r.pos) === pos && Number(r.id) !== out).map((r) => {
       const id = Number(r.id);
       if (owned.has(id)) return { id, row: r, blocked: 'In team', code: 'owned' };
       if (no.has(id)) return { id, row: r, blocked: 'your rule', code: 'vetoed' };
       const res = addMove(ctx, d0, g, out, id, takenBy(ctx, P));
       const p = res.problem;
-      if (p) return { id, row: r, blocked: problemShort(p), code: p.code, problem: p };
+      // (one the bank can't pay for: what it gives unpaid, an upper bound of its number, `over`; below)
+      if (p) return { id, row: r, blocked: problemShort(p), code: p.code, problem: p, ...(p.code === 'budget' ? { over: res.ev.total - ev0.total } : {}) };
       // a −4 this swap needs that the plan didn't (GW g's free transfer already used): said once over the list
-      const wk = res.ev.gws.find((x) => x.gw === g);
-      return { id, row: r, ev: res.ev, draft: res.draft, delta: res.ev.total - ev0.total, hit: hitsFrom(res.ev, g) > hitsFrom(ev0, g), bench: !!wk?.bench?.includes(id) };
+      return { id, row: r, ev: res.ev, draft: res.draft, delta: res.ev.total - ev0.total, hit: hitsFrom(res.ev, g) > hitsFrom(ev0, g) };
     });
-    const out0 = { list, ev0, P, auto: autoGuess(list) };
+    // one the bank can't pay for ranks by Best too: its number with the sale that pays for it (buyPlan's funded way, as
+    // Bring in counts it; the plan once Forkcast pays the shortfall back), never last for having none (owner,
+    // 2026-11-11, "why is Bruno Fernandes not in the list": £11.6m against £8.3m, past the 30 rows). Counted only for
+    // those whose unpaid number could reach the list (`over` above its 30th)
+    const cut = list.filter((o) => o.delta != null).map((o) => o.delta).sort((a, b) => b - a)[CAP - 1] ?? -Infinity;
+    for (const o of list.filter((x) => x.code === 'budget' && x.over > cut)) fund(o, g, ev0);
+    const out0 = { list, ev0, P };
     cache.set(g, out0);
     return out0;
-  }
-
-  /** "Let Forkcast choose"'s number ({id, draft, delta, hit} | null): the best legal row's estimate, its ≈ (never drawn
-   *  as the plan). */
-  function autoGuess(list) {
-    return list.filter((o) => !o.blocked).sort((a, b) => b.delta - a.delta)[0] ?? null;
   }
 
   let me = null;
@@ -87,7 +96,7 @@ export function open(ctx, rawOut, rawGw) {
       const title = sheet.el.querySelector('.m-sh h2');
 
       function draw() {
-        const { list: all, ev0, P, auto } = score(st.g);
+        const { list: all, ev0, P } = score(st.g);
         const L = P.L;
         if (title) title.textContent = titleOf(st.g);
         // what he sells for going into GW g, and the bank then (the plan's own accounting, engine.evaluate)
@@ -127,41 +136,35 @@ export function open(ctx, rawOut, rawGw) {
         const last = (o) => !!o.blocked && o.code !== 'budget';
         const shown = all.filter((o) => !q || found(o.row, q))
           .sort((a, b) => (last(a) - last(b)) || by(a, b)).filter((o, i) => i < CAP);
+        // (every row shown that the bank can't pay for counted with the sale that pays for him, whatever the sort: score
+        // counts only those that could reach Best's 30; owner, 2026-11-11, "why saka and semenyo xp missing")
+        for (const o of shown.filter((x) => x.code === 'budget' && x.delta == null && !x.funded)) fund(o, st.g);
         const weeks = ownWeeks(P, st.g), top = barTop(L, shown, weeks);
         fill(list, shown.length ? shown.map((o) => {
           const rowEl = h('button.ah-lrow', {
             // (one the bank can't pay for is made as it is: pick, never greyed)
             type: 'button', role: 'listitem', class: { blocked: !!o.blocked && o.code !== 'budget' }, disabled: (!o.blocked || o.code === 'budget') && !plan(ctx)?.editable,
-            'aria-label': o.blocked ? (o.code === 'budget' ? `${o.row.name}: ${o.blocked}` : null)
-              : `Sell ${L.name(out)} for ${o.row.name} from GW${st.g}: ${COPY.listTotalSaid(o.delta, true)}${o.bench ? `, on the bench in GW${st.g}` : ''}`,
+            'aria-label': o.blocked && o.code !== 'budget' ? null : o.delta == null ? `Sell ${L.name(out)} for ${o.row.name} from GW${st.g}`
+              : `Sell ${L.name(out)} for ${o.row.name} from GW${st.g}: ${COPY.listTotalSaid(o.delta, true)}`,
             onClick: () => pick(o),
           },
-          who(L, o.row, [statOf(o), o.bench ? h('span.rs-bench', null, ` · bench in GW${st.g}`) : null]),
+          // (no "bench in GW11" under a name: owner, 2026-11-10, "удали 'bench in gw11'")
+          who(L, o.row, [statOf(o)]),
           bars(L, o.id, weeks, st.g, top, st.sort),
-          // its ≈ over what it counts, your total; forecast points, blue with "xP" (ui.js xpGain; owner, 2026-10-22)
-          h('span.rt.m-num', null, o.blocked
-            ? h('small', { class: { 'g-loss': o.code === 'budget' } }, o.blocked)
-            : [xpGain(o.delta, 'span', null, true, '≈ '), h('small', null, COPY.listTotal)]));
+          // its ≈ over what it counts, your total; forecast points, blue with "xP" (ui.js xpGain; owner, 2026-10-22), no word
+          // under it (owner, 2026-11-11, "fix this 'total' crap"); one the bank can't pay for its number as any row's, never
+          // "£1.4m short" (owner, 2026-11-11, "remove x '£1.4m short' crap completely"), none where not even one more sale
+          // pays for him (buyPlan 'none'); one you can't take says why (In team, your rule)
+          h('span.rt.m-num', null, o.delta != null ? xpGain(o.delta, 'span', null, true, '≈ ') : o.code === 'budget' ? null : h('small', null, o.blocked)));
           return rowEl;
         }) : h('p.ah-empty', null, COPY.noneCalled(word, st.q.trim())));
-        // "Let Forkcast choose" (both modes): the sale alone your rule, the full plan picks who comes in (sell(null):
-        // ahead.sellAny); the best row's ≈ is its number (autoGuess), no name promised
-        const best = auto;
-        list.prepend(h('button.ah-lrow.rs-auto', {
-          type: 'button', role: 'listitem', disabled: !plan(ctx)?.editable || !best,
-          'aria-label': best ? `Sell ${L.name(out)} from GW${st.g}, Forkcast picks who comes in with the full plan: ${COPY.listTotalSaid(best.delta, true)}` : `Sell ${L.name(out)} from GW${st.g}: no buy fits`,
-          onClick: () => sell(null),
-        },
-        h('span.mk.rs-automk', { 'aria-hidden': 'true' }, pos),
-        h('span.nm', null, h('b', null, 'Let Forkcast choose'), h('span', null, best ? COPY.autoBuy : 'No buy fits')),
-        h('span.rt.m-num', null, best ? [xpGain(best.delta, 'span', null, true, '≈ '), h('small', null, COPY.listTotal)] : h('small', null, '—'))));
         fill(foot, `"${BEST.name(P)}" is an estimate over ${COPY.span(P.gws)} (best XI each week but a lineup you saved); Forkcast confirms it.`);
-        // its taps solved ahead while open (presolveTaps; owner, 2026-10-26): Let Forkcast choose, then the rows the
-        // list ranks first that can be made
+        // its taps solved ahead while open (presolveTaps; owner, 2026-10-26): the rows the list ranks first that can be
+        // made
         const g = st.g;
         if (P.editable) {
           presolveTaps(ctx, [
-            ...[...(best ? [null] : []), ...shown.filter((o) => !o.blocked).map((o) => o.id)].map((inn) => ({ kind: 'sell', gw: g, run: () => sellOut(ctx, g, out, inn) })),
+            ...shown.filter((o) => !o.blocked).map((o) => ({ kind: 'sell', gw: g, run: () => sellOut(ctx, g, out, o.id) })),
             ...shown.filter((o) => o.code === 'budget').map((o) => ({ kind: 'bring', gw: g, run: () => { const bp = saleBuy(ctx, o.id, g, out); return bp.kind === 'one' && bringIn(ctx, o.id, g, bp); } })),
           ], { gw: g, sig: `${g}|${st.sort}|${st.flip}|${q}`, owner: sheet });
         }

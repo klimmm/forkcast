@@ -155,7 +155,7 @@ export function bringIn(ctx, id, g, bp) {
     const pin = wishPin(P, id, g), was = asksOf(P).find((q) => q.id === pin.id && JSON.stringify(q.must) !== JSON.stringify(pin.must));
     const taken = [...new Map([...bringInTakes(P, id, g, bp), ...(was ? [was] : [])].map((q) => [q.id, q])).values()], what = withTaken(P, pin.label, taken);
     // its number named as its week pill's, what your total moves by (edit's default's)
-    return edit(ctx, { pins: [pin], drop: [pin.id, ...taken.map((q) => q.id)], road: bp.road, from: g, what, taken, text: vsPrev(ctx, what, { total: true }) });
+    return edit(ctx, { pins: [tookBy(pin, taken)], drop: [pin.id, ...taken.map((q) => q.id)], road: bp.road, from: g, what, taken, text: vsPrev(ctx, what, { total: true }) });
   }
   if (!bp || (bp.kind !== 'one' && bp.kind !== 'two')) return false;
   const nm = P.L.name;
@@ -164,11 +164,14 @@ export function bringIn(ctx, id, g, bp) {
   const taken = bringInTakes(P, id, g, bp);
   const what = withTaken(P, funds.length ? COPY.cameIn([id, ...funds.map((f) => f.in)].map(nm), g === P.A ? null : g) : COPY.cameInFor(nm(id), nm(bp.out), g === P.A ? null : g), taken);
   return edit(ctx, {
-    pins, drop: [...wishDrop(P, id), ...funds.flatMap((f) => wishDrop(P, f.in)), ...taken.map((q) => q.id)], from: g, what, taken,
+    pins: pins.map((p) => tookBy(p, taken)), drop: [...wishDrop(P, id), ...funds.flatMap((f) => wishDrop(P, f.in)), ...taken.map((q) => q.id)], from: g, what, taken,
     ending: (Q, prev) => endingOf(Q, prev, g, { own: bp.out, named: funds }),
   });
 }
 
+/** Pin p with the rules of yours its bring-in took back (`took`, as they were), so the card's Undo transfer (presolve.js
+ *  removeWeek) puts them back as the toast's Undo does (qa-tk125 f15-onetap: "Not Steele" lost by Undo transfer). */
+const tookBy = (p, taken) => (taken.length ? { ...p, took: taken.map((q) => structuredClone(q)) } : p);
 /** Bring in a player's second step (owner, 2026-11-05): he is chosen and the pitch of GW g asks who he replaces, nothing
  *  solved till he is on it. → {id, g, team} while it asks (for GW g, given), else null */
 const teamKey = (P) => `${P.entry}|${P.A}`;
@@ -253,7 +256,11 @@ export function bringInTakes(P, id, g, bp) {
   if (bp?.kind === 'pick') return wishTakes(P, id, g);
   const pins = buyPins(P, id, g, bp);
   const ids = new Set(pins.map((p) => p.id));
-  return [...new Map([...pins.flatMap((p) => clashing(P, p)), ...laterBuys(P, id, g)].filter((q) => !ids.has(q.id)).map((q) => [q.id, q])).values()];
+  // (a sale of a player your own earlier sale bought (q.in) is its next transfer, never a clash: the earlier buy stands,
+  // its keep of him ending the week before (composePins: the newer rule wins from its week); taken back it left the
+  // sale of a player never bought, and no plan fit; card-audit 1110, 383130 GW11 395692 → 332867, GW12 332867 → 123761)
+  const ownBuy = (q, p) => q.kind === 'sell' && p.kind === 'sell' && q.in != null && Number(q.in) === Number(p.player) && Number(q.gw) < Number(p.gw);
+  return [...new Map([...pins.flatMap((p) => clashing(P, p).filter((q) => !ownBuy(q, p))), ...laterBuys(P, id, g)].filter((q) => !ids.has(q.id)).map((q) => [q.id, q])).values()];
 }
 /** Rules of yours `pins` a tap takes back, said before it in their chips' words (ruleOf): "It removes “Sell Saka from
  *  GW7 for Palmer”, …", '' with none (Add a player's line). */
@@ -400,8 +407,11 @@ export const planHasYours = (P) => (P?.pins || []).some((p) => !derivedPin(p)) |
 /** Settings → Hits (owner, 2026-10-12): the hits Forkcast may take a week, one setting for every week, its choices [[n,
  *  label]]: None, then each cap up to the solver's own (meta.hit_cap: "−4", "−8"), and the one in force (`at`: memory's
  *  Plan.hitsMax, else the solver's cap; none known, None and −4). */
+/** The solver's own hit cap: its model plan's, else the bundle's (meta.hit_cap: the server's, read back from a plan of
+ *  this team it solved), so a plan still out (a gap changed, Solve ahead off) never shows "−4" alone. → number | null */
+const solverCap = (P) => hitCap(P?.base) ?? (Number.isInteger(P?.b?.meta?.hit_cap) ? P.b.meta.hit_cap : null);
 export function hitsChoices(P) {
-  const cap = hitCap(P?.base);
+  const cap = solverCap(P);
   const top = cap ?? 1;
   const at = P?.mem?.hitsMax ?? top;
   return { at: Math.min(at, top), choices: Array.from({ length: top + 1 }, (_, n) => [n, COPY.hitsSeg(n)]) };
@@ -412,7 +422,7 @@ export function setHitsMaxWithUndo(ctx, n) {
   const P = plan(ctx);
   const { at } = hitsChoices(P);
   if (n === at) return false;
-  const cap = hitCap(P?.base);
+  const cap = solverCap(P);
   const what = COPY.hitsMax(n);
   return edit(ctx, { from: info(ctx)?.A, what, text: vsPrev(ctx, what), hitsMax: cap !== null && n >= cap ? null : n });
 }
@@ -615,3 +625,4 @@ export function reroute(g) {
   const ticks = [...document.querySelectorAll('.ah-tick[data-gw]')].filter((t) => Number(t.dataset.gw) >= g);
   ticks.forEach((t, i) => setTimeout(() => { t.classList.remove('reroute'); void t.offsetWidth; t.classList.add('reroute'); }, (reduceMotion() ? 0 : 140) * i));
 }
+

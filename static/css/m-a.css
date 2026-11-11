@@ -56,7 +56,6 @@ one in the selected look's tint and green ring, 600, with its arrow (a second ta
 
 /* ---------------------------------------------------------------- A8: Replace */
 .rs-hitnote { margin: 8px 0 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
-.rs-bench { color: var(--muted); }
 
 /* ---------------------------------------------------------------- A10: offline, values kept from before */
 

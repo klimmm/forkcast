@@ -78,8 +78,6 @@
 // changed in your pencil weeks since this device last looked; markSeen() clears it
 // forecastChange() → {version, gwA, pencil, held} | null: what a new forecast changed in the suggested plan's moves
 // beyond the noise since this device last looked (then markSeen)
-// keepMine({text}) / adoptDrift() → {undo}: the drift toast's answers (ahead.driftSay: its action, through
-// switchWithUndo, adopts; leaving it any other way keeps yours); adoptDrift keeps your rules and re-plans with them
 //   journal() → Promise<[JournalRow]> newest first ({gw, at, kind, text, not, label, delta}; GET ?gw=all)
 //   detach()
 // Drift (§7.7) {kind: 'drift' | 'kept' | 'same', version, gw, since (epoch s), sinceText, cmp (compareRoads new best vs
@@ -87,10 +85,9 @@
 // in words, diffWords, or null), best, diff (planDiff items), same (the new best is your plan: only legality broke),
 // locked, reach (false: GW A is ink and the new best remakes it), broken (ids of your rules the new best ignores, the
 // hold's too) / ruleNames (yours by name, never the hold's), fresh (what the new data gains; null when unknown;
-// freshLabel its verdict), wins, without ({id, name}: a player FPL now flags that the forecast still plays), text
-// (COPY.drift), mine, bestPlan (calls.planFromRoad results)}
-// DOM: switchWithUndo(ctx) [the drift toast's action, COPY.driftAct: "Use it" | "Re-plan with your rules" | "Keep only
-// your transfers"], planWithout(ctx, d) [no caller in js/m]. ctx defaults to the attached memory's.
+// freshLabel its verdict), wins, without ({id, name}: a player FPL now flags that the forecast still plays), mine,
+// bestPlan (calls.planFromRoad results)}: judged on new data, never said (its toast removed, owner, 2026-11-10); the
+// plan re-plans with your rules. ctx defaults to the attached memory's.
 //
 // ================================================================ pure exports (node: the memory-*.test.mjs suites)
 // parseSpans, spanString, composePins, pinConflicts, pinsDir, makePin, barredAt, changesGwA, yieldRoad, pinsAfter,
@@ -119,5 +116,5 @@ export {
   normalizeAccepted
 } from './memory/drift.js';
 export {
-  editedAt, createMemory, attach, release, forget, planWithout, switchWithUndo, ROADS
+  editedAt, createMemory, attach, release, forget, ROADS
 } from './memory/live.js';

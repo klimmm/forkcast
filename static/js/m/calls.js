@@ -36,7 +36,6 @@
 // tone, sale} | null; saleStep(entry row, dir) → a price change's step on his sale, tenths | null; PRICE_WORD; priceSaid(outlook, when) → "very likely to drop", "may rise (FPL: likely)"
 // handoffMoves(week) → GW A's moves as you make them in FPL (the engine's legal ones)
 // statusText(name, row) → "Scott is injured (knee)" | null; OUT, newsReason(row)
-// driftHeadOf(delta, label, fresh, freshLabel, gws) → {gap, label, part}: the drift toast's head in parts
 // liveCheck(published, week, L) → GW A's live line: FPL's published squad against the plan's GW A (squad only)
 // sentence(text) → text ending in one full stop; COPY (the phone's strings)
 
@@ -55,7 +54,7 @@ export {
   FORGET_MS, gwFlags, OUT, newsReason, statusText, hitCap, horizonFeature, planWeeks
 } from './calls/helpers.js';
 export {
-  sentence, COPY, liveCheck, driftHeadOf
+  sentence, COPY, liveCheck
 } from './calls/copy.js';
 export {
   planInputs, compare, transfersOf, hitsOf, plannerOf, windowGap, counted, shownDelta, hitBook, changeText,

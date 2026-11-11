@@ -53,6 +53,8 @@
 // kept per team in this browser and the bundle asked at once
 // gap() → {now, later} · setGap(g)   Settings → Solver gap: GW A's relative MIP gap and every later round's (gapOf),
 // kept in this browser, ridden on every solve through data.gap (memory.planValues)
+// presolveOn() → bool · setPresolve(on)   Settings → Solve ahead: solves asked before a tap (ahead/presolve.js, choices
+// prepNext), kept in this browser; off by default
 //   reveal     true during the first mount after Connect's first load
 //   (local vs remote, for dev-only entries: api.access())
 
@@ -85,11 +87,18 @@ const HORIZON_KEY = (entry) => `fc:horizon:${entry}`;
 /** The weeks to ask `entry`'s bundle for: the pick within b's locks and reach (calls.planWeeks; the server falls back
  *  alike); null without a pick and a bundle. */
 /** Settings → Solver gap (owner, 2026-11-03, "add solver gap to settings, also relax solver gap for future rounds"):
- *  GW A's round exact, every round after it at 0.1% by default (main.py --gap / --later-gap; on one plan solve 10.6 s
- *  → 8.3 s, GW A's choices unchanged), in localStorage for every team. */
+ *  every round exact by default, no --gap or --later-gap passed (owner, 2026-11-09, "what the fuck is
+ *  '--later-gap=0.001' - remove it": TORPEDO's GW11-14 plan 1.00 → 0.68 s exact, every week's transfers the same; its
+ *  GW12 card solve 1.64 s both ways; was 0.1% for the later rounds since 11-03), in localStorage for every team. */
 // (a new key, owner 2026-11-06: one browser's stored 1% against the default's 0.1% was two ways of solving one team)
 const GAP_KEY = 'fc:gap2';
-const GAP_DEFAULT = Object.freeze({ now: 0, later: 0.001 });
+// Settings → Solve ahead (owner, 2026-11-11: "a switch so it makes no pre-solve and every solve is on request - by default
+// without pre-solve"): '1' on, else off
+const PRESOLVE_KEY = 'fc:presolve';
+// (later GWs measured 2026-11-11, 8 teams × GW11→12/13/14 against exact: 0.1% 1.18x, 0.2% 1.31x, 0.5% 1.17x the total,
+// but GW11's own transfers changed in 6/24 at 0.1% and 0.2%, 9/24 at 0.5%: one --gap relaxes the whole MIP, GW A
+// included (main.py gapRel), and a speed-up never changes this week's buys; so exact)
+const GAP_DEFAULT = Object.freeze({ now: 0, later: 0 });
 const gapOf = () => { try { return { ...GAP_DEFAULT, ...JSON.parse(api.local.get(GAP_KEY) || '{}') }; } catch { return { ...GAP_DEFAULT }; } };
 const weeksOf = (entry, b = store.get('bundle')) => calls.planWeeks(api.local.get(HORIZON_KEY(entry)), b?.meta?.locked, b?.meta ? reachOf(b.meta).length : null);
 
@@ -168,6 +177,8 @@ const ctx = {
   gap: () => gapOf(),
   // (the plan's data anew with it: every solve's values from it, so each is asked again under the new gap)
   setGap: (g) => { api.local.set(GAP_KEY, JSON.stringify({ ...gapOf(), ...g })); const d = store.get('data'); if (d) store.set('data', { ...d, gap: gapOf() }); },
+  presolveOn: () => api.local.get(PRESOLVE_KEY) === '1',
+  setPresolve: (on) => { api.local.set(PRESOLVE_KEY, on ? '1' : null); },
   // Chips… opened on GW g: its chips are solved now (ahead.chipPreps); none before, none of a GW never opened (owner,
   // 2026-10-28); kept for the team until sign-out
   askChips: (g) => {
@@ -477,6 +488,11 @@ function accept(entry, b, { at = Date.now(), offline = false, snapshot = false }
     // the saved bundle of a warm start, until a live one lands (ahead.sayCheer)
     snapshot: !!snapshot,
   };
+  // (your team with no transfers baked on the server: the solve of it answered from the bundle, api.solve; never a saved
+  // bundle's, its data may have moved since: behind a warm start's the solve waits for the server's. Every bundle's, the
+  // server's same one behind a warm start's too)
+  if (snapshot && !offline) api.waitBare();
+  else api.holdBare(offline ? null : b.bare, b.version ?? null);
   if (changed) {
     const data = { ...derive(b, at), gap: gapOf() };
     const gw = store.get('gw');
@@ -885,6 +901,8 @@ async function boot() {
     await loader.load();
   } catch (e) {
     if (!store.get('bundle')) showConnect({ error: api.plain(e, { entry }), retry: () => boot(), value: entry });
+  } finally {
+    api.endBareWait();
   }
 }
 

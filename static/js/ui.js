@@ -352,6 +352,10 @@ export function refocus(root, key, fallback = null) {
 
 /** Toasts' live region (#toasts, aria-live polite), made once at shell start (Forkcast's boot) so the first toast is
  *  announced. */
+/** An edit's toast said to VoiceOver alone (toast opts.quiet): the week card is up and says it, and no sheet covers it;
+ *  a warning is always shown (owner, 2026-11-05, "remove the black undo tab from top"; 2026-11-10, "find all other
+ *  toasts which appear and fix them"). */
+export const cardSaysIt = (kind = 'info') => { const doc = globalThis.document; return kind !== 'warn' && !!doc?.querySelector('.ah-ticket') && !doc.querySelector('.m-sheet'); };
 export function toastRegion() {
   let r = document.getElementById('toasts');
   if (!r) document.body.append(r = h('div#toasts', { 'aria-live': 'polite', 'aria-atomic': 'false' }));

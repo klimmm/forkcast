@@ -9,7 +9,7 @@
 // Sheet contract: static/js/m/app.js (open(ctx, what) → sheet; ctx.openSheet('you'[, 'help' | 'settings'])).
 
 import { COPY, HELP_OFF, horizonFeature } from '../calls.js';
-import { initials, resetPlan, inputsOf, plan, hitsChoices, setHitsMaxWithUndo, showTipsAgain, presolveTaps, planHasYours } from '../ahead.js';
+import { initials, resetPlan, inputsOf, plan, hitsChoices, setHitsMaxWithUndo, showTipsAgain, presolveTaps, stopAhead, planHasYours } from '../ahead.js';
 import { clip } from './about.js';
 
 /** Epoch s → "22:10" today, else "Thu 22:10". */
@@ -165,7 +165,7 @@ function planSettings(ctx, planSec, offs) {
     // no plan of the length picked (none solved yet: under a data job, or while it solves): Plan ahead stays, the way
     // back to one that has
     const reach = P?.reach ?? ctx.data?.reach;
-    if (!P) { fill(planSec, ...(reach?.length ? [h('h3', null, 'Plan'), ...weeksCtl(reach, true), ...gapCtl()] : [])); return; }
+    if (!P) { fill(planSec, ...(reach?.length ? [h('h3', null, 'Plan'), ...weeksCtl(reach, true), ...gapCtl(), ...aheadCtl()] : [])); return; }
     const { at, choices } = hitsChoices(P);
     const i = choices.findIndex(([n]) => n === at);
     fill(planSec, h('h3', null, 'Plan'),
@@ -177,7 +177,7 @@ function planSettings(ctx, planSec, offs) {
           onClick: () => setHitsMaxWithUndo(ctx, n),
         }, l))), { pick: (b) => b.click() }),
       h('p.m-foot', null, COPY.hitsNote),
-      ...weeksCtl(reach, P.editable), ...gapCtl());
+      ...weeksCtl(reach, P.editable), ...gapCtl(), ...aheadCtl());
     // its taps solved ahead while it is open (presolveTaps; owner, 2026-10-26): each other Hits choice
     if (P.editable) {
       presolveTaps(ctx, choices.filter(([n]) => n !== at).map(([n]) => ({ kind: 'hits', run: () => setHitsMaxWithUndo(ctx, n) })),
@@ -217,10 +217,24 @@ function planSettings(ctx, planSec, offs) {
     };
     return [...row('now'), ...row('later'), h('p.m-foot', null, COPY.gapNote)];
   }
+  /** Solve ahead: Off (the default) | On (ctx.presolveOn / setPresolve): solves asked before a tap (ahead/presolve.js);
+   *  Off lets go every one asked so far (stopAhead), this sheet's own other Hits choices among them; a pick paints it
+   *  again. */
+  function aheadCtl() {
+    const at = ctx.presolveOn();
+    return [h('div.ah-optl', { id: 'y-ahead-l' }, COPY.presolveHead),
+      ctx.ui.roving(h('div.m-seg.y-presolve', { role: 'radiogroup', 'aria-labelledby': 'y-ahead-l', style: { '--n': 2, '--i': at ? 1 : 0 } },
+        h('span.m-seg-thumb'),
+        [false, true].map((on) => h('button', {
+          type: 'button', role: 'radio', 'aria-checked': String(on === at), dataset: { presolve: on ? '1' : '0' },
+          onClick: () => { if (on !== at) { ctx.setPresolve(on); if (!on) stopAhead(); paintPlan(); } },
+        }, COPY.presolveSeg(on)))), { pick: (b) => b.click() }),
+      h('p.m-foot', null, COPY.presolveNote)];
+  }
   return paintPlan;
 }
 // (Settings → Solver gap's choices: api/mobile_rules.py GAP_MAX the largest)
-const GAPS = [0, 0.001, 0.005, 0.01];
+const GAPS = [0, 0.001, 0.002, 0.005, 0.01];
 
 /** Settings (Ahead's header gear; owner, 2026-10-29): the plan's settings (planSettings), painted again as the plan and
  *  its memory change. */

@@ -249,14 +249,15 @@ export function healPart(V) {
     const acc = accNow();
     const version = versionNow();
     const fresh = version && version === ctx.bundle?.version;
-    if (!acc?.plan || !fresh) { S.drift = null; return; }
+    if (!acc?.plan || !fresh) return;
     const sig = `${version}|${V.model().key}|${!!V.model().road}|${madeOn(acc)}|${acc.plan.key}|${acc.plan.version}|${acc.lineup?.captain}|${JSON.stringify(acc.pins?.items?.map((p) => p.id))}`;
     if (S.judged === sig) return;
     S.judged = sig;
     let d = null;
     try { d = detectDrift(cctxNow(), acc, version, { frozen: frozenNow(), before: roadOf(madeOn(acc), 'base'), hold: pinsNow().find((p) => p.id === 'hold') ?? null }); } catch (e) { console.error('Forkcast memory: drift check failed', e); }
-    S.drift = d?.kind === 'drift' ? d : null;
-    if (d && d.kind !== 'drift') {
+    // (no drift held for an answer: the plan re-plans with your rules on the new data, as it does on a smaller change; the
+    // 'Updated forecast' toast that asked first is gone, owner, 2026-11-10, "remove this crpa toast from code")
+    if (d) {
       // "Otherwise your plan stays, and the journal notes 'New idea +0.3, kept yours'" (§7.7)
       mutate((doc) => {
         const a = ensure(doc);

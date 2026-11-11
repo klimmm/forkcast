@@ -1,8 +1,8 @@
 // memory.js: the live memory: createMemory
 
 import * as E from '../../plan/engine.js';
-import { COPY, planInputs, planFromRoad, compare as compareIn, changeText, transfersOf, withForced, hitCap, FORGET_MS } from '../calls.js';
-import { EDIT, FORGET, LOCAL, OFFERED_MAX, SEEN, SOLVED_MAX, TIMING, USED, carryPins, changesGwA, clone, composePins, deadlinePassed, frozenClash, frozenOnOf, frozenSince, frozenWeeks, heldAt, ids, idsKey, inkRepair, isRoll, kindOf, makePin, nowS, num, pinConflicts, pinVeto, pinsAfter, range, roadWeek, rollKeeps, squadInto, squadKey, weekAt, withBank } from './pins.js';
+import { planInputs, planFromRoad, compare as compareIn, changeText, transfersOf, withForced, hitCap, FORGET_MS } from '../calls.js';
+import { EDIT, FORGET, LOCAL, OFFERED_MAX, SEEN, SOLVED_MAX, TIMING, USED, carryPins, changesGwA, clone, composePins, deadlinePassed, frozenClash, frozenOnOf, frozenSince, frozenWeeks, heldAt, ids, idsKey, inkRepair, isRoll, kindOf, makePin, nowS, num, pinConflicts, pinsAfter, range, roadWeek, rollKeeps, squadInto, squadKey, weekAt, withBank } from './pins.js';
 import { brokenCells, findRoad, forcedHits, holdOf, idleRules, planValues, ruleText, solveKept } from './values.js';
 import { detectDrift, freshOf, isNews, journalRows, madeOn, movesChanged, normalizeAccepted, pencilChanges, planOfRoad, sigOf, solvedKey } from './drift.js';
 import { statePart } from './live-state.js';
@@ -85,20 +85,19 @@ export function createMemory(ctx) {
   };
   const { cctxNow, versionNow, gwsNow, endNow, accNow, holdOn, holdNow, capFor, storedNow, withHold, withHits, pinsNow, frozenNow, lockedNow, composeNow, ownedNow, intoNow, lookupNow, getPlan, transferInForce, weekState, emit, roadByKey, roadOf, saveLocal, loadLocal, flushSoon, flush, samePlan, mutate, op, ensure, stamp, setPins } = statePart(V);
   const { replan, keyNow, took, batch, keepBase, baseNow, lastNow, cancelHeal, scheduleHeal, yours, runHeal, settled, values, offer, rejudge, round2 } = healPart(V);
-  const { ideaOf, keepMine, adoptDrift, inkOf, inkClash, changesLiveA, addPin, clashText, dropPins, removePin, reset, setHitsMax, setLineup, setPlan, heal, compare, evalOf, lite, noteEdit, claimEdit, receipt, restorePins, pencilDiff, markSeen, forecastChange, loadAll, journal, unused, onData, syncPlan, carryOver } = apiPart(V);
+  const { ideaOf, inkOf, inkClash, changesLiveA, addPin, clashText, dropPins, removePin, reset, setHitsMax, setLineup, setPlan, heal, compare, evalOf, lite, noteEdit, claimEdit, receipt, restorePins, pencilDiff, markSeen, forecastChange, loadAll, journal, unused, onData, syncPlan, carryOver } = apiPart(V);
   const S = {
     entry: null, A: null, doc: null, docs: null, dirty: false, seq: 0, inflight: null, flushTimer: null,
-    drift: null, judged: null, pending: null, healTimer: null, healSeq: 0, queued: null, error: null, carried: null, notice: null,
+    judged: null, pending: null, healTimer: null, healSeq: 0, queued: null, error: null, carried: null, notice: null,
     offered: { v: null, roads: [], solved: new Map() }, reopened: null, base: null, last: null, batch: null, aheadSig: null, model: null,
   };
-  const { model, retryModel, modelOn } = modelPart(V);
+  const { model, wantModel, retryModel, modelOn } = modelPart(V);
   /** The model's plan landed (memory model): what the bundle's roads were judged on is judged again (drift, the plan's
    *  sync), and the screen hears it. */
   function landed() {
-    const before = S.drift;
     rejudge();
     syncPlan();
-    emit(S.drift !== before ? 'drift' : 'model');
+    emit('model');
   }
   const subs = new Set();
   const store = ctx.store;
@@ -118,12 +117,12 @@ export function createMemory(ctx) {
   onData();
 
   return {
-    ctx, getPlan, onChange(fn) { subs.add(fn); return () => subs.delete(fn); }, model, retryModel,
+    ctx, getPlan, onChange(fn) { subs.add(fn); return () => subs.delete(fn); }, model, wantModel, retryModel,
     inkOf, inkClash, addPin, removePin, restorePins, batch, setHitsMax, reset, setLineup, setPlan, values, offer, heal, settled, compare,
     // whether a solve of exactly these values was offered (offer `values`): ahead.js presolve asks it no more
     solved: (vals) => S.offered.v === versionNow() && S.offered.solved.has(solvedKey(ctx.bundle?.version ?? null, vals)),
     solvedRoad: (vals) => (S.offered.v === versionNow() ? S.offered.solved.get(solvedKey(ctx.bundle?.version ?? null, vals))?.road ?? null : null),
-    pencilDiff, markSeen, forecastChange, keepMine, adoptDrift, journal, noteEdit, claimEdit,
+    pencilDiff, markSeen, forecastChange, journal, noteEdit, claimEdit,
     // detached: a save still in flight lands without writing this device's mirror (sign-out cleared it) → that save
     // (forget waits for it, so it never lands over the forgetting)
     flush, detach() { offs.forEach((f) => f()); subs.clear(); cancelHeal(); S.model?.p?.cancel?.(); S.model = null; clearTimeout(S.flushTimer); S.entry = null; return S.inflight; },
@@ -178,25 +177,3 @@ export function forget(api, entry, after = null) {
   return p;
 }
 
-// ================================================================ DOM: the drift's answers (Ahead's compare bar, F10)
-
-/** [Plan without him]: a player FPL now flags that the forecast still plays (d.without): your plan stays (a journal
- *  note) and re-plans without him (a veto, Undo). */
-export function planWithout(ctx = attach()?.ctx, d = attach(ctx)?.getPlan().drift) {
-  const mem = attach(ctx);
-  if (!d?.without) return;
-  const plan = mem.getPlan();
-  mem.keepMine({ text: `Planned without ${d.without.name}: ${d.what}` });
-  const r = mem.addPin(pinVeto(d.without.id, plan.gw, plan.end, { label: `Not ${d.without.name}` }));
-  ctx.ui.toast(`Re-planning without ${d.without.name}…`, 'info', { action: { label: 'Undo', onClick: () => r.undo() } });
-}
-
-/** The drift toast's action, "Use it" / "Re-plan with your rules" (ahead.driftSay; adoptDrift), with Undo. */
-export function switchWithUndo(ctx = attach()?.ctx) {
-  const d = attach(ctx).getPlan().drift;
-  const r = attach(ctx).adoptDrift();
-  if (r.refused) return;
-  // today's best ignores a rule of yours (or the hold): the plan stays on them, re-planned on today's forecast (never
-  // "switched")
-  ctx.ui.toast(COPY.driftDone(d), 'ok', { action: { label: 'Undo', onClick: () => r.undo() } });
-}

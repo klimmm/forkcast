@@ -2,15 +2,15 @@
 
 import * as E from '../../../plan/engine.js';
 import { chipName } from '../../../ui.js';
-import { COPY } from '../../calls.js';
-import { MINUS, compare, draftOf, flatMoves, isFrozen, ownCount, removedAt, sameView, valuesFor, valuesKey, viewOfState, weekOf } from '../core.js';
+import { CHIPS_OFF, COPY } from '../../calls.js';
+import { MINUS, compare, draftOf, flatMoves, isFrozen, memOf, ownCount, removedAt, sameView, valuesFor, valuesKey, viewOfState, weekOf } from '../core.js';
 import { refusedAt, barred, chainOf, chipEdit, keptCells, keptFrom } from '../edits.js';
-import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, rootStill, showingAt, tapSpent, weekOnto } from '../presolve.js';
+import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, rootStill, showingAt, suggestedAt, tapSpent, weekOnto } from '../presolve.js';
 import { inkAt } from '../buys.js';
 import { PREP, PREPS, chipPreps, chipWeekGain, chipWeekOf, chipsAsked, chipsAvail, clearGain, keptBest, plPays, plannedAt, prepItems, prepKeep, squadWeek } from '../pieces.js';
 import { FORK_MAX, PLACE_ALTS, PLANS, SQUAD_CHIPS, earlyOf, movesSig, placesAsked, suggestionsOf } from './suggest.js';
 import { byGain, fitOf, fitsAt, forkKey, mineAny, rebought } from './lit.js';
-import { FORK_FLIGHTS, FORK_REFS, asTaken, forkAsk, forkFlights, forkKept, forkRead, forkValues, measurePlan, planBaseline, planOfRoad, takenBy } from './forks.js';
+import { FORK_FLIGHTS, FORK_REFS, asTaken, forkAgain, forkAsk, forkFlights, forkKept, forkRead, forkValues, measurePlan, noteAnswered, planBaseline, planOfRoad, takenBy } from './forks.js';
 
 /** The weeks whose plain rows (a choice that is no solver road's, roll, ref, part or place's ask) are solved: their
  *  Week sheet open (rowsWanted). Elsewhere they wait unasked, so a ✕ or a Keep asks only what its next tap needs
@@ -28,6 +28,26 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // your Wildcard or Free Hit this week (owner, 2026-10-13): your choice is the chip, its changes its squad's; the
   // alternatives take it back (chipBackOf)
   const chipMine = SQUAD_CHIPS.has(w.chip) ? w.chip : null;
+  // Settings → Solve ahead off (the default; owner, 2026-11-11, "solve ahead off but it still solves"): a week with
+  // nothing of yours in it has no choices till you ask for its suggestion (Show suggestion, Show a transfer, a refusal of
+  // its, its Week sheet open: ROWS_WANT), so no solve and no wait (its rows read but never asked held the week
+  // "planning", the pitch greyed for good; owner, same day, "why grey field"); nor a week of your transfers: your plan
+  // with them is its one solve, their number against your team's baked lineups (yoursLine's tabs), the card's Show
+  // suggestion (free transfers left, a week short of money) asks the rest (owner, 2026-11-11, "why so many solves on a
+  // transfer": the model's plan and the week's plan on top of yours asked unasked); your chip's week counts it as before
+  if (!prep && !ctx.presolveOn?.() && !chipMine && !suggestedAt(P, g) && !showingAt(P, g)
+    && !ROWS_WANT.has(g) && (w.moves.length || !P.pins.some((p) => p.kind === 'notfor' && Number(p.gw) === g))) return [];
+  // (…and asked, its choices wait for the model's plan, asked now: what they are counted from (its hit cap, its move);
+  // asked before it every row was asked twice, without the cap and then with it; owner, 2026-11-11, "why a pile of
+  // solves on Show suggestion")
+  // (not a week past its end: the plan's "hold" default solves GW A alone, so a later week has nothing of it to count
+  // from, its cap its own (noHitsFrom); owner, 2026-11-11, "why GW11's plan when I'm on GW12")
+  const lean = !prep && !ctx.presolveOn?.();
+  const modelTo = Number(memOf(ctx)?.model?.()?.values?.to ?? Infinity);
+  if (lean && !P.base && g <= modelTo) {
+    memOf(ctx)?.wantModel?.();
+    return Object.assign([], { pending: true });
+  }
   let by = PLANS.get(P);
   if (!by || by.rev !== PAIR.rev) PLANS.set(P, (by = { rev: PAIR.rev, gw: new Map() }));
   if (by.gw.has(g)) {
@@ -186,7 +206,12 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // one or two presolved"); the best alone for a week prepared ahead), each offered at once (owner, 2026-11-02)
   const owed = owedAt(P, w) ? owedRoad(ctx, P, g, { peek, prep }) : null;
   // (read here; asked after the roll's and the rows' own solves, below: rolling's count first)
-  const depth = prep ? 0 : 2, tree = owed || followed ? [] : refusalRoads(ctx, P, g, { peek: true, depth });
+  // (none ahead with Settings → Solve ahead off: Show another asks the next when tapped)
+  const depth = prep || !ctx.presolveOn?.() ? 0 : 2, tree = owed || followed ? [] : refusalRoads(ctx, P, g, { peek: true, depth });
+  // (the root as read here, what `roots` is built from: one answered later in this call (an ask below kept it at once)
+  // is the next draw's, never a settled list with no solver row: Reset all weeks drew GW11's Save card a frame before
+  // its move; j-card-reset, 2026-11-11)
+  const rootIn = !!tree[0] && forkRead(tree[0].key) != null;
   // (the best transfers of a week rolling is best in, refusalRoads': Show a transfer's)
   // (Show a transfer's row: the chain's first alone, the solver's pick under the refusals made, the card; the next is
   // only solved ahead (refusalRoads). Two rows, the card lit the better-numbered: a pick for the week alone counted over
@@ -294,6 +319,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // for a pair that doesn't fit or a move you removed. Asked after the pair and the week's best two (`pairOf`), as is
   // one listed already; never one of those two
   const leadKeys = new Set(leads.map((x) => forkKey(singleOf(x), g)));
+  const leadK = leads[0] ? forkKey(singleOf(leads[0]), g) : null;
   // a pair's moves, each alone: [{m, x (its suggestion), one (its choice), k}] (none: a pair that doesn't fit, a
   // removed move, the week's best two)
   const partsOf = (c) => {
@@ -389,7 +415,9 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // a Wildcard you could play here that the week lists no row of (Chips…: chipOf) counts against the held roll as its
   // row would (owner, 2026-10-22): asked after the week's choices, never a row (no solve where you roll the week)
   const heldK = `${rollK}|held`, wcRow = { moves: [], chips: { [g]: 'wc' } };
-  const apart = !followed && !refs.has(heldK) && chipMine !== 'wc' && chipsAvail(P, g).includes('wc') && plannedAt(P, 'wc', g) == null
+  // (none with chips off, calls.js CHIPS_OFF: no Wildcard row or Chips… to count, a solve no one reads; after a take it
+  // greyed the week 0.4-0.7 s, solve-budget 2026-11-11)
+  const apart = !CHIPS_OFF && !followed && !refs.has(heldK) && chipMine !== 'wc' && chipsAvail(P, g).includes('wc') && plannedAt(P, 'wc', g) == null
     && fitsAt(ctx, P, g, wcRow, d0) ? [[heldK, { ...roll, held: true }]] : [];
   // owner, 2026-10-26 (fhland): under the hold a Wildcard or Free Hit row's squad is the plan Chips…'s tap lands, your
   // rules' preparation of it (prepItems: chipEdit's values, memory.offer), asked as the row's own `land` solve where
@@ -428,7 +456,13 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // (…its root not in yet: it waits for it, asked below, rather than a solve of its own beside it)
     if (k === yours && k !== rollK && refs.has(k) && tree[0] && !tree[0].road && !prep) return [{ k, c, roads: [], root: true }];
     const roads = known.get(k === fhLater ? fhK : k) ?? [];
-    if (roads.some((p) => p.exact)) return [{ k, c, roads }];
+    if (roads.some((p) => p.exact)) {
+      // (the week's No transfer a solver road of your plan's makes exactly, the week's plan with no GW-g move: answered
+      // with no ask, said in the solves panel as one forkPump answers is; owner, 2026-11-11, "why No transfer is not
+      // among the answered")
+      if (k === rollK && !prep) { const values = forkValues(ctx, P, g, c); noteAnswered(ctx, P, { key: valuesKey(P, values), values, gw: g, said: 'No transfer' }, roads.find((p) => p.exact).road); }
+      return [{ k, c, roads }];
+    }
     // (a week prepared ahead, prepNext: its best alone, refusalRoads' root. Owner, 2026-11-02: "no action in any week
     // can trigger more than 6 solves after it ... nothing is greyed out after any choice made")
     // (and what its rows count against, and the root's moves offered alone, so the week viewed next draws at once:
@@ -441,7 +475,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     if (!refs.has(k) && !parts.has(k) && !placeOnly.has(k) && !placed.has(k) && c.moves.length && !Object.keys(c.chips).length && !forkRead(key) && !forkFlights().some(([, f]) => f.key === key)) return [];
     // (a week prepared ahead: its roll and refs, what it needs to draw with nothing grey, `need`: never given up for
     // another week's refusal or tap ahead, forks.js; owner, 2026-11-03, "when move to gw 11 it grey out")
-    return [{ k, c, roads, ask: { key, values, gw: g, said: k === rollK ? 'No transfer' : parts.has(k) ? 'One move alone' : 'A choice', ...(prep ? { prep, ...(refs.has(k) ? { need: true } : {}) } : {}) } }];
+    return [{ k, c, roads, ask: { key, values, gw: g, said: k === rollK ? 'No transfer' : parts.has(k) ? 'One move alone' : 'A choice', ...(prep ? { prep, ...(refs.has(k) ? { need: true } : {}) } : k === rollK ? { card: true } : {}) } }];
   });
   // (stable: choices with no estimate keep their offered order; those the bars keep from being the week's suggestion go
   // after the rest, so a lit-able choice never waits behind one; a pair's move alone after the rest of its pair's kind)
@@ -485,6 +519,10 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
     // (a plain row while its Week sheet is shut: not asked, not listed, ROWS_WANT; one solved before still shows)
     if (!peek && !prep && !kept && c.moves.length && !Object.keys(c.chips).length && !refs.has(k) && !parts.has(k) && !placed.has(k) && !roots.has(k) && !ROWS_WANT.has(g) && !forkRead(key)
       && !forkFlights().some(([, f]) => f.key === key)) return { state: 'idle', choice: c };
+    // (Solve ahead off: the card's own row alone, the week's best, and what it counts against (refs, roots); Show another
+    // asks the next when tapped, ROWS_WANT the rest)
+    if (lean && !peek && !kept && !refs.has(k) && !roots.has(k) && !ROWS_WANT.has(g) && k !== leadK && !forkRead(key)
+      && !forkFlights().some(([, f]) => f.key === key)) return { state: 'idle', choice: c };
     const got = kept?.weeks ? kept : peek ? forkRead(key) : forkAsk(ctx, P, ask);
     if (land && !peek && got?.weeks && kept !== got) prepKeep(key, got);
     const row = rowOf(c, k, got, roads, land);
@@ -523,7 +561,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   for (const a of [...asks.filter((x) => refs.has(x.k)), ...asks.filter((x) => !refs.has(x.k))]) solveK(a.k);
   // (its root now, beside the rows; the refusals ahead once the week has settled, below: background work never beside
   // what you wait on)
-  if (!peek && !owed && !followed) refusalRoads(ctx, P, g, { prep, depth: 0 });
+  const rootAsked = !peek && !owed && !followed ? refusalRoads(ctx, P, g, { prep, depth: 0 }) : null;
   // (the Roll row of a week you roll stays where rolling, Forkcast's later moves after it, is your plan itself: no move
   // after it)
   const out = asks.filter((a) => choices.has(a.k)).map((a) => solved.get(a.k)).filter((x) => x && (!x.self || rollOffered));
@@ -669,7 +707,13 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // lands, so nothing else held the week and the card drew your made card ~70 ms before the pay-back one. Never for
   // ever: a failed or infeasible solve, or one the 6 leave unasked, waits on nothing; qa-tk83 trace m)
   list.owedOut = !!owed && (waitsOn(owed) || (!!owed.road && list.some((x) => x.state === 'solving' && roots.has(forkKey(x.choice, g)))));
-  list.pending = list.owedOut || (!followed && ([ref, mineRef, solved.get(yours)].some((x) => x?.state === 'solving') || (!prep && !now.length && !!tree.length && forkRead(tree[0].key) == null)));
+  // (the root answered in this call, by a plan in hand (forkAsk's answeredBy): no solve lands to draw again, so the next
+  // draw is asked here; without it the week stood pending for good, 383130's GW11 "planning…" on every first card, qa-tk126)
+  // (…its fewest-transfers answer too, a one- or two-transfer solve answered so: your transfer's row waits on the root's
+  // road (`root`), 41's GW11 "planning…" after Show another with nothing asked; owner, 2026-11-11, "why stuck")
+  const rootNow = !!tree[0] && ((!rootIn && forkRead(tree[0].key) != null) || (!tree[0].road && !!rootAsked?.[0]?.road));
+  if (rootNow) forkAgain(ctx, 0);
+  list.pending = list.owedOut || (!followed && ([ref, mineRef, solved.get(yours)].some((x) => x?.state === 'solving') || (!prep && !now.length && !!tree.length && !rootIn)));
   // a Wildcard or Free Hit the week lists no row of (not its best week, or planned elsewhere) from a plan of it solved
   // apart (chipPreps' road: your rules' preparation, the plan its tap lands), counted against the week's roll plan
   // (owner, 2026-10-22) with the same later weeks on both sides, as the week line counts your chip once played
@@ -751,6 +795,8 @@ const nextGw = (P, g) => P.gws.reduce((m, x) => (x > g && (m === null || x < m) 
  * + 1 draws what landed (FORK_ROADS) and joins the rest in flight; another week lets them go (plansOf's L5).
  */
 function prepNext(ctx, P, g) {
+  // (only with Settings → Solve ahead on: off, the default, no week is solved before you open it; owner, 2026-11-11)
+  if (!ctx.presolveOn?.()) return;
   // the next week alone (owner, 2026-11-02: "make only next week prepared after this lands not all 3"; every later
   // week since 2026-10-28 before), once the viewed week's taps solved ahead have landed too (presolveSwap's, `ahead`):
   // never beside what you wait on
@@ -827,8 +873,8 @@ export function weekRollOf(ctx, P, w, listed = (g) => plansOf(ctx, P, g)) {
  *  number against rolling (weekRollOf: the week line of your transfers, Wildcard or Free Hit; plansOf's chipOf: that
  *  chip in a week your plan doesn't play it, Chips… and its toast), counted as every choice is (ownCount: the solver's
  *  count over GW g's window where roads `a` (mine's) and `b` (the roll's) carry it; owner, 2026-10-29). → compare's {…,
- *  road, ev (the roll's), mine} */
-const vsRollOf = (ctx, mine, ref, g, a, b) => ({ ...ownCount(ctx, compare(ctx, mine.ev, ref.ev), a, b, g), road: ref.road, ev: ref.ev, mine: mine.ev });
+ *  road, ev (the roll's), mine, counted ([a, b]: the two roads counted, sameWindow)} */
+const vsRollOf = (ctx, mine, ref, g, a, b) => ({ ...ownCount(ctx, compare(ctx, mine.ev, ref.ev), a, b, g), road: ref.road, ev: ref.ev, mine: mine.ev, counted: [a, b] });
 /** How far a week's listed choices (plansOf's rows) are checked, counted as Add a player counts its weeks
  *  (COPY.planningWeek): the one now checked, the rows ready or failed + 1, of them all; null once none waits. Pure. →
  *  {i, n} | null */
@@ -950,3 +996,4 @@ export function weekSettled(P, g, plans, now = Date.now()) {
  *  (nothing else draws a week whose solve never ends); null once settled or before its first draw. */
 export const settleDue = (k) => { const s = SETTLED.by.get(k); return s && !s.settled ? s.at + PAIR_HOLD_MS : null; };
 export const settlesAt = (P, g, plans) => settleDue(weekKey(P, g, plans));
+

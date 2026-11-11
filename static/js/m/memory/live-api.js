@@ -1,6 +1,7 @@
 // live.js createMemory: the memory's operations: rules, lineups, drift, documents and the bundle's arrival
 
 import * as E from '../../plan/engine.js';
+import { cardSaysIt } from '../../ui.js';
 import { COPY, planFromRoad, compare as compareIn, changeText, transfersOf, withForced, FORGET_MS } from '../calls.js';
 import { EDIT, FORGET, SEEN, USED, carryPins, changesGwA, deadlinePassed, frozenClash, frozenOnOf, frozenSince, heldAt, ids, inkRepair, isRoll, kindOf, makePin, nowS, num, pinConflicts, pinsAfter, rollKeeps, weekAt } from './pins.js';
 import { freshOf, isNews, journalRows, madeOn, movesChanged, pencilChanges, planOfRoad, sigOf } from './drift.js';
@@ -8,55 +9,9 @@ import { forcedHits, idleRules, ruleText } from './values.js';
 import { blankAccepted, editedAt, forget } from './live.js';
 
 export function apiPart(V) {
-  /** What a drift's new data gains (d.fresh, d.freshLabel) as a journal note's {delta, label}, or null when unknown;
-   *  the drift's toast says it too (COPY.driftHead). */
+  /** What a drift's new data gains (d.fresh, d.freshLabel) as a journal note's {delta, label}, or null when unknown. */
   const ideaOf = (d) => { const { cctxNow, round2 } = V; return (d?.fresh == null ? null : { delta: round2(d.fresh), label: d.freshLabel ?? E.verdictLabel(d.fresh, cctxNow()?.noise ?? 0) }); };
 
-  /** Keep mine (the drift's toast left any way but its action: ahead.driftSay): your plan stays, and the journal notes
-   *  what you kept it over: the new idea (ideaOf) when the new best won by it, else what drifted (a player now flagged,
-   *  a week over budget). text: the note in other words. */
-  function keepMine({ text } = {}) { const { S, ensure, mutate, op, replan, stamp } = V;
-    const d = S.drift;
-    if (!d) return { undo: () => false };
-    S.drift = null;
-    const idea = !d.same && d.wins ? ideaOf(d) : null;
-    return op(() => {
-      mutate((doc) => {
-        const a = ensure(doc);
-        stamp(a, d.version);
-        const note = text ?? (idea ? COPY.keptOver : `Kept your plan: ${d.what}`);
-        a.notes = [...(a.notes || []), { kind: 'kept', at: nowS(), text: note, delta: idea?.delta ?? null, label: idea?.label ?? null }].slice(-20);
-      }, 'drift');
-      replan('sync');
-    });
-  }
-
-  /** The drift toast's "Use it" (switchWithUndo): this GW goes back to today's best plan (a picked alternative goes
-   *  with it). Your rules stay (RULES_V2): the plan re-plans with them. A locked GW A (ink) is refused unless the new
-   *  best keeps it (d.reach). */
-  function adoptDrift() { const { S, cancelHeal, ctx, ensure, lockedNow, mutate, op, replan, round2, setPins, stamp } = V;
-    const d = S.drift;
-    if (!d || !d.reach) return { undo: () => false, refused: !!d };
-    S.drift = null;
-    cancelHeal();
-    let asks = [];
-    return op(() => {
-      mutate((doc) => {
-        const old = ensure(doc);
-        // a Switch gains today's best's gap; a re-plan with your rules is a new plan whose gap is not known yet: no number
-        const note = { kind: 'adopted', at: nowS(), text: COPY.driftAdopted(d), delta: d.broken?.length ? null : round2(d.delta), label: d.broken?.length ? null : d.label };
-        asks = old.pins.items.filter((p) => p.id !== 'road' || p.locked);
-        // ink (an older lock, which the read thaws): the calls and the lock stay (the new best has the same GW A); else
-        // a blank plan with your rules
-        const a = lockedNow() ? { ...old, plan: null } : blankAccepted(d.version, ctx.bundle?.version, old.hold);
-        stamp(a, d.version);
-        setPins(a, asks);
-        a.notes = [...(old.notes || []), note].slice(-20);
-        doc.accepted = a;
-      }, 'drift');
-      if (asks.length) replan('pins');
-    });
-  }
 
   // ---------------------------------------------------------------- actions
   /** GW A under way: when one of `pins` would change it (changesLiveA), {gw: null, text: COPY.live}. A frozen GW never
@@ -153,7 +108,6 @@ export function apiPart(V) {
     const r = mutate((doc) => { doc.accepted = null; doc.ticket = null; }, 'pins');
     if (S.entry) { local.set(EDIT(S.entry), null); local.set(SEEN(S.entry), null); }
     S.reopened = null;
-    S.drift = null;
     S.judged = null;
     S.error = null;
     replan('pins');
@@ -235,7 +189,7 @@ export function apiPart(V) {
     // a hit the plan takes that its rules don't allow is said with it: every such week of the plan now is named (the
     // plan before is a phone evaluation)
     toast(withForced(changeText(r.what, cmp, { dir: r.dir, transfers: [transfersOf({ gws: r.before }), transfersOf(now)] }), forcedHits(getPlan().road, gwsNow())),
-      'info', { timeout: 6500, action: undo, replaces: 'pending' });
+      'info', { timeout: 6500, action: undo, replaces: 'pending', quiet: cardSaysIt() });
   }
   /** Your pins back as they were before an edit (a receipt's Undo); the plan re-plans for them. */
   function restorePins(pins) { const { ensure, mutate, op, replan, setPins } = V;
@@ -317,7 +271,7 @@ export function apiPart(V) {
       // an edit noted before a reload, its check not landed yet: its receipt, while the heal running is its own
       // (getPlan)
       const r = local.json(EDIT(entry));
-      Object.assign(S, { entry, A, doc: kept?.doc ?? null, docs: null, dirty: !!kept?.dirty, drift: null, judged: null, error: null, carried: null, notice: null, base: null,
+      Object.assign(S, { entry, A, doc: kept?.doc ?? null, docs: null, dirty: !!kept?.dirty, judged: null, error: null, carried: null, notice: null, base: null,
         reopened: r && Number(r.gw) === A ? r : null,
         // not used for FORGET_MS (USED), or signed out of before its forgetting reached the server (forget): wiped as it
         // loads, with no way back
@@ -347,9 +301,7 @@ export function apiPart(V) {
     const idle = S.doc?.accepted ? idleRules(S.doc.accepted.pins?.items || [], { from: A, to: endNow(), hitCap: capFor(S.doc.accepted) }) : [];
     if (idle.length) mutate((doc) => { ensure(doc); }, 'pins');
     if (!S.doc && S.carried !== A) carryOver(entry, A);
-    const before = S.drift;
     rejudge();
-    if (S.drift !== before) why = 'drift';
     syncPlan();
     emit(why);
   }
@@ -358,7 +310,7 @@ export function apiPart(V) {
    *  with no rule left under it (GW A unlocked, its last rule gone) is the model's again. */
   function syncPlan() { const { S, accNow, baseNow, ctx, holdNow, lockedNow, pinsNow, replan, versionNow } = V;
     const acc = accNow();
-    if (S.drift || S.pending) return;
+    if (S.pending) return;
     // under the hold with no plan the solver returned for your rules yet (a team you only look at, Reset plan, an older
     // app's phone-made plan: normalizeAccepted), or one on older roads: asked (replan)
     if (holdNow() && !acc?.plan && !S.error && (acc || baseNow()?.version !== versionNow())) { replan('sync'); return; }
@@ -391,5 +343,5 @@ export function apiPart(V) {
     }, 'pins');
     replan('sync');
   }
-  return { ideaOf, keepMine, adoptDrift, inkOf, inkClash, changesLiveA, addPin, clashText, dropPins, removePin, reset, setHitsMax, setLineup, setPlan, heal, compare, evalOf, lite, noteEdit, claimEdit, receipt, restorePins, pencilDiff, markSeen, forecastChange, loadAll, journal, unused, onData, syncPlan, carryOver };
+  return { ideaOf, inkOf, inkClash, changesLiveA, addPin, clashText, dropPins, removePin, reset, setHitsMax, setLineup, setPlan, heal, compare, evalOf, lite, noteEdit, claimEdit, receipt, restorePins, pencilDiff, markSeen, forecastChange, loadAll, journal, unused, onData, syncPlan, carryOver };
 }

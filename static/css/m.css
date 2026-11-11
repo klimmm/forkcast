@@ -496,7 +496,7 @@ code or a value 600 */
 /* Replace · Add a player */
 .rs .rs-sub { color: var(--muted); }
 /* the Chips sheet (sheets/chips.js: .cs) has the Replace row's mark: its chip's code, filled where the week plays it */
-:is(.rs .rs-auto, .cs) .rs-automk { display: grid; place-items: center; border-radius: var(--r-sm); background: var(--track); color: var(--ink-2); font: 600 var(--t-cap)/1.3 var(--f-text); }
+.cs .rs-automk { display: grid; place-items: center; border-radius: var(--r-sm); background: var(--track); color: var(--ink-2); font: 600 var(--t-cap)/1.3 var(--f-text); }
 .cs .rs-automk.on { background: var(--token); color: var(--token-ink); }
 .cs .ah-lrow .nm span { white-space: normal; }  /* its fact whole ("Best week: GW10 +5.1" wraps, never cut) */
 .cs .ah-lrow:disabled { opacity: 1; }  /* played this half: legible, its name grey */

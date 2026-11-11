@@ -1,8 +1,8 @@
 // ahead/edits.js: an edit: its words, toasts, Undo, its landing and failures
 
-import { fmt, toast } from '../../../ui.js';
+import { cardSaysIt, fmt, toast } from '../../../ui.js';
 import { COPY, changeText, transfersOf, plannerOf, withForced, clockText, waitFact, waitFacts } from '../../calls.js';
-import { composePins, pinsDir, switchWithUndo } from '../../memory.js';
+import { composePins, pinsDir } from '../../memory.js';
 import { FLASH, OFFLINE_EDIT, REMOVED, bump, clone, compare, editable, info, lineups, memOf, memPlan, noteRemoved, num, plan, removedBy, sameSet, setFlash, setLineups, viewedGw, weekOf } from '../core.js';
 import { DRY, boughtBy, soldBy } from '../presolve.js';
 import { plainRule, rowName } from '../buys.js';
@@ -72,7 +72,7 @@ export function say(ctx, text, undo, kind = 'info', tag = null, more = [], take 
   // (with the week's ticket up the card says it and its Undo takes it back: no black tab over the header, its words for
   // VoiceOver alone, a problem's still drawn; owner, 2026-11-05, "remove the black undo tab from top")
   // (…with a sheet up the card is under it, so the tab stays: its Undo has no other place)
-  const doc = globalThis.document, quiet = kind !== 'warn' && !!doc?.querySelector('.ah-ticket') && !doc.querySelector('.m-sheet');
+  const doc = globalThis.document, quiet = cardSaysIt(kind);
   if (doc && !watching) { watching = true; doc.addEventListener('click', () => { backing = false; }, { capture: true, passive: true }); }
   if (undo && !backing) { const P = plan(ctx); lastUndo = { entry: ctx.store.get('entry'), gw: P ? viewedGw(ctx, P) : null, fn: () => { lastUndo = null; undo(); } }; if (doc) queueMicrotask(() => bump(ctx)); }
   lastSay = toastOf(ctx)(text, kind, { timeout: kind === 'info' ? 6500 : 9000, action, actions: more.length ? [...more, action].filter(Boolean) : undefined, tag, replaces: 'pending', take, quiet });
@@ -140,16 +140,6 @@ export function pendingAgain(ctx, gp = memPlan(ctx)) {
   REOPENED = e.at;
   const mem = memOf(ctx);
   sayPending(ctx, e.what, Array.isArray(e.pins) ? () => { mem.claimEdit(); return mem.restorePins(e.pins); } : null, { reopened: true });
-}
-
-/** Memory's drift `d` as a toast with one action, "Use it" (memory's switchWithUndo), staying until your next touch;
- *  gone any other way your plan is kept (keepMine). Only while `d` is the drift standing. */
-export function driftSay(ctx, d) {
-  const standing = () => memPlan(ctx)?.drift?.version === d.version;
-  return toastOf(ctx)(d.text, 'info', {
-    action: { label: COPY.driftAct(d), onClick: () => { if (standing()) switchWithUndo(ctx); } },
-    onDismiss: () => { if (standing()) memOf(ctx).keepMine(); },
-  });
 }
 
 /** The line every GW (COPY.cheerLine; owner, 2026-10-21): CHEER_KEY(entry) {s: season, gw: GW last said} in this

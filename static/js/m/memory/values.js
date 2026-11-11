@@ -136,6 +136,20 @@ export function unbuyableDropped(spec, rolls, from, squad = []) {
   while (rolled.has(free)) free++;
   return spanString(parseSpans(spec).map(([id, a, b]) => [id, owned.has(id) ? a : Math.max(a, free), b]).filter(([, a, b]) => a <= b));
 }
+/** The hold's weeks that may leave the bank below 0 (composePins' debts) where your exact moves up to each (its for_gw)
+ *  leave it short: your bank (a cash rule's, else the team's), each sale's price in, each buy's out. → [gw] */
+function shortWeeks(cctx, c) {
+  if (!c.debts.length) return [];
+  const L = E.playerLookup({ base: cctx.base, players: cctx.players });
+  const moves = String(c.for_gw ?? '').split(',').filter(Boolean).map((t) => t.split(':').map(Number));
+  let bank = c.cash != null ? Number(c.cash) / 10 : Number(cctx.base?.bank ?? 0);
+  const short = new Set();
+  for (const g of cctx.gws) {
+    for (const [x, out, inn] of moves) if (x === g) bank += (L.sellT(out) ?? L.priceT(out) ?? 0) / 10 - (L.price(inn) ?? 0);
+    if (bank < -1e-9) short.add(g);
+  }
+  return c.debts.filter((g) => short.has(Number(g)));
+}
 export function planValues(cctx, list) {
   const gws = cctx.gws;
   const c = composePins(list, { from: gws[0], to: gws.at(-1) });
@@ -145,16 +159,22 @@ export function planValues(cctx, list) {
     base: cctx.base, draft, horizon: gws, maxHitsGw: c.hits, hitCap: hitCap(cctx.model),
     chipDefaults: cctx.meta?.chip_defaults, players: cctx.players,
   });
-  if (c.must_have) values.must_have = c.must_have;
-  const exclude = unbuyableDropped(c.exclude, c.rolls, gws[0], cctx.base?.squad);
+  if (c.sent_must) values.must_have = c.sent_must;  // (a held week capped at your moves: their buys alone, composePins)
+  const exclude = unbuyableDropped(c.sent_exclude, c.rolls, gws[0], cctx.base?.squad);
   if (exclude) values.exclude = exclude;
+  if (c.for_gw) values.for_gw = c.for_gw;  // (your exact moves as transfers: --for-gw, composePins)
   if (c.rolls.length) values.no_buys_gw = c.rolls.join(',');
   const capped = Object.entries(c.caps).sort(([a], [b]) => a - b);
   if (capped.length) values.max_buys_gw = capped.map(([g, n]) => `${g}:${n}`).join(',');
-  if (c.debts.length) values.debt_gw = c.debts.join(',');
+  // (a week the hold makes may leave the bank below 0 only where your own transfers so far do: your bank, each exact
+  // move's sale price in and buy price out, week by week; owner, 2026-11-09, "what the fuck is '-debt-gw' - fix": it
+  // went on every week from your first transfer, short or not)
+  const debts = shortWeeks(cctx, c);
+  if (debts.length) values.debt_gw = debts.join(',');
   if (c.not_for) values.not_for = c.not_for;
   if (c.cash !== null) values.cash = c.cash;
-  // Settings → Solver gap: GW A's round and every round after it, where not exact (planInputs' gap)
+  // Settings → Solver gap: this GW's and later GWs', where not exact (planInputs' gap); the solve's own one is picked when
+  // it is asked, its `to` known (api.js solveGap)
   if (cctx.gap?.now > 0) values.gap = cctx.gap.now;
   if (cctx.gap?.later > 0) values.later_gap = cctx.gap.later;
   return values;

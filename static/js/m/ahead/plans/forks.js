@@ -1,13 +1,14 @@
 // ahead/plans.js: a choice as a plan of yours; the fork roads asked in the background
 
 import * as E from '../../../plan/engine.js';
+import { solveGap } from '../../api.js';
 import { hitCap } from '../../calls.js';
 import { attach, makePin, pinSell, pinHits, pinRoll, isRoll, solveKept, solvedLineup } from '../../memory.js';
 import { noteAnswer } from '../../memory/values.js';
 import { range } from '../../memory/pins.js';
-import { baseOf, compare, draftOf, flatMoves, info, inputs, leftBehind, memOf, num, problemOf, roadDraft, sameMove, valuesFor, valuesKey, weekOf, withMoves } from '../core.js';
+import { baseOf, compare, draftOf, flatMoves, info, inputs, leftBehind, memOf, num, plan, problemOf, roadDraft, sameMove, valuesFor, valuesKey, weekOf, withMoves } from '../core.js';
 import { chainOf, chipBackOf, chipEdit, chipOffParts, derivedPin } from '../edits.js';
-import { AHEAD, PAIR, PAIR_AGAIN_MS, PAIR_HOLD_MS, PAIR_TAKES, PREP_BESIDE, aheadAsks, aheadWaited, clearRoots, madeEarlier, noHitsFrom, pairChanged, pinOfMove, pumpAhead, repicks, rootStill, tapSpent } from '../presolve.js';
+import { AHEAD, PAIR, PAIR_AGAIN_MS, PAIR_HOLD_MS, PAIR_TAKES, PREP_BESIDE, aheadAsks, aheadWaited, clearRoots, madeEarlier, noHitsFrom, pairChanged, pinOfMove, pumpAhead, repicks, mayAnswer, rootStill, ownLeft, tapSpent } from '../presolve.js';
 import { prepsWaiting, squadWeek } from '../pieces.js';
 import { SQUAD_CHIPS, ownAfter } from './suggest.js';
 import { keepNewest } from './choices.js';
@@ -109,9 +110,9 @@ export function forkValues(ctx, P, g, c, more = []) {
   const squad = SQUAD_CHIPS.has(c.chips?.[g]);
   const drop = [...new Set((weekOf(P, g)?.moves || []).map((m) => pinOfMove(P, { ...m, gw: g })?.id).filter(Boolean))];
   if (!squad && repicks(P, g)) drop.push(...P.pins.filter((p) => p.id === `hits:${g}`).map((p) => p.id));
-  const held = P.gws.filter((x) => x < g).flatMap((x) => (weekOf(P, x)?.squad ?? []).map((id) => [id, x, x]));
-  // (`more`: rules a tap not yet made adds, its plan view's solve asked ahead: refusalRoads)
-  const extra = [...more, ...(held.length ? [makePin({ id: 'fork:before', kind: 'road', label: 'Your weeks before', gw: P.A, must: held })] : [])];
+  // (`more`: rules a tap not yet made adds, its plan view's solve asked ahead: refusalRoads; your weeks before GW g, held
+  // as your plan has them, go in front of the rest once known: `held` below)
+  const extra = [...more];
   // GW g is exactly the choice in both modes (a Roll capping it at the choice's moves, as the + stores it: addPlan):
   // under the hold the derived hold caps it so already; while Forkcast makes your transfers nothing else would, and the
   // solve would add its own GW-g moves (owner, 2026-10-13)
@@ -136,7 +137,14 @@ export function forkValues(ctx, P, g, c, more = []) {
   // roll's and a chip's too (owner, 2026-11-03, "why anytime goes to GW11–13", "fix bugs in fh / wc so they not use
   // other weeks")
   // (a week after GW A without hits from g on, its own week the choice's: noHitsFrom)
-  return { ...noHitsFrom(P, g, valuesFor(ctx, extra, drop), true), to: g };
+  // your weeks before GW g held as your plan has them (each player there), except a week its values already allow no buy
+  // in (no_buys_gw): its squad is the week before's, which GW A's history or a held week fixes; owner, 2026-11-09, "why
+  // it add all players in must have instead of using state if it solving from 11": GW12's roll ahead pinned all 15 of a
+  // rolled GW11
+  const rolled = new Set(String(valuesFor(ctx, extra, drop).no_buys_gw ?? '').split(',').filter(Boolean).map(Number));
+  const held = P.gws.filter((x) => x < g && !rolled.has(x)).flatMap((x) => (weekOf(P, x)?.squad ?? []).map((id) => [id, x, x]));
+  const all = held.length ? [...more, makePin({ id: 'fork:before', kind: 'road', label: 'Your weeks before', gw: P.A, must: held }), ...extra.slice(more.length)] : extra;
+  return { ...noHitsFrom(P, g, valuesFor(ctx, all, drop), true), to: g };
 }
 
 // (the newest FORK_ROADS_MAX by their last use, keepNewest: a week drawn before an edit asked its solves first, and an
@@ -192,6 +200,21 @@ export function forkAsk(ctx, P, ask) {
   forkPump(ctx, P, ask);
   return null;
 }
+/** Whether the model's plan, still solving, may answer an ask of `values` once in (answeredBy: its values, or rules it
+ *  can keep already, presolve.mayAnswer): the ask waits for it, its landing draws again (owner,
+ *  2026-11-11, "why it asks no transfers solve if the plan has none anyway": GW11's No transfer and the week's plan asked
+ *  beside the plan solving, each answered by it). Not in hand once landed: answeredBy, or the ask's own solve. */
+function modelMayAnswer(ctx, values) {
+  const m = memOf(ctx)?.model?.();
+  return !!m?.values && !m.road && !m.error && m.since != null && mayAnswer(m.values, values);
+}
+/** …or the week's plan in flight (refusalRoads' root of the same week: beside its No transfer: GW12's made no transfer,
+ *  the same road solved twice; owner, 2026-11-11): its landing draws again, answeredBy then, else the ask's own solve. */
+const ROOT_FIRST = new Set();  // No transfer asks held once for their week's plan to be asked (forkPump)
+// (never past ROOT_WAIT_MS of it: a week's plan slow to come, the reference asked then beside it; the owner's "one wait
+// no more than 5 seconds", 2026-11-11)
+const ROOT_WAIT_MS = 5000;
+const flightMayAnswer = (ask) => forkFlights().find(([, f]) => f.root && f.gw === ask.gw && f.key !== ask.key && f.values && Date.now() - f.at < ROOT_WAIT_MS && mayAnswer(f.values, ask.values))?.[1] ?? null;
 /** …as solved so far, never asked (plansOf's peek): its road, 'infeasible', 'error' (failed), or null (not solved). */
 /** A road kept under `key` as if its solve had answered it (refusalRoads' root still the best under rules it already
  *  keeps: rootStill). */
@@ -274,11 +297,34 @@ function forkSaid(ctx, P, ask, prep) {
 }
 export function forkPump(ctx, P, ask) {
   const prep = !!ask.prep;
+  const miss = (why) => { (globalThis.__forkMiss ??= []).push({ at: Date.now(), key: ask.key.slice(-8), why: `${ask.card ? 'card' : prep ? 'prep' : ask.ahead ? 'ahead' : 'pair'} ${why}`, lanes: forkFlights().map(([l, f]) => `${l}:${f.card ? 'card' : f.prep ? (f.side ? 'side' : 'prep') : f.ahead ? 'ahead' : 'pair'}`).join(' ') }); };  // TEMP card-audit 1110
   const same = forkFlights().find(([, f]) => f.key === ask.key);
   if (same && (prep || !same[1].prep)) return;
-  if (P.healing) return;
-  if (prep && tapSpent()) return;  // (asked again after your next tap: its draw asks it)
-  if (leftBehind(ctx, P)) return;  // no timer: the new plan's bundle re-draws the choices, which asks its own
+  // (while your tap's heal solves: nothing asked but the plan after it, raised or asked as the card's: pumpAhead's urgentRoots)
+  if (P.healing && !ask.urgent) { miss('healing'); pumpAhead(ctx); return; }
+  // (one the model's plan, still solving, may answer: asked after it lands, if it doesn't; its landing draws again)
+  if (modelMayAnswer(ctx, ask.values)) { miss('model plan'); return; }
+  // (Settings → Solve ahead off alone: every solve on request, none twice; on, the week's references go beside its plan,
+  // the card first)
+  const lean = ctx.presolveOn?.() === false;
+  const by = lean ? flightMayAnswer(ask) : null;
+  if (by) { miss('a flight may answer'); forkAgain(ctx, by.at + ROOT_WAIT_MS - Date.now()); return; }
+  // (a week's No transfer, asked in the draw before its week's plan (the reference first: plansOf), lets that draw ask
+  // the week's plan, then waits on it in flight (flightMayAnswer) the next; owner, 2026-11-11, GW12's No transfer sent
+  // 20 ms before the week's plan that made no GW12 transfer. Once: a week that asks no plan (an owed week) asks it then)
+  if (lean && ask.said === 'No transfer' && !ROOT_FIRST.has(ask.key)) { ROOT_FIRST.add(ask.key); miss('the week\'s plan first'); forkAgain(ctx, 0); return; }
+  // (…and one a road in hand answers now, the plan as it stands rather than the view the ask was drawn on: kept as its
+  // answer, never sent; owner, 2026-11-11, "why two same requests": GW11's No transfer and the week's plan sent 0.4 s
+  // after the plan they equal had landed)
+  const now = plan(ctx) ?? P, sent = !FORK_ROADS.has(ask.key) && answeredBy(now, ask.key, ask.values);
+  if (sent) { miss('answered'); noteAnswered(ctx, now, ask, sent); keepNewest(FORK_ROADS, ask.key, sent, FORK_ROADS_MAX); forkAgain(ctx, 0); return; }
+  // (asked again after your next tap: its draw asks it); never the card on screen's own number, its Make the swap
+  // (presolveSwap: the 'week' source's take): the tap's 6 spent on the week's answer, its halves and the cards ahead
+  // left the card with words and no number; owner, 2026-11-10, "27 of 103 suggestions have no number - fix bug"
+  // (a week prepared ahead leaves the viewed card's own Make the swap, its root and roll reference their places among
+  // the 6 till they are asked: ownLeft)
+  if (prep && tapSpent(ask.src || !AHEAD.at ? 0 : ownLeft(ctx, AHEAD.at.P, AHEAD.at.g)) && !(ask.src === 'week' && ask.kind === 'take')) return;
+  if (leftBehind(ctx, P)) { miss('left behind'); return; }  // no timer: the new plan's bundle re-draws the choices, which asks its own
   const holder = ctx.api.slotHolder?.('spec') ?? (ctx.api.slotBusy?.('spec') ? 'busy' : null);
   const free = Array.from({ length: (P.b?.meta?.pair_lanes ?? 1) - 1 }, (_, i) => i + 1).find((i) => !FORK_FLIGHTS.has(i));
   // (refusalRoads' solves, `side`: the lanes 1.. alone where the plan service gives more than one, never lane 0,
@@ -302,31 +348,45 @@ export function forkPump(ctx, P, ask) {
       ?? forkFlights().find(([, f]) => f.ahead && !aheadWaited(f) && !aheadAsks(f, P, ask.gw))
       ?? (ask.src === 'sheet' ? forkFlights().find(([, f]) => f.ahead && f.src === 'week' && !aheadWaited(f)) : null) ?? null : null;
   const lane = same ? same[0] : side ? free ?? sideYield?.[0] : prep ? free ?? (!PAIR.flight && !holder && !prepsWaiting(ctx, P) ? 0 : yielded?.[0])
-    : !PAIR.flight ? 0 : free ?? other?.[0];
-  if (lane === undefined) return;  // every lane busy: a landing re-draws the choices, which asks again
+    // (…a free lane beside lane 0 while its speculative slot holds a solve of yours (P.bare's "without your transfers"):
+    // taken, lane 0 superseded it and the made card's number waited on it asked again from zero; card-audit 1110 load
+    // check, 43 GW11 Transfer: "without your transfers" let go at 5.8 s by "A choice", asked again at 7.3 s, 15.7 s in all)
+    : !PAIR.flight ? (holder && free !== undefined ? free : 0) : free ?? other?.[0];
+  if (lane === undefined) { miss('no lane'); return; }  // every lane busy: a landing re-draws the choices, which asks again
   // (a refusal solved ahead in a fork lane of its own, `side`, is never in the spec slot: it goes beside your rules'
   // speculative solve as the card's own ask does. It waited out Show another 1's "without your transfers" solve, 5 s on a
   // cold server, and the next card waited on it; qa-tk81 trace h)
   if (holder && !(prep && !(side && lane) ? PREP_BESIDE : PAIR_TAKES).has(holder)) {
+    miss(`holder ${holder}`);
     const f = ctx.api.whenFree?.('spec');
     if (f) f.then(() => forkAgain(ctx, 0)); else forkAgain(ctx, PAIR_AGAIN_MS);
     return;
   }
   const pause = prep ? 'prepUntil' : 'until';
   const wait = Math.max(0, PAIR.until - Date.now(), prep ? PAIR.prepUntil - Date.now() : 0);
-  if (wait > 0) { forkAgain(ctx, wait); return; }
+  if (wait > 0) { miss(`pause ${wait}`); forkAgain(ctx, wait); return; }
   if (other) other[1].cancel?.();
   if (yielded && yielded[0] === lane) yielded[1].cancel?.();
   if (sideYield && sideYield[0] === lane) sideYield[1].cancel?.();
-  const flight = { key: ask.key, fork: true, cancel: null, gw: ask.gw, P, prep, need: !!ask.need, ahead: !!ask.ahead, root: !!ask.root, side, src: ask.src ?? null };
+  miss('asked');
+  const flight = { key: ask.key, values: ask.values, at: Date.now(), fork: true, card: !!ask.card, cancel: null, gw: ask.gw, P, prep, need: !!ask.need, ahead: !!ask.ahead, root: !!ask.root, side, src: ask.src ?? null };
   if (lane) FORK_FLIGHTS.set(lane, flight); else PAIR.flight = flight;
   const ours = () => (lane ? FORK_FLIGHTS.get(lane) : PAIR.flight) === flight;
-  const purpose = ask.ahead ? 'presolve' : prep ? 'pairnext' : 'pair';
+  // (the card on screen's own solves, `card`: its week's plan, its halves, what its number counts against and an owed
+  // week's: first in the solver's queue, ahead of every other team's other on-screen solves (card-audit 1110 cold check:
+  // the week's plan solved in 2.2 s waited 8.4 s behind other teams' 'pair' solves at one priority); owner, 2026-11-11,
+  // "one wait no more than 5 seconds")
+  // (…and the card on screen's Transfer asked ahead, its Make the swap and the plan after it (the 'week' source): the tap
+  // most likely next, so on-screen at VIEWED, never the presolve's IDLE, niced (jobs_run BG_NICE) for good: one a tap then
+  // raised (urgentRoots) ran on at nice 10, 6.9 s for a 2.5 s solve; card-audit 1110 cold check)
+  const purpose = ask.card ? 'card' : ask.ahead ? (ask.src === 'week' ? 'pair' : 'presolve') : prep ? 'pairnext' : 'pair';
   if (ask.ahead) AHEAD.asked.push({ at: Date.now(), key: ask.key, src: ask.src });
   // (each named by the button or line it is for on the screen, owner 2026-11-05, "what means next x"; a week prepared
   // before you open it, "ahead", never "next week": its GW says which; owner, 2026-11-03, "what means gw11 and 'next
   // week' in same line")
-  const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, lane ? { slot: `fork${lane}` } : undefined, forkSaid(ctx, P, ask, prep));
+  // (the plan service's own key of the solve, `sk`, once it answered the ask: what urgentRoots raises; the page's key is
+  // its values' and the service answered 400 to it)
+  const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, { ...(lane ? { slot: `fork${lane}` } : {}), onUpdate: (s) => { if (s?.key) flight.sk = s.key; } }, forkSaid(ctx, P, ask, prep));
   flight.cancel = () => p.cancel?.();
   p.then((res) => {
       // a tap's solve asked ahead: its answer memory's for exactly those values (presolve); one that failed for another
@@ -338,6 +398,9 @@ export function forkPump(ctx, P, ask) {
         if (res.version != null) memOf(ctx).offer(res.road, { values: ask.values, error: res.error, version: res.version });
         // (one that can't be kept, an error not your rules' or no version told, is never asked again on this page)
         if (res.version == null || (!res.road && res.error?.code !== 'infeasible')) AHEAD.failed.add(ask.key);
+        // (a take's root asked ahead is the card's own after the tap (refusalRoads asks it by the same key): kept as a
+        // fork's road, never solved again)
+        if (ask.kind === 'root' && res.road) keepNewest(FORK_ROADS, ask.key, res.road, FORK_ROADS_MAX);
       } else if (res.road || res.state === 'error') {
         keepNewest(FORK_ROADS, ask.key, res.road ?? (res.error?.code === 'infeasible' ? 'infeasible' : { failedAt: Date.now() }), FORK_ROADS_MAX);
       } else if (ours() && res.state === 'cancelled') {
@@ -346,18 +409,31 @@ export function forkPump(ctx, P, ask) {
         if (ask.ahead && (AHEAD.dropped.set(ask.key, (AHEAD.dropped.get(ask.key) ?? 0) + 1).get(ask.key)) > 1) AHEAD.failed.add(ask.key);
         else PAIR[pause] = Date.now() + PAIR_AGAIN_MS;
       }
-    }, () => { if (ours()) PAIR[pause] = Date.now() + PAIR_HOLD_MS; })
+    }, () => {
+      // (a request that failed (the server refused it, the network dropped it): written down as a failure, as a solve's
+      // error is, so the card says it did not finish and asks it again after the pause; kept as nothing, the card waited
+      // on "planning…" for an answer never coming (owner, 2026-11-11, "fix so errors never cause hangs": a 'card' ask a
+      // server started before that purpose refused with a 400))
+      if (ask.ahead) AHEAD.failed.add(ask.key);
+      else keepNewest(FORK_ROADS, ask.key, { failedAt: Date.now() }, FORK_ROADS_MAX);
+      if (ours()) PAIR[pause] = Date.now() + PAIR_HOLD_MS;
+    })
     .finally(() => {
       if (!ours()) return;
       if (lane) FORK_FLIGHTS.delete(lane); else PAIR.flight = null;
       // (a solve asked ahead changes nothing drawn: the next one asked in its lane, the choices re-drawn only once none
       // is left, so the next week's preparation takes the lane: prepNext)
-      if (!ask.ahead || !pumpAhead(ctx)) pairChanged(ctx);
+      // (…but the card on screen's own number does (its Make the swap, the 'week' source's take): drawn at once; with an
+      // ask the 6 never let go left, "after the swap"'s root, the card waited on "planning…" with its number in memory;
+      // owner, 2026-11-10, "27 of 103 suggestions have no number - fix bug")
+      const more = ask.ahead ? pumpAhead(ctx) : false;
+      if (!ask.ahead || !more || (ask.src === 'week' && ask.kind === 'take')) pairChanged(ctx);
     });
 }
 /** The block re-drawn in `ms` (one timer), so its plans ask their next solve. */
 let FORK_TIMER = null, FORK_DUE = 0;
 export function forkAgain(ctx, ms) {
+  (globalThis.__forkMiss ??= []).push({ at: Date.now(), key: '', why: `again ${ms}${FORK_TIMER ? ' (one due)' : ''}`, lanes: '' });  // TEMP card-audit 1110
   if (FORK_TIMER) return;
   FORK_DUE = Date.now() + ms;
   FORK_TIMER = setTimeout(() => { FORK_TIMER = null; if (attach()?.ctx === ctx) pairChanged(ctx); }, ms);

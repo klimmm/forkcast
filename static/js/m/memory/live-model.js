@@ -48,18 +48,21 @@ export function modelPart(V) {
    * hit cap are read (calls.planInputs), the plan drawn while you have no rule and the plan does not hold. Asked once
    * per data version (solveKept, purpose 'plan': its own slot, so no other solve of this page supersedes it); landed:
    * kept on this device (keepModel), the memory's view re-made (onData's drift and sync). → {key, road, error, since
-   * (ms: asked, while it solves)} for the bundle on screen
+   * (ms: asked, while it solves), values} for the bundle on screen
    */
   function model() { const { S, ctx } = V;
     const ask = modelAsk();
-    if (!ask) return { key: null, road: null, error: null, since: null };
+    if (!ask) return { key: null, road: null, error: null, since: null, values: null };
     if (S.model?.key !== ask.key) S.model = { key: ask.key, road: keptModel(ask.key), error: null, since: null, p: null };
     const m = S.model;
     // (a request that never reached the plan service, the page off line or the service restarting: asked again on a
     // read AGAIN_MS later)
     if (m.error?.code === 'unreachable' && Date.now() - m.error.at > AGAIN_MS) m.error = null;
     const conn = ctx.store.get('conn');
-    if (!m.road && !m.p && !m.error && ctx.api?.solve && conn?.state !== 'offline' && !conn?.snapshot) {
+    // (Settings → Solve ahead Off: asked on a tap alone, wantModel; Ahead draws your team meanwhile; owner, 2026-11-11,
+    // "fix the bug so the plan is only on request")
+    const want = ctx.presolveOn?.() !== false || m.want;
+    if (want && !m.road && !m.p && !m.error && ctx.api?.solve && conn?.state !== 'offline' && !conn?.snapshot) {
       m.since = Date.now();
       m.p = solveKept(ctx.api, { entry: Number(S.entry), purpose: 'plan', values: ask.values }, undefined, { what: 'the solver\'s best · none of your rules' });
       m.p.then((r) => {
@@ -71,7 +74,13 @@ export function modelPart(V) {
         V.landed();
       }, () => { if (S.model === m) { m.p = null; m.error = { code: 'unreachable', at: Date.now() }; V.landed(); } });
     }
-    return { key: m.key, road: m.road, error: m.error, since: m.road ? null : m.since };
+    return { key: m.key, road: m.road, error: m.error, since: m.road ? null : m.since, values: ask.values };
+  }
+  /** Ask the model's plan now (Show suggestion's tap: with Solve ahead Off nothing else asks it). */
+  function wantModel() { const { S } = V;
+    model();
+    if (S.model) S.model.want = true;
+    return model();
   }
   /** Ask the model's plan again after it failed (renderBaking's Try again). */
   function retryModel() { const { S } = V;
@@ -79,5 +88,5 @@ export function modelPart(V) {
     model();
   }
 
-  return { model, retryModel, modelOn };
+  return { model, wantModel, retryModel, modelOn };
 }

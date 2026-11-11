@@ -77,6 +77,6 @@ export const bars = (L, id, gws, from, top, sort = null) => h('span.ah-micro', {
 
 /** A row's shirt. */
 export const shirt = (L, id) => h('span.mk', { 'aria-hidden': 'true' }, shirtOf(L, Number(id), 32));
-/** A row's shirt and name block: "Groß" over "BHA · £6.5m" (`extra`: nodes after it, e.g. "· bench in GW6"). */
+/** A row's shirt and name block: "Groß" over "BHA · £6.5m" (`extra`: nodes after it). */
 export const who = (L, r, extra = null) => [shirt(L, r.id), h('span.nm', null, h('b', null, r.name), h('span', null, `${r.club} · ${fmt.money(r.price)}`, extra))];
 

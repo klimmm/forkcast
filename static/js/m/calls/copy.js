@@ -2,7 +2,7 @@
 
 import * as E from '../../plan/engine.js';
 import { fmt, chipName, plural } from '../../ui.js';
-import { AWAY, EPS, MINUS, ORD, WORDS, andList, driftWay, gwList, gwsWords, hitsWords, ids, num, pts, range, rankOrd, rankShort, setsRow, setsSaid, signedMoney, span } from './helpers.js';
+import { AWAY, EPS, MINUS, ORD, WORDS, andList, gwList, gwsWords, hitsWords, ids, num, pts, range, rankOrd, rankShort, setsRow, setsSaid, signedMoney, span } from './helpers.js';
 import { priceSaid } from './prices.js';
 
 // ---------------------------------------------------------------- copy (IPHONE_DESIGN §9, §7.9, §5)
@@ -143,8 +143,7 @@ export const COPY = Object.freeze({
   /** …the same fact after the sale or buy it is about, in noFit's words: "Groß · needs £5.2m more". */
   moneyNeeds: (x) => `needs ${fmt.money(x)} more`,
   /** A Sell list row's ≈ and a Bring in week pill's number (replace.js, wish.js pillWords): what your total moves by
-   *  when it is made, its word under it as a list row's unit is ("xP GW8–11") (owner, 2026-10-21). */
-  listTotal: 'total',
+   *  when it is made, said to VoiceOver; no word under it on screen (owner, 2026-11-11, "fix this 'total' crap"). */
   listTotalSaid: (delta, about = false) => `${about ? 'about ' : ''}${pts(delta)} points to your total`,
   /** An edit's toast at once, with its Undo, while the full plan solves (its verdict replaces it in place); from 5 s
    *  its age after the ellipsis ("Planning Groß in your plan… 0:12"), and while the server is away the wait it is in. */
@@ -282,7 +281,6 @@ export const COPY = Object.freeze({
     ]],
     ['Prices and news', [
       'Before a price change, the line above the pitch says whether to make your transfer tonight. Hide, in its list, puts it away.',
-      `New forecast: ${COPY.driftUseAct} takes its plan; ${COPY.driftReplanAct} or ${COPY.driftHoldAct} re-plans yours. Ignore it to keep your plan.`,
       'Player data (pitch, top right): choose what shows under each shirt.',
       'On a player\'s card, tap ⓘ to read what a chart shows.',
     ]],
@@ -424,6 +422,10 @@ export const COPY = Object.freeze({
   gapHead: (later) => (later ? 'Solver gap · later GWs' : 'Solver gap · this GW'),
   gapSeg: (g) => (g > 0 ? `${+(g * 100).toFixed(2)}%` : 'Exact'),
   gapNote: 'A looser gap plans faster; the plan may then be that much short of the best.',
+  // Settings → Solve ahead (sheets/you.js aheadCtl)
+  presolveHead: 'Solve ahead',
+  presolveSeg: (on) => (on ? 'On' : 'Off'),
+  presolveNote: 'On: what you are likely to tap next, and the next week, is planned before you tap, so it shows at once. Off: Forkcast plans only what you ask for.',
   aheadLocked: 'Options with a lock aren\'t available on this Forkcast.',
   /** A GW past your plan, tapped on the GW switcher (ahead.js edgeTicks): how to plan it, or that its length is locked. */
   weekOff: (gw, n) => `Your plan covers ${COPY.aheadSeg(n)}. To plan GW${gw}, ${COPY.settingsDoor}, then ${COPY.aheadHead}.`,
@@ -553,30 +555,6 @@ export const COPY = Object.freeze({
   },
   unfinished: "Forkcast couldn't finish planning that. Your plan is unchanged.",
   pinClash: (name, keepTo, sellGw) => `Keeping ${name} through GW${keepTo} clashes with selling him in GW${sellGw}. Which one?`,
-  /** The drift (its toast, ahead.driftSay): the whole new plan against yours (never one player's verdict), then the
-   *  main way they part, and the rules of yours it ignores (its "Re-plan with your rules" re-plans with them). `what`
-   *  null: no news to name, no "Since …" sentence. The gap and the rules come first, the news after. */
-  drift: (since, what, main, delta, label, gws, rules = [], fresh = null, freshLabel = label) => `${COPY.driftHead(delta, label, fresh, freshLabel, gws)}${rules.length
-    ? ` (it ignores your rule${rules.length > 1 ? 's' : ''}: ${rules.join(', ')})` : ''}.${what ? ` ${sentence(`Since ${since}: ${what}`)}` : ''}${main ? ` ${sentence(`Main difference: ${main}`)}` : ''}`,
-  /** …its head: the gap, then the part of it that is news (driftHeadOf). */
-  driftHead: (delta, label, fresh = null, freshLabel = label, gws = null) => {
-    const x = driftHeadOf(delta, label, fresh, freshLabel, gws);
-    return `${x.gap}${x.part ? ` (${x.part.gap})` : ''}`;
-  },
-  /** The drift toast's answers (ahead.driftSay, memory.switchWithUndo): "Use it" takes the updated plan; "Re-plan with
-   *  your rules" (it ignores a rule of yours) keeps your plan on your rules, re-planned on the updated forecast; "Keep
-   *  only your transfers" (it ignores only the hold, never named a rule of yours) the same. One wording for the button
-   *  (driftAct), the toast after (driftDone) and the journal note (driftAdopted). */
-  driftUseAct: 'Use it',
-  driftSwitched: 'Switched to the updated plan.',
-  driftReplan: 'Re-planning with your rules on the updated forecast.',
-  driftReplanAct: 'Re-plan with your rules',
-  driftHold: 'Re-planning with only your transfers on the updated forecast.',
-  driftHoldAct: 'Keep only your transfers',
-  driftAct: (d) => driftWay(d, COPY.driftReplanAct, COPY.driftHoldAct, COPY.driftUseAct),
-  driftDone: (d) => driftWay(d, COPY.driftReplan, COPY.driftHold, COPY.driftSwitched),
-  driftAdopted: (d) => driftWay(d, `Re-planned with your rules on the updated forecast (the updated plan ignored ${(d.ruleNames || []).join(', ')})`,
-    'Re-planned with only your transfers on the updated forecast', `Switched to the updated plan: ${d.best}`),
   /** The journal's notes of a forecast update you kept your plan over (memory writes them). */
   kept: 'New forecast: no change worth making',
   keptLocked: (gw) => `The new forecast changes GW${gw}, which is locked in. Your plan stays`,
@@ -794,24 +772,25 @@ export const COPY = Object.freeze({
   /** The strip's answer, in every week you can change (owner, 2026-11-05, design_1105b A, "like save more"): Forkcast's move
    *  under its title, a week it saves, or your moves with nothing to add. */
   answerMove: 'Make this transfer',
-  /** The transfer card's button beside the names, short so they keep their full size (owner, 2026-11-09, "both"). */
-  swap: 'Swap',
+  /** The suggestion card's green button, at its right: FPL's word for the act, the one the card, its header and its
+   *  take-back say ("Swap" beside "1 transfer made" and "Save your free transfer"; card audit 2026-11-10). */
+  swap: 'Transfer',
   showAnother: 'Show another',
   showATransfer: 'Show a transfer',
   /** The card's take-backs, each saying what it takes back (owner, 2026-11-05, "fix undo / reset buttions signs and theier
-   *  meaning and wording"): this week's swaps, or the card before your Show another. */
-  undoSwaps: (n) => (n === 1 ? 'Undo swap' : `Undo ${n} swaps`),
+   *  meaning and wording"): this week's transfers, or the card before your Show another. */
+  undoSwaps: (n) => (n === 1 ? 'Undo transfer' : `Undo ${n} transfers`),
   previous: 'Previous',
   undoLast: 'Undo',
   seeChanges: 'See the changes',
   onToWeek: (g) => `On to GW${g}`,
   showSuggestion: 'Show suggestion',
-  setInFplGo: 'Set in FPL',
   /** The card's one number's words, at its left (owner, 2026-11-09, design_1109a slip): the move's points over the weeks
-   *  shown against saving the free transfer, the saved transfer's own worth counted (what orders the cards). */
-  vsSavingNext: (n) => (n === 1 ? 'Next week, vs saving it for later' : `Next ${n} weeks, vs saving it for later`),
-  /** The card's stamp beside a move you made (design_1109a slip). */
-  madeStamp: 'Made',
+   *  shown against `vs`, what it counts against (card audit 2026-11-10: "vs saving it for later" named no "it", and on a
+   *  pay-back saving was no choice): vsSaving where a free transfer is left to save, else planVs's. */
+  vsNext: (n, vs) => `${n === 1 ? 'Next week' : `Next ${n} weeks`}, vs ${vs}`,
+  vsSaving: 'saving a free transfer',
+  /** The week card's Bring in: one of its two buttons, or its links row's door where both are taken (screen-ticket.js). */
   bringInPlayer: 'Bring in a player',
   offForNow: '(off for now)',
   /** The card while the pitch asks who he replaces (design_1109a slip): "B.Fernandes → ?", the ask under it. */
@@ -889,13 +868,13 @@ export const COPY = Object.freeze({
   rulesHead: 'Your rules',
   /** A player's name in a Why sheet's comparison, said as what it opens. */
   cardOf: (name) => `${name}'s card`,
-  /** The card title's →: the buy's card against the player he replaces. */
-  compareOf: (inn, out) => `${inn} against ${out}`,
+  /** Two players side by side (sheets/player.js), said: the first against the second. */
+  compareOf: (a, b) => `${a} against ${b}`,
   /** Its name menus' spoken label. */
   comparePick: (name) => `Compare instead of ${name}`,
   /** A row's button in that list. */
   compareGo: 'Compare',
-  /** The opening card's link: any two players compared, and its first list's title. */
+  /** The card's link under its line: its one transfer's two players side by side, else any two (its first list's title). */
   comparePlayers: 'Compare players',
   /** Its second list's title. */
   compareWith: (name) => `Compare with ${name}`,
@@ -905,7 +884,6 @@ export const COPY = Object.freeze({
   waitShort: 'planning…',
   pairWaiting: 'waiting',
   pairAfterEdit: 'waiting for your edit\'s plan',
-  frozenStays: (gws, end) => `${span(gws)} ${gws.length > 1 ? 'are' : 'is'} frozen, so your plan stays${gws.at(-1) < end ? `: the new forecast re-plans GW${gws.at(-1) + 1} on` : ''}.`,
   /** A new GW's one notice (memory.carryOver, said once by Ahead): what the last GW's plan handed on (your rules as
    *  their chips); '' with none. */
   carried: (from, what) => (what.length ? `Carried over from GW${from}: ${what.join(', ')}.` : ''),
@@ -961,10 +939,3 @@ export function liveCheck(published, week, L) {
   return COPY.liveDiff(week.gw, names('in'), names('out'));
 }
 
-/** The drift's head in parts, each number beside its own verdict (COPY.driftHead): {gap ("Updated forecast: +2.4 pts vs
- *  your plan"), label (its verdict), part ({gap: "+0.5 of it new", label: drift.freshLabel}: the part that is news,
- *  when your own choices make the rest) | null}. */
-export function driftHeadOf(delta, label, fresh = null, freshLabel = label, gws = null) {
-  const part = fresh !== null && Math.abs(fresh - delta) >= 0.05;
-  return { gap: `Updated forecast: ${pts(delta)} pts${gws?.length ? ` over ${span(gws)}` : ''} vs your plan`, label, part: part ? { gap: `${pts(fresh)} of it new`, label: freshLabel } : null };
-}

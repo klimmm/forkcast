@@ -6,13 +6,13 @@ import { fundingOf, moveTo, movesInOrder, pairOf, pinOfMove, presolveTaps, remov
 import { asTaken, choiceVs, mineAny, planBack, planBaseline, plansOf, yoursAt } from './plans.js';
 import { FLASH, MINUS, NIGHT_KEY, WAIT_KEY, WHY_SHEET, capFirst, compare, draftOf, dropMove, flatMoves, memOf, span, weekOf } from './core.js';
 import { freedBy, liftsLive, rowName } from './buys.js';
-import { driftSay, keep, removeRule, toastOf, veto } from './edits.js';
+import { keep, removeRule, toastOf, veto } from './edits.js';
 import { clearGain, itbWords, weekFacts } from './pieces.js';
 import * as E from '../../plan/engine.js';
 import { listedRules } from './screen.js';
 
 export function weekPart(V) {
-  function drawWeek(P, w, M) { const { S, ap0, asksHost, changeRow, ctx, ftAfter, litPays, planRow, plansHeading, rollFacts, shareWeek, waitClock, waitNow, weekGain, xferRow } = V;
+  function drawWeek(P, w, M) { const { S, ap0, asksHost, changeRow, ctx, ftAfter, litPays, planRow, plansHeading, plansListed, rollFacts, shareWeek, waitClock, waitNow, weekGain, xferRow } = V;
     const WN = M.wait ? waitNow() : null;
     const g = w.gw, W = S.week;
     if (W.g !== g) {
@@ -42,7 +42,9 @@ export function weekPart(V) {
       // while they solve, how far, as the strip's wait line says it, the same one wait (waitNow): "Planning GW8 · 3 of 9 ·
       // 0:12" (waitClock)
       // rows sharing an "instead of …" get it as a subheading ("Instead of Palmer")
-      M.plans.length ? [h('div.ah-wh', { dataset: { at: 'plans' } }, h('h3', null, name),
+      // (the plans only where one is more than the reference: "Roll 0.0" alone counted the roll against itself and said
+      // nothing under "Suggested plans"; card audit 2026-11-10, boards-full 383130 #004)
+      plansListed(M) ? [h('div.ah-wh', { dataset: { at: 'plans' } }, h('h3', null, name),
         WN ? h('p.ah-bs', null, `${WN.word}${waitLines({ scope: WN.scope, prog: WN.prog })[0]}`, S.wait ? h('span', { 'aria-hidden': 'true' }, ' · ', waitClock()) : null) : null),
         // the two groups (rows that add to your transfer, rows sharing the "instead of …") in their best rows' order,
         // rows within each best first: by M.plans' own order, best first once none checks (plansOf's byGain), the slots
@@ -81,14 +83,6 @@ export function weekPart(V) {
   // sentence)
   const noteRow = (cls, text) => h(`div.ah-brow.ah-ask${cls}`, { role: 'status' }, Array.isArray(text)
     ? h('div.ah-askt', null, h('p', null, text[0]), h('ul.ah-steps', null, text[1].map((x) => h('li', null, x)))) : h('p.ah-askt', null, text));
-  /** A new forecast whose best plan beats yours (memory's drift, judged once per roads version): said once per version,
-   *  as a toast whose one action takes it ("Use it"); leaving it any other way keeps yours (driftSay). */
-  function sayDrift(P) { const { S, ctx } = V;
-    const d = P.mem?.drift;
-    if (!d?.text || S.driftSaid === d.version) return;
-    S.driftSaid = d.version;
-    driftSay(ctx, d);
-  }
   /** On the suggested plan with no rules of yours, a new forecast that changed its moves beyond the noise is said once
    *  (under the hold, the best road the suggested plans follow: "New forecast, best plan: …", owner, 2026-10-12): a
    *  notice of the week line (after a clash and the price watch), "New forecast: GW6 Scott → Le Fée (was Groß) · 2
@@ -398,5 +392,5 @@ export function weekPart(V) {
       funding ? COPY.funds(fmt.money(freedBy(rg?.withIt, g, m)), nm(f.main.move.in)) : null,
       funders.length ? COPY.fundedBy(funders.map((x) => `${nm(x.out)} → ${nm(x.in)}`)) : null]);
   }
-  return { drawWeek, clashRow, noteRow, sayDrift, forecastLine, waitSig, waitWatch, keepNight, sayNight, sayCarried, barNode, dotted, bsep, textOf, bankWarn, bankLead, weekLead, roadOfEv, movesTitle, openWhy, deckOf, placeLink, whenFree, placeAct, whyTaps, whyActs, notOf, vetoBack, notAct, whenSheet, gainOf, whySub, numOf, numSaid, plNumSaid, hitTag, hitSaid, plansVs, whyPart, rowTies };
+  return { drawWeek, clashRow, noteRow, forecastLine, waitSig, waitWatch, keepNight, sayNight, sayCarried, barNode, dotted, bsep, textOf, bankWarn, bankLead, weekLead, roadOfEv, movesTitle, openWhy, deckOf, placeLink, whenFree, placeAct, whyTaps, whyActs, notOf, vetoBack, notAct, whenSheet, gainOf, whySub, numOf, numSaid, plNumSaid, hitTag, hitSaid, plansVs, whyPart, rowTies };
 }

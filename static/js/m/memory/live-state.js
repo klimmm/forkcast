@@ -101,7 +101,7 @@ export function statePart(V) {
       // the plan (or the error) for these rules came from a solve of exactly their values asked ahead (offer `values`):
       // the answer their heal gets, landed with no wait (ahead.js edit: its verdict as a heal's)
       ahead: S.aheadSig != null && S.aheadSig === sigOf(c),
-      drift: S.drift, pending: S.pending ? { ...S.pending, cancel: undefined, ...(edit ? { edit } : {}) } : null, error: S.error, saving: S.dirty,
+      pending: S.pending ? { ...S.pending, cancel: undefined, ...(edit ? { edit } : {}) } : null, error: S.error, saving: S.dirty,
       carried: S.notice?.gw === S.A ? S.notice.text : null,
     };
   }
@@ -213,11 +213,11 @@ export function statePart(V) {
         S.dirty = true;
         S.seq++;
         saveLocal();
-        S.judged = null;  // an undone Keep mine / Switch brings its drift back
+        S.judged = null;
         rejudge();
         emit('undo');
         flushSoon();
-        if (!S.drift) replan('undo');  // a drift brought back keeps your plan as it was until you answer it
+        replan('undo');
         return true;
       },
     };

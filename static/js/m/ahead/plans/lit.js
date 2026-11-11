@@ -67,14 +67,11 @@ export function weekBest(P, w, M, D, toks = []) {
   // owner, 2026-11-08, "why switching dovin to kinsky ... then ajayi to justin back and forth")
   const waits = !!M.shownOut || shownWaits(M.plans), worth = (pl) => (pl.forced ? pl.gain : pl.cmp.delta);
   const moves = M.plans.filter((pl) => ok(pl) && can(pl) && (!pl.forced || (!waits && pl.gain > -Infinity)) && placesOf(D, pl).length && !placesOf(D, pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl))));
-  // (one transfer a card: of the solver's moves, those made alone where any is (its pair's parts, offered apart), the best
-  // of them; the pair itself then never the card's, Show another going on from it; never where your plan leaves the week
-  // short of money (owedAt: its pay-back may need two); owner, 2026-11-09, "find why two transfers suggested and fix bug")
-  const at = (pl) => pl.choice.moves.filter((m) => (m.gw ?? g) === g), key = (m) => `${m.out}>${m.in}`;
-  const theirs = new Set(moves.filter((pl) => at(pl).length > 1).flatMap((pl) => at(pl).map(key)));
-  const placed = (pl) => placesOf(D, pl).length && !placesOf(D, pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl)));
-  const ones = owedAt(P, w) ? [] : M.plans.filter((pl) => ok(pl) && pl.state === 'ready' && at(pl).length === 1 && (theirs.has(key(at(pl)[0])) || (can(pl) && moves.includes(pl))) && placed(pl));
-  const move = (ones.length ? ones : moves).reduce((m, pl) => (!m || worth(pl) > worth(m) ? pl : m), null);
+  // (the solver's row as it is: how many moves the card shows is refusalRoads' (fewest transfers a card, the plan's own);
+  // a single-move row holding one of its moves, preferred here since 2026-11-09, showed 395's GW11 Gabriel → Diop −3.5,
+  // the sale paying for Manzambi → Palmer, over the two the solver makes together; owner, 2026-11-11, "how it now offer
+  // gabriel diop to me")
+  const move = moves.reduce((m, pl) => (!m || worth(pl) > worth(m) ? pl : m), null);
   const chips = toks.filter((pl) => ok(pl) && pl.state === 'ready' && !rollOnly(pl) && !!pl.choice.chips?.[g] && pl.cmp.delta > (move?.cmp.delta ?? 0));
   return chips.reduce((m, pl) => (!m || pl.cmp.delta > m.cmp.delta ? pl : m), null) ?? move;
 }

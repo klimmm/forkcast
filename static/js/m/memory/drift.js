@@ -5,6 +5,7 @@ import { COPY, planFromRoad, compare as compareIn, OUT, statusText } from '../ca
 import { chipName, fmt, statusInfo } from '../../ui.js';
 import { EPS, clone, composePins, frozenWeeks, ids, num, pinRoad, splitItems, squadKey, thawPin, weekAt } from './pins.js';
 import { idleRules, ruleText, rulesBroken } from './values.js';
+import { solveGap } from '../api.js';
 
 // ================================================================ legality and drift (§7.7)
 
@@ -107,7 +108,7 @@ export const isNews = (cctx, fc) => fc != null && fc.ref > (cctx?.noise ?? 0) &&
  * (legality); 'kept' when it is better by less; 'same' when the squads agree. null when there is nothing to judge (no
  * accepted plan, no new roads, or already judged on this version). frozen: the frozen GWs (ink): a new best that
  * remakes one is out of reach, so only legality can drift. Your rules (every pin but the road) stay yours: `broken`
- * lists the ones the new best ignores (its "Switch" re-plans with them, adoptDrift). Your rules and lineup are never
+ * lists the ones the new best ignores. Your rules and lineup are never
  * news: the new best wins only by what the new data gains, `fresh`: today's best against `before` (the model's road
  * your plan was made against) on today's forecast; without that road, the whole gap when your plan holds none of your
  * choices, else null (unknown: 'kept').
@@ -152,17 +153,13 @@ export function detectDrift(cctx, accepted, version, { frozen = null, locked = f
   // FPL flagged him but the forecast (re-inferred separately, §7.7 honest limit) still plays him: no new best to show
   // yet, so the drift names him (`without`)
   const out = same ? illegal.find((x) => x.code === 'status') : null;
-  // the hold is no rule anyone added: never named as yours (ruleNames); its answer says what it keeps (COPY.driftAct:
-  // "Keep only your transfers")
+  // the hold is no rule anyone added: never named as yours (ruleNames)
   const ruleNames = broken.filter((p) => p.id !== 'hold').map((p) => ruleText(p, L.name, { start: cctx.A, end: cctx.gws.at(-1) }).text);
   return {
     kind, version, gw: cctx.A, since: accepted.at, sinceText: sinceStr, cmp, delta: cmp.delta, label: cmp.label,
     what, main, best: main ?? 'the new plan', diff, same, locked: ink.length > 0, frozen: ink, reach, broken: broken.map((p) => p.id), ruleNames, fresh,
     freshLabel: fc ? fc.label : null, wins,
     without: out ? { id: out.id, name: L.name(out.id) } : null,
-    text: same ? `Since ${sinceStr}: ${what}. ${out ? "The forecast hasn't caught up yet." : 'No better plan yet.'}`
-      : !reach ? `Since ${sinceStr}: ${what}. ${COPY.frozenStays(ink, cctx.gws.at(-1))}`
-        : COPY.drift(sinceStr, news, main, cmp.delta, cmp.label, cmp.gws, ruleNames, fresh, fc ? fc.label : cmp.label),
     mine, bestPlan,
   };
 }
@@ -262,7 +259,9 @@ export const madeOn = (acc) => acc?.roads_version ?? acc?.data_version ?? null;
  *  only when present, so an older plan keeps its signature. */
 /** A solve's own key: the data version and its values, key order aside (the plan service keys a solve by its argv on
  *  that data, api/mobile.py solve_key: two asks of one key are one request). */
-export const solvedKey = (version, values) => `${version}|${JSON.stringify(Object.keys(values).sort().map((k) => [k, values[k]]))}`;
+// (the values as sent: the one gap the solve gets (api.solveGap), never the page's two; owner, 2026-11-11, a stored later
+// GWs' 0.5% kept GW11's No transfer and the week's plan from being answered by the plan they equal)
+export const solvedKey = (version, values) => { const v = solveGap(values); return `${version}|${JSON.stringify(Object.keys(v).sort().map((k) => [k, v[k]]))}`; };
 export const sigOf = (c) => `${c.must_have}|${c.exclude}|${JSON.stringify(c.hits)}|${JSON.stringify(c.chips)}|${c.cash}${c.not_for ? `|notfor:${c.not_for}` : ''}${c.rolls.length ? `|roll:${c.rolls.join(',')}` : ''}${Object.keys(c.caps ?? {}).length ? `|cap:${JSON.stringify(c.caps)}` : ''}`;
 /** A road as the stored plan: its weeks, the values it was solved for, its objective (the planner's own count:
  *  calls.plannerOf), its weeks' own windows (calls.windowGap), the scale by horizon those are on (k_h, api/scale.py

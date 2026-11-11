@@ -85,8 +85,9 @@ export function pitchPart(V) {
     // (…and Show a transfer on in any week: Reset all weeks takes it off too (buys.resetPlan), every card the plan's own;
     // with nothing of yours a Show a transfer card had no Reset at all; owner, 2026-11-09, "fix bug with missing reset
     // button")
-    // (…or a suggestion shown in any week: Reset all weeks takes every week back to its choice)
-    const lu = !!w.lineup, mine = planHasYours(P) || P.gws.some((g) => showingAt(P, g) || tappedSuggestion(P, g));
+    // (…or a suggestion shown in any week: Reset all weeks takes every week back to its choice; the viewed week's own ask
+    // alone not: its card's Previous takes it back, and Reset beside it did the same; card audit 2026-11-10)
+    const lu = !!w.lineup, mine = planHasYours(P) || P.gws.some((g) => g !== w.gw && (showingAt(P, g) || tappedSuggestion(P, g)));
     S.reset = lu || mine ? { lu, plan: mine, gw: w.gw } : null;
     rsBtn.hidden = !S.reset;
     rsBtn.disabled = !P.editable;
@@ -207,7 +208,7 @@ export function pitchPart(V) {
           type: 'button', role: 'radio', 'aria-checked': String(w.gw === g), dataset: { gw: w.gw }, style, class: { ...at, heal: (P.mark ?? P.approx).has(w.gw), lu: !!w.lineup, pencil: w.gw > P.A, chg },
           // VoiceOver and Switch Control activate with a click and no pointer (detail 0); a touch is the bar's own
           onClick: () => setGw(w.gw),
-          'aria-label': `Gameweek ${w.gw}, ${fmt.num(w.points)} points, ${w.gw > P.A ? 'provisional, ' : ''}${sq ? plural(n, 'change') : !n ? 'roll' : `${w.moves.map((m) => P.L.name(m.in)).join(', ')} in`}${w.hits ? `, ${MINUS}${E.HIT_COST * w.hits}` : ''}${w.chip ? `, ${chipName(w.chip)}` : ''}${flags.length ? `, ${flags.map((f) => (f === 'DGW' ? 'a double gameweek' : 'a blank gameweek')).join(' and ')}` : ''}${w.lineup ? ', your lineup' : ''}${was ? `, ${COPY.tileWas(was)}` : ''}`,
+          'aria-label': `Gameweek ${w.gw}, ${fmt.num(w.points)} points, ${w.gw > P.A ? 'provisional, ' : ''}${sq ? plural(n, 'change') : !n ? 'roll' : `${w.moves.map((m) => P.L.name(m.in)).join(', ')} in`}${w.hits ? `, ${MINUS}${E.HIT_COST * w.hits}` : ''}${w.chip ? `, ${chipName(w.chip)}` : ''}${flags.length ? `, ${flags.map((f) => (f === 'DGW' ? 'a double gameweek' : 'a blank gameweek')).join(' and ')}` : ''}${w.bank != null && !over ? `, ${fmt.money(w.bank)} in the bank` : ''}${w.lineup ? ', your lineup' : ''}${was ? `, ${COPY.tileWas(was)}` : ''}`,
         },
         // two lines, every week the same height: "GW6" with its marks and what the week does (the buy's name, "2 in";
         // it ellipsises first, GW6 never), then the points
@@ -216,6 +217,11 @@ export function pitchPart(V) {
           w.hits ? h('i.hit', null, ` ${MINUS}${E.HIT_COST * w.hits}`) : null) : null,
           change ? h('span.c', null, change) : null),
         h('span.a', null, V.adviceOf(P, w)),
+        // (the week's bank after its transfers, before its points; owner, 2026-11-11, "add to the headers what the bank is in
+        // each week"; short, its minus in coral, "why missing / zero though minus"; GW A short at FPL's prices shows it in
+        // coral in the points' place, so none here)
+        // (its free transfers before it, as on its card; owner, 2026-11-11, "add 1FT-5FT left of the money in the week's header")
+        h('span.b.m-num', { class: { neg: w.bank != null && w.bank < -1e-9 } }, w.ft == null ? null : h('span.f', null, `${w.ft}FT`), w.bank == null || over ? null : fmt.money(w.bank)),
         // the points never recoloured for the window's lowest week (GW A short at FPL's prices stays coral: a fact);
         // the week's forecast in its blue with "xP" (xpNum), a change's mark before it
         h('span.p.m-num', { class: { 'g-loss': over } }, over ? fmt.money(w.bank) : [chgMark, xpNum(shown)]));

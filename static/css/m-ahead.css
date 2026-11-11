@@ -968,16 +968,14 @@ type, so a larger text size keeps them even */
 .ah-lrow .nm { flex: 1; min-width: 0; }
 .ah-lrow .nm b { display: block; font: 600 var(--t-body)/1.3 var(--f-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ah-lrow .nm span { display: block; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* the sort's stat on the club and price line, never a third line (owner, 2026-11-11, "one player taking three rows") */
+.ah-lrow .nm span.rs-stat { display: inline; }
 .ah-lrow .rt { flex: none; min-width: 76px; text-align: right; white-space: nowrap; font: 600 var(--t-body)/1.3 var(--f-round); font-variant-numeric: tabular-nums; }
 .ah-lrow .rt small { display: block; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
-.ah-lrow .rt small.g-loss { color: var(--loss); }
 .ah-lrow.blocked { opacity: .55; }
 .ah-micro { flex: none; display: flex; gap: 2px; align-items: flex-end; width: 30px; height: 22px; }
 .ah-micro i { flex: 1; border-radius: 1.5px; background: var(--xp); }  /* forecast bars: the forecast's blue (m.css --xp) */
 .ah-micro i.f { opacity: .25; }
-.rs-auto .rs-automk { display: grid; place-items: center; font-size: var(--t-head); color: var(--accent); }
-.ah-lrow .rt small.g-loss { display: inline; }
-.ah-lrow .rt small.g-loss.alt { display: block; max-width: 132px; margin-left: auto; white-space: normal; font-weight: 400; line-height: 1.25; }
 .ps-ask { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding: 8px 8px 8px 12px; border-radius: var(--r-btn); background: var(--soft); font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--ink); }
 
 /* ------------------------------------------------------------------ Player (§5.6) */
@@ -1103,6 +1101,10 @@ a larger text size leaves no room */
 .ps-segs > .m-seg { flex: 1 1 0; min-width: max-content; }
 .ps-segs .m-seg > button { padding: 0 3px; }
 .ps-segs > .m-seg.ps-among { flex: 0 0 34%; }
+/* the switches (the season or his last 4 rounds, among whom, per what: sheets/player.js statsSection) one row the section's
+   width, no title on screen, each as wide as the others (owner, 2026-11-11) */
+.ps-stathead > .ps-segs { flex: 1 1 100%; max-width: none; margin-left: 0; }
+.ps-segs.three > .m-seg, .ps-segs.three > .m-seg.ps-among { flex: 1 1 0; min-width: 0; }
 .ps-rk { flex: none; width: 44px; text-align: right; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--muted); }
 /* two players compared: blue and orange, Okabe-Ito's safe pair; the second told apart by a hollow mark too */
 .ps { --pair-a: #0072b2; --pair-b: #e69f00; }
@@ -1359,7 +1361,7 @@ card is under "Keep" */
 .m-screen.ah {
   --tk-night: #103f26; --tk-paper: #fff; --tk-paper2: #e6e9ee; --tk-ink: #14171a; --tk-mute: #5f6670; --tk-go: #01FC7A; --tk-out: #d8342b; --tk-wait: #475D50;
   --tk-xp: #2B5BB8; --tk-xp-d: #9CC0FF;
-  --tk1: calc(24rem / 17); --tk2: calc(18rem / 17); --tk3: calc(15rem / 17); --tk4: calc(13rem / 17);
+  --tk1: calc(22rem / 17); --tk2: calc(18rem / 17); --tk3: calc(15rem / 17); --tk4: calc(13rem / 17);
   --ah-tab-h: calc(27rem / 17); --ah-ticket-h: calc(208rem / 17); --ah-stack-gap: 8px;
   /* the pitch never under its rows, at any text size: the page scrolls instead */
   --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 34px) + 40px);
@@ -1386,10 +1388,14 @@ FPL's, no shirt tiles */
 .m-screen.ah .ah-decks, .m-screen.ah .ah-cheer, .m-screen.ah .ah-hint, .m-screen.ah .ah-thumb, .m-screen.ah .pm-bl { display: none !important; }
 .m-screen.ah .pm-card .pm-kit { width: 100%; height: var(--pm-kh); background: none; box-shadow: none; }
 .m-screen.ah .pm-card .pm-flip { overflow: visible; }
-.m-screen.ah .pm-card .pm-face { position: absolute; left: 0; top: 0; width: 100%; height: calc(var(--pm-kh) / .64); display: flex; justify-content: center; transform: none; }
+.m-screen.ah .pm-card .pm-face { position: absolute; left: 0; top: 0; width: 100%; height: calc(var(--pm-h) - 2px); display: flex; justify-content: center; transform: none; }
 .m-screen.ah .pm-card .pm-face.back { display: none; }
 .m-screen.ah .pm-card .pm-face :is(svg, img) { width: auto; height: 100%; max-width: none; }
-.m-screen.ah .pm-card .pm-face img { height: var(--pm-kh); }
+/* (an official shirt as tall as a drawn one, its foot behind the name plate, never a small one above it; owner, 2026-11-09,
+"why official shirts so small they must larger partly hidded behind name palate"): the plates over the shirt. Its foot
+down to the plates' bottom (the face the card's whole height): what shows above them as tall as before, the shirt
+wider; owner, 2026-11-11, "why such small shirts: bigger, partly hidden behind their name plate, same height, wider" */
+.m-screen.ah .pm-card > .pm-plate { position: relative; z-index: 1; }
 .m-screen.ah .pm-card .pm-badge { position: absolute; left: calc(50% - 30px); top: 1px; z-index: 2; width: 14px; height: 14px; margin: 0; padding: 0; border: 0; border-radius: 50%; box-shadow: none; background: #fff; color: var(--tk-ink); font: 700 9px/14px var(--f-text); text-align: center; }
 /* (one line always, at every text size: a row is the height the pitch was fitted for, the longest fixture ellipsises; the
 wider system font took a second line at the largest sizes and ran the rows together, QA fit 2026-11-05) */
@@ -1447,7 +1453,7 @@ back the next card rises over it */
 /* (the old rail's tap strip, .ah-rail::before, sat over the whole stack once the rail is display: contents: every tab's
    tap met the rail, not the tab; QA qa-tk2, 2026-11-05) */
 .m-screen.ah .ah-rail::before { content: none; }
-.m-screen.ah .ah-tick { flex: none; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 8px; width: 100%; height: var(--ah-tab-h); margin: 0; padding: 0 12px; border: 0; border-radius: 6px 6px 0 0; background: var(--tk-paper2); color: var(--tk-ink); box-shadow: none; outline: 0; text-align: left; font: 500 var(--tk3)/1 var(--f-text); border-bottom: 1px solid rgb(0 0 0 / .12); }
+.m-screen.ah .ah-tick { flex: none; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: baseline; align-content: center; column-gap: 8px; width: 100%; height: var(--ah-tab-h); margin: 0; padding: 0 12px; border: 0; border-radius: 6px 6px 0 0; background: var(--tk-paper2); color: var(--tk-ink); box-shadow: none; outline: 0; text-align: left; font: 500 var(--tk3)/1 var(--f-text); border-bottom: 1px solid rgb(0 0 0 / .12); }
 .m-screen.ah .ah-tick.sel, .m-screen.ah .ah-tick:not([data-gw]) { display: none; }
 .m-screen.ah .ah-tick { width: auto; margin-inline: calc(var(--d, 1) * 5px); background: color-mix(in srgb, var(--tk-paper2) calc(106% - var(--d, 1) * 6%), #b8bec7); }
 .m-screen.ah .ah-tick.down { border-radius: 0 0 6px 6px; border-bottom: 0; border-top: 1px solid rgb(0 0 0 / .12); }
@@ -1456,6 +1462,12 @@ back the next card rises over it */
 /* the week's points without your transfers, struck before its own: its tab and its card alike */
 .m-screen.ah .ah-was { margin-right: 5px; font: 500 var(--tk4)/1 var(--f-text); color: var(--tk-mute); text-decoration: line-through 1px; }
 .m-screen.ah .ah-tick .a { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; }
+/* (the week's bank, before its points: quiet, as the struck number) */
+.m-screen.ah .ah-tick .b { font: 500 var(--tk4)/1 var(--f-text); color: var(--tk-mute); white-space: nowrap; }
+/* (its texts on one baseline: the GW's box is taller, room for a chip's or hit's mark; centred boxes set "GW11" above
+   "2 transfers"; owner, 2026-11-11, "why not on one line") */
+/* (the week's free transfers, before its bank: never coral with a short bank) */
+.m-screen.ah .ah-tick .b .f { margin-right: 8px; color: var(--tk-mute); }
 .m-screen.ah .ah-tick .p, .m-screen.ah .ah-tick .p .xp, .m-screen.ah .ah-tick .p .xp-u { color: var(--tk-xp); font-weight: 600; }
 /* later weeks provisional, by weight (every forecast number is the one blue) */
 .m-screen.ah .ah-tick.pencil .p, .m-screen.ah .ah-tick.pencil .p .xp { font-weight: 500; }
@@ -1464,7 +1476,9 @@ back the next card rises over it */
 .m-screen.ah .ah-blockhost { flex: 1 0 auto; position: relative; z-index: 2; display: flex; min-height: var(--ah-ticket-h); margin: 0; --ah-bar-h: 0px; }
 .m-screen.ah :is(.ah-ticket, .ah-tkghost) { flex: 1 1 auto; display: flex; flex-direction: column; margin: 0; padding: 0; background: var(--tk-paper); border-radius: 6px; box-shadow: none; color: var(--tk-ink); overflow: hidden; }
 .m-screen.ah .ah-ticket > .ah-pbar { display: none; }
-.m-screen.ah .ah-ticket.ah-waiting > .ah-pbar { display: flex; height: auto; min-height: 0; margin: 0 14px; padding: 0; border-top: 0; background: none; box-shadow: none; }
+/* (the week bar inside the card only while the first plan solves (firstCard's .ah-pbake): never its words on a card
+   whose own line says "planning…"; owner, 2026-11-10, design_1109b review 9) */
+.m-screen.ah .ah-ticket.ah-waiting > .ah-pbar.ah-pbake { display: flex; height: auto; min-height: 0; margin: 0 14px; padding: 0; border-top: 0; background: none; box-shadow: none; }
 .m-screen.ah .ah-ticket > .ah-pbar .ah-pbt { padding-inline: 0; }
 .m-screen.ah .ah-tkbody { padding: 10px 14px 8px; }
 .m-screen.ah .ah-tkrow { position: relative; z-index: 1; display: flex; width: 100%; padding: 10px 0 18px; margin: -10px 0 -18px; border: 0; background: none; text-align: left; cursor: pointer; align-items: baseline; gap: 8px; font: 500 var(--tk3)/1.2 var(--f-text); color: var(--tk-mute); }
@@ -1477,25 +1491,28 @@ back the next card rises over it */
 .m-screen.ah .ah-tkrow .ah-dl:empty::before { content: none; }
 .m-screen.ah .ah-tkg { font-weight: 700; color: var(--tk-ink); }
 .m-screen.ah .ah-tkx { margin-left: auto; white-space: nowrap; }
+/* (the week's bank before its points, as on its tab; owner, 2026-11-11) */
+.m-screen.ah :is(.ah-tkf, .ah-tkb) { margin-right: 8px; font: 500 var(--tk4)/1 var(--f-text); color: var(--tk-mute); }
+.m-screen.ah :is(.ah-tkb, .ah-tick .b).neg { color: var(--loss); }
 .m-screen.ah .ah-tkx .xp, .m-screen.ah .ah-tkx .xp-u { color: var(--tk-xp); font-weight: 600; }
 /* (the card's numbers at the text's one size, their "xP" too: two sizes on the card, design_1109a slip) */
 .m-screen.ah :is(.ah-tkx, .ah-tkline) .xp-u { font-size: 1em; margin-left: .2em; }
 .m-screen.ah .ah-tkx .ah-was { font-size: var(--tk3); }
 /* the slip (owner, 2026-11-09, design_1109a slip): two sizes, the title's and the text's (--tk3); the move, its one number at
-   the right edge, a tear line, the two buttons, then every other action in one row */
+   the right edge, the two buttons, then every other action in one row (the tear line removed: owner, 2026-11-10, "without
+   this crap too") */
 .m-screen.ah .ah-tktitle { display: flex; align-items: center; gap: 8px; margin: 5px 0 3px; }
-.m-screen.ah .ah-tkhead { flex: 1 1 auto; min-width: 0; margin: 0; font: 700 calc(22rem / 17)/1.15 var(--f-text); letter-spacing: -.01em; color: var(--tk-ink); }
+.m-screen.ah .ah-tkhead { flex: 1 1 auto; min-width: 0; margin: 0; font: 700 var(--tk1)/1.15 var(--f-text); letter-spacing: -.01em; color: var(--tk-ink); }
 .m-screen.ah .ah-tkhead.long { font-size: var(--tk3); line-height: 1.33; letter-spacing: 0; }
-/* a move you made: the stamp beside it */
-.m-screen.ah .ah-tkstamp { flex: none; padding: 0 6px; border: 2px solid #1f8a4c; border-radius: 4px; color: #1f8a4c; font: 700 var(--tk3)/20px var(--f-text); transform: rotate(-4deg); }
+/* your transfers of the week: the small green line above the title */
+.m-screen.ah .ah-tkmine { display: block; font: 600 var(--tk3)/1.33 var(--f-text); letter-spacing: 0; color: #1f8a4c; }  /* your transfers above a suggestion on top of them (screen-ticket.js) */
 /* the title's names: each a door to his card, underlined as the line's doors (.ah-tkor .ah-door) */
 /* (above the row's tap area, which reaches down over the title: z-index 1, .ah-tkrow; a tap on a name opened the Week sheet,
    journeys 2026-11-08) */
 .m-screen.ah .ah-tkname { position: relative; z-index: 2; padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; cursor: pointer; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; text-decoration-color: rgb(20 23 26 / .35); }
 .m-screen.ah .ah-tkname::before { content: ""; position: absolute; inset: -8px -2px; }
-.m-screen.ah .ah-tkarrow { text-decoration: none; }
 .m-screen.ah .ah-tkname:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: 2px; }
-.m-screen.ah .ah-tkline { display: flex; align-items: baseline; gap: 8px; margin: 0; font: 500 var(--tk3)/1.33 var(--f-text); color: var(--tk-mute); }
+.m-screen.ah :is(.ah-tkline, .ah-tkpad.l) { display: flex; align-items: baseline; gap: 8px; margin: 0; font: 500 var(--tk3)/1.33 var(--f-text); color: var(--tk-mute); }
 .m-screen.ah .ah-tkline .ah-tkl { flex: 1 1 auto; min-width: 0; }
 .m-screen.ah .ah-tkline .ah-tkr { flex: none; white-space: nowrap; color: var(--tk-ink); }
 .m-screen.ah .ah-tkline .xp, .m-screen.ah .ah-tkline .xp-u, .m-screen.ah .ah-tkline .xp-g { color: var(--tk-xp); font-weight: 600; }
@@ -1503,11 +1520,12 @@ back the next card rises over it */
 .m-screen.ah .ah-tkline .xp-g.neg, .m-screen.ah .ah-tkline .xp-g.neg + .xp-u { color: var(--tk-mute); font-weight: 500; }
 /* the row under the buttons: the take-back, Reset all weeks, Bring in a player, Play a chip, all alike (no "·" between:
    a wrapped row began with one; design_1109a's art director) */
-.m-screen.ah .ah-tklinks { display: flex; flex-wrap: wrap; column-gap: 14px; row-gap: 2px; padding: 8px 14px 10px; font: 500 var(--tk3)/20px var(--f-text); }
-.m-screen.ah .ah-tklinks:not(:has(button:not([hidden]))) { padding: 0 0 10px; }
+/* (one line kept when it has no link, as every row of the card: screen-ticket.js cardRows; its 20 px the line's, its padding
+   on top (content-box): border-box it was 20 px with the padding, no line; owner, 2026-11-09, "why card size changing") */
+.m-screen.ah .ah-tklinks { display: flex; flex-wrap: wrap; column-gap: 14px; row-gap: 2px; box-sizing: content-box; min-height: 20px; padding: 8px 14px 10px; font: 500 var(--tk3)/20px var(--f-text); }
 /* (two groups, the take-backs and the doors, each kept whole: four links are wider than the card at 393 px, so the doors go
    under the take-backs as one, never "Play a chip" alone on a row) */
-.m-screen.ah .ah-tklinks > span { display: flex; column-gap: 14px; }
+.m-screen.ah .ah-tklinks > span { display: flex; flex-wrap: wrap; column-gap: 14px; row-gap: 2px; min-width: 0; }  /* (a link that doesn't fit goes under, whole: Reset all weeks ran 4 px past the card at 320 px, text 23 px; lineup-reset) */
 .m-screen.ah .ah-tklinks > span:not(:has(button:not([hidden]))) { display: none; }
 .m-screen.ah .ah-rsbtn { position: relative; z-index: 1; margin: -12px 0 -10px; padding: 12px 0 10px; border: 0; background: none; color: var(--tk-ink); font: 500 var(--tk3)/20px var(--f-text); white-space: nowrap; cursor: pointer; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
 .m-screen.ah .ah-rsbtn[hidden] { display: none; }
@@ -1516,25 +1534,25 @@ back the next card rises over it */
 /* (each sign says its one meaning: back a step, or take a swap back; Reset all weeks wears none, its words and red say it) */
 .m-screen.ah .ah-rsbtn.undo::before { content: "\21A9\FE0E" / ""; margin-right: 3px; font-weight: 400; text-decoration: none; display: inline-block; }
 .m-screen.ah .ah-rsbtn.undo.back::before { content: "\2190" / ""; }
-.m-screen.ah .ah-tkor .ah-door { position: relative; z-index: 1; display: inline; height: auto; min-height: 0; padding: 12px 0 10px; margin: -12px 0 -10px; border: 0; background: none; color: var(--tk-ink); font: 500 var(--tk3)/20px var(--f-text); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
-.m-screen.ah .ah-tkor .ah-door::before, .m-screen.ah .ah-tkor .ah-door::after { content: none; }
-.m-screen.ah .ah-tkor .ah-door:disabled { color: var(--tk-mute); text-decoration: none; opacity: 1; }
-/* the tear: a dashed line, a notch at each edge, between what the move is and the two buttons */
+.m-screen.ah :is(.ah-tkor, .ah-tksug) .ah-door { position: relative; z-index: 1; display: inline; height: auto; min-height: 0; padding: 12px 0 10px; margin: -12px 0 -10px; border: 0; background: none; color: var(--tk-ink); font: 500 var(--tk3)/20px var(--f-text); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
+.m-screen.ah :is(.ah-tkor, .ah-tksug) .ah-door::before, .m-screen.ah :is(.ah-tkor, .ah-tksug) .ah-door::after { content: none; }
+.m-screen.ah :is(.ah-tkor, .ah-tksug) .ah-door:disabled { color: var(--tk-mute); text-decoration: none; opacity: 1; }
 .m-screen.ah .ah-tkacts { position: relative; display: flex; gap: 8px; margin-top: auto; padding: 18px 14px 0; border-top: 0; }
 /* (Make the swap at the end of the transfer's row, its own width: the names take what is left; owner, 2026-11-09) */
 /* (…no taller than the names' row: at the buttons' 46 px it grew the card 21 px past its height, off a phone's screen;
    owner, 2026-11-09, "why cards height increased so it not fit in phone") */
-.m-screen.ah .ah-tkacts::before { content: ""; position: absolute; left: 12px; right: 12px; top: 8px; border-top: 2px dashed #d5d8de; }
-.m-screen.ah .ah-tkacts::after { content: ""; position: absolute; left: 0; right: 0; top: 2px; height: 14px; pointer-events: none;
-  background: radial-gradient(circle at 0 50%, var(--tk-night) 7px, transparent 7.5px), radial-gradient(circle at 100% 50%, var(--tk-night) 7px, transparent 7.5px); }
 /* (greyed while the card waits, as the app's other disabled controls: they looked live, a tap did nothing; journeys and
    books review, 2026-11-08) */
 .m-screen.ah .ah-tkacts :is(.ah-alt, .ah-go):disabled { opacity: .45; cursor: default; }
-.m-screen.ah .ah-alt, .m-screen.ah .ah-go { flex: 1 1 0; min-width: 0; height: calc(46rem / 17); padding: 0 8px; border-radius: 6px; font: 700 var(--tk3)/1 var(--f-text); color: var(--tk-ink); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* (a place with no button, .ah-tkpad: its size kept, so each button sits where it does on every card; card audit 2026-11-10) */
+.m-screen.ah .ah-alt, .m-screen.ah .ah-go, .m-screen.ah .ah-tkacts > .ah-tkpad { flex: 1 1 0; min-width: 0; height: calc(46rem / 17); padding: 0 8px; border-radius: 6px; font: 700 var(--tk3)/1 var(--f-text); color: var(--tk-ink); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .m-screen.ah .ah-alt { border: 1.5px solid var(--tk-ink); background: none; }
 .m-screen.ah .ah-go { border: 0; background: var(--tk-go); }
 /* an iPhone SE's screen: the whole page in one look */
-@media (max-height: 720px) { .m-screen.ah { --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 28px) + 24px); --ah-ticket-h: calc(204rem / 17); } .m-screen.ah .ah-pitch .pm { --pm-hlo: calc(var(--tk4) * 1.1 + var(--tk4) * 1.2 + 28px); } }
+/* (each row's shirt 7 px lower up to 720 px of height, 6 px up to 620: the card's second pair of buttons and its links row
+   fit 375 × 667 and 320 × 568, 31 and 27 px past the bottom with the pitch at its floor; owner, 2026-11-11, "pitch a bit
+   smaller"); 3 px less a row since the made card's five rows, 14 px past 375 × 667: qa-tk125 fit) */
+@media (max-height: 720px) { .m-screen.ah { --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 18px) + 24px); --ah-ticket-h: calc(204rem / 17); } .m-screen.ah .ah-pitch .pm { --pm-hlo: calc(var(--tk4) * 1.1 + var(--tk4) * 1.2 + 18px); } }
 /* up to 720 px of height (the card's 204 px, above): the card's line at the "Or…" line's size and 1.25, the body's, the
 "Or…" line's and the buttons' spacing the 620 px screen's: its three-row line ("Worse than saving your free transfer.
 −1.0xP vs saving, …") had the page scroll 22 px at 375 × 667, 14 px at 390 × 712 (qa-tk79/80 fit; owner, 2026-11-09:
@@ -1543,14 +1561,12 @@ back the next card rises over it */
   .m-screen.ah .ah-tkbody { padding: 7px 12px 6px; }
   .m-screen.ah .ah-tkrow { padding: 7px 0 15px; margin: -7px 0 -15px; }  /* (its tap area to the body's new top: 3 px out of the card at 393 × 702, ticket QA; its foot 3 px up too, so its centre stays where it was, off the title names' tap areas: sheet-reach at 375 × 667) */
   .m-screen.ah .ah-tkacts { padding: 16px 12px 0; }
-  .m-screen.ah .ah-tkacts::before { top: 7px; }
-  .m-screen.ah .ah-tkacts::after { top: 1px; }
   .m-screen.ah .ah-tklinks { padding: 4px 12px 6px; }  /* (a wrapped row fits 375 × 667 too: qa-tk108 fit, 1 px of scroll) */
 }
 @media (max-height: 620px) {
-  .m-screen.ah { --tk1: calc(23rem / 17); --tk2: calc(16rem / 17); --tk3: calc(14rem / 17); --tk4: calc(12rem / 17); --ah-tab-h: calc(23rem / 17); --ah-ticket-h: calc(164rem / 17); --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 22px) + 32px); }
-  .m-screen.ah .ah-pitch .pm { --pm-hlo: calc(var(--tk4) * 1.1 + var(--tk4) * 1.2 + 22px); }
-  .m-screen.ah .ah-alt, .m-screen.ah .ah-go { height: calc(40rem / 17); }
+  .m-screen.ah { --tk1: calc(21rem / 17); --tk2: calc(16rem / 17); --tk3: calc(14rem / 17); --tk4: calc(12rem / 17); --ah-tab-h: calc(23rem / 17); --ah-ticket-h: calc(164rem / 17); --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 16px) + 32px); }
+  .m-screen.ah .ah-pitch .pm { --pm-hlo: calc(var(--tk4) * 1.1 + var(--tk4) * 1.2 + 16px); }
+  .m-screen.ah .ah-alt, .m-screen.ah .ah-go, .m-screen.ah .ah-tkacts > .ah-tkpad { height: calc(40rem / 17); }
 }
 @media (max-width: 340px) { .m-screen.ah .pm-card .pm-pn { max-width: 66px; } }
 /* (the flag on two lines where the keeper's shirt would meet it) */
@@ -1567,9 +1583,51 @@ back the next card rises over it */
 .ps-hh-v.best { font-weight: 700; color: #1f8a4c; }
 .ps-ok { font-style: normal; font-size: .85em; color: #1f8a4c; }
 .ps-pairline { margin-top: 16px; }
-/* the opening card's Show suggestion, in its body under the heading (screen-ticket.js) */
-.m-screen.ah .ah-tksug { margin-top: 12px; }
+/* Compare players, in the card's body under its line (screen-ticket.js compareRow): a link as the links row's, its
+   weight and ink theirs (its 700 was Show suggestion's when that sat here, 2026-11-09; card audit 2026-11-10) */
+.m-screen.ah :is(.ah-tksug, .ah-tkpad.s) { margin-top: 12px; }
+/* (Compare players and Bring in a player side by side, the links row's spacing) */
+.m-screen.ah .ah-tksug { display: flex; flex-wrap: wrap; column-gap: 14px; }
+/* (…under the buttons, the card's sides: screen-ticket.js paintTicket; owner, 2026-11-11) */
+.m-screen.ah .ah-ticket > .ah-tksug { margin: auto 0; padding: 12px 14px; border-top: 0; }  /* (the room left halved above and below it, never pressed to the line under it) */  /* (the buttons' own, above the links row's line) */
+/* (the buttons where Compare players stood: 12 px under the line, the body's 8 px foot and 4 px; the room it left, above
+   the links instead; owner, 2026-11-11, "why the space under '2 free transfers' grew") */
+.m-screen.ah .ah-ticket > .ah-tkacts:has(+ .ah-tksug) { margin-top: 0; padding-top: 4px; }
+/* (Compare players and Bring in a player two buttons under the card's own, side by side as Show another | Transfer:
+   lower, a grey fill, no border, so they read as the second pair; owner, 2026-11-11, "make them two buttons like show
+   another and transfer, only a bit different") */
+.m-screen.ah .ah-ticket > .ah-tksug { gap: 8px; flex-wrap: nowrap; }
+.m-screen.ah .ah-ticket > .ah-tksug > :is(.ah-rsbtn, .ah-door) { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; height: calc(36rem / 17); min-height: 0; margin: 0; padding: 0 8px; border: 0; border-radius: 6px; background: var(--tk-paper2); color: var(--tk-ink); font: 600 var(--tk3)/1 var(--f-text); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.m-screen.ah .ah-ticket > .ah-tksug > :is(.ah-rsbtn, .ah-door):disabled { color: var(--tk-mute); opacity: .6; cursor: default; }
+.m-screen.ah .ah-ticket > .ah-tksug > :is(.ah-rsbtn, .ah-door):focus-visible { outline: 2px solid var(--tk-ink); outline-offset: 2px; }
+@media (max-height: 720px) {
+  .m-screen.ah .ah-blockhost .ah-ticket > .ah-tksug { margin: auto 0; padding: 4px 12px; }
+  .m-screen.ah .ah-ticket > .ah-tkacts:has(+ .ah-tksug) { padding-top: 6px; }
+  /* (a short screen's card under its height, the second pair lower and the links row gone where it holds nothing: at
+     375 × 667 the card ran 51 px past the bottom; owner, 2026-11-11, "fit it") */
+  .m-screen.ah .ah-ticket > .ah-tksug > :is(.ah-rsbtn, .ah-door) { height: calc(32rem / 17); }
+  .m-screen.ah .ah-ticket > .ah-tklinks:not(:has(button:not([hidden]))) { display: none; }
+}
+@media (max-height: 620px) {
+  .m-screen.ah .ah-blockhost .ah-ticket > .ah-tksug { margin: auto 0; padding-block: 2px; }  /* (not the body row's 6 px top: below)*/
+  .m-screen.ah .ah-ticket > .ah-tkacts:has(+ .ah-tksug) { padding-top: 0; }
+  /* (…and the card's height that content's: 164 px with the pitch at its floor, three tabs and the head ran 11 px past
+     568) */
+  .m-screen.ah { --ah-ticket-h: calc(153rem / 17); }
+  /* (a short screen's card under its height: the two pairs lower, the links row closer, and gone where it holds
+     nothing; at 320 × 568 the card ran 55 px past the bottom with the pitch at its floor; owner, 2026-11-11, "fit it") */
+  .m-screen.ah .ah-ticket > .ah-tksug > :is(.ah-rsbtn, .ah-door) { height: calc(30rem / 17); }
+  .m-screen.ah .ah-ticket > .ah-tkacts:has(+ .ah-tksug) :is(.ah-alt, .ah-go, .ah-tkpad) { height: calc(36rem / 17); }
+  .m-screen.ah .ah-ticket > .ah-tklinks { padding: 2px 12px 4px; }
+  /* (its line two lines high on every card: "Next 4 weeks, vs saving a free transfer" wraps at 320 wide, a save card's
+     line doesn't, and the taller card moved the pitch 6 px between weeks; qa-tk127 ticket, 383130 at 320 × 568) */
+  .m-screen.ah :is(.ah-tkline, .ah-tkpad.l) { min-height: calc(2 * 1.33 * var(--tk3)); }
+}
+/* (a row this state of the card has none of, its height kept: screen-ticket.js cardRows) */
+.m-screen.ah .ah-tkpad { visibility: hidden; }
+/* (the title two lines high whatever it says, so the card is one size: the stand's one line and a move's names on two;
+   names still take a third where they need it, never cut nor smaller; owner, 2026-11-09, "why different sizes"; not
+   at 620 px tall or less: the card then 48 px past the bottom at 320 × 568, the pitch at its floor; local ticket run) */
+@media (min-height: 621px) { .m-screen.ah .ah-tkhead { min-height: 2lh; } }
 /* (a transfer's Compare players link under its line, v1.3.217: the card 2.8 px past the bottom at 320 × 568; qa-tk116 ticket) */
-@media (max-height: 620px) { .m-screen.ah .ah-tksug { margin-top: 6px; } }
-/* (its words in the card's buttons' font, 700, underlined as the card's links: owner, 2026-11-09, "fix show suggestion font") */
-.m-screen.ah .ah-tksug .ah-rsbtn { font-weight: 700; color: var(--tk-ink); }
+@media (max-height: 620px) { .m-screen.ah :is(.ah-tksug, .ah-tkpad.s) { margin-top: 6px; } }

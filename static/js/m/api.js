@@ -259,13 +259,17 @@ export async function putMemory(doc) {
 // ---------------------------------------------------------------- solves (§7.4)
 
 export const SOLVE_POLL_MS = 700;
+/** …a card's own solve (purpose 'card': what the card on screen waits on, a chain of them, the week's plan, then its
+ *  halves) read 4 times a second: at 700 ms each link of the chain lost up to 0.7 s before the next was asked (card-audit
+ *  1110 cold check; owner, 2026-11-11, "one wait no more than 5 seconds"). */
+export const CARD_POLL_MS = 250;
 const FINAL = new Set(['done', 'error', 'cancelled']);
 /** The plan service keeps one user and one speculative solve in flight per client and supersedes the older
  *  (api/mobile.py solve_post, PURPOSES), so a solve's default slot is its purpose's class. 'chipprep', 'pair' (the
  *  suggested plans' fork solves: ahead.js forkPump), 'pairnext' (ahead.js prepNext) and 'presolve' (ahead.js presolve)
  *  are speculative; the service never counts them in its hourly quota. 'plan' (memory model: the solver's plan with
  *  none of your rules) has a slot of its own: no other solve of this page supersedes it. */
-export const SOLVE_CLASS = { heal: 'user', chip: 'user', cash: 'user', wish: 'spec', speculative: 'spec', chipprep: 'spec', pair: 'spec', pairnext: 'spec', presolve: 'spec', plan: 'plan' };
+export const SOLVE_CLASS = { heal: 'user', chip: 'user', cash: 'user', wish: 'spec', speculative: 'spec', chipprep: 'spec', pair: 'spec', card: 'spec', pairnext: 'spec', presolve: 'spec', plan: 'plan' };
 const inflight = new Map();  // slot → {key, ctrl, superseded, purpose}
 /** Whether a solve of this browser's is in flight in `slot` ('user' | 'spec'): background asks wait for a free slot
  *  instead of superseding a Wish solve someone is looking at. */
@@ -284,6 +288,9 @@ export function whenFree(slot) {
 
 /** DELETE /api/m/solve/<key>. */
 export const cancelSolve = (key) => request('DELETE', `/api/m/solve/${enc(key)}`);
+/** POST /api/m/solve/<key>/urgent: a solve of this browser's in flight raised to the card's priority (presolve.js
+ *  urgentRoots: the plan after a tap, asked ahead). */
+export const urgentSolve = (key) => request('POST', `/api/m/solve/${enc(key)}/urgent`);
 
 /**
  * solve({entry, purpose, values, lane, said}, {slot, onUpdate, signal}) → Promise<SolveResult> with .cancel().
@@ -296,7 +303,49 @@ export const cancelSolve = (key) => request('DELETE', `/api/m/solve/${enc(key)}`
  *   {key, state: 'cancelled'|'superseded'}     cancel(), signal, or a newer solve in the slot
  * and rejects only when the server can't be reached ('unreachable' / 'timeout') or refuses the request.
  */
-export function solve({ entry, purpose, values, lane = 0, said = null }, { slot = SOLVE_CLASS[purpose] ?? purpose, onUpdate, signal } = {}) {
+/** The bundle's road of your team with no transfers over its weeks (api/mobile_bundle.py `bare`: baked for every team,
+ *  api/lineups.py), with the bundle's version: a solve of exactly its values is answered from it, no request (owner,
+ *  2026-11-11, "why is this request sent to the solver at all and the lineups not loaded"). app.js sets it with each
+ *  live bundle; none from a saved one. */
+let BARE = null;
+// (a saved bundle drawn, the server's yet to land: such a solve waits for it, waitBare; a reload asked it before)
+let BARE_WAIT = null;
+const settleBare = () => { BARE_WAIT?.done(); BARE_WAIT = null; };
+export const holdBare = (road, version = null) => { BARE = road?.weeks?.length && road.values ? { road, version } : null; settleBare(); };
+export const waitBare = () => { BARE = null; if (!BARE_WAIT) { let done; BARE_WAIT = { p: new Promise((r) => { done = r; }), done }; } };
+/** No bundle came after the saved one (the load failed): a waiting solve is asked. */
+export const endBareWait = settleBare;
+// (what such a solve sends: api/lineups.py _BARE and bare(), every week's buys off; the server adds poll_max_age and no_table)
+const BARE_KEYS = new Set(['season', 'entry', 'from_r', 'w', 'no_buys_gw', 'poll_max_age', 'no_table']);
+const isBare = (values) => !!values && Object.keys(values).every((k) => BARE_KEYS.has(k))
+  && String(values.no_buys_gw ?? '') === Array.from({ length: Number(values.w) }, (_, i) => Number(values.from_r) + i).join(',');
+const bareFor = (values) => {
+  const v = BARE?.road.values;
+  if (!v || !isBare(values)) return null;
+  return ['season', 'entry', 'from_r', 'w', 'no_buys_gw'].every((k) => String(values[k] ?? '') === String(v[k] ?? '')) ? BARE : null;
+};
+const bareDone = (held) => ({ key: held.road.key ?? null, state: 'done', road: held.road, error: null, version: held.version });
+
+/** A solve's one gap (the solver's --gap): Settings → Solver gap's later GWs' for a solve of a week after the plan's first
+ *  (`to` past from_r), else this GW's; the page's two (memory planValues: gap, later_gap) never sent apart (owner,
+ *  2026-11-11, "what is later-gap: remove it, use only gap"). */
+export function solveGap(values) {
+  if (!values || !('later_gap' in values || 'gap' in values)) return values;
+  const { gap, later_gap: later, ...rest } = values;
+  const g = values.to != null && Number(values.to) > Number(values.from_r) ? later : gap;
+  return g > 0 ? { ...rest, gap: g } : rest;
+}
+
+export function solve({ entry, purpose, values: asked, lane = 0, said = null }, { slot = SOLVE_CLASS[purpose] ?? purpose, onUpdate, signal } = {}) {
+  const values = solveGap(asked);
+  const held = bareFor(values);
+  if (held) {
+    const r = bareDone(held);
+    onUpdate?.(r);
+    const p = Promise.resolve(r);
+    p.cancel = () => {};
+    return p;
+  }
   const prev = inflight.get(slot);
   if (prev) { prev.superseded = true; prev.ctrl.abort(); }
   const mine = { key: null, ctrl: new AbortController(), superseded: false, purpose };
@@ -311,12 +360,18 @@ export function solve({ entry, purpose, values, lane = 0, said = null }, { slot 
   const run = async () => {
     const sig = mine.ctrl.signal;
     try {
+      if (BARE_WAIT && isBare(values)) {
+        await Promise.race([BARE_WAIT.p, new Promise((r) => sig.addEventListener('abort', r, { once: true }))]);
+        if (sig.aborted) return stopped();
+        const late = bareFor(values);
+        if (late) { const r = bareDone(late); onUpdate?.(r); return r; }
+      }
       let s = await post('/api/m/solve', { entry, purpose, values, supersedes: prev?.key ?? null, ...(lane ? { lane } : {}), ...(said ? { said } : {}) }, { signal: sig });
       mine.key = s?.key ?? null;
       onUpdate?.(s);
       let misses = 0;
       while (!s?.road && !FINAL.has(s?.state)) {
-        await sleep(SOLVE_POLL_MS, sig);
+        await sleep(purpose === 'card' ? CARD_POLL_MS : SOLVE_POLL_MS, sig);
         if (sig.aborted) return stopped();
         try {
           s = { key: mine.key, ...(await get(`/api/m/solve/${enc(mine.key)}`, null, { signal: sig })) };

@@ -60,10 +60,6 @@ export const setsRow = ({ start, bench, subs, captain, vice, order, buys = [] })
   return [had, [...subs.map((x) => `Start ${x.on} for ${x.off}${after(x.buy)}`), captain && `Captain: ${captain}${after(buys.includes(captain))}`,
     vice && `Vice-captain: ${vice}${after(buys.includes(vice))}`, order && `Bench: ${order.join(', ')}`].filter(Boolean)];
 };
-/** A drift answer's wording (COPY.driftAct, driftDone, driftAdopted): `rules` if it ignores a rule of yours
- *  (memory.detectDrift ruleNames), `hold` if only the hold (your team with no transfers but yours; in `broken`), else
- *  `none`. */
-export const driftWay = (d, rules, hold, none) => (d?.ruleNames?.length ? rules : d?.broken?.length ? hold : none);
 export const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 export const ORD = (n) => { const v = n % 100, s = ['th', 'st', 'nd', 'rd']; return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`; };
 /** A rank with grouped thousands: 1566 → "1,566th". */

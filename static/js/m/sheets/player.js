@@ -77,6 +77,7 @@ const RETRY_MS = [2000, 4000, 8000, 15000];
 function fromBundle(cards, id, vs) {
   const me = cards?.players?.[id], other = vs == null ? null : cards?.players?.[vs];
   if (!me || (vs != null && !other)) return null;
+  const p0 = (k) => !!me.stats?.[k];
   // `all`: among every position (api/card.py ALL: rank third per row, peers' values under ALL)
   const strip = (p, view, all = false) => {
     const st = p.stats?.[view];
@@ -86,7 +87,9 @@ function fromBundle(cards, id, vs) {
       dist: Object.fromEntries(me.rows.map((k) => [k, cards.dist?.[view]?.[all ? 'ALL' : p.pos]?.[k] ?? []])),
     } : null;
   };
-  const views = (p) => ({ match: strip(p, 'match'), p90: strip(p, 'p90'), all: { match: strip(p, 'match', true), p90: strip(p, 'p90', true) } });
+  // (the season's views and his last 4 rounds' (api/card_conf.py RECENT: "match_l4", "p90_l4"), where the bundle has them)
+  const KEYS = ['match', 'p90', ...['match', 'p90'].map((v) => `${v}${RECENT_SUFFIX}`).filter((k) => p0(k))];
+  const views = (p) => ({ ...Object.fromEntries(KEYS.map((k) => [k, strip(p, k)])), all: Object.fromEntries(KEYS.map((k) => [k, strip(p, k, true)])) });
   const stats = me.rows ? {
     ...views(me), kinds: me.kinds,
     ...(other?.stats && other.pos === me.pos ? { vs: views(other) } : {}),
@@ -145,6 +148,8 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
       const setView = (v) => { view = v; keepStatsView(ctx, v); draw(); };
       let among = statsAmong(ctx);
       const setAmong = (v) => { among = v; try { ctx.api?.local?.set?.(STATS_AMONG_KEY, v); } catch { /* not kept */ } draw(); };
+      let period = statsPeriod(ctx);
+      const setPeriod = (v) => { period = v; try { ctx.api?.local?.set?.(STATS_SPAN_KEY, v); } catch { /* not kept */ } draw(); };
       // rule controls follow your rules as edits land (and Undo)
       off = ctx.store.on('memory', () => queueMicrotask(draw));
       const draw = () => {
@@ -168,7 +173,7 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
           two ? null : statusLines(row, P, { available: false, lineup: false }),
           // (two compared: one strip, the two in every GW column, league games only)
           stripSection(two ? { ...m, two: true, rows: [row, orow], nameA: P.L.name(id), from: g } : m, G, chartKey),
-          statsSection(card, W, { view, setView, among, setAmong }, two));
+          statsSection(card, W, { view, setView, among, setAmong, period, setPeriod }, two));
         if (kept) main.querySelector(kept)?.focus({ preventScroll: true });
         // his controls' taps solved ahead while the sheet is open (AH.presolveTaps; owner, 2026-10-26): each option not
         // in force
@@ -224,7 +229,15 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
             // no ask; a Never of him goes when a week is picked, and the verdict names it (Undo restores it)
             // the week you chose him in is preselected (owner, 2026-10-09); every sheet closes first
             // a secondary button; no Not him (owner, 2026-11-09, "hide 'not him'")
-            b('Bring him in…', () => { ctx.sheets.closeAll(); ctx.openSheet('wish', id, { gw: g }); }, 'wide'),
+            b('Bring him in…', () => { ctx.sheets.closeAll(); ctx.openSheet('wish', id, { gw: g }); }),
+            // Compare: his position's players in Bring in a player's own list, a pick the two side by side, a close without
+            // one his card again (the compared name's door, `pick` above); never off, it changes nothing (owner,
+            // 2026-11-09, "add compare button")
+            h('button', { type: 'button', 'aria-haspopup': 'dialog', onClick: () => ctx.openSheet('wish', null, { gw: g, pos: P0.L.pos(id), compare: {
+              title: COPY.comparePick(P0.L.name(id)),
+              pick: (x) => ctx.openSheet('player', id, { gw: g, vs: Number(x) }),
+              back: () => ctx.openSheet('player', id, { gw: g }),
+            } }) }, COPY.compareGo),
           ];
         }
         // a plan you can't edit: every button off, its reason (P.why) once. `place` (Ahead's pitch, the card behind):
@@ -693,14 +706,22 @@ export const keepStatsView = (ctx, v) => { try { ctx.api?.local?.set?.(STATS_VIE
  *  as the view's. */
 const STATS_AMONG_KEY = 'fc:player:among';
 const statsAmong = (ctx) => { try { return ctx.api?.local?.get?.(STATS_AMONG_KEY) === 'all' ? 'all' : 'pos'; } catch { return 'pos'; } };
+/** The stats over the season ('season') or his last 4 rounds ('l4'; owner, 2026-11-11, "a choice there between the season
+ *  and the last 4"): this viewer's last pick, as the view's. The bundle's views of those rounds end in RECENT_SUFFIX. */
+const RECENT = 4, RECENT_SUFFIX = `_l${RECENT}`;
+const STATS_SPAN_KEY = 'fc:player:span';
+const statsPeriod = (ctx) => { try { return ctx.api?.local?.get?.(STATS_SPAN_KEY) === 'l4' ? 'l4' : 'season'; } catch { return 'season'; } };
 /** FPL's own per-match figures among the stats (api/card.py FPL_STATS), named in the footnote. */
 
 /** STATS: every peer of his position (faint), him in ink, his value and rank (ties share the better rank), on the stats
  *  the data chose for him (api/stats_pick.json, api/card.py _rows; owner, 2026-10-14), per match he played or per 90
  *  (owner, 2026-10-13: per match first). */
-function statsSection(card, W, { view, setView, among, setAmong }, two = false) {
+function statsSection(card, W, { view, setView, among, setAmong, period = 'season', setPeriod = null }, two = false) {
+  // (his last 4 rounds where the card has them, else the season's: no switch)
+  const hasRecent = !!card?.stats?.[`${view}${RECENT_SUFFIX}`];
+  const recent = hasRecent && period === 'l4', vk = recent ? `${view}${RECENT_SUFFIX}` : view;
   // among every position (api/card.py stats.all) or his own
-  const of = (s) => (among === 'all' ? s?.all?.[view] : s?.[view]) ?? null;
+  const of = (s) => (among === 'all' ? s?.all?.[vk] : s?.[vk]) ?? null;
   const p = of(card?.stats);
   if (!p || !Object.values(p.rows).some((r) => r.value != null)) return null;
   // (two compared: the other's ring on each line, his value beside this one's, no ranks; owner, 2026-11-09, "fix so this
@@ -728,13 +749,17 @@ function statsSection(card, W, { view, setView, among, setAmong }, two = false) 
       svgEl(SW, hh, b.join(''), `${lab} ${per}: ${said}`, 'ps-chart'),
       o ? null : h('span.ps-rk.m-num', null, rank));
   });
-  const [g0, g1] = card.season_rounds ?? [];
-  return h('div.m-sec.ps-stats', { 'data-view': view, 'data-among': among },
-    // title and both switches on one line, no ⓘ (owner, 2026-10-16)
-    // the Why table's head (COPY.statsHead); whom he is ranked among is its All | MID switch here
-    h('div.ps-stathead', null, h('h3', null, h('span', null, COPY.statsHead(g0, g1))),
+  const [s0, g1] = card.season_rounds ?? [];
+  const g0 = recent && g1 != null ? Math.max(s0 ?? 1, g1 - RECENT + 1) : s0;
+  return h('div.m-sec.ps-stats', { 'data-view': view, 'data-among': among, 'data-span': recent ? 'l4' : 'season' },
+    // the switches alone on one line, no title on screen (owner, 2026-11-11, "all in one line and remove this crap": the
+    // "Stats · GW1–10" cap); its words the section's heading to assistive tech alone (COPY.statsHead)
+    h('div.ps-stathead', null, h('h3.sr-only', null, COPY.statsHead(g0, g1)),
       // the ranked-among switch left of the per-match / per-90 one (owner, 2026-10-16)
-      h('div.ps-segs', null,
+      // (the season or his last 4 rounds first, then whom he is ranked among, then per what: one row of three alike under
+      // the title, each as wide as the others; owner, 2026-11-11, the Last 4 switch alone on a line of its own)
+      h('div.ps-segs', { class: { three: hasRecent && !!setPeriod } },
+        hasRecent && setPeriod ? segControl({ opts: [['season', 'Season', 'This season'], ['l4', `Last ${RECENT}`, `Last ${RECENT} gameweeks`]], current: recent ? 'l4' : 'season', onPick: setPeriod, label: 'Stats over the season or the last 4 gameweeks', cls: '.small' }) : null,
         segControl({ opts: [['all', 'All', 'All positions'], ['pos', p.pos, WORD[p.pos] ?? p.pos]], current: among, onPick: setAmong, label: 'Ranked among all positions or his own', cls: '.small.ps-among' }),
         // "Match" on a phone's one line ("Per match" its spoken name)
         segControl({ opts: [['match', 'Match', 'Per match'], ['p90', 'Per 90', 'Per 90 minutes']], current: view, onPick: setView, label: 'Stats per match or per 90 minutes', cls: '.small' }))),

@@ -1,11 +1,18 @@
 // The ?solves=1 panel (owner, 2026-11-03: "show me in interface what exactly is solved every time"): every solve of the
 // team, the page's and the server's own alike, as the server logs them where every solve is asked (GET /api/m/solves:
 // api/mobile_solves.py _ensure_solve; owner, 2026-11-03, "each and every logged there in this one place"), newest
-// first, in words: its week, what for, what it asks beyond the plan as it stands, how long it took and how it ended.
+// first: its week, what for, the flags it passes the solver (its players by name), how long it took and how it ended.
 // Only with ?solves=1 in the address; a tap folds it.
 
 import { ANSWERED } from '../memory/values.js';
 import { ROADS } from '../memory/live.js';
+import { info } from './core.js';
+
+/** A player-carrying solver flag (--must-have=71824@6-6, --not-for-gw=12:301440:439533, …): each player id in it by his
+ *  name; any other flag as it is (a season or GW never read as a player). */
+const HIDDEN_FLAG = /^--(entry|poll-max-age)=/;
+const PLAYER_FLAG = /^--(must-have|exclude|not-for-gw|for-gw|[a-z-]*(keep|sell|buy|captain|vice|bench)[a-z-]*)=/;
+const namedFlag = (L, f) => (L && PLAYER_FLAG.test(f) ? f.replace(/=(.*)$/, (_, v) => `=${v.replace(/\d{4,}/g, (id) => (L.has(Number(id)) ? L.name(Number(id)) : id))}`) : f);
 
 export function mountSolveLog(ctx) {
   if (!/[?&]solves=1\b/.test(location.search) || document.querySelector('.ah-solvelog')) return;
@@ -66,6 +73,7 @@ export function mountSolveLog(ctx) {
     ctx.api.getSolves(e).then((r) => { got = { solves: r?.solves ?? [], skew: Date.now() - Number(r?.now ?? 0) * 1000 }; }, () => {}).finally(() => { asking = false; paint(); });
   };
   const paint = () => {
+    const L = info(ctx)?.L, named = (f) => namedFlag(L, f);
     const now = Date.now(), asks = got.solves.map((x) => ({ ...x, at: Number(x.at) * 1000 + got.skew, ms: x.ms == null ? null : Number(x.ms) })).filter((x) => x.at >= cleared);
     const live = (x) => x.state === 'running' || x.state === 'queued';
     // (one line a solve, its key's: every asker of it named and how many asks, the one that ran it its state and time;
@@ -94,11 +102,17 @@ export function mountSolveLog(ctx) {
     const listed = new Set(mine.map((x) => x.key));
     const ends = (x) => (x.state === 'answered' ? `answered by #${x.key}${listed.has(x.key) || !at(x.job) ? '' : ` (solved at ${at(x.job)}, kept on this device)`}`
       : x.state === 'running' ? `solving, ${secs(now - x.at)}` : x.state === 'queued' ? `waiting, ${secs(now - x.at)}`
-      : x.state === 'already solved' ? 'cached' : x.state === 'done' ? `solved in ${secs(x.ms ?? 0)}` : x.ms != null ? `${x.state} in ${secs(x.ms)}` : x.state);
+      : x.state === 'already solved' ? (x.baked ? `no solve: the lineups${x.ms != null ? ` in ${x.ms < 1000 ? `${x.ms} ms` : secs(x.ms)}` : ''}` : 'cached') : x.state === 'done' ? `solved in ${secs(x.ms ?? 0)}` : x.ms != null ? `${x.state} in ${secs(x.ms)}` : x.state);
     const head = `${running} running · ${sinceTap} since tap · ${ran(mine).length} solved · ${mine.length - ran(mine).length} cached · ${answered.length} answered · ${asks.length} asks`;
     // (each line starts "•", a wrapped one indented under it: where a line starts is seen at once; owner, 2026-11-03)
-    // (a solve with no words beyond its kind: none, never the server's stand-in for none, "your rules as set")
-    const what = (x) => (x.what && x.what !== 'your rules as set' ? ` · ${x.what}` : '');
+    // (the flags its solve passes the solver, as its job runs them (the server's `flags`), its players by name, never words
+    // for them; owner, 2026-11-09, "fix so it shows flags it passes to solver not these stupid labels, only replacing
+    // player codes with their names for display in must-have and similar flags")
+    // (never --entry, the team the panel's own, nor --poll-max-age, the service's on every solve: the same on every line;
+    // owner, 2026-11-09, "dont display '--entry=383130'", "dont disply --poll-max-age=100000")
+    // (none for a road the lineups answered: no solver ran, no flags passed; owner, 2026-11-11, "where it says no solve
+    // don't show all those flags")
+    const what = (x) => { const fs = x.baked ? [] : (x.flags ?? []).filter((f) => !HIDDEN_FLAG.test(f)); return fs.length ? ` · ${fs.map(named).join(' ')}` : ''; };
     const line = (x) => `• ${x.gw != null ? `GW${x.gw}` : 'GW?'} · ${x.kinds.join(' + ')}${what(x)} · ${ends(x)}${x.n > 1 ? ` · asked ${x.n}×` : ''}${x.mine ? '' : ' · another page'}`;
     // (each solve's key on screen as in the copy, so "answered by #…" names a line you can see; an answered line's own
     // key is the one it names, never twice; owner, 2026-11-09, "why '#6e6b2979' not displayed in logs only when i copy")

@@ -6,7 +6,7 @@ import { SQUAD_CHIPS, askPlace, failedWords, lineMoves, litShown, multiMove, pla
 import { COPY, shownDelta } from '../calls.js';
 import { nextFts, plPays } from './pieces.js';
 import * as E from '../../plan/engine.js';
-import { addPlan, planTake, rollingAt } from './presolve.js';
+import { addPlan, extraWeek, planTake, rollingAt } from './presolve.js';
 import { keep, pinOf, removeRule, veto } from './edits.js';
 import { EDGE_MIN, NAME_LEAST, PLATE_MIN, PLATE_TRIMS, ST_TRIMS, boxesMeet, cssPx, fitNum, oneLook, reachOf } from './screen.js';
 
@@ -35,7 +35,7 @@ function ticketNames(adds, nm) {
 export function decksPart(V) {
   /** The weeks a choice's number counts (its window's, else the plan's from week g on). */
   const spanOf = (P, g, pl) => Object.keys(pl.road?.windows?.[g]?.xi ?? {}).length || P.gws.filter((x) => x >= g).length;
-  function renderDecks() { const { S, boxOf, cardBoxes, ctx, decks, drawPlace, fitPitch, frozenAt, gwNow, labelWalls, pitchHost, plansHeading, reachLabels, sideRoom, tapIn, topRow } = V;
+  function renderDecks() { const { S, boxOf, cardBoxes, ctx, decks, drawPlace, fitPitch, frozenAt, gwNow, labelWalls, pitchHost, plansHeading, plansListed, reachLabels, sideRoom, tapIn, topRow } = V;
     const root = pitchHost.querySelector(':scope > .pm');
     const P = S.drawn, w = P && weekOf(P, gwNow(P)), M = S.M;
     // the band over the pitch for the week's best (inBand) while its week can change: the pitch fitted under it
@@ -68,7 +68,9 @@ export function decksPart(V) {
     // gvardiol hill")
     const inPlan = (x) => { const i = lit.move?.choice.moves.filter((m) => m.gw === g).findIndex((m) => Number(m.out) === x.d.a) ?? -1; return i < 0 ? Infinity : i; };
     const lead = D.filter((d) => lit.get(d.a)?.best).map((d) => ({ d, c: boxes.find((x) => x.id === d.a), L: lit.get(d.a) })).filter((x) => x.c).sort((p, q) => inPlan(p) - inPlan(q)).slice(0, 1);
-    const name = plansHeading(P, g), tk = tokensOf(P, w, toks, lit, lead, M), any = D.length || tk.length;
+    // (named only where the Week sheet lists them under the same heading, plansListed: GW12's Roll token alone named
+    // "Suggested plans" over a sheet that listed none; qa-tk127 review-block)
+    const name = plansHeading(P, g), tk = tokensOf(P, w, toks, lit, lead, M), any = (D.length || tk.length) && plansListed(M);
     V.paintTicket(P, w, M, tk);
     if (any) decks.setAttribute('aria-label', name);
     else decks.removeAttribute('aria-label');
@@ -645,9 +647,11 @@ export function decksPart(V) {
     // transfer and what that makes next week; your transfers with nothing to add, that there is nothing more; owner,
     // 2026-11-05, design_1105b A: "can't tell if thre any transfer suiggestions or suggestion is to roll")
     else if (M && !M.sq && !M.live && !V.S.wait && P.editable && !frozenAt(P, g) && !rollingAt(P, g)) {
-      const nx = w.moves.length ? null : nextFts(P, w);
+      // (your transfers leaving free ones: the save of those left, as a week with none of yours says it; owner,
+      // 2026-11-10, "when i buy player when one transfer left and i ask suggestion")
+      const done = !!w.moves.length && extraWeek(P, g), nx = done ? null : nextFts(P, w);
       out.push(h('button.ah-tok.st.best.ah-ans', { type: 'button', dataset: { row: `tok:ans:${g}` }, onClick: (ev) => openWeek(ev, g) },
-        h('span.ah-tl', null, w.moves.length ? COPY.answerDone : COPY.answerSave(w.ft ?? 1)),
+        h('span.ah-tl', null, done ? COPY.answerDone : COPY.answerSave(Math.max(1, (w.ft ?? 1) - (w.used ?? 0)))),
         nx != null ? h('small.ah-tw', null, COPY.rollKeepsCard(nx, g + 1)) : null));
     }
     // (none beside it: each is its place's plate already; owner, 2026-11-02, "stop dublicating black and other pills on
