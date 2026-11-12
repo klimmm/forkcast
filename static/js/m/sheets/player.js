@@ -643,7 +643,10 @@ function matchStrip(m, G, { low, peak } = scaleOf(m, G)) {
           + (c.next ? '' : T(c.cx, sy(0) - 4, S.cupMinutes(c)))
           + T(S.within(c.cx, measure(c.code), ...c.codeAt), yGw, c.code) + venue(c, c.home) + '</g>');
       } else if (c.kind === 'gw') {
-        const top2 = Math.max(c.xp ?? 0, ...c.runs);
+        // (the replaced player's ○ counted too: his number over both, never under the ○; owner, 2026-11-12, "what are
+        // these circles", "fix bug")
+        const vs = m.comp?.xp[m.fut.findIndex((x) => x.gw === c.gw)];
+        const top2 = Math.max(c.xp ?? 0, ...c.runs, vs ?? 0);
         const opp = c.fx.map((o) => fixText(o.opp, o.home)).join(' + ') || '–';
         const lo = c.runs.length ? Math.min(...c.runs) : null, hi = c.runs.length ? Math.max(...c.runs) : null;
         const aria = `GW${c.gw}, ${opp}, ${f1(c.xp)} expected points${rankWords(c, m.pos) ? `, ${rankWords(c, m.pos)}` : ''}${c.runs.length ? `, forecasts range ${f1(lo)} to ${f1(hi)}` : ''}${c.inPlan ? '' : ', forecast only'}`;
@@ -658,7 +661,6 @@ function matchStrip(m, G, { low, peak } = scaleOf(m, G)) {
         // its value in the past bars' style (one for every code and value; owner, 2026-10-08), in the forecast's blue
         // (ui.js xpNum's, no chip)
         g += xpSvg(c.cx, sy(top2) - 6, f1(c.xp));
-        const vs = m.comp?.xp[m.fut.findIndex((x) => x.gw === c.gw)];
         if (vs != null) g += `<circle class="vs" data-xp="${f1(vs)}" cx="${(c.cx + bw / 2 + 1).toFixed(1)}" cy="${sy(vs).toFixed(1)}" r="3" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.2"/>`;
         b.push(g + '</g>', T(c.cx, yGw, c.gw));
         // a double's two opponents stacked

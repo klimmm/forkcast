@@ -408,19 +408,25 @@ async function fetchBundle(entry, { refresh = false, prev = null } = {}) {
   let b = await api.getBundle(entry, { refresh, have, hl, w, cl: true, fa: true });
   // the release this page runs, from the first bundle's reply: no HEAD of the page at boot (owner, 2026-11-12)
   if (!heard) reloadIfReleased(Promise.resolve(api.heardRelease()));
-  const kept = have && b.version === have && b.players == null && b.seeds == null;
+  // the players held were joined from other shared rows (`joined`: the stamp they came from, kept with them) under the
+  // same data version (a release changed which players the rows hold): the bundle again whole (owner, 2026-11-12, "why
+  // owned under 0.3 players missing": a page from before v1.3.225 kept the buyable 311, saved under the new stamp, so the
+  // stamp they were joined from, never the one last told)
+  const moved = have && b.forecast_all && b.forecast_all !== prev.joined;
+  if (moved) b = await api.getBundle(entry, { refresh, hl, w, cl: true, fa: true });
+  const kept = !moved && have && b.version === have && b.players == null && b.seeds == null;
   // the buyable players' rows apart (forecast_all; owner, 2026-11-12, "fix bug": ~235 KB per team through the
   // tunnel): from this browser's cache or the Render forwarder, joined with this team's others; a stamp the server no
   // longer holds (404, a restart): the bundle again with them all. No runs with fa (ctx.localRuns)
   if (b.forecast_all && !kept) {
     const all = await api.getAllForecast(b.forecast_all).catch((e) => { if (e?.status === 404) return null; throw e; });
-    b = all ? { ...b, ...api.joinForecast(all, b) } : await api.getBundle(entry, { refresh, hl, w, cl: true });
+    b = all ? { ...b, ...api.joinForecast(all, b), joined: b.forecast_all } : await api.getBundle(entry, { refresh, hl, w, cl: true });
   }
   askCards(entry, b, w);
   // only cards asked after a bundle of this data version (else the GW before's cards); none meanwhile, and a card
   // opened asks GET /api/m/player
   const mine = String(held.entry) === String(entry) && held.version === b.version ? held : { cards: null, v: null };
-  return { ...(kept ? { ...b, players: prev.players, seeds: prev.seeds } : b),
+  return { ...(kept ? { ...b, players: prev.players, seeds: prev.seeds, joined: prev.joined } : b),
     // (the block held, hl: kept whether or not the rows are, the shared rows carrying none of its fields)
     ...(b.live == null && hl && b.live_v === hl ? { live: prev.live ?? null } : {}),
     // a server that sent cards anyway (pre-cl) is read as before
