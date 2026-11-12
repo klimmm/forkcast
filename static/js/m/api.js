@@ -138,8 +138,8 @@ export const FIRST_BUNDLE_TIMEOUT_MS = 120000;
 // before they land asks GET /api/m/player), so they get the time 1 KB/s needs.
 export const CARDS_TIMEOUT_MS = 180000;
 
-function fail(code, message, { status = 0, detail = '', path = '' } = {}) {
-  const e = new ApiError(message, { status, detail, path });
+function fail(code, message, { status = 0, detail = '', path = '', retryAfter = null } = {}) {
+  const e = new ApiError(message, { status, detail, path, retryAfter });
   e.code = code;
   return e;
 }
@@ -181,7 +181,7 @@ export async function request(method, path, { query, body, timeout = TIMEOUT_MS,
     throw fail('http', `${method} ${path} returned HTTP ${res.status} that is not JSON`, { status: res.status, detail: text.slice(0, 500), path });
   }
   if (!res.ok || payload?.ok !== true) {
-    throw fail('http', payload?.error || `${method} ${path} failed with HTTP ${res.status}`, { status: res.status, detail: payload?.detail || '', path });
+    throw fail('http', payload?.error || `${method} ${path} failed with HTTP ${res.status}`, { status: res.status, detail: payload?.detail || '', path, retryAfter: payload?.retry_after ?? null });
   }
   if (hear) heard = releaseName(res.headers.get('X-Forkcast-Release'));
   return payload.data;
@@ -413,6 +413,8 @@ export function solveGap(values) {
   return g > 0 ? { ...rest, gap: g } : rest;
 }
 
+/** A solve refused for a wait this short (seconds) is asked again after it, up to FULL_ASKS times (solve). */
+const FULL_WAIT_S = 5, FULL_ASKS = 4;
 export function solve({ entry, purpose, values: asked, lane = 0, said = null, swap = false }, { slot = SOLVE_CLASS[purpose] ?? purpose, onUpdate, signal } = {}) {
   const values = solveGap(asked);
   const held = bareFor(values);
@@ -443,7 +445,18 @@ export function solve({ entry, purpose, values: asked, lane = 0, said = null, sw
         const late = bareFor(values);
         if (late) { const r = bareDone(late); onUpdate?.(r); return r; }
       }
-      let s = await post('/api/m/solve', { entry, purpose, values, supersedes: prev?.key ?? null, ...(lane ? { lane } : {}), ...(said ? { said } : {}), ...(swap ? { swap: true } : {}) }, { signal: sig });
+      const ask = () => post('/api/m/solve', { entry, purpose, values, supersedes: prev?.key ?? null, ...(lane ? { lane } : {}), ...(said ? { said } : {}), ...(swap ? { swap: true } : {}) }, { signal: sig });
+      // the server full for a moment (its 429 told a short wait: mobile_conf.FULL_RETRY_S) asked again then, not a
+      // minute on (owner, 2026-11-12, "fix problems": a 100-phone burst refused 10, one Show another 34 s); an
+      // hourly quota's wait is long and goes to the caller as before
+      let s;
+      for (let k = 0; ; k++) {
+        try { s = await ask(); break; } catch (e) {
+          if (sig.aborted || e?.status !== 429 || !(e.retryAfter <= FULL_WAIT_S) || k >= FULL_ASKS) throw e;
+          await sleep(e.retryAfter * 1000 * (1 + Math.random() / 2), sig);
+          if (sig.aborted) return stopped();
+        }
+      }
       mine.key = s?.key ?? null;
       onUpdate?.(s);
       let misses = 0;

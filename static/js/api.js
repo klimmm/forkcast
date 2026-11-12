@@ -2,12 +2,13 @@
 // No import side effects.
 
 export class ApiError extends Error {
-  constructor(message, { status = 0, detail = '', path = '' } = {}) {
+  constructor(message, { status = 0, detail = '', path = '', retryAfter = null } = {}) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.detail = detail;
     this.path = path;
+    this.retryAfter = retryAfter;  // a 429's wait, seconds (the server's retry_after)
   }
 }
 
