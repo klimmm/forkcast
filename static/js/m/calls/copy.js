@@ -797,7 +797,6 @@ export const COPY = Object.freeze({
   boardSaid: (name, out) => `${name} would come in for ${out}`,
   boardBench: (name) => `${name} would go to the bench`,
   playAChip: 'Play a chip',
-  yourFplTeam: 'Your FPL team:',
   answerSave: (ft) => (ft > 1 ? 'Save your free transfers' : 'Save your free transfer'),
   answerDone: 'Nothing more to do this week',
   /** The band's number's scope and its toss-up (ahead tokensOf; owner, 2026-11-03, design_1103b): "· 4 GW", "Close call". */

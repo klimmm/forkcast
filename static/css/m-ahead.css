@@ -291,6 +291,9 @@ the pitch where the eye is, moving as it goes (a still line went unseen) */
 .ah-blockhost > .ah-block.ah-waiting { position: relative; }
 .ah-block.ah-waiting:not(.ah-wkeep) .ah-pbt > :not(.m-wl) { display: none; }
 .ah-block.ah-waiting > .m-wlb { position: absolute; left: 11px; right: 11px; bottom: 1px; pointer-events: none; }  /* never over the line's or doors' 44 px reach */
+/* (a card's: under its own "planning…" line, the line's width: screen-head.js paintWait) */
+.ah-ticket.ah-waiting .ah-tkline { position: relative; }
+.ah-ticket.ah-waiting .ah-tkline > .m-wlb { position: absolute; left: 0; right: 0; bottom: -6px; pointer-events: none; }
 /* …a money short or an amber notice keeps the line's words over the wait's (ahead.js paintWait .ah-wkeep: a problem is
 never hidden behind a wait); the wait's bar, the dim and the plates' "planning…" say it waits */
 .ah-block.ah-waiting.ah-wkeep .ah-pbt > .m-wl { display: none; }
@@ -1374,9 +1377,6 @@ card is under "Keep" */
 .m-screen.ah .ah-team { font: 700 var(--tk2)/1.1 var(--f-text); color: #fff; text-align: left; }
 .m-screen.ah .ah-gwline { justify-content: flex-start; color: rgb(255 255 255 / .7); font: 500 var(--tk4)/1.3 var(--f-text); }
 .m-screen.ah .ah-gwline .xp, .m-screen.ah .ah-gwline .xp-u { color: var(--tk-xp-d); }
-.m-screen.ah .ah-stand { flex: none; display: flex; flex-direction: column; align-items: flex-end; color: rgb(255 255 255 / .7); font: 500 var(--tk4)/1.3 var(--f-text); }
-.m-screen.ah .ah-stand b { color: #fff; font-weight: 600; }
-.m-screen.ah .ah-stand b.ah-short { color: #ff8a80; }  /* the money short, a light red for the dark header */
 .m-screen.ah .ah-set { color: rgb(255 255 255 / .8); }
 .m-screen.ah .ah-avatar { flex: none; width: 32px; height: 32px; background: none; color: #fff; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .5); font: 600 var(--tk4)/1 var(--f-text); }
 /* the pitch: FPL's green, its goal and lines in perspective, Player data in the corner (owner, 2026-11-06: "why pich look with
@@ -1405,7 +1405,10 @@ wider system font took a second line at the largest sizes and ran the rows toget
 /* the fixture's tint a small chip inside its plate, clear of both edges, no underline: filling the plate it was cut by it
 (owner, 2026-11-06, "this looks ugly") */
 .m-screen.ah .pm-card .pm-opp[class*="fdr-"] { display: inline-block; padding: 0 2px; box-shadow: none; line-height: 1.1; vertical-align: middle; }
-.m-screen.ah .pm .pm-card.bought:not(.is-in) .pm-pn { padding: 0 1px; box-shadow: none; }
+/* a player bought in an earlier week of the plan (boughtIn, not this week's `is-in`): a green bar under his name, the
+buy's green, so a later week still tells him from the team you have (owner, 2026-11-12, "still mark previously bought
+players in future gameweeks somehow like vuskovich here"; a ring round the plate "look bad") */
+.m-screen.ah .pm .pm-card.bought:not(.is-in) .pm-pn { padding: 0 1px; box-shadow: inset 0 -3px 0 var(--tk-go); }
 .m-screen.ah .pm-card.is-in .pm-pn { background: var(--tk-go); color: var(--tk-ink); padding: 0 4px; }
 /* the card's swap on the pitch before its tap (screen-pitch.js paintBoard): green is who your tap buys, struck who it sells;
 an arrow a place changed between pitch and bench, no transfer; white for green a transfer the plan would not make; the shirt
@@ -1428,16 +1431,13 @@ lacks in the fixture's place */
 /* waiting, the whole frame greys with the turf: the header, the bench and what is round the stack (owner, 2026-11-05: "why
 bench never grey out only pitch", "the top panel must also grey out"; .ah-pitch.ah-wait the turf's) */
 .m-screen.ah.ah-wait, .m-screen.ah.ah-wait .ah-head, .m-screen.ah.ah-wait .ah-pitch .pm .pm-benchzone { background: var(--tk-wait) !important; }
-.m-screen.ah.ah-wait :is(.ah-fplflag, .ah-pdbtn) { background: rgb(71 93 80 / .86); }
+.m-screen.ah.ah-wait .ah-pdbtn { background: rgb(71 93 80 / .86); }
 .m-screen.ah .pm-card .pm-flag { position: absolute; right: 4px; top: 0; transform: scale(.85); transform-origin: top right; }
-.m-screen.ah .ah-fplflag { position: absolute; left: 0; top: 0; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 4px 9px 4px 7px; border: 0; border-left: 3px solid var(--tk-go); background: rgb(13 54 32 / .86); color: #fff; font: 500 var(--tk4)/1.15 var(--f-text); cursor: pointer; }
-.m-screen.ah .ah-fplflag[hidden] { display: none; }
 /* Player data: the flag's strip in the other top corner, no pill of its own (owner, 2026-11-06, "this ont fit in design"), a
 44 pt target downwards, never over the header */
 .m-screen.ah .ah-pitch .pm > .ah-pdbtn { top: 0; right: 0; height: auto; padding: 4px 7px 4px 9px; border-radius: 0; background: rgb(13 54 32 / .86); box-shadow: none; color: #fff; font: 500 var(--tk4)/1.15 var(--f-text); }
 .m-screen.ah .ah-pitch .pm > .ah-pdbtn::before { inset: 0 0 -20px -6px; }
 .m-screen.ah .ah-pitch .pm > .ah-pdbtn:active { background: var(--tk-night); }
-.m-screen.ah .ah-fplflag b { font-weight: 600; }
 .m-screen.ah .ah-pitch .pm .pm-bench { background: none !important; border: 0; box-shadow: none; border-radius: 0; margin: 0; padding: 0; }
 .m-screen.ah .ah-pitch .pm .pm-bs, .m-screen.ah .ah-pitch .pm .pm-pl { outline: 0; box-shadow: none !important; background: none; border: 0; }
 .m-screen.ah .ah-pitch .pm .pm-card.ah-sold::before, .m-screen.ah .ah-pitch .pm .pm-card.ah-sold::after { content: none; }
@@ -1462,6 +1462,7 @@ back the next card rises over it */
 .m-screen.ah .ah-tick .g .c { display: none; }
 /* the week's points without your transfers, struck before its own: its tab and its card alike */
 .m-screen.ah .ah-was { margin-right: 5px; font: 500 var(--tk4)/1 var(--f-text); color: var(--tk-mute); text-decoration: line-through 1px; }
+.m-screen.ah .ah-tkrow.nowas .ah-was { display: none; }  /* (no room on one line: screen-ticket.js fitRows) */
 .m-screen.ah .ah-tick .a { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; }
 /* (the week's bank, before its points: quiet, as the struck number) */
 .m-screen.ah .ah-tick .b { font: 500 var(--tk4)/1 var(--f-text); color: var(--tk-mute); white-space: nowrap; }
@@ -1470,6 +1471,9 @@ back the next card rises over it */
 /* (the week's free transfers, before its bank: never coral with a short bank) */
 .m-screen.ah .ah-tick .b .f { margin-right: 8px; color: var(--tk-mute); }
 .m-screen.ah .ah-tick .p, .m-screen.ah .ah-tick .p .xp, .m-screen.ah .ah-tick .p .xp-u { color: var(--tk-xp); font-weight: 600; }
+/* (GW A short at FPL's prices, its money in the points' place in coral: the blue above outranked .ah-tick .p.g-loss and
+   drew "−£3.6m" blue; owner, 2026-11-12, "why -3.6m displayed in blue not red") */
+.m-screen.ah .ah-tick .p.g-loss { color: var(--loss); }
 /* later weeks provisional, by weight (every forecast number is the one blue) */
 .m-screen.ah .ah-tick.pencil .p, .m-screen.ah .ah-tick.pencil .p .xp { font-weight: 500; }
 /* (--ah-ticket-h: one line more since 2026-11-08, the card's two numbers on a line of their own: the card outgrew it
@@ -1555,7 +1559,7 @@ back the next card rises over it */
    smaller"); 3 px less a row since the made card's five rows, 14 px past 375 × 667: qa-tk125 fit) */
 @media (max-height: 720px) { .m-screen.ah { --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 18px) + 24px); --ah-ticket-h: calc(204rem / 17); } .m-screen.ah .ah-pitch .pm { --pm-hlo: calc(var(--tk4) * 1.1 + var(--tk4) * 1.2 + 18px); } }
 /* up to 720 px of height (the card's 204 px, above): the card's line at the "Or…" line's size and 1.25, the body's, the
-"Or…" line's and the buttons' spacing the 620 px screen's: its three-row line ("Worse than saving your free transfer.
+"Or…" line's and the buttons' spacing the 640 px screen's: its three-row line ("Worse than saving your free transfer.
 −1.0xP vs saving, …") had the page scroll 22 px at 375 × 667, 14 px at 390 × 712 (qa-tk79/80 fit; owner, 2026-11-09:
 "Smaller line text") */
 @media (max-height: 720px) {
@@ -1564,14 +1568,12 @@ back the next card rises over it */
   .m-screen.ah .ah-tkacts { padding: 16px 12px 0; }
   .m-screen.ah .ah-tklinks { padding: 4px 12px 6px; }  /* (a wrapped row fits 375 × 667 too: qa-tk108 fit, 1 px of scroll) */
 }
-@media (max-height: 620px) {
+@media (max-height: 640px) {
   .m-screen.ah { --tk1: calc(21rem / 17); --tk2: calc(16rem / 17); --tk3: calc(14rem / 17); --tk4: calc(12rem / 17); --ah-tab-h: calc(23rem / 17); --ah-ticket-h: calc(164rem / 17); --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 16px) + 32px); }
   .m-screen.ah .ah-pitch .pm { --pm-hlo: calc(var(--tk4) * 1.1 + var(--tk4) * 1.2 + 16px); }
   .m-screen.ah .ah-alt, .m-screen.ah .ah-go, .m-screen.ah .ah-tkacts > .ah-tkpad { height: calc(40rem / 17); }
 }
 @media (max-width: 340px) { .m-screen.ah .pm-card .pm-pn { max-width: 66px; } }
-/* (the flag on two lines where the keeper's shirt would meet it) */
-@media (max-width: 340px), (max-height: 700px) { .m-screen.ah .ah-fplflag { flex-direction: column; align-items: flex-start; gap: 0; } }
 .m-screen.ah .ah-tick .p .xp-u { display: inline !important; margin-left: .2em; font-size: var(--tk4); font-weight: 500; }
 /* two players compared (sheets/player.js pairView): the totals table, then the line panels */
 .ps-pair { margin-top: 16px; }
@@ -1609,7 +1611,7 @@ back the next card rises over it */
   .m-screen.ah .ah-ticket > .ah-tksug > :is(.ah-rsbtn, .ah-door) { height: calc(32rem / 17); }
   .m-screen.ah .ah-ticket > .ah-tklinks:not(:has(button:not([hidden]))) { display: none; }
 }
-@media (max-height: 620px) {
+@media (max-height: 640px) {
   .m-screen.ah .ah-blockhost .ah-ticket > .ah-tksug { margin: auto 0; padding-block: 2px; }  /* (not the body row's 6 px top: below)*/
   .m-screen.ah .ah-ticket > .ah-tkacts:has(+ .ah-tksug) { padding-top: 0; }
   /* (…and the card's height that content's: 164 px with the pitch at its floor, three tabs and the head ran 11 px past
@@ -1628,7 +1630,8 @@ back the next card rises over it */
 .m-screen.ah .ah-tkpad { visibility: hidden; }
 /* (the title two lines high whatever it says, so the card is one size: the stand's one line and a move's names on two;
    names still take a third where they need it, never cut nor smaller; owner, 2026-11-09, "why different sizes"; not
-   at 620 px tall or less: the card then 48 px past the bottom at 320 × 568, the pitch at its floor; local ticket run) */
-@media (min-height: 621px) { .m-screen.ah .ah-tkhead { min-height: 2lh; } }
+   at 640 px tall or less: the card then 48 px past the bottom at 320 × 568, the pitch at its floor; local ticket run; 640 so
+   the iPhone 13 mini's 629 is in it: GW A's card 24 px past the bottom there, three tabs above it, 2026-11-12) */
+@media (min-height: 641px) { .m-screen.ah .ah-tkhead { min-height: 2lh; } }
 /* (a transfer's Compare players link under its line, v1.3.217: the card 2.8 px past the bottom at 320 × 568; qa-tk116 ticket) */
-@media (max-height: 620px) { .m-screen.ah :is(.ah-tksug, .ah-tkpad.s) { margin-top: 6px; } }
+@media (max-height: 640px) { .m-screen.ah :is(.ah-tksug, .ah-tkpad.s) { margin-top: 6px; } }

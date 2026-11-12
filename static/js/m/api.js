@@ -413,7 +413,7 @@ export function solveGap(values) {
   return g > 0 ? { ...rest, gap: g } : rest;
 }
 
-export function solve({ entry, purpose, values: asked, lane = 0, said = null }, { slot = SOLVE_CLASS[purpose] ?? purpose, onUpdate, signal } = {}) {
+export function solve({ entry, purpose, values: asked, lane = 0, said = null, swap = false }, { slot = SOLVE_CLASS[purpose] ?? purpose, onUpdate, signal } = {}) {
   const values = solveGap(asked);
   const held = bareFor(values);
   if (held) {
@@ -443,7 +443,7 @@ export function solve({ entry, purpose, values: asked, lane = 0, said = null }, 
         const late = bareFor(values);
         if (late) { const r = bareDone(late); onUpdate?.(r); return r; }
       }
-      let s = await post('/api/m/solve', { entry, purpose, values, supersedes: prev?.key ?? null, ...(lane ? { lane } : {}), ...(said ? { said } : {}) }, { signal: sig });
+      let s = await post('/api/m/solve', { entry, purpose, values, supersedes: prev?.key ?? null, ...(lane ? { lane } : {}), ...(said ? { said } : {}), ...(swap ? { swap: true } : {}) }, { signal: sig });
       mine.key = s?.key ?? null;
       onUpdate?.(s);
       let misses = 0;
@@ -451,7 +451,7 @@ export function solve({ entry, purpose, values: asked, lane = 0, said = null }, 
         await sleep(purpose === 'card' ? CARD_POLL_MS : SOLVE_POLL_MS, sig);
         if (sig.aborted) return stopped();
         try {
-          s = { key: mine.key, ...(await get(`/api/m/solve/${enc(mine.key)}`, null, { signal: sig })) };
+          s = { key: mine.key, ...(await get(`/api/m/solve/${enc(mine.key)}`, swap ? { swap: 1 } : null, { signal: sig })) };
           misses = 0;
           onUpdate?.(s);
         } catch (e) {
@@ -459,7 +459,7 @@ export function solve({ entry, purpose, values: asked, lane = 0, said = null }, 
           if (!(e.code === 'unreachable' || e.code === 'timeout') || ++misses >= 5) throw e;
         }
       }
-      return { key: mine.key, state: s.road ? 'done' : s.state, road: s.road ?? null, error: s.error ?? null, version: s.version ?? null };
+      return { key: mine.key, state: s.road ? 'done' : s.state, road: s.road ?? null, error: s.error ?? null, version: s.version ?? null, swap: s.swap ?? null };
     } catch (e) {
       if (sig.aborted) return stopped();
       throw e;

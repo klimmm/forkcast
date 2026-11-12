@@ -4,12 +4,11 @@
 import { h, fill, fmt, plural, reduceMotion, xpGain, xpNum } from '../../ui.js';
 import { CHIPS_OFF, COPY } from '../calls.js';
 import { MINUS, memOf, pairAsPlaced, plan, viewOfRoadWeek, weekOf } from './core.js';
-import { itbWords } from './pieces.js';
 import { forkRead } from './plans/forks.js';
-import { cardGain, extraWeek, owedAt, owedRoad, presolveSwap, refusalRoads, removeWeek, showSuggestion, showTransfer, showingAt, suggestedAt, swapWeek, tappedSuggestion, tookOf, sameWindow, windowRounds } from './presolve.js';
+import { cardGain, extraWeek, owedAt, owedRoad, presolveSwap, refusalRoads, removeWeek, showSuggestion, showTransfer, showingAt, swapWeek, tappedSuggestion, tookOf, tookSaid, sameWindow, windowRounds } from './presolve.js';
 import { choosing, placedAt, placedDone, stopChoosing } from './buys.js';
 import { cardUndo, removeRule, takingBack, tickWas, veto } from './edits.js';
-import { MOVE_KINDS } from './screen.js';
+import { MOVE_KINDS, fitNum } from './screen.js';
 
 /** The card's line: words at its left, `right` at its right edge (design_1109a slip). */
 const lineRow = (words, right = null, data = null) => h('p.ah-tkline', { dataset: data }, h('span.ah-tkl', null, words), right ? [' ', h('span.ah-tkr.m-num', null, right)] : null);
@@ -69,28 +68,6 @@ export function ticketPart(V) {
    *  named beside GW10's read as a second transfer (owner, 2026-11-05: "why it shows gvardiol-hill on gw11"). One transfer
    *  by name, more as their count ("2 transfers"; owner, 2026-11-11: three names ran out of room). */
   const adviceOf = (P, w) => (w.moves.length > 1 ? plural(w.moves.length, 'transfer') : w.moves.length ? movesWords(P, w.moves) : '');
-  /** The header's facts, the viewed week's: its free transfers or its transfers made, and its bank. */
-  function paintStand(w) { const { stand } = V;
-    const [ft, bank] = standWords(w);
-    fill(stand, h('span', null, w.moves.length ? [h('b', null, plural(w.moves.length, 'transfer')), ' made'] : h('b', null, ft)),
-      bank == null ? null : h('span', null, bank.short ? h('b.ah-short', null, bank.text) : [h('b', null, bank.text), ' in the bank']));
-  }
-  /** The week's free transfers and bank as the header words them: ["1 free transfer", {text: "£0.5m", short}] (a bank
-   *  short of money has no ITB words, itbWords null: its shortfall, "£0.4m short"; it threw here and the ticket went
-   *  unpainted, QA qa-tk2 2026-11-05). */
-  function standWords(w) {
-    const itb = w.bank != null ? itbWords(w.bank) : null;
-    return [plural(w.ft ?? 1, 'free transfer'), w.bank == null ? null : itb ? { text: itb[0].replace(/ ITB$/, '') } : { text: COPY.moneyShort(-w.bank), short: true }];
-  }
-  /** "Your FPL team: 2 changes to make" on the pitch's corner, GW A's in every week; its tap the Week sheet's list. */
-  function paintFlag(P, w) { const { S, flag, openWeek } = V;
-    if (w.gw === P.A) S.flagWords = S.status?.sub?.replace(/^Set in FPL:?\s*/, '') ?? null;
-    const t = S.flagWords;
-    flag.hidden = !t;
-    if (!t) return;
-    fill(flag, h('span', null, COPY.yourFplTeam), h('b', null, /change/.test(t) ? `${t} to make` : t));
-    flag.onclick = (ev) => openWeek(ev, P.A);
-  }
   /** A week about to change (setGw, before its draw): the front card's picture and each tab's place, for playStack. */
   function holdStack(from, to) { const { S, el, strip, ticks } = V;
     const card = strip.querySelector(':scope > .ah-ticket');
@@ -168,6 +145,16 @@ export function ticketPart(V) {
     });
   }
   /** A card's title at its size: over its one line the smaller one. */
+  /** A card's header row with a struck number (your transfers changed the week's points) where it has no room for it on one
+   *  line beside the week and its deadline (a 375 pt screen at a larger text size): the struck number goes, as on the
+   *  rail's tabs (fitRail, owner 2026-10-27), never a second line pushing the card past the screen (fit QA, qa-tk147: the
+   *  made card's row on two lines, the screen 14 px past one). Again on a resize or a new text size (refitPitch). */
+  const fitRows = (root) => {
+    for (const row of root?.querySelectorAll('.ah-tkrow:has(.ah-was)') ?? []) {
+      const lh = 1.5 * parseFloat(getComputedStyle(row).fontSize) * 1.2;
+      fitNum(row, () => [...row.children].some((c) => c.getBoundingClientRect().height > lh), ['nowas']);
+    }
+  };
   const sizeTitle = (block) => { const head = block.querySelector('.ah-tkhead'); head.classList.toggle('long', head.offsetHeight > 1.6 * parseFloat(getComputedStyle(head).fontSize)); };
   /** The card while the first plan solves: the ticket as it will stand, GW g and its deadline, `title`, the wait line on
    *  its bar (paintWait), `action` its one button, `rest` under its words; the plan lands in place, nothing moves (owner,
@@ -178,10 +165,9 @@ export function ticketPart(V) {
       barNode({ cls: '.ah-pbake' }), rest, h('div.ah-tkacts', null, action), h('div.ah-tklinks'));
   }
   function paintTicket(P, w, M, tk = []) { const { S, ctx, dlEl, bringDoor, chipsDoor, inkAt, openWeek, rsBtn, setGw, stack, strip } = V;
-    const block = strip.querySelector(':scope > .ah-ticket');
-    if (!block || !w) return;
-    paintStand(w);
-    paintFlag(P, w);
+    const block = strip.querySelector(':scope > .ah-ticket'), waited = S.cardWait;
+    S.cardWait = null;
+    if (!block || !w) { if (waited != null) V.paintWait(); return; }
     const g = w.gw, next = P.gws[P.gws.indexOf(g) + 1] ?? null, off = !P.editable;
     // (its handler a property, so a repaint drawing the same button keeps the one on screen with the new handler: keptActs)
     const btn = (kind, text, row, onClick) => { const b = h(`button.ah-${kind}`, { type: 'button', disabled: off, dataset: { row } }, text); b.onclick = onClick ?? null; return b; };
@@ -215,7 +201,8 @@ export function ticketPart(V) {
     const undo = onTop ? takingBack(() => removeRule(ctx, refused.id)) : swaps ? takingBack(() => removeWeek(ctx, g)) : last ?? (refused ? takingBack(() => removeRule(ctx, refused.id)) : shown ? () => { showTransfer(P, g, false); V.schedule(); } : null);
     const undoWords = onTop ? COPY.previous : swaps ? COPY.undoSwaps(swaps) : refused || shown ? COPY.previous : COPY.undoLast;
     // (the solver's answer you asked for with Show suggestion: its Previous back to the week's choice, where no Previous
-    // of a refusal or of Show another stands; owner, 2026-11-09, "why no undo button")
+    // of a refusal or of Show another stands; owner, 2026-11-09, "why no undo button"; beside an edit's Undo, as `prev`:
+    // the armband you moved after the tap had no Undo, qa-tk137 pitch-drag)
     const toChoice = !swaps && !refused && !prev && !(undo && undoWords === COPY.previous) && tappedSuggestion(P, g)
       ? h('button.ah-rsbtn.undo.back', { type: 'button', disabled: off, dataset: { row: `tk:choice:${g}` }, onClick: () => { showSuggestion(P, g, false); showTransfer(P, g, false); V.schedule(); } }, COPY.previous) : null;
     let title, line = null, left = null, right = null, noBring = false;
@@ -247,7 +234,7 @@ export function ticketPart(V) {
     const askLeft = () => btn('alt', COPY.showSuggestion, `tok:suggest:${g}`, () => { showSuggestion(P, g); V.schedule(); });
     // (a week your transfers leave short of money, owedAt; and the solver's next move on top of yours: one transfer, none
     // of yours taken back, no chip; owner, 2026-11-09)
-    const short = !M?.sq && !placed && owedAt(P, w), asked = suggestedAt(P, g);
+    const short = !M?.sq && !placed && owedAt(P, w), asked = tappedSuggestion(P, g);
     const moreAvail = !!best && !M?.sq && !!w.moves.length && best.move.e.adds.length >= 1 && !best.move.e.taken.length && !best.move.e.chipNow;
     const owes = !!best && short && asked;
     // (your transfers leave free ones (extraWeek): Show suggestion stays yours to tap, its answer the save of those left
@@ -271,6 +258,10 @@ export function ticketPart(V) {
     const solving = !!S.wait || (!!M && !M.settled) || !!M?.shownOut || !!M?.all?.owedOut || (asked && !best && !answered());
 
     const wait = () => {
+      // (the strip's wait line and the greyed pitch follow it: paintWait's waitNow; at once only while your ask's answer
+      // isn't in, a tap's landing (its swap solved ahead, the later weeks filling ~0.4 s) after the usual second: owner,
+      // 2026-11-12, "why when i press transfer it greys out and plan if it already solved this")
+      S.cardWait = g; S.cardAsk = asked && !best && !answered();
       title = withMine('');
       // (no buttons while it plans, their places kept: the greyed Show another | Swap promised a suggestion where a made or
       // a save card came; card audit 2026-11-10)
@@ -289,9 +280,14 @@ export function ticketPart(V) {
     // the roll is in, the tabs against the plan with none of your transfers, where no later week has any of yours
     // (owner, 2026-11-09, "fix bug with +1.1 points"; 2026-11-11, "they are one state": GW13 "Next 2 weeks +14.4",
     // GW11's save with four of yours no number)
+    // (a transfer you took from its card: that card's own line while the take stands (tookSaid), its number, window and
+    // what it counts against, never a second count of it; GW13 read "+1.1 · Next 4 weeks vs saving a free transfer"
+    // before the tap, "+2.6 · Next 2 weeks vs no transfers" after; owner, 2026-11-12, "why 'next 2 weeks' if window is 4
+    // weeks - fix bug", "fix bug")
     const yoursLine = () => {
       if (placed) return null;
       const took = tookOf(P, w), from = P.gws.filter((x) => x >= g), r = V.weekRoll(P, w);
+      if (took?.said) return moveLine(took.said.pts, !!took.forced || fmt.signed(took.said.pts).startsWith(MINUS), took.said.rounds, took.said.vs);
       const win = r?.shown != null && r.counted ? sameWindow(...r.counted, g) : 0;
       if (r) return moveLine(win ? r.shown : (r.pts?.delta ?? r.delta), !!took?.forced, win || from.length, COPY.planVsRoll);
       // (the plan without your transfers rolls every week: a week with no transfer counted over itself alone, so never
@@ -350,7 +346,12 @@ export function ticketPart(V) {
       // (Solve ahead off: the transfer made answers your ask, the made card's own Show suggestion asks the next; owner,
       // 2026-11-11, "turn off every solve-ahead case when it is off": the next suggestion on top was solved unasked)
       const answeredAsk = () => { if (!ctx.presolveOn?.()) { showSuggestion(P, g, false); showTransfer(P, g, false); } };
-      right = btn('go', COPY.swap, `tok:best:${g}`, (ev) => { answeredAsk(); return best.querySelector('.ah-tgo') ? best.take(ev) : best.click(); });
+      right = btn('go', COPY.swap, `tok:best:${g}`, (ev) => {
+        answeredAsk();
+        const r = best.querySelector('.ah-tgo') ? best.take(ev) : best.click();
+        tookSaid(g, { pts, rounds, vs });
+        return r;
+      });
     };
 
     if (who?.kind === 'sub') {
@@ -387,7 +388,9 @@ export function ticketPart(V) {
       save();
     } else if (yours.length && !(wanted && solving)) {
       made();
-    } else if (wanted && solving) {
+    } else if ((wanted && solving) || (P.healing && !yours.length && !short)) {
+      // (…and your edit's solve out: the Transfer that answered your ask (answeredAsk) drew the opening card for 1.4 s,
+      // till the swap landed; qa-tk137 j-card-swap)
       wait();
     } else if (wanted && ans) {
       save();
@@ -418,6 +421,7 @@ export function ticketPart(V) {
       cardRows(line == null ? null : line instanceof Node ? line : lineRow(line)));
     // (Bring in a player beside Compare players where the card has it, the two ways to look at players in one row; else
     // in the row under the buttons; owner, 2026-11-11, "move 'bring in a player' next to 'compare players'")
+    fitRows(block);
     const sug = block.querySelector(':scope > .ah-tkbody .ah-tksug');
     const bringBy = chips && !noBring && sug ? chips[0] : null;
     if (bringBy) sug.append(bringBy);
@@ -439,7 +443,7 @@ export function ticketPart(V) {
     // every card they stand on (the made card, the wait after it, a suggestion or a save on top of them); the Previous on
     // top of them only took the ask off, to a made card never shown (dynamics D4), with Undo transfer beside it the row
     // ran to two lines and the card grew; owner 2026-11-10)
-    fill(block.querySelector(':scope > .ah-tklinks'), who ? null : h('span.ah-tkback', null, toChoice, undo && !toChoice && !prev ? h('button.ah-rsbtn.undo', { type: 'button', disabled: off, class: { back: !!onTop || (!swaps && (!!refused || shown)) }, dataset: { row: `tk:undo:${g}` }, onClick: undo }, undoWords) : null, prev, rsBtn),
+    fill(block.querySelector(':scope > .ah-tklinks'), who ? null : h('span.ah-tkback', null, toChoice, undo && (!toChoice || last) && !prev ? h('button.ah-rsbtn.undo', { type: 'button', disabled: off, class: { back: !!onTop || (!swaps && (!!refused || shown)) }, dataset: { row: `tk:undo:${g}` }, onClick: undo }, undoWords) : null, prev, rsBtn),
       // (chips off, calls.js CHIPS_OFF: no Play a chip at all, never a link a tap does nothing on; owner, 2026-11-09, "why play
       // a chip not respond")
       chips ? h('span.ah-tkor', null, noBring || bringBy ? null : chips[0], CHIPS_OFF ? null : chips[1]) : null);
@@ -449,8 +453,11 @@ export function ticketPart(V) {
     // (the pitch fitted again to the card as now drawn (fitPitch: keyed by its height, nothing when it is the same): a card
     // that grew with no render after it, a wait card, ran 35 px past the screen; owner, 2026-11-11, "why not fit the screen")
     V.fitPitch();
+    // (and the wait's bar placed again, under the "planning…" line this draw made: left where the last draw's line was, it
+    // sat at the card's foot; owner, 2026-11-12, "why progress bar not at same place where 'planning..' is")
+    V.paintWait();
   }
-  return { adviceOf, bindStack, firstCard, holdStack, paintTicket, sizeTitle };
+  return { adviceOf, bindStack, firstCard, fitRows, holdStack, paintTicket, sizeTitle };
 }
 
 /** The card's two buttons as a repaint draws them, each the button this card drew before for the same thing (its row,

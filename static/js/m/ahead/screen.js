@@ -156,6 +156,8 @@ export const cssPx = (host, ...lengths) => {
   return px;
 };
 
+/** The store listener that forgets the asks of a team left (mount), once for the page. */
+let FORGET_ASKS = null;
 export function mount(el, ctx) {
   // (?solves=1 only: the fork solves in words, and the server's planning of a new team while it bakes)
   mountSolveLog(ctx);
@@ -280,8 +282,6 @@ export function mount(el, ctx) {
     get sayNight() { return sayNight; },
     get schedule() { return schedule; },
     get setBtn() { return setBtn; },
-    get flag() { return flag; },
-    get stand() { return stand; },
     get stack() { return stack; },
     get paintTicket() { return paintTicket; },
     get adviceOf() { return adviceOf; },
@@ -333,7 +333,7 @@ export function mount(el, ctx) {
   };
   const { pageName, resetTap, resetSheet, learn, gwNow, setGw, outerH, fitBlock, fitHead, fitPitch, redeck, schedule, covered, paintAvatar, renderHead, renderGwLine, paintDeadline, replanning, paintPlanStatus, tick, hosts, focusedKeys, keepFocus, renderPair, render, renderBaking, renderRules, ruleSheet, clearAll, driftRoom, owes, priceDrift, heldOrder, renderWeek, waitNow, paintWait, paintDim, weekModel, waited, clockShown, waitClock, plansHeading, plansListed } = headPart(V);
   const { openWeek, renderLine, fitFacts, weekGain, boxOf, cardBoxes, reachLabels, labelWalls, sideRoom, cardIn, entryKey, topRow } = linePart(V);
-  const { adviceOf, bindStack, firstCard, holdStack, paintTicket, sizeTitle } = ticketPart(V);
+  const { adviceOf, bindStack, firstCard, fitRows, holdStack, paintTicket, sizeTitle } = ticketPart(V);
   const { renderDecks, spanOf, sheetFollows, swapPlate, placeLabel, statusLine, tokensOf, numParts, takeFrom, landMotion, land, openPlace, placeKey, closePlace } = decksPart(V);
   const { drawPlace, planLine, fitLine, scaleHeads, fitBlocks, stepPlace, shadeTap, weekSheet } = placePart(V);
   const { drawWeek, clashRow, noteRow, forecastLine, waitSig, waitWatch, keepNight, sayNight, sayCarried, barNode, dotted, bsep, textOf, bankWarn, bankLead, weekLead, roadOfEv, movesTitle, openWhy, deckOf, placeLink, whenFree, placeAct, whyTaps, whyActs, notOf, vetoBack, notAct, whenSheet, gainOf, whySub, numOf, numSaid, plNumSaid, hitTag, hitSaid, plansVs, whyPart, rowTies } = weekPart(V);
@@ -421,12 +421,10 @@ export function mount(el, ctx) {
   // a notice that comes to the week line's second line, said once (the line is a button's, read only on focus)
   const noticeSaid = h('span.sr-only', { 'aria-live': 'polite' });
   // the screen top to bottom: the pitch, then the weeks as one stack, the front week's ticket among them (screen-ticket.js)
-  const flag = h('button.ah-fplflag', { type: 'button', hidden: true, dataset: { row: 'fpl' } });
-  const stand = h('div.ah-stand');
   // (nopull: a swipe down on it is the next week, never the page's refresh; owner, 2026-11-06, "what it loading")
   const stack = h('div.ah-stack', { dataset: { nopull: '' } }, ctl, strip);
   bindStack();
-  el.append(head, slot, h('div.ah-pitchwrap', null, pitchHost, flag), noticeSaid, stack, remProbe);
+  el.append(head, slot, h('div.ah-pitchwrap', null, pitchHost), noticeSaid, stack, remProbe);
   // the node Ahead keeps drawing into, placed in the Week sheet: your rules (every GW's)
   const asksHost = h('div.ah-rules-host');
   GO_GW = setGw;  // an Undo shows where it changed the plan (undoOf)
@@ -460,6 +458,7 @@ export function mount(el, ctx) {
     const pm = pitchHost.querySelector(':scope > .pm');
     if (pm) fitFixtures(pm);
     fitRail();
+    fitRows(strip);
     redeck();
   }) : null;
   refitPitch?.observe(el);
@@ -666,7 +665,11 @@ export function mount(el, ctx) {
   globalThis.addEventListener('pointerup', spentUp);
   globalThis.addEventListener('pointerdown', spentDown, true);
   globalThis.addEventListener('click', spentClick, true);
-  const offs = [ctx.store.on('entry', () => AHEAD.showing.clear()), ctx.store.on('gw', () => schedule()), ctx.store.on('memory', () => schedule('mem')), ctx.store.on('aheadRev', () => schedule()), ctx.store.on('bringing', () => schedule()),
+  // (a team left forgets its shown transfers and its Show suggestion taps, listened for from the first mount on and never
+  // let go: a sign-out comes with Ahead closed, and the recent chip's return drew Reset all weeks on a fresh plan; sign-out
+  // forgets every choice, owner 2026-10-22; qa-tk138/140 team)
+  FORGET_ASKS ??= ctx.store.on('entry', () => { AHEAD.showing.clear(); AHEAD.suggested.clear(); });
+  const offs = [ctx.store.on('gw', () => schedule()), ctx.store.on('memory', () => schedule('mem')), ctx.store.on('aheadRev', () => schedule()), ctx.store.on('bringing', () => schedule()),
     ctx.store.on('learnt', () => { S.learnt = new Set(); schedule(); }),
     ctx.store.on('aheadPair', () => schedule('pair'))];
   // (plan memory at once: it asks the plan, renderBaking waits for it)

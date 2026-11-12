@@ -5,7 +5,7 @@ import { h, POS, posName } from '../../ui.js';
 // ---------------------------------------------------------------- constants
 
 export const QUICK = [
-  ['Rounds & data', ['season', 'from_r', 'to', 'dir', 'w', 'horizon_w']],
+  ['Rounds & data', ['season', 'from_r', 'to', 'dir', 'w']],
   ['Transfers & bank', ['max_hits', 'hit_cost', 'ft', 'cash']],
   ['Mode & captaincy', ['fresh', 'no_cap', 'cap_top']],
 ];
@@ -18,7 +18,7 @@ export const CHIP_MODES = [
 // Whose squad and which players: presets and scenarios leave these alone.
 export const KEEP = ['season', 'entry', 'team_state', 'must_have', 'exclude'];
 // What a preview / rating run needs from the solve's settings (they act on --to; main.py:654-658).
-export const DATA_KEYS = ['season', 'dir', 'pool', 'seeds', 'w', 'horizon_w'];
+export const DATA_KEYS = ['season', 'dir', 'pool', 'seeds', 'w'];
 export const POS_SLOTS = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
 export const XI_RANGE = { GK: [1, 1], DEF: [3, 5], MID: [2, 5], FWD: [1, 3] };
 export const MAX_VARIANTS = 4;
@@ -27,18 +27,17 @@ export const MOVES_SHOWN = 5;
 // value}}) in display order: [label, what it is]. Only the XI and captain rows are the plan's xP; the rest are charges
 // (−) and credits.
 export const OBJ_TERMS = {
-  xi: ['Starting XI', 'Forecast points of the starting eleven (look-ahead rounds weighted by --horizon-w).'],
+  xi: ['Starting XI', 'Forecast points of the starting eleven.'],
   cap: ['Captain', 'The armband: the captain\'s forecast once more (twice under a triple captain).'],
   bench: ['Bench, weighted', 'Bench forecasts, each slot weighted by its chance of coming on (--bn-w-slots); not in the reported xP.'],
   cap_tie: ['Crowd captain tie-break', 'Bonus for captaining the poll\'s #1 pick at the anchor (--cap-tie-tau).'],
   ft_cost: ['Transfer charge', 'What each buy must beat: by default τ, the seeds\' noise, scaled by the rounds left to pay it back (--ft-cost).'],
   hit: ['Hits', 'Hits priced in the objective (--hit-cost); the points a hit costs when scored (--hit-cost-actual) are not part of it.'],
-  keep_best: ['Selling owned players (WC)', 'A wildcard\'s price for selling owned players, scaled by their forecast (--keep-best-wc-price).'],
   ft_value: ['Banked free transfers', 'Credit for free transfers carried out of the window (--ft-value).'],
   over_team: ['Over the club limit', 'Charge per player above 3 from one club, in an imported squad that has more.'],
   ft_short: ['FT shortfall', 'Slack after a planned free hit: a huge penalty, 0 unless the FT count breaks.'],
 };
-export const MOVE_CHARGES = ['ft_cost', 'hit', 'keep_best'];  // what a GW's own moves pay in that GW's objective
+export const MOVE_CHARGES = ['ft_cost', 'hit'];  // what a GW's own moves pay in that GW's objective
 
 
 // ---------------------------------------------------------------- small helpers

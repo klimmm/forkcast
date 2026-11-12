@@ -5,7 +5,7 @@ import { chipName } from '../../../ui.js';
 import { CHIPS_OFF, COPY } from '../../calls.js';
 import { MINUS, compare, draftOf, flatMoves, isFrozen, memOf, ownCount, removedAt, sameView, valuesFor, valuesKey, viewOfState, weekOf } from '../core.js';
 import { refusedAt, barred, chainOf, chipEdit, keptCells, keptFrom } from '../edits.js';
-import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, rootStill, showingAt, suggestedAt, tapSpent, weekOnto } from '../presolve.js';
+import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, rootStill, showingAt, tappedSuggestion, tapSpent, weekOnto } from '../presolve.js';
 import { inkAt } from '../buys.js';
 import { PREP, PREPS, chipPreps, chipWeekGain, chipWeekOf, chipsAsked, chipsAvail, clearGain, keptBest, plPays, plannedAt, prepItems, prepKeep, squadWeek } from '../pieces.js';
 import { FORK_MAX, PLACE_ALTS, PLANS, SQUAD_CHIPS, earlyOf, movesSig, placesAsked, suggestionsOf } from './suggest.js';
@@ -35,7 +35,7 @@ export function plansOf(ctx, P, g, { peek = false, prep = false } = {}) {
   // with them is its one solve, their number against your team's baked lineups (yoursLine's tabs), the card's Show
   // suggestion (free transfers left, a week short of money) asks the rest (owner, 2026-11-11, "why so many solves on a
   // transfer": the model's plan and the week's plan on top of yours asked unasked); your chip's week counts it as before
-  if (!prep && !ctx.presolveOn?.() && !chipMine && !suggestedAt(P, g) && !showingAt(P, g)
+  if (!prep && !ctx.presolveOn?.() && !chipMine && !tappedSuggestion(P, g) && !showingAt(P, g)
     && !ROWS_WANT.has(g) && (w.moves.length || !P.pins.some((p) => p.kind === 'notfor' && Number(p.gw) === g))) return [];
   // (…and asked, its choices wait for the model's plan, asked now: what they are counted from (its hit cap, its move);
   // asked before it every row was asked twice, without the cap and then with it; owner, 2026-11-11, "why a pile of

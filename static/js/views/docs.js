@@ -17,7 +17,7 @@ function howItWorks(meta) {
       id: 'rolling', title: 'The rolling plan',
       body: [
         'The solver plans with a mixed-integer program solved by HiGHS. At each gameweek it optimises a window of upcoming gameweeks (`--w`, 4 by default) starting from your current squad, commits only the first gameweek of the window (its transfers, starting XI, bench order, captain and chip), then moves one gameweek on and solves again from the squad it just committed.',
-        'The later gameweeks of each window are a look-ahead plan. They shape this week’s decision, so a transfer that pays off in two weeks can still win, but they are re-decided every week. The planner shows them as the plan timeline. `--horizon-w` can discount far rounds; by default every window round counts in full.',
+        'The later gameweeks of each window are a look-ahead plan. They shape this week’s decision, so a transfer that pays off in two weeks can still win, but they are re-decided every week. The planner shows them as the plan timeline.',
         'The objective is predicted points: the starting XI, the captain’s extra share and the bench weighted by slot, minus a charge for each transfer and for any hits, plus a credit for free transfers carried out of the window. By default only the leading window round(s) use integer variables (`--int-rounds`); later rounds are solved as a relaxation, which keeps each solve quick.',
         'Solves are exact (relative gap 0 unless `--gap` or `--fast` relaxes it) and deterministic: the same inputs give the same plan.',
         'A run commits every gameweek from `--from-r` to `--to`. Over past gameweeks that is a backtest scored against actual points. To plan your live team, set `--from-r` to the next gameweek: only that gameweek is committed and the rest of the window is the plan.',
@@ -36,7 +36,7 @@ function howItWorks(meta) {
       id: 'tau', title: 'τ, the noise floor',
       body: [
         'Seeds disagree. For every player the solver measures how much his window-total forecast varies across seeds; τ is √2 times the mean cross-seed standard deviation. It is a restraint on transfers and deliberately does not shrink as the pool gets more seeds.',
-        'By default τ is the price of a transfer in the objective (`--ft-cost` −1), so a buy has to beat the noise to be made. Buys later in the window pay less: their charge is τ measured over the rounds they have left to pay back. τ also values a free transfer carried out of the window (`--ft-value` −1) and sets several tolerances: keep-best (`--keep-best-tau`), the crowd captain tie-break (`--cap-tie-tau`) and the tie pool (`--tie-cost`).',
+        'By default τ is the price of a transfer in the objective (`--ft-cost` −1), so a buy has to beat the noise to be made. Buys later in the window pay less: their charge is τ measured over the rounds they have left to pay back. τ also values a free transfer carried out of the window (`--ft-value` −1) and sets two tolerances: the crowd captain tie-break (`--cap-tie-tau`) and the tie pool (`--tie-cost`).',
         'τ is re-measured for each anchor gameweek. `--tau` pins one value for the whole run and turns that schedule off.',
         'Hits: there are no voluntary hits by default (`--max-hits` resolves to 0). If a gameweek cannot be solved without one, a relief ladder may take a single hit. `--hit-cost` prices hits in the objective; `--hit-cost-actual` (4) is what realised scoring deducts.',
       ],

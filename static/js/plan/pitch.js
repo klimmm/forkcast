@@ -352,8 +352,9 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
   const blank = Array.isArray(fx) && !fx.length;
   // (a forecast under 1 xP for the week, less than the point FPL gives any player who comes on: dimmed as a doubtful
   // player is, no flag (FPL's doubts keep theirs); a week with no fixture keeps its own look; owner, 2026-11-09, "why
-  // walle egely opacity still full", "Yes, dim under 1 xP")
-  const low = !tone && !blank && xp != null && xp < 1;
+  // walle egely opacity still full", "Yes, dim under 1 xP"); a flagged one too, his flag kept (owner, 2026-11-12, "why
+  // thomas have full opacity despite 0.4 xp": a 50% flag at 0.4 xP stood full)
+  const low = !blank && xp != null && xp < 1;
   const dgw = fx?.length > 1;
   const bought = o.bought?.[id] ?? null;  // the GW he was bought in, when he is not in the real squad
   const sold = o.sold?.[id] ?? null;  // the GW the plan sells him in, when it does after this one

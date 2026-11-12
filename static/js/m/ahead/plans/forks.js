@@ -386,7 +386,7 @@ export function forkPump(ctx, P, ask) {
   // week' in same line")
   // (the plan service's own key of the solve, `sk`, once it answered the ask: what urgentRoots raises; the page's key is
   // its values' and the service answered 400 to it)
-  const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}) }, { ...(lane ? { slot: `fork${lane}` } : {}), onUpdate: (s) => { if (s?.key) flight.sk = s.key; } }, forkSaid(ctx, P, ask, prep));
+  const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}), swap: true }, { ...(lane ? { slot: `fork${lane}` } : {}), onUpdate: (s) => { if (s?.key) flight.sk = s.key; } }, forkSaid(ctx, P, ask, prep));
   flight.cancel = () => p.cancel?.();
   p.then((res) => {
       // a tap's solve asked ahead: its answer memory's for exactly those values (presolve); one that failed for another

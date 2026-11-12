@@ -4,7 +4,7 @@ import * as E from '../../plan/engine.js';
 import { solveGap } from '../api.js';
 import { fmt, chipName } from '../../ui.js';
 import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
-import { SOLVES, attach, pinSell, pinHits, pinNotFor, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
+import { SOLVES, SWAPS, attach, pinSell, pinHits, pinNotFor, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
 import { MINUS, WHY_SHEET, addMove, asYours, sum, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
 import { saidNow, sayAgain, asksOf, autoRuleName, barred, refusedAt, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
 import { FORK_FLIGHTS, SQUAD_CHIPS, answeredBy, noteAnswered, asTaken, byGain, choiceVs, fitsAt, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, forkValues, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
@@ -72,10 +72,7 @@ export const showingAt = (P, g) => AHEAD.showing.has(`${P.entry}|${g}`);
  *  session (owner, 2026-11-09, "make user initially choose whether to show a suggestion - so user can just bring a
  *  player - make buttons equal to each other"). */
 export const showSuggestion = (P, g, on = true) => { AHEAD.suggested[on ? 'add' : 'delete'](`${P.entry}|${g}`); PAIR.rev++; };
-// (`globalThis.__fcSuggested`: the QA harness's, every week past its choice, so its journeys read the solver's answer as
-// before; tools/qa/lib/scenario.mjs boot `open`)
-export const suggestedAt = (P, g) => !!globalThis.__fcSuggested || tappedSuggestion(P, g);
-/** …by your tap on Show suggestion (its Previous back to the choice), never the harness's flag. */
+/** …by your tap on Show suggestion (its Previous back to the choice). */
 export const tappedSuggestion = (P, g) => AHEAD.suggested.has(`${P.entry}|${g}`);
 /** Your last tap on this team has asked the 6 it may (SOLVE_MAX). No tap yet is no action, nor the tap that opened it, a
  *  load like any other: its own solves spent the 6 and left Make the swap and Show another unsolved (owner, 2026-11-05,
@@ -101,6 +98,12 @@ export function tookOf(P, w) {
   return movesKey(w.moves) === t.sig ? t : null;
 }
 export const tookCmp = (P, w) => tookOf(P, w)?.cmp ?? null;
+/** The card's own line as its Transfer was tapped on GW g ({pts, rounds, vs}: screen-ticket.js offer), kept on the take:
+ *  the made card says the same while the take stands (tookOf), never another count of it (owner, 2026-11-12, "+1.1 vs
+ *  saving a free transfer" before the tap, "+2.6 over 2 weeks vs no transfers" after: "fix bug"). */
+export function tookSaid(g, said) {
+  if (AHEAD.took?.g === g) AHEAD.took.said = said;
+}
 
 /** The rules tap `run` (an edit call: addPlan, removeRule, keep…) would make, made dry → edit's args {pins, drop,
  *  inPlace, hitsMax, was} | null (changes nothing, or refused: no solve). */
@@ -137,9 +140,11 @@ function presolve(ctx, P, src, taps, { gw = P.A, sig = '', owner = null } = {}) 
   // (none from inside a tap made dry: a draw it reads settling)
   if (DRY || !ctx.api?.solve || ctx.store.get('conn')?.state === 'offline') return;
   // Settings → Solve ahead off (the default; owner, 2026-11-11, "every solve on request", "turn off every solve-ahead case
-  // when it is off"): nothing asked before a tap, the shown card's own Make the swap ('week') neither: asked at its tap
-  // (the server answers it from the week's road and the bake's lineups, no solve: lineups.extend); a card whose number is
-  // that swap's (windows not the same, swapGain) draws without it till then
+  // when it is off"): nothing asked before a tap, the shown card's own Make the swap ('week') neither: the card's own
+  // solve brings it back with its answer where the lineups give it (forkPump's `swap`: api/mobile_bundle.py _swap; owner,
+  // 2026-11-12, "make the solve itself return lineups if requested so it is not a separate request"), else asked at its
+  // tap (lineups.extend, no solve); a card whose number is that swap's (windows not the same, swapGain) draws without it
+  // till then
   if (!ctx.presolveOn?.()) return;
   watchPage(ctx);
   let cur = AHEAD.srcs.get(src);
@@ -190,7 +195,24 @@ export function weekTaps(ctx, P, g, list) {
 export function presolveSwap(ctx, P, g, pl) {
   if (P.healing || leftBehind(ctx, P) || inkAt(ctx, P, g)) return;
   const [take] = weekTaps(ctx, P, g, [pl]).takes;
-  if (take) presolve(ctx, P, 'week', [take], { gw: g, sig: take.id, owner: take.id });
+  if (!take) return;
+  swapKept(ctx, P, g, pl, take);
+  presolve(ctx, P, 'week', [take], { gw: g, sig: take.id, owner: take.id });
+}
+/** The card's Transfer as the solve that suggested it brought it back (memory SWAPS: its weeks, then GW g's squad rolled,
+ *  no solve), kept under the values the tap will ask, Settings → Solve ahead on or off: the tap lands with no request
+ *  (owner, 2026-11-12, "fix so lineups are provided by solve suggested this transfer not by some other make the swap
+ *  request and in both ahead and no ahead modes"), found by the solve the card's plan came from (`from`, where it was
+ *  re-keyed). Only where the tap rolls every week after g (its values' no_buys_gw; an earlier week of no transfers too,
+ *  as the suggesting solve kept it; the window's last week has none after it), the one plan the rolled road is: with a
+ *  transfer of yours in a later week the tap asks as before. */
+function swapKept(ctx, P, g, pl, take) {
+  const from = pl.road?.from ?? pl.road?.key, got = SWAPS.get(from), road = got?.weeks?.[g]?.road, mem = memOf(ctx);
+  if (!road || DRY) return;
+  const a = askOf(ctx, P, { ...take, bare: true }, 'week');
+  const after = P.gws.filter((x) => x > g), rolled = new Set(String(a?.values.no_buys_gw ?? '').split(',').map(Number));
+  if (!a || !after.every((x) => rolled.has(x)) || mem.solved(a.values)) return;
+  mem.offer({ ...road, from, key: a.key, values: a.values }, { values: a.values, version: got.version });
 }
 /** Make the swap of Show another's next card, solved ahead (refusalRoads, once that card's own road `road` is in): its
  *  one transfer taken as the card will take it, with the refusal the tap adds (`refusals`), so the next card's number

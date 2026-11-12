@@ -108,7 +108,7 @@ export {
   pinRoll, carryPins
 } from './memory/pins.js';
 export {
-  holdOf, solvedLineup, planValues, unbuyableDropped, firstPlanValues, roadCaps, forcedHits, idleRules, roadFits, SOLVES, solveKept, brokenCells,
+  holdOf, solvedLineup, planValues, unbuyableDropped, firstPlanValues, roadCaps, forcedHits, idleRules, roadFits, SOLVES, SWAPS, solveKept, brokenCells,
   rulesBroken, ruleText, findRoad, optionPins, optionsRoad, optionsValues
 } from './memory/values.js';
 export {

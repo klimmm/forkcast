@@ -69,8 +69,10 @@ export function headPart(V) {
   };
   /** A ticket's height its rows take (each row's own height, never its margins: the buttons' margin-top auto is the
    *  space the stack gave the card, and counting it grew the reserve on every fit, the pitch 478 -> 360 px), whatever
-   *  height the stack gave it. */
-  const rowsH = (card) => [...card.children].reduce((t, c) => t + c.getBoundingClientRect().height, 0);
+   *  height the stack gave it; nor one out of its flow (the wait's bar, m-ahead.css .ah-waiting > .m-wlb: counted, the
+   *  pitch 4 px shorter while a week planned and the stack moved when it landed, a tap on a tab meeting the card's row;
+   *  qa-tk150 bought). */
+  const rowsH = (card) => [...card.children].reduce((t, c) => (/^(absolute|fixed)$/.test(getComputedStyle(c).position) ? t : t + c.getBoundingClientRect().height), 0);
   /** The week line as it renders at its width: one strip (the status is on the pitch: statusTok), doors at its right
    *  end, the week's facts (fitFacts), the checks, then "Out: …" or GW A's lineup notice (renderLine). Each is probed,
    *  so the pitch is fitted for the tallest week line and every week keeps that height (--ah-bar-h, m-ahead.css): the
@@ -177,7 +179,9 @@ export function headPart(V) {
   function renderHead() { const { avatar, ctx, gwline, head, setBtn } = V;
     const team = ctx.bundle?.entry?.team_name ?? '';
     if (globalThis.document) document.title = team ? `${team} · Forkcast` : 'Forkcast';
-    fill(head, pageName(team), setBtn, h('div.ah-hmid', null, h('div.ah-team', null, team), gwline), V.stand, avatar);
+    // (the team's name alone: the window's total and the week's free transfers and bank went, the card's row has the
+    // week's; owner, 2026-11-12, "remove 'gw11-14 229.6xp' and '1 free transfer …' from all phones")
+    fill(head, pageName(team), setBtn, h('div.ah-hmid', null, h('div.ah-team', null, team)), avatar);
   }
   /** "Sat 10 Oct at 13:00 (4d 17h)": the deadline of GW g, the week on the card (owner, 2026-11-05: "no deadline here
    *  why"); data-gw is the GW last drawn (the harness waits on it). */
@@ -471,16 +475,18 @@ export function headPart(V) {
     if (conn === 'updating') { S.waitAll = null; return { key: 'updating', word: 'Updating', scope: 'the forecast', p: null }; }
     // the plan's solve and the viewed week's checks are one wait, its solves counted alike (owner, 2026-11-03: "not
     // split Planning and Planning solves"): one word, one clock from the first solve, one count, one bar never back
-    const plan = replanning(), w = S.wait ? S.wl : null;
-    if (!plan && !w) { S.waitAll = null; return null; }
+    // (…and the card's own "planning…", an ask or a bring-in whose answer isn't in where the week's checks are done:
+    // the pitch greyed with it, never green beside it; owner, 2026-11-12, "why pitch not always grey when it planning")
+    const plan = replanning(), w = S.wait ? S.wl : null, c = w ? null : S.cardWait ?? null;
+    if (!plan && !w && c == null) { S.waitAll = null; return null; }
     const A = (S.waitAll ??= { t0: (plan ? planWait()?.since : null) ?? S.wait?.t0 ?? now, plan: false, max: 0 });
     A.plan ||= plan;
-    const n = (A.plan ? 1 : 0) + (w?.n ?? 0), done = (A.plan && !plan ? 1 : 0) + (w?.done ?? 0);
+    const n = (A.plan ? 1 : 0) + (w?.n ?? (c != null ? 1 : 0)), done = (A.plan && !plan ? 1 : 0) + (w?.done ?? 0);
     const at = w && !plan ? w.at : A.t0, tau = w?.tau ?? 4000;
     const p = (A.max = Math.max(A.max, stepShare(done, n, reduceMotion() ? 0 : now - at, tau)));
-    const gws = ctx.data?.horizon, scope = w ? `GW${w.g}` : gws?.length ? span(gws) : null;
-    return { key: 'wait', word: COPY.waitWord, scope, long: w ? `GW${w.g}'s moves` : null, prog: n > 1 ? `${Math.min(done + 1, n)} of ${n}` : null,
-      so: (now - A.t0) / 1000, p, plan: A.plan, done };
+    const g = w?.g ?? c, gws = ctx.data?.horizon, scope = g != null ? `GW${g}` : gws?.length ? span(gws) : null;
+    return { key: 'wait', word: COPY.waitWord, scope, long: g != null ? `GW${g}'s moves` : null, prog: n > 1 ? `${Math.min(done + 1, n)} of ${n}` : null,
+      so: (now - A.t0) / 1000, p, plan: A.plan, done, card: c != null && !!S.cardAsk };
   }
   /** The strip's wait line (waitView) while anything waits (waitNow), replacing the line's words; doors kept, its bar
    *  on the strip's lower edge; the words return as they fit (fitFacts) when it ends, which is said (waitSaid). Each
@@ -495,9 +501,16 @@ export function headPart(V) {
     paintDim(W);
     if (on) {
       if (waitV.t.parentNode !== pbt) pbt.append(waitV.t);
-      if (waitV.bar.parentNode !== block) block.append(waitV.bar);
+      // (on a card, right under its own "planning…" line, never the card's foot under its links; owner, 2026-11-12, "why
+      // progress bar not at same place where 'planning..' is")
+      const host = block.querySelector(':scope > .ah-tkbody .ah-tkline') ?? block;
+      if (waitV.bar.parentNode !== host) host.append(waitV.bar);
       paintWaitView(waitV, W);
-    } else { waitV.t.remove(); waitV.bar.remove(); waitV.key = null; }
+    } else {
+      // (the next wait's bar from empty: kept, its width glided back from the last wait's to the new one's; owner,
+      // 2026-11-12, "why in many cases it moves … even backwards")
+      waitV.t.remove(); waitV.bar.remove(); waitV.bar.firstChild.style.width = ''; waitV.key = null;
+    }
     if (was && !on) fitFacts();
     const said = W ? `${W.word} ${W.long ?? W.scope ?? ''}`.trim() : S.waitWas ? 'Plan ready' : '';
     if (W || S.waitWas) { if (waitSaid.textContent !== said) waitSaid.textContent = said; S.waitWas = W?.word ?? null; }
@@ -506,7 +519,9 @@ export function headPart(V) {
     const now = Date.now(), dim = (on) => { for (const x of [el, pitchHost]) x.classList.toggle('ah-wait', on); };
     if (!W) { S.dimT0 = null; clearTimeout(S.dimTimer); S.dimTimer = null; dim(false); return; }
     S.dimT0 ??= now;
-    const left = S.dimT0 + WAIT_DIM_MS - now;
+    // (the card's "planning…" on your ask greys it at once: green beside the card's words for the first second read as
+    // not planning; owner, 2026-11-12, "why not grey")
+    const left = W.card ? 0 : S.dimT0 + WAIT_DIM_MS - now;
     dim(left <= 0);
     if (left > 0 && !S.dimTimer) S.dimTimer = setTimeout(() => { S.dimTimer = null; paintWait(); }, left + 5);
   }

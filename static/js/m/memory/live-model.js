@@ -64,7 +64,9 @@ export function modelPart(V) {
     const want = ctx.presolveOn?.() !== false || m.want;
     if (want && !m.road && !m.p && !m.error && ctx.api?.solve && conn?.state !== 'offline' && !conn?.snapshot) {
       m.since = Date.now();
-      m.p = solveKept(ctx.api, { entry: Number(S.entry), purpose: 'plan', values: ask.values }, undefined, { what: 'the solver\'s best · none of your rules' });
+      // (`swap`: what Transfer on the card it suggests makes, brought back with this solve (memory/values.js SWAPS); owner,
+      // 2026-11-12, "fix so lineups are provided by solve suggested this transfer")
+      m.p = solveKept(ctx.api, { entry: Number(S.entry), purpose: 'plan', values: ask.values, swap: true }, undefined, { what: 'the solver\'s best · none of your rules' });
       m.p.then((r) => {
         if (S.model !== m) return;
         m.p = null;

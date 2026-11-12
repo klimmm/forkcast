@@ -260,6 +260,12 @@ const ownPins = (v, gws) => (solvedFor(v, gws).own ??= composePins([{ id: 'road'
 
 /** Solves this page has asked (solveKept, the one place it asks): what a tap has started so far (presolve.js SOLVE_MAX). */
 export const SOLVES = { asked: 0 };
+/** What Transfer on a suggested card makes, brought back with the solve that suggested it (`swap` asked: api/mobile_bundle.py
+ *  _swap, its weeks then its last week's squad rolled), by that solve's road key → {weeks: {GW g: {road}}, version}; presolve.js
+ *  presolveSwap keeps it under the values Transfer will ask (owner, 2026-11-12, "fix so lineups are provided by solve
+ *  suggested this transfer not by some other make the swap request and in both ahead and no ahead modes"). */
+export const SWAPS = new Map();
+const SWAPS_MAX = 64;
 
 /**
  * api.solve, except that a road missing a player it was solved to have (its own values' --must-have: brokenCells 'in')
@@ -286,6 +292,11 @@ export function solveKept(api, args, opts, said = {}) {
   SOLVES.asked++;
   const p = api.solve({ ...args, said: { gw: said.gw ?? (Number(args.values?.from_r) || null), kind: said.kind ?? SOLVE_KINDS[args.purpose] ?? args.purpose, what: said.what ?? 'your rules as set' } }, opts);
   const q = p.then((r) => {
+    if (r?.swap && r.road?.key != null && r.version != null) {
+      SWAPS.delete(r.road.key);
+      SWAPS.set(r.road.key, { weeks: r.swap, version: r.version });
+      for (const k of SWAPS.keys()) { if (SWAPS.size <= SWAPS_MAX) break; SWAPS.delete(k); }
+    }
     const v = r?.road?.values;
     const gws = (r?.road?.weeks || []).map((w) => Number(w.gw));
     const broken = r?.state === 'done' && v && gws.length ? brokenCells(r.road, ownPins(v, gws)).filter((x) => x.want === 'in') : [];

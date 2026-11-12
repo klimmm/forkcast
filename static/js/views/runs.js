@@ -91,7 +91,6 @@ const CELL_COLS = [
   ['H', 'Hits', 0, 'Paid transfers'],
   ['pred', 'Pred', 1, 'Predicted points: the eleven and the captain'],
   ['pred.s', 'Pred AS', 1, 'Predicted points after auto-subs'],
-  ['bnv', 'Bench v', 1, "The bench's weight in the solver objective (not in Pred)"],
   ['asub', 'Auto-sub', 0, 'Points the auto-subs added'],
   ['act', 'Actual', 0, 'Points scored'],
   ['avg', 'Avg', 0, 'FPL average score'],

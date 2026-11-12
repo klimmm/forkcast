@@ -2410,6 +2410,9 @@ the pitch where the eye is, moving as it goes (a still line went unseen) */
 .ah-blockhost > .ah-block.ah-waiting { position: relative; }
 .ah-block.ah-waiting:not(.ah-wkeep) .ah-pbt > :not(.m-wl) { display: none; }
 .ah-block.ah-waiting > .m-wlb { position: absolute; left: 11px; right: 11px; bottom: 1px; pointer-events: none; }  /* never over the line's or doors' 44 px reach */
+/* (a card's: under its own "planning…" line, the line's width: screen-head.js paintWait) */
+.ah-ticket.ah-waiting .ah-tkline { position: relative; }
+.ah-ticket.ah-waiting .ah-tkline > .m-wlb { position: absolute; left: 0; right: 0; bottom: -6px; pointer-events: none; }
 /* …a money short or an amber notice keeps the line's words over the wait's (ahead.js paintWait .ah-wkeep: a problem is
 never hidden behind a wait); the wait's bar, the dim and the plates' "planning…" say it waits */
 .ah-block.ah-waiting.ah-wkeep .ah-pbt > .m-wl { display: none; }
@@ -3493,9 +3496,6 @@ card is under "Keep" */
 .m-screen.ah .ah-team { font: 700 var(--tk2)/1.1 var(--f-text); color: #fff; text-align: left; }
 .m-screen.ah .ah-gwline { justify-content: flex-start; color: rgb(255 255 255 / .7); font: 500 var(--tk4)/1.3 var(--f-text); }
 .m-screen.ah .ah-gwline .xp, .m-screen.ah .ah-gwline .xp-u { color: var(--tk-xp-d); }
-.m-screen.ah .ah-stand { flex: none; display: flex; flex-direction: column; align-items: flex-end; color: rgb(255 255 255 / .7); font: 500 var(--tk4)/1.3 var(--f-text); }
-.m-screen.ah .ah-stand b { color: #fff; font-weight: 600; }
-.m-screen.ah .ah-stand b.ah-short { color: #ff8a80; }  /* the money short, a light red for the dark header */
 .m-screen.ah .ah-set { color: rgb(255 255 255 / .8); }
 .m-screen.ah .ah-avatar { flex: none; width: 32px; height: 32px; background: none; color: #fff; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .5); font: 600 var(--tk4)/1 var(--f-text); }
 /* the pitch: FPL's green, its goal and lines in perspective, Player data in the corner (owner, 2026-11-06: "why pich look with
@@ -3524,7 +3524,10 @@ wider system font took a second line at the largest sizes and ran the rows toget
 /* the fixture's tint a small chip inside its plate, clear of both edges, no underline: filling the plate it was cut by it
 (owner, 2026-11-06, "this looks ugly") */
 .m-screen.ah .pm-card .pm-opp[class*="fdr-"] { display: inline-block; padding: 0 2px; box-shadow: none; line-height: 1.1; vertical-align: middle; }
-.m-screen.ah .pm .pm-card.bought:not(.is-in) .pm-pn { padding: 0 1px; box-shadow: none; }
+/* a player bought in an earlier week of the plan (boughtIn, not this week's `is-in`): a green bar under his name, the
+buy's green, so a later week still tells him from the team you have (owner, 2026-11-12, "still mark previously bought
+players in future gameweeks somehow like vuskovich here"; a ring round the plate "look bad") */
+.m-screen.ah .pm .pm-card.bought:not(.is-in) .pm-pn { padding: 0 1px; box-shadow: inset 0 -3px 0 var(--tk-go); }
 .m-screen.ah .pm-card.is-in .pm-pn { background: var(--tk-go); color: var(--tk-ink); padding: 0 4px; }
 /* the card's swap on the pitch before its tap (screen-pitch.js paintBoard): green is who your tap buys, struck who it sells;
 an arrow a place changed between pitch and bench, no transfer; white for green a transfer the plan would not make; the shirt
@@ -3547,16 +3550,13 @@ lacks in the fixture's place */
 /* waiting, the whole frame greys with the turf: the header, the bench and what is round the stack (owner, 2026-11-05: "why
 bench never grey out only pitch", "the top panel must also grey out"; .ah-pitch.ah-wait the turf's) */
 .m-screen.ah.ah-wait, .m-screen.ah.ah-wait .ah-head, .m-screen.ah.ah-wait .ah-pitch .pm .pm-benchzone { background: var(--tk-wait) !important; }
-.m-screen.ah.ah-wait :is(.ah-fplflag, .ah-pdbtn) { background: rgb(71 93 80 / .86); }
+.m-screen.ah.ah-wait .ah-pdbtn { background: rgb(71 93 80 / .86); }
 .m-screen.ah .pm-card .pm-flag { position: absolute; right: 4px; top: 0; transform: scale(.85); transform-origin: top right; }
-.m-screen.ah .ah-fplflag { position: absolute; left: 0; top: 0; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 4px 9px 4px 7px; border: 0; border-left: 3px solid var(--tk-go); background: rgb(13 54 32 / .86); color: #fff; font: 500 var(--tk4)/1.15 var(--f-text); cursor: pointer; }
-.m-screen.ah .ah-fplflag[hidden] { display: none; }
 /* Player data: the flag's strip in the other top corner, no pill of its own (owner, 2026-11-06, "this ont fit in design"), a
 44 pt target downwards, never over the header */
 .m-screen.ah .ah-pitch .pm > .ah-pdbtn { top: 0; right: 0; height: auto; padding: 4px 7px 4px 9px; border-radius: 0; background: rgb(13 54 32 / .86); box-shadow: none; color: #fff; font: 500 var(--tk4)/1.15 var(--f-text); }
 .m-screen.ah .ah-pitch .pm > .ah-pdbtn::before { inset: 0 0 -20px -6px; }
 .m-screen.ah .ah-pitch .pm > .ah-pdbtn:active { background: var(--tk-night); }
-.m-screen.ah .ah-fplflag b { font-weight: 600; }
 .m-screen.ah .ah-pitch .pm .pm-bench { background: none !important; border: 0; box-shadow: none; border-radius: 0; margin: 0; padding: 0; }
 .m-screen.ah .ah-pitch .pm .pm-bs, .m-screen.ah .ah-pitch .pm .pm-pl { outline: 0; box-shadow: none !important; background: none; border: 0; }
 .m-screen.ah .ah-pitch .pm .pm-card.ah-sold::before, .m-screen.ah .ah-pitch .pm .pm-card.ah-sold::after { content: none; }
@@ -3581,6 +3581,7 @@ back the next card rises over it */
 .m-screen.ah .ah-tick .g .c { display: none; }
 /* the week's points without your transfers, struck before its own: its tab and its card alike */
 .m-screen.ah .ah-was { margin-right: 5px; font: 500 var(--tk4)/1 var(--f-text); color: var(--tk-mute); text-decoration: line-through 1px; }
+.m-screen.ah .ah-tkrow.nowas .ah-was { display: none; }  /* (no room on one line: screen-ticket.js fitRows) */
 .m-screen.ah .ah-tick .a { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; }
 /* (the week's bank, before its points: quiet, as the struck number) */
 .m-screen.ah .ah-tick .b { font: 500 var(--tk4)/1 var(--f-text); color: var(--tk-mute); white-space: nowrap; }
@@ -3589,6 +3590,9 @@ back the next card rises over it */
 /* (the week's free transfers, before its bank: never coral with a short bank) */
 .m-screen.ah .ah-tick .b .f { margin-right: 8px; color: var(--tk-mute); }
 .m-screen.ah .ah-tick .p, .m-screen.ah .ah-tick .p .xp, .m-screen.ah .ah-tick .p .xp-u { color: var(--tk-xp); font-weight: 600; }
+/* (GW A short at FPL's prices, its money in the points' place in coral: the blue above outranked .ah-tick .p.g-loss and
+   drew "−£3.6m" blue; owner, 2026-11-12, "why -3.6m displayed in blue not red") */
+.m-screen.ah .ah-tick .p.g-loss { color: var(--loss); }
 /* later weeks provisional, by weight (every forecast number is the one blue) */
 .m-screen.ah .ah-tick.pencil .p, .m-screen.ah .ah-tick.pencil .p .xp { font-weight: 500; }
 /* (--ah-ticket-h: one line more since 2026-11-08, the card's two numbers on a line of their own: the card outgrew it
@@ -3674,7 +3678,7 @@ back the next card rises over it */
    smaller"); 3 px less a row since the made card's five rows, 14 px past 375 × 667: qa-tk125 fit) */
 @media (max-height: 720px) { .m-screen.ah { --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 18px) + 24px); --ah-ticket-h: calc(204rem / 17); } .m-screen.ah .ah-pitch .pm { --pm-hlo: calc(var(--tk4) * 1.1 + var(--tk4) * 1.2 + 18px); } }
 /* up to 720 px of height (the card's 204 px, above): the card's line at the "Or…" line's size and 1.25, the body's, the
-"Or…" line's and the buttons' spacing the 620 px screen's: its three-row line ("Worse than saving your free transfer.
+"Or…" line's and the buttons' spacing the 640 px screen's: its three-row line ("Worse than saving your free transfer.
 −1.0xP vs saving, …") had the page scroll 22 px at 375 × 667, 14 px at 390 × 712 (qa-tk79/80 fit; owner, 2026-11-09:
 "Smaller line text") */
 @media (max-height: 720px) {
@@ -3683,14 +3687,12 @@ back the next card rises over it */
   .m-screen.ah .ah-tkacts { padding: 16px 12px 0; }
   .m-screen.ah .ah-tklinks { padding: 4px 12px 6px; }  /* (a wrapped row fits 375 × 667 too: qa-tk108 fit, 1 px of scroll) */
 }
-@media (max-height: 620px) {
+@media (max-height: 640px) {
   .m-screen.ah { --tk1: calc(21rem / 17); --tk2: calc(16rem / 17); --tk3: calc(14rem / 17); --tk4: calc(12rem / 17); --ah-tab-h: calc(23rem / 17); --ah-ticket-h: calc(164rem / 17); --ah-pitch-floor: calc(5 * (var(--tk4) * 1.1 + var(--tk4) * 1.2 + 16px) + 32px); }
   .m-screen.ah .ah-pitch .pm { --pm-hlo: calc(var(--tk4) * 1.1 + var(--tk4) * 1.2 + 16px); }
   .m-screen.ah .ah-alt, .m-screen.ah .ah-go, .m-screen.ah .ah-tkacts > .ah-tkpad { height: calc(40rem / 17); }
 }
 @media (max-width: 340px) { .m-screen.ah .pm-card .pm-pn { max-width: 66px; } }
-/* (the flag on two lines where the keeper's shirt would meet it) */
-@media (max-width: 340px), (max-height: 700px) { .m-screen.ah .ah-fplflag { flex-direction: column; align-items: flex-start; gap: 0; } }
 .m-screen.ah .ah-tick .p .xp-u { display: inline !important; margin-left: .2em; font-size: var(--tk4); font-weight: 500; }
 /* two players compared (sheets/player.js pairView): the totals table, then the line panels */
 .ps-pair { margin-top: 16px; }
@@ -3728,7 +3730,7 @@ back the next card rises over it */
   .m-screen.ah .ah-ticket > .ah-tksug > :is(.ah-rsbtn, .ah-door) { height: calc(32rem / 17); }
   .m-screen.ah .ah-ticket > .ah-tklinks:not(:has(button:not([hidden]))) { display: none; }
 }
-@media (max-height: 620px) {
+@media (max-height: 640px) {
   .m-screen.ah .ah-blockhost .ah-ticket > .ah-tksug { margin: auto 0; padding-block: 2px; }  /* (not the body row's 6 px top: below)*/
   .m-screen.ah .ah-ticket > .ah-tkacts:has(+ .ah-tksug) { padding-top: 0; }
   /* (…and the card's height that content's: 164 px with the pitch at its floor, three tabs and the head ran 11 px past
@@ -3747,10 +3749,11 @@ back the next card rises over it */
 .m-screen.ah .ah-tkpad { visibility: hidden; }
 /* (the title two lines high whatever it says, so the card is one size: the stand's one line and a move's names on two;
    names still take a third where they need it, never cut nor smaller; owner, 2026-11-09, "why different sizes"; not
-   at 620 px tall or less: the card then 48 px past the bottom at 320 × 568, the pitch at its floor; local ticket run) */
-@media (min-height: 621px) { .m-screen.ah .ah-tkhead { min-height: 2lh; } }
+   at 640 px tall or less: the card then 48 px past the bottom at 320 × 568, the pitch at its floor; local ticket run; 640 so
+   the iPhone 13 mini's 629 is in it: GW A's card 24 px past the bottom there, three tabs above it, 2026-11-12) */
+@media (min-height: 641px) { .m-screen.ah .ah-tkhead { min-height: 2lh; } }
 /* (a transfer's Compare players link under its line, v1.3.217: the card 2.8 px past the bottom at 320 × 568; qa-tk116 ticket) */
-@media (max-height: 620px) { .m-screen.ah :is(.ah-tksug, .ah-tkpad.s) { margin-top: 6px; } }
+@media (max-height: 640px) { .m-screen.ah :is(.ah-tksug, .ah-tkpad.s) { margin-top: 6px; } }
 
 /* Forkcast · m-a.css, loaded after m-ahead.css: only what ahead.js's markup and its sheets (wish, replace, why, you)
 added or moved. */
@@ -3840,8 +3843,8 @@ one in the selected look's tint and green ring, 600, with its arrow (a second ta
 .m-banner.offline .m-banner-ic { opacity: .6; }
 
 </style>
-<meta name="forkcast-release" content="v1.3.223">
-<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=34ca303fb2","/js/app.js":"/js/app.js?v=d7871c4487","/js/m/ahead.js":"/js/m/ahead.js?v=1a3a45189e","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=ea634a09d3","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=9e3bfdf0fe","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=c4a8d8abb7","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=80a6be1bc2","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=5d8c48ccca","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=97940d5b11","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=e7eb6b278f","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=98e62c8795","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=e54c518f80","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=db825b45fb","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=b1bb3a68a3","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=bd6a2e9b77","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=df79ee6558","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=cbdc5c496f","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=d5d4301745","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=9aa5c5689b","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=6b0860ec49","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=4acbd15e4c","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=1981b7833d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=bb50ff7946","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=f975ff538c","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=a816c0e84e","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=6aca9babb9","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=cfce24e093","/js/m/api.js":"/js/m/api.js?v=0724a2270e","/js/m/app.js":"/js/m/app.js?v=abd24c20f0","/js/m/calls.js":"/js/m/calls.js?v=0b0e99968a","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=f86dfc7988","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=3a26737f9b","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=6d3835eda9","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=3cf482dd6a","/js/m/memory.js":"/js/m/memory.js?v=3b2bbf2c86","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=64d355fb52","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=8760d61f37","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=0af9ca007a","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=7e946d2179","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=18e75f603f","/js/m/memory/live.js":"/js/m/memory/live.js?v=d76b0dc8fb","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=4c64f76cdd","/js/m/memory/values.js":"/js/m/memory/values.js?v=483c797091","/js/m/picker.js":"/js/m/picker.js?v=40c7bc336f","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=67f7e9687a","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=9576783de3","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=43737bdc0a","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=f388b971b7","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=bc24c27906","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=9f2ef4f880","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=7cbcb9ddab","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=3ed4878c7c","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=b118315353","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=42c1245f6a","/js/m/shell/store.js":"/js/m/shell/store.js?v=d57be956cc","/js/marks.js":"/js/marks.js?v=c34a920720","/js/plan/engine.js":"/js/plan/engine.js?v=ed5912a0d1","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=3fc37880a6","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=1200f7b422","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=1ecbec2ebb","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=2fd30e083a","/js/plan/kits.js":"/js/plan/kits.js?v=cda7d0ceb5","/js/plan/pitch.js":"/js/plan/pitch.js?v=73c669c7c2","/js/studio/flags.js":"/js/studio/flags.js?v=a8cd3ecd9b","/js/studio/kit.js":"/js/studio/kit.js?v=20c9937b9e","/js/studio/tables.js":"/js/studio/tables.js?v=65f8b07c32","/js/ui.js":"/js/ui.js?v=95b40ba139","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=9f0f364620","/js/views/compare.js":"/js/views/compare.js?v=6ad8f349d3","/js/views/dashboard.js":"/js/views/dashboard.js?v=8a1f0c98d1","/js/views/data.js":"/js/views/data.js?v=90e9f05369","/js/views/docs.js":"/js/views/docs.js?v=d60056a2cc","/js/views/fixtures.js":"/js/views/fixtures.js?v=319a00ca42","/js/views/planner.js":"/js/views/planner.js?v=c4c601da19","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=7fde223c58","/js/views/planner/model.js":"/js/views/planner/model.js?v=77126129de","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=d4151c7331","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=14bd7e2b61","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=f72f49fd45","/js/views/players.js":"/js/views/players.js?v=358b613d94","/js/views/preview.js":"/js/views/preview.js?v=8c7c4bcf84","/js/views/runs.js":"/js/views/runs.js?v=32ef849988"}}</script>
+<meta name="forkcast-release" content="v1.3.224">
+<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=34ca303fb2","/js/app.js":"/js/app.js?v=d7871c4487","/js/m/ahead.js":"/js/m/ahead.js?v=1a3a45189e","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=ea634a09d3","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=9e3bfdf0fe","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=c4a8d8abb7","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=80a6be1bc2","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=5d8c48ccca","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=97940d5b11","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=e7eb6b278f","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=98e62c8795","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=645e6c9c47","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=d98a0d6c72","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=b1bb3a68a3","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=bd6a2e9b77","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=cb1f15304d","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=cbdc5c496f","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=809a0d3176","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=9aa5c5689b","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=6b0860ec49","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=4acbd15e4c","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=1981b7833d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=c58efead2d","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=f975ff538c","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=a816c0e84e","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=1ec43fe885","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=cfce24e093","/js/m/api.js":"/js/m/api.js?v=6d718fec68","/js/m/app.js":"/js/m/app.js?v=abd24c20f0","/js/m/calls.js":"/js/m/calls.js?v=0b0e99968a","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=e045754c71","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=3a26737f9b","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=6d3835eda9","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=3cf482dd6a","/js/m/memory.js":"/js/m/memory.js?v=835f0dd1df","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=64d355fb52","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=8760d61f37","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=0af9ca007a","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=bfdebe4cdf","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=18e75f603f","/js/m/memory/live.js":"/js/m/memory/live.js?v=d76b0dc8fb","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=4c64f76cdd","/js/m/memory/values.js":"/js/m/memory/values.js?v=4d7ff96d44","/js/m/picker.js":"/js/m/picker.js?v=40c7bc336f","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=67f7e9687a","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=9576783de3","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=43737bdc0a","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=f388b971b7","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=bc24c27906","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=9f2ef4f880","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=7cbcb9ddab","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=3ed4878c7c","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=b118315353","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=42c1245f6a","/js/m/shell/store.js":"/js/m/shell/store.js?v=d57be956cc","/js/marks.js":"/js/marks.js?v=c34a920720","/js/plan/engine.js":"/js/plan/engine.js?v=ed5912a0d1","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=3fc37880a6","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=1200f7b422","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=1ecbec2ebb","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=2fd30e083a","/js/plan/kits.js":"/js/plan/kits.js?v=cda7d0ceb5","/js/plan/pitch.js":"/js/plan/pitch.js?v=080c4beb8e","/js/studio/flags.js":"/js/studio/flags.js?v=a8cd3ecd9b","/js/studio/kit.js":"/js/studio/kit.js?v=20c9937b9e","/js/studio/tables.js":"/js/studio/tables.js?v=65f8b07c32","/js/ui.js":"/js/ui.js?v=95b40ba139","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=9f0f364620","/js/views/compare.js":"/js/views/compare.js?v=6ad8f349d3","/js/views/dashboard.js":"/js/views/dashboard.js?v=8a1f0c98d1","/js/views/data.js":"/js/views/data.js?v=90e9f05369","/js/views/docs.js":"/js/views/docs.js?v=f696c42510","/js/views/fixtures.js":"/js/views/fixtures.js?v=319a00ca42","/js/views/planner.js":"/js/views/planner.js?v=c4c601da19","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=7fde223c58","/js/views/planner/model.js":"/js/views/planner/model.js?v=71f793cc1d","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=d4151c7331","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=14bd7e2b61","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=f72f49fd45","/js/views/players.js":"/js/views/players.js?v=358b613d94","/js/views/preview.js":"/js/views/preview.js?v=8c7c4bcf84","/js/views/runs.js":"/js/views/runs.js?v=c11f23245f"}}</script>
 </head>
 <body>
 <div class="m-app" id="app">
@@ -4819,7 +4822,7 @@ function solveGap(values) {
   const g = values.to != null && Number(values.to) > Number(values.from_r) ? later : gap;
   return g > 0 ? { ...rest, gap: g } : rest;
 }
-function solve({ entry, purpose, values: asked, lane = 0, said = null }, { slot = SOLVE_CLASS[purpose] ?? purpose, onUpdate, signal } = {}) {
+function solve({ entry, purpose, values: asked, lane = 0, said = null, swap = false }, { slot = SOLVE_CLASS[purpose] ?? purpose, onUpdate, signal } = {}) {
   const values = solveGap(asked);
   const held2 = bareFor(values);
   if (held2) {
@@ -4857,7 +4860,7 @@ function solve({ entry, purpose, values: asked, lane = 0, said = null }, { slot 
           return r;
         }
       }
-      let s = await post("/api/m/solve", { entry, purpose, values, supersedes: prev?.key ?? null, ...lane ? { lane } : {}, ...said ? { said } : {} }, { signal: sig });
+      let s = await post("/api/m/solve", { entry, purpose, values, supersedes: prev?.key ?? null, ...lane ? { lane } : {}, ...said ? { said } : {}, ...swap ? { swap: true } : {} }, { signal: sig });
       mine.key = s?.key ?? null;
       onUpdate?.(s);
       let misses = 0;
@@ -4865,7 +4868,7 @@ function solve({ entry, purpose, values: asked, lane = 0, said = null }, { slot 
         await sleep(purpose === "card" ? CARD_POLL_MS : SOLVE_POLL_MS, sig);
         if (sig.aborted) return stopped();
         try {
-          s = { key: mine.key, ...await get2(`/api/m/solve/${enc(mine.key)}`, null, { signal: sig }) };
+          s = { key: mine.key, ...await get2(`/api/m/solve/${enc(mine.key)}`, swap ? { swap: 1 } : null, { signal: sig }) };
           misses = 0;
           onUpdate?.(s);
         } catch (e) {
@@ -4873,7 +4876,7 @@ function solve({ entry, purpose, values: asked, lane = 0, said = null }, { slot 
           if (!(e.code === "unreachable" || e.code === "timeout") || ++misses >= 5) throw e;
         }
       }
-      return { key: mine.key, state: s.road ? "done" : s.state, road: s.road ?? null, error: s.error ?? null, version: s.version ?? null };
+      return { key: mine.key, state: s.road ? "done" : s.state, road: s.road ?? null, error: s.error ?? null, version: s.version ?? null, swap: s.swap ?? null };
     } catch (e) {
       if (sig.aborted) return stopped();
       throw e;
@@ -7353,7 +7356,6 @@ var init_copy = __esm({
       boardSaid: (name, out) => `${name} would come in for ${out}`,
       boardBench: (name) => `${name} would go to the bench`,
       playAChip: "Play a chip",
-      yourFplTeam: "Your FPL team:",
       answerSave: (ft) => ft > 1 ? "Save your free transfers" : "Save your free transfer",
       answerDone: "Nothing more to do this week",
       /** The band's number's scope and its toss-up (ahead tokensOf; owner, 2026-11-03, design_1103b): "· 4 GW", "Close call". */
@@ -8458,7 +8460,7 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
   const mult = isCap && o.capPoints ? o.tc ? 3 : 2 : 1;
   const tone = availabilityTone(p);
   const blank = Array.isArray(fx) && !fx.length;
-  const low = !tone && !blank && xp != null && xp < 1;
+  const low = !blank && xp != null && xp < 1;
   const dgw = fx?.length > 1;
   const bought = o.bought?.[id] ?? null;
   const sold = o.sold?.[id] ?? null;
@@ -8972,6 +8974,14 @@ function solveKept(api, args, opts, said = {}) {
   SOLVES.asked++;
   const p = api.solve({ ...args, said: { gw: said.gw ?? (Number(args.values?.from_r) || null), kind: said.kind ?? SOLVE_KINDS[args.purpose] ?? args.purpose, what: said.what ?? "your rules as set" } }, opts);
   const q = p.then((r) => {
+    if (r?.swap && r.road?.key != null && r.version != null) {
+      SWAPS.delete(r.road.key);
+      SWAPS.set(r.road.key, { weeks: r.swap, version: r.version });
+      for (const k of SWAPS.keys()) {
+        if (SWAPS.size <= SWAPS_MAX) break;
+        SWAPS.delete(k);
+      }
+    }
     const v = r?.road?.values;
     const gws = (r?.road?.weeks || []).map((w) => Number(w.gw));
     const broken = r?.state === "done" && v && gws.length ? brokenCells(r.road, ownPins(v, gws)).filter((x) => x.want === "in") : [];
@@ -9130,7 +9140,7 @@ function chipsAsked(c) {
 function optionsRoad(model2, list, gws, also = []) {
   return findRoad(model2, composePins(optionPins(list), { from: gws[0], to: gws.at(-1) }), gws, also);
 }
-var firstPlanValues, chipRounds, parseRolls, ownPins, SOLVES, SOLVE_KINDS, ANSWERED, MODEL_FIT, SOLVED_FOR, CHIPS_ASKED, optionPins, optionsValues;
+var firstPlanValues, chipRounds, parseRolls, ownPins, SOLVES, SWAPS, SWAPS_MAX, SOLVE_KINDS, ANSWERED, MODEL_FIT, SOLVED_FOR, CHIPS_ASKED, optionPins, optionsValues;
 var init_values = __esm({
   "js/m/memory/values.js"() {
     init_engine();
@@ -9146,6 +9156,8 @@ var init_values = __esm({
     parseRolls = (spec) => String(spec ?? "").split(",").map((t) => Number(t.trim())).filter((g) => Number.isInteger(g) && g > 0);
     ownPins = (v, gws) => solvedFor(v, gws).own ??= composePins([{ id: "road", must: v.must_have || "", excl: v.exclude || "" }], { from: gws[0], to: gws.at(-1) });
     SOLVES = { asked: 0 };
+    SWAPS = /* @__PURE__ */ new Map();
+    SWAPS_MAX = 64;
     SOLVE_KINDS = { heal: "Your team", chip: "your chip", cash: "your bank", wish: "a wish", speculative: "without your transfers", chipprep: "a chip, ahead", pair: "a choice", pairnext: "a choice, ahead", presolve: "a tap, ahead", plan: "the plan" };
     ANSWERED = /* @__PURE__ */ new Map();
     MODEL_FIT = /* @__PURE__ */ new WeakMap();
@@ -10903,7 +10915,7 @@ function modelPart(V) {
     const want2 = ctx2.presolveOn?.() !== false || m.want;
     if (want2 && !m.road && !m.p && !m.error && ctx2.api?.solve && conn?.state !== "offline" && !conn?.snapshot) {
       m.since = Date.now();
-      m.p = solveKept(ctx2.api, { entry: Number(S.entry), purpose: "plan", values: ask.values }, void 0, { what: "the solver's best \xB7 none of your rules" });
+      m.p = solveKept(ctx2.api, { entry: Number(S.entry), purpose: "plan", values: ask.values, swap: true }, void 0, { what: "the solver's best \xB7 none of your rules" });
       m.p.then((r) => {
         if (S.model !== m) return;
         m.p = null;
@@ -11275,6 +11287,7 @@ __export(memory_exports, {
   FORGET_MS: () => FORGET_MS,
   ROADS: () => ROADS,
   SOLVES: () => SOLVES,
+  SWAPS: () => SWAPS,
   TIMING: () => TIMING,
   USED: () => USED,
   attach: () => attach,
@@ -11433,7 +11446,7 @@ function headPart(V) {
     const s = getComputedStyle(x);
     return x.getBoundingClientRect().height + parseFloat(s.marginTop) + parseFloat(s.marginBottom);
   };
-  const rowsH = (card2) => [...card2.children].reduce((t, c) => t + c.getBoundingClientRect().height, 0);
+  const rowsH = (card2) => [...card2.children].reduce((t, c) => /^(absolute|fixed)$/.test(getComputedStyle(c).position) ? t : t + c.getBoundingClientRect().height, 0);
   function fitBlock() {
     const { FACTS_PROBE, barNode, doorStubs, factSpans, strip } = V;
     const real = strip.querySelector(":scope > .ah-block:not(.ah-fitprobe)");
@@ -11528,7 +11541,7 @@ function headPart(V) {
     const { avatar, ctx: ctx2, gwline, head, setBtn } = V;
     const team = ctx2.bundle?.entry?.team_name ?? "";
     if (globalThis.document) document.title = team ? `${team} \xB7 Forkcast` : "Forkcast";
-    fill(head, pageName(team), setBtn, h("div.ah-hmid", null, h("div.ah-team", null, team), gwline), V.stand, avatar);
+    fill(head, pageName(team), setBtn, h("div.ah-hmid", null, h("div.ah-team", null, team)), avatar);
   }
   function renderGwLine(g, A) {
     const { S, gwline } = V;
@@ -11842,27 +11855,28 @@ function headPart(V) {
       S.waitAll = null;
       return { key: "updating", word: "Updating", scope: "the forecast", p: null };
     }
-    const plan2 = replanning(), w = S.wait ? S.wl : null;
-    if (!plan2 && !w) {
+    const plan2 = replanning(), w = S.wait ? S.wl : null, c = w ? null : S.cardWait ?? null;
+    if (!plan2 && !w && c == null) {
       S.waitAll = null;
       return null;
     }
     const A = S.waitAll ??= { t0: (plan2 ? planWait()?.since : null) ?? S.wait?.t0 ?? now, plan: false, max: 0 };
     A.plan ||= plan2;
-    const n = (A.plan ? 1 : 0) + (w?.n ?? 0), done = (A.plan && !plan2 ? 1 : 0) + (w?.done ?? 0);
+    const n = (A.plan ? 1 : 0) + (w?.n ?? (c != null ? 1 : 0)), done = (A.plan && !plan2 ? 1 : 0) + (w?.done ?? 0);
     const at2 = w && !plan2 ? w.at : A.t0, tau = w?.tau ?? 4e3;
     const p = A.max = Math.max(A.max, stepShare(done, n, reduceMotion() ? 0 : now - at2, tau));
-    const gws = ctx2.data?.horizon, scope = w ? `GW${w.g}` : gws?.length ? span3(gws) : null;
+    const g = w?.g ?? c, gws = ctx2.data?.horizon, scope = g != null ? `GW${g}` : gws?.length ? span3(gws) : null;
     return {
       key: "wait",
       word: COPY.waitWord,
       scope,
-      long: w ? `GW${w.g}'s moves` : null,
+      long: g != null ? `GW${g}'s moves` : null,
       prog: n > 1 ? `${Math.min(done + 1, n)} of ${n}` : null,
       so: (now - A.t0) / 1e3,
       p,
       plan: A.plan,
-      done
+      done,
+      card: c != null && !!S.cardAsk
     };
   }
   function paintWait() {
@@ -11874,11 +11888,13 @@ function headPart(V) {
     paintDim(W);
     if (on) {
       if (waitV.t.parentNode !== pbt) pbt.append(waitV.t);
-      if (waitV.bar.parentNode !== block) block.append(waitV.bar);
+      const host = block.querySelector(":scope > .ah-tkbody .ah-tkline") ?? block;
+      if (waitV.bar.parentNode !== host) host.append(waitV.bar);
       paintWaitView(waitV, W);
     } else {
       waitV.t.remove();
       waitV.bar.remove();
+      waitV.bar.firstChild.style.width = "";
       waitV.key = null;
     }
     if (was && !on) fitFacts();
@@ -11901,7 +11917,7 @@ function headPart(V) {
       return;
     }
     S.dimT0 ??= now;
-    const left = S.dimT0 + WAIT_DIM_MS - now;
+    const left = W.card ? 0 : S.dimT0 + WAIT_DIM_MS - now;
     dim(left <= 0);
     if (left > 0 && !S.dimTimer) S.dimTimer = setTimeout(() => {
       S.dimTimer = null;
@@ -15166,7 +15182,7 @@ function plansOf(ctx2, P, g, { peek = false, prep = false } = {}) {
   const w = weekOf(P, g);
   if (inkAt(ctx2, P, g) || !w) return [];
   const chipMine = SQUAD_CHIPS.has(w.chip) ? w.chip : null;
-  if (!prep && !ctx2.presolveOn?.() && !chipMine && !suggestedAt(P, g) && !showingAt(P, g) && !ROWS_WANT.has(g) && (w.moves.length || !P.pins.some((p) => p.kind === "notfor" && Number(p.gw) === g))) return [];
+  if (!prep && !ctx2.presolveOn?.() && !chipMine && !tappedSuggestion(P, g) && !showingAt(P, g) && !ROWS_WANT.has(g) && (w.moves.length || !P.pins.some((p) => p.kind === "notfor" && Number(p.gw) === g))) return [];
   const lean = !prep && !ctx2.presolveOn?.();
   const modelTo = Number(memOf(ctx2)?.model?.()?.values?.to ?? Infinity);
   if (lean && !P.base && g <= modelTo) {
@@ -16057,7 +16073,7 @@ function forkPump(ctx2, P, ask) {
   const ours = () => (lane ? FORK_FLIGHTS.get(lane) : PAIR.flight) === flight;
   const purpose = ask.card ? "card" : ask.ahead ? ask.src === "week" ? "pair" : "presolve" : prep ? "pairnext" : "pair";
   if (ask.ahead) AHEAD.asked.push({ at: Date.now(), key: ask.key, src: ask.src });
-  const p = solveKept(ctx2.api, { entry: Number(P.entry), purpose, values: ask.values, ...lane ? { lane } : {} }, { ...lane ? { slot: `fork${lane}` } : {}, onUpdate: (s) => {
+  const p = solveKept(ctx2.api, { entry: Number(P.entry), purpose, values: ask.values, ...lane ? { lane } : {}, swap: true }, { ...lane ? { slot: `fork${lane}` } : {}, onUpdate: (s) => {
     if (s?.key) flight.sk = s.key;
   } }, forkSaid(ctx2, P, ask, prep));
   flight.cancel = () => p.cancel?.();
@@ -16161,28 +16177,6 @@ function cardRows(node2) {
 }
 function ticketPart(V) {
   const adviceOf = (P, w) => w.moves.length > 1 ? plural(w.moves.length, "transfer") : w.moves.length ? movesWords(P, w.moves) : "";
-  function paintStand(w) {
-    const { stand } = V;
-    const [ft, bank] = standWords(w);
-    fill(
-      stand,
-      h("span", null, w.moves.length ? [h("b", null, plural(w.moves.length, "transfer")), " made"] : h("b", null, ft)),
-      bank == null ? null : h("span", null, bank.short ? h("b.ah-short", null, bank.text) : [h("b", null, bank.text), " in the bank"])
-    );
-  }
-  function standWords(w) {
-    const itb = w.bank != null ? itbWords(w.bank) : null;
-    return [plural(w.ft ?? 1, "free transfer"), w.bank == null ? null : itb ? { text: itb[0].replace(/ ITB$/, "") } : { text: COPY.moneyShort(-w.bank), short: true }];
-  }
-  function paintFlag(P, w) {
-    const { S, flag: flag2, openWeek } = V;
-    if (w.gw === P.A) S.flagWords = S.status?.sub?.replace(/^Set in FPL:?\s*/, "") ?? null;
-    const t = S.flagWords;
-    flag2.hidden = !t;
-    if (!t) return;
-    fill(flag2, h("span", null, COPY.yourFplTeam), h("b", null, /change/.test(t) ? `${t} to make` : t));
-    flag2.onclick = (ev) => openWeek(ev, P.A);
-  }
   function holdStack(from, to) {
     const { S, el, strip, ticks } = V;
     const card2 = strip.querySelector(":scope > .ah-ticket");
@@ -16277,6 +16271,12 @@ function ticketPart(V) {
       pull(0);
     });
   }
+  const fitRows = (root) => {
+    for (const row of root?.querySelectorAll(".ah-tkrow:has(.ah-was)") ?? []) {
+      const lh = 1.5 * parseFloat(getComputedStyle(row).fontSize) * 1.2;
+      fitNum(row, () => [...row.children].some((c) => c.getBoundingClientRect().height > lh), ["nowas"]);
+    }
+  };
   const sizeTitle = (block) => {
     const head = block.querySelector(".ah-tkhead");
     head.classList.toggle("long", head.offsetHeight > 1.6 * parseFloat(getComputedStyle(head).fontSize));
@@ -16295,10 +16295,12 @@ function ticketPart(V) {
   }
   function paintTicket(P, w, M2, tk = []) {
     const { S, ctx: ctx2, dlEl, bringDoor, chipsDoor, inkAt: inkAt2, openWeek, rsBtn, setGw, stack, strip } = V;
-    const block = strip.querySelector(":scope > .ah-ticket");
-    if (!block || !w) return;
-    paintStand(w);
-    paintFlag(P, w);
+    const block = strip.querySelector(":scope > .ah-ticket"), waited = S.cardWait;
+    S.cardWait = null;
+    if (!block || !w) {
+      if (waited != null) V.paintWait();
+      return;
+    }
     const g = w.gw, next = P.gws[P.gws.indexOf(g) + 1] ?? null, off = !P.editable;
     const btn = (kind, text, row, onClick) => {
       const b = h(`button.ah-${kind}`, { type: "button", disabled: off, dataset: { row } }, text);
@@ -16338,7 +16340,7 @@ function ticketPart(V) {
       showSuggestion(P, g);
       V.schedule();
     });
-    const short = !M2?.sq && !placed && owedAt(P, w), asked = suggestedAt(P, g);
+    const short = !M2?.sq && !placed && owedAt(P, w), asked = tappedSuggestion(P, g);
     const moreAvail = !!best && !M2?.sq && !!w.moves.length && best.move.e.adds.length >= 1 && !best.move.e.taken.length && !best.move.e.chipNow;
     const owes = !!best && short && asked;
     const freeLeft = !M2?.sq && !placed && !!w.moves.length && !extraWeek(P, g);
@@ -16355,6 +16357,8 @@ function ticketPart(V) {
     const answered = () => answerRoad()?.road != null || !!failedHow();
     const solving = !!S.wait || !!M2 && !M2.settled || !!M2?.shownOut || !!M2?.all?.owedOut || asked && !best && !answered();
     const wait2 = () => {
+      S.cardWait = g;
+      S.cardAsk = asked && !best && !answered();
       title = withMine("");
       line = withCompare(COPY.waitShort);
       noBring = true;
@@ -16367,6 +16371,7 @@ function ticketPart(V) {
     const yoursLine = () => {
       if (placed) return null;
       const took = tookOf(P, w), from = P.gws.filter((x) => x >= g), r = V.weekRoll(P, w);
+      if (took?.said) return moveLine(took.said.pts, !!took.forced || fmt.signed(took.said.pts).startsWith(MINUS4), took.said.rounds, took.said.vs);
       const win = r?.shown != null && r.counted ? sameWindow(...r.counted, g) : 0;
       if (r) return moveLine(win ? r.shown : r.pts?.delta ?? r.delta, !!took?.forced, win || from.length, COPY.planVsRoll);
       const tabs3 = from.some((x) => x > g && weekOf(P, x)?.moves.length) || !from.every((x) => P.bare?.has(x)) ? null : from.reduce((t, x) => t + weekOf(P, x).points - P.bare.get(x).points, 0);
@@ -16411,7 +16416,9 @@ function ticketPart(V) {
       };
       right = btn("go", COPY.swap, `tok:best:${g}`, (ev) => {
         answeredAsk();
-        return best.querySelector(".ah-tgo") ? best.take(ev) : best.click();
+        const r = best.querySelector(".ah-tgo") ? best.take(ev) : best.click();
+        tookSaid(g, { pts: pts2, rounds, vs });
+        return r;
       });
     };
     if (who2?.kind === "sub") {
@@ -16449,7 +16456,7 @@ function ticketPart(V) {
       save();
     } else if (yours.length && !(wanted && solving)) {
       made();
-    } else if (wanted && solving) {
+    } else if (wanted && solving || P.healing && !yours.length && !short) {
       wait2();
     } else if (wanted && ans) {
       save();
@@ -16485,6 +16492,7 @@ function ticketPart(V) {
       h("div.ah-tktitle", null, h("h2.ah-tkhead", null, title)),
       cardRows(line == null ? null : line instanceof Node ? line : lineRow(line))
     );
+    fitRows(block);
     const sug = block.querySelector(":scope > .ah-tkbody .ah-tksug");
     const bringBy = chips && !noBring && sug ? chips[0] : null;
     if (bringBy) sug.append(bringBy);
@@ -16495,7 +16503,7 @@ function ticketPart(V) {
     if (sug) acts.after(sug);
     fill(
       block.querySelector(":scope > .ah-tklinks"),
-      who2 ? null : h("span.ah-tkback", null, toChoice, undo && !toChoice && !prev ? h("button.ah-rsbtn.undo", { type: "button", disabled: off, class: { back: !!onTop || !swaps && (!!refused || shown2) }, dataset: { row: `tk:undo:${g}` }, onClick: undo }, undoWords) : null, prev, rsBtn),
+      who2 ? null : h("span.ah-tkback", null, toChoice, undo && (!toChoice || last) && !prev ? h("button.ah-rsbtn.undo", { type: "button", disabled: off, class: { back: !!onTop || !swaps && (!!refused || shown2) }, dataset: { row: `tk:undo:${g}` }, onClick: undo }, undoWords) : null, prev, rsBtn),
       // (chips off, calls.js CHIPS_OFF: no Play a chip at all, never a link a tap does nothing on; owner, 2026-11-09, "why play
       // a chip not respond")
       chips ? h("span.ah-tkor", null, noBring || bringBy ? null : chips[0], CHIPS_OFF ? null : chips[1]) : null
@@ -16504,8 +16512,9 @@ function ticketPart(V) {
     V.paintBoard(P, w, who2 ? null : after);
     playStack(g);
     V.fitPitch();
+    V.paintWait();
   }
-  return { adviceOf, bindStack, firstCard, holdStack, paintTicket, sizeTitle };
+  return { adviceOf, bindStack, firstCard, fitRows, holdStack, paintTicket, sizeTitle };
 }
 function keptActs(g, kids) {
   if (!ACTS.has(g)) ACTS.set(g, /* @__PURE__ */ new Map());
@@ -16529,7 +16538,6 @@ var init_screen_ticket = __esm({
     init_ui();
     init_calls();
     init_core();
-    init_pieces();
     init_forks();
     init_presolve();
     init_buys();
@@ -16932,12 +16940,6 @@ function mount(el, ctx2) {
     get setBtn() {
       return setBtn;
     },
-    get flag() {
-      return flag2;
-    },
-    get stand() {
-      return stand;
-    },
     get stack() {
       return stack;
     },
@@ -17085,7 +17087,7 @@ function mount(el, ctx2) {
   };
   const { pageName, resetTap, resetSheet, learn, gwNow, setGw, outerH, fitBlock, fitHead, fitPitch, redeck, schedule, covered, paintAvatar, renderHead, renderGwLine, paintDeadline, replanning, paintPlanStatus, tick, hosts, focusedKeys, keepFocus, renderPair, render, renderBaking, renderRules, ruleSheet, clearAll, driftRoom, owes, priceDrift, heldOrder, renderWeek, waitNow, paintWait, paintDim, weekModel, waited, clockShown, waitClock, plansHeading, plansListed: plansListed2 } = headPart(V);
   const { openWeek, renderLine, fitFacts, weekGain, boxOf, cardBoxes, reachLabels, labelWalls, sideRoom, cardIn, entryKey, topRow } = linePart(V);
-  const { adviceOf, bindStack, firstCard, holdStack, paintTicket, sizeTitle } = ticketPart(V);
+  const { adviceOf, bindStack, firstCard, fitRows, holdStack, paintTicket, sizeTitle } = ticketPart(V);
   const { renderDecks, spanOf, sheetFollows, swapPlate, placeLabel, statusLine, tokensOf, numParts, takeFrom, landMotion, land: land2, openPlace, placeKey, closePlace } = decksPart(V);
   const { drawPlace, planLine, fitLine, scaleHeads, fitBlocks, stepPlace, shadeTap, weekSheet } = placePart(V);
   const { drawWeek, clashRow, noteRow, forecastLine, waitSig, waitWatch, keepNight, sayNight, sayCarried, barNode, dotted, bsep, textOf, bankWarn, bankLead, weekLead, roadOfEv, movesTitle: movesTitle2, openWhy, deckOf, placeLink, whenFree: whenFree2, placeAct, whyTaps, whyActs, notOf, vetoBack, notAct, whenSheet, gainOf, whySub, numOf, numSaid, plNumSaid, hitTag, hitSaid, plansVs, whyPart, rowTies } = weekPart(V);
@@ -17143,11 +17145,9 @@ function mount(el, ctx2) {
   const decks = h("div.ah-decks", { role: "group" });
   const remProbe = h("span.ah-remprobe", { "aria-hidden": "true" });
   const noticeSaid = h("span.sr-only", { "aria-live": "polite" });
-  const flag2 = h("button.ah-fplflag", { type: "button", hidden: true, dataset: { row: "fpl" } });
-  const stand = h("div.ah-stand");
   const stack = h("div.ah-stack", { dataset: { nopull: "" } }, ctl, strip);
   bindStack();
-  el.append(head, slot, h("div.ah-pitchwrap", null, pitchHost, flag2), noticeSaid, stack, remProbe);
+  el.append(head, slot, h("div.ah-pitchwrap", null, pitchHost), noticeSaid, stack, remProbe);
   const asksHost = h("div.ah-rules-host");
   GO_GW = setGw;
   let fitKey = "", fitDrawn = false;
@@ -17160,6 +17160,7 @@ function mount(el, ctx2) {
     const pm = pitchHost.querySelector(":scope > .pm");
     if (pm) fitFixtures(pm);
     fitRail();
+    fitRows(strip);
     redeck();
   }) : null;
   refitPitch?.observe(el);
@@ -17334,8 +17335,11 @@ function mount(el, ctx2) {
   globalThis.addEventListener("pointerup", spentUp);
   globalThis.addEventListener("pointerdown", spentDown, true);
   globalThis.addEventListener("click", spentClick, true);
+  FORGET_ASKS ??= ctx2.store.on("entry", () => {
+    AHEAD.showing.clear();
+    AHEAD.suggested.clear();
+  });
   const offs = [
-    ctx2.store.on("entry", () => AHEAD.showing.clear()),
     ctx2.store.on("gw", () => schedule()),
     ctx2.store.on("memory", () => schedule("mem")),
     ctx2.store.on("aheadRev", () => schedule()),
@@ -17378,7 +17382,7 @@ function mount(el, ctx2) {
     }
   };
 }
-var GO_GW, TAP_IN, rulesOf, ROW_KINDS, MOVE_KINDS, listedRules, CHIP_PINS, chipPins, glyph, whole, fitNum, oneLook, HEAD_LEAST, HEAD_TRIMS, HEAD_NUM, headScale, PLATE_TRIMS, ST_TRIMS, NAME_LEAST, deadlineOf, countdown, countdownParts, holdFill, reachOf2, TAB_MIN, EDGE_MIN, PLATE_MIN, boxesMeet, pitchLeast, cssPx;
+var GO_GW, TAP_IN, rulesOf, ROW_KINDS, MOVE_KINDS, listedRules, CHIP_PINS, chipPins, glyph, whole, fitNum, oneLook, HEAD_LEAST, HEAD_TRIMS, HEAD_NUM, headScale, PLATE_TRIMS, ST_TRIMS, NAME_LEAST, deadlineOf, countdown, countdownParts, holdFill, reachOf2, TAB_MIN, EDGE_MIN, PLATE_MIN, boxesMeet, pitchLeast, cssPx, FORGET_ASKS;
 var init_screen = __esm({
   "js/m/ahead/screen.js"() {
     init_engine();
@@ -17468,6 +17472,7 @@ var init_screen = __esm({
       for (const p of probes) p.remove();
       return px;
     };
+    FORGET_ASKS = null;
   }
 });
 
@@ -18483,7 +18488,6 @@ __export(presolve_exports, {
   shownGain: () => shownGain2,
   soldBy: () => soldBy,
   stopAhead: () => stopAhead,
-  suggestedAt: () => suggestedAt,
   swapAsked: () => swapAsked,
   swapComing: () => swapComing,
   swapGain: () => swapGain,
@@ -18495,6 +18499,7 @@ __export(presolve_exports, {
   tiedBuy: () => tiedBuy,
   tookCmp: () => tookCmp,
   tookOf: () => tookOf,
+  tookSaid: () => tookSaid,
   weekOnto: () => weekOnto,
   weekTaps: () => weekTaps,
   whenOf: () => whenOf,
@@ -18516,6 +18521,9 @@ function tookOf(P, w) {
     return null;
   }
   return movesKey(w.moves) === t.sig ? t : null;
+}
+function tookSaid(g, said) {
+  if (AHEAD.took?.g === g) AHEAD.took.said = said;
 }
 function dryEdit(run) {
   const was = DRY, mine = DRY = { got: null };
@@ -18586,7 +18594,17 @@ function weekTaps(ctx2, P, g, list) {
 function presolveSwap(ctx2, P, g, pl) {
   if (P.healing || leftBehind(ctx2, P) || inkAt(ctx2, P, g)) return;
   const [take] = weekTaps(ctx2, P, g, [pl]).takes;
-  if (take) presolve(ctx2, P, "week", [take], { gw: g, sig: take.id, owner: take.id });
+  if (!take) return;
+  swapKept(ctx2, P, g, pl, take);
+  presolve(ctx2, P, "week", [take], { gw: g, sig: take.id, owner: take.id });
+}
+function swapKept(ctx2, P, g, pl, take) {
+  const from = pl.road?.from ?? pl.road?.key, got = SWAPS.get(from), road = got?.weeks?.[g]?.road, mem = memOf(ctx2);
+  if (!road || DRY) return;
+  const a = askOf(ctx2, P, { ...take, bare: true }, "week");
+  const after = P.gws.filter((x) => x > g), rolled = new Set(String(a?.values.no_buys_gw ?? "").split(",").map(Number));
+  if (!a || !after.every((x) => rolled.has(x)) || mem.solved(a.values)) return;
+  mem.offer({ ...road, from, key: a.key, values: a.values }, { values: a.values, version: got.version });
 }
 function presolveNext(ctx2, P, g, road, refusals, d0) {
   if (P.healing || leftBehind(ctx2, P) || inkAt(ctx2, P, g) || DRY) return;
@@ -19258,7 +19276,7 @@ function whyFacts(ctx2, P, g, m, withIt, without, { drafts = null, c = null, you
     better ? COPY.instead(`${nm(use.out)} \u2192 ${nm(use.in)}`, onBase(use.cmp.delta, c.delta, head), head ?? c.delta, vs) : null
   ].filter(Boolean);
 }
-var PRESOLVE_MAX, SOLVE_MAX, PRESOLVE_RATE, PRESOLVE_WINDOW_MS, DRY, AHEAD, teamOn, pressedAt, tapNow, showTransfer, showingAt, showSuggestion, suggestedAt, tappedSuggestion, tapSpent, swapAsked, movesKey, rulesKey, tookCmp, ownIn, ownSwapIn, ownLeft, sameWindow, windowRounds, cardGain, swapRoad, aheadAsks, aheadWaited, owedAt, paysBack, ROOTS, clearRoots, ROOT_NARROW, sameRest, spanWeeks, buysNoneTo, sideBusy, OWN_ALTS, OWN_ALT_TRIES, OWN_ALTS_ALONE, OWNALTS, choiceGain, tiedBuy, OTHERUSE, PAIR, PAIR_AGAIN_MS, PAIR_HOLD_MS, PAIR_TAKES, PREP_BESIDE, pairChanged, goneIds, madeEarlier, wishWeeks, weekOnto, isYours, yoursTakenBack, rollingAt, pinOfMove, soldBy, boughtBy, moveSaid, ROWGAINS, onBase, pairOf, withFlag;
+var PRESOLVE_MAX, SOLVE_MAX, PRESOLVE_RATE, PRESOLVE_WINDOW_MS, DRY, AHEAD, teamOn, pressedAt, tapNow, showTransfer, showingAt, showSuggestion, tappedSuggestion, tapSpent, swapAsked, movesKey, rulesKey, tookCmp, ownIn, ownSwapIn, ownLeft, sameWindow, windowRounds, cardGain, swapRoad, aheadAsks, aheadWaited, owedAt, paysBack, ROOTS, clearRoots, ROOT_NARROW, sameRest, spanWeeks, buysNoneTo, sideBusy, OWN_ALTS, OWN_ALT_TRIES, OWN_ALTS_ALONE, OWNALTS, choiceGain, tiedBuy, OTHERUSE, PAIR, PAIR_AGAIN_MS, PAIR_HOLD_MS, PAIR_TAKES, PREP_BESIDE, pairChanged, goneIds, madeEarlier, wishWeeks, weekOnto, isYours, yoursTakenBack, rollingAt, pinOfMove, soldBy, boughtBy, moveSaid, ROWGAINS, onBase, pairOf, withFlag;
 var init_presolve = __esm({
   "js/m/ahead/presolve.js"() {
     init_engine();
@@ -19304,7 +19322,6 @@ var init_presolve = __esm({
       AHEAD.suggested[on ? "add" : "delete"](`${P.entry}|${g}`);
       PAIR.rev++;
     };
-    suggestedAt = (P, g) => !!globalThis.__fcSuggested || tappedSuggestion(P, g);
     tappedSuggestion = (P, g) => AHEAD.suggested.has(`${P.entry}|${g}`);
     tapSpent = (reserve = 0) => AHEAD.tapped !== null && AHEAD.tappedOn === teamOn() && SOLVES.asked - AHEAD.tapped >= SOLVE_MAX - reserve;
     swapAsked = (P, g) => {
