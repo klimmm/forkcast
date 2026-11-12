@@ -169,6 +169,35 @@ function local(req, res) {
   return true;
 }
 
+// An /api answer the laptop says is the same for ever (Cache-Control immutable: every player's cards at their stamp,
+// GET /api/m/cards/all?v=), kept here by its URL and answered from here: it crosses the tunnel once, not once per phone
+// (owner, 2026-11-12, "fix bug"); the last KEPT_MAX, as received (its gzip kept, unpacked for a visitor without it).
+const KEPT = new Map();
+const KEPT_MAX = 4;
+function keep(req, r, buf) {
+  if (req.method !== 'GET' || r.statusCode !== 200 || !req.url.startsWith('/api/') || !/\bimmutable\b/.test(r.headers['cache-control'] || '')) return;
+  const headers = {};
+  for (const [k, v] of Object.entries(r.headers)) if (!HOP.has(k)) headers[k] = v;
+  KEPT.delete(req.url);
+  KEPT.set(req.url, { headers, body: buf });
+  while (KEPT.size > KEPT_MAX) KEPT.delete(KEPT.keys().next().value);
+}
+function fromKept(req, res) {
+  const k = req.method === 'GET' && KEPT.get(req.url);
+  if (!k) return false;
+  const gz = /gzip/i.test(k.headers['content-encoding'] || '');
+  if (gz && !gzipOk(req.headers['accept-encoding'])) {
+    const { 'content-encoding': _, ...headers } = k.headers;
+    const body = zlib.gunzipSync(k.body);
+    res.writeHead(200, { ...headers, 'content-length': body.length });
+    res.end(body);
+    return true;
+  }
+  res.writeHead(200, { ...k.headers, 'content-length': k.body.length });
+  res.end(k.body);
+  return true;
+}
+
 // the laptop's release, from an answer it gave
 function noteRelease(r) {
   // a server.py answer (2xx/3xx, not a tunnel's 502/504/530) without it: the tree's own front end, nothing served here
@@ -275,7 +304,9 @@ function forward(req, res, body, to, attempt = 0, part = null) {
       }
       return whole(r, rest, (what, got, chunks) => fail(what, up, r, true, resumable(req, r, got, chunks, part)), (buf) => {
         over = true;
-        relay(part.r, res, own, to, Buffer.concat([...part.chunks, buf], part.len));
+        const all = Buffer.concat([...part.chunks, buf], part.len);
+        keep(req, part.r, all);
+        relay(part.r, res, own, to, all);
       });
     }
     // asked for the rest, answered neither the rest nor the whole: from byte 0
@@ -284,6 +315,7 @@ function forward(req, res, body, to, attempt = 0, part = null) {
     if (read && Number.isInteger(len) && len <= BUFFER_MAX) {
       return whole(r, req.method === 'HEAD' ? 0 : len, (what, got, chunks) => fail(what, up, r, true, resumable(req, r, got, chunks)), (buf) => {
         over = true;
+        keep(req, r, buf);
         relay(r, res, own, to, buf);
       });
     }
@@ -393,7 +425,7 @@ http.createServer((req, res) => {
   // which forwarder runs (a deploy checked from outside, no laptop involved)
   if (req.url === '/__version') {
     res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
-    return res.end(`stall-resume 2026-10-26, immutable 2026-11-12; static ${STATIC.release || '-'} (${STATIC.files.size} files); laptop ${laptop || '-'}\n`);
+    return res.end(`stall-resume 2026-10-26, immutable 2026-11-12, kept api ${KEPT.size}; static ${STATIC.release || '-'} (${STATIC.files.size} files); laptop ${laptop || '-'}\n`);
   }
   if (req.url === '/__ping') {
     res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
@@ -405,7 +437,7 @@ http.createServer((req, res) => {
     // a throw here answers 502, never ends the process (the live site; the review, 2026-10-23: one request took it down)
     try {
       if (req.url === '/__target' && req.method === 'POST') return pushTarget(req, res, Buffer.concat(chunks));
-      if (local(req, res)) return;
+      if (local(req, res) || fromKept(req, res)) return;
       const to = await readTarget();
       if (!to) {
         res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
