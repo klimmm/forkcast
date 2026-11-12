@@ -278,6 +278,7 @@ export function headPart(V) {
     const w = weekOf(P, g);
     if (!w) return renderBaking();
     S.drawn = P;  // plan view on screen (schedule)
+    S.drawnGw = g;  // …of this week (show)
     // a landing not drawn yet (FLASH), this team's (setFlash)
     const fresh = FLASH && FLASH.at !== S.flashAt && FLASH.team === `${P.entry}|${P.A}` ? FLASH : null;
     if (fresh) S.flashAt = fresh.at;

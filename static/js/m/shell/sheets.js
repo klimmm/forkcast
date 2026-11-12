@@ -22,14 +22,27 @@ export function createSheets(app, { landed = () => {} } = {}) {
     // while a sheet is up the page and the sheets under it take no tap, focus or reading; #toasts hangs off <body>, so
     // its Undo stays in reach
     const modal = stack.length > 0;
-    // …and the screen stays inert while Connect is up (showGate), sheet or not
+    stack.forEach((s, i) => { const off = modal && i < stack.length - 1; if (s.el.inert !== off) s.el.inert = off; });
+    // the page wakes the frame after its last sheet goes, once none came instead: a sheet closed for another (Replace…,
+    // Bring him in…, a comparison's pick) left it inert throughout, where waking it between restyled the whole screen
+    // twice (owner, 2026-11-12, "compare players ... must be instant": ~60 ms of a load test phone's tap)
+    if (modal) { cancelAnimationFrame(waking); waking = 0; woken = null; pageInert(true); }
+    else waking ||= requestAnimationFrame(() => {
+      waking = 0;
+      const then = woken;
+      woken = null;
+      if (!stack.length) { pageInert(false); then?.(); }
+    });
+  };
+  /** The page (every child but the sheets) inert while a sheet is up, `on`; the screen too while Connect is (showGate). */
+  const pageInert = (on) => {
     const gated = document.documentElement.classList.contains('m-gated');
     for (const c of app.children) {
-      const off = modal || (gated && c.matches('.m-screen'));
+      const off = on || (gated && c.matches('.m-screen'));
       if (!c.matches('.m-sheet, .m-scrim') && c.inert !== off) c.inert = off;
     }
-    stack.forEach((s, i) => { const off = modal && i < stack.length - 1; if (s.el.inert !== off) s.el.inert = off; });
   };
+  let waking = 0, woken = null;  // the frame the page wakes in (sync), what then (dismiss's focus)
   /** Its height at detent d (its own by default). */
   const heightOf = (sheet, d = sheet.detent) => {
     const H = sheet.el.offsetHeight;
@@ -99,11 +112,15 @@ export function createSheets(app, { landed = () => {} } = {}) {
     setTimeout(() => { sheet.el.remove(); sheet.scrim.remove(); }, instant ? 0 : 450);
     // focus to the opener, or its replacement if redrawn (ui.focusKey), else the page's focus home (Ahead's week line);
     // under another sheet: its opener or replacement, else that sheet
+    // (the last sheet: once the page wakes, sync)
     if (i === stack.length) {
       const under = stack[stack.length - 1];
-      if (sheet.opener?.isConnected && !sheet.opener.closest('[inert]')) sheet.opener.focus?.({ preventScroll: true });
-      else if (under) ui.refocus(under.el, sheet.key, under.el);
-      else ui.refocus(app, sheet.key, $('[data-focus-home]', app));
+      const back = () => {
+        if (sheet.opener?.isConnected && !sheet.opener.closest('[inert]')) sheet.opener.focus?.({ preventScroll: true });
+        else if (under) ui.refocus(under.el, sheet.key, under.el);
+        else ui.refocus(app, sheet.key, $('[data-focus-home]', app));
+      };
+      if (under) back(); else woken = back;
     }
     sheet.onClose?.();
   }

@@ -24,6 +24,9 @@ import { plan, weekOf, squadBefore, barred, barringRule, ruleOf, inkAt, saleBuy,
 import { weekPills, tabs, barTop, bars, ownWeeks, shirt, found, SORTS, sortsOf, orderOf, sortChips } from './buylist.js';
 
 const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
+/** Rows drawn with the sheet; the rest of the list follows a frame later (draw). */
+const FIRST_ROWS = 24;
+
 export function open(ctx, preId = null, { gw = null, pos = null, out = null, compare = null } = {}) {
   const P0 = plan(ctx);
   if (!P0) return null;
@@ -109,6 +112,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null, com
         return ctx.data.rows.filter((r) => at(r) && ok(r)).sort(orderOf(sortOf(), st.flip, P, g)).map((r) => ({ row: r, mine: mine(r) }));
       }
 
+      let drawn = 0;  // draws made: a later one's rows never land in an earlier one's list
       function draw() {
         const P = plan(ctx);
         if (!P) return;
@@ -123,8 +127,20 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null, com
         const top = barTop(L, items, ownWeeks(P, st.g));
         const later = P.weeks.filter((w) => w.gw > g).flatMap((w) => w.in.map((id) => ({ id, gw: w.gw }))).filter((x) => !st.lock || L.pos(x.id) === st.pos);
         // offline: every + off, the reason once above them
+        // the first FIRST_ROWS at once, the rest the frame after: every row still (never a top few, owner 2026-10-15),
+        // the sheet up first (owner, 2026-11-12, "compare players ... must be instant": a position's ~100 rows laid out in
+        // one go held Compare's list ~190 ms on a load test's phone); data-whole once all are in
+        const n = ++drawn;
+        const list = h('div.m-sec', { 'data-whole': items.length <= FIRST_ROWS ? '' : null }, items.length ? items.slice(0, FIRST_ROWS).map((o) => row(o.id, null, top, o.mine)) : h('p.ah-empty', null, q ? COPY.noneCalled('player', st.q.trim()) : 'No one fits this filter.'));
+        if (items.length > FIRST_ROWS) {
+          requestAnimationFrame(() => setTimeout(() => {
+            if (n !== drawn || !list.isConnected) return;
+            list.append(...items.slice(FIRST_ROWS).map((o) => row(o.id, null, top, o.mine)));
+            list.dataset.whole = '';
+          }));
+        }
         fill(main, P.editable || compare ? null : h('p.ps-off', null, P.why),
-          h('div.m-sec', null, items.length ? items.map((o) => row(o.id, null, top, o.mine)) : h('p.ah-empty', null, q ? COPY.noneCalled('player', st.q.trim()) : 'No one fits this filter.')),
+          list,
           !q && !compare && later.length ? h('div.m-sec', null, h('h3', null, 'Your plan buys later'),
             later.map(({ id, gw: at }) => row(id, `arrives GW${at} · bring him in earlier`))) : null);
       }

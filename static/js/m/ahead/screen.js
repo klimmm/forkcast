@@ -678,7 +678,10 @@ export function mount(el, ctx) {
   return {
     // a bundle or connection change waits as any store change does (schedule: never under a finger or a large sheet)
     update() { schedule(); },
-    show() { render(); },
+    // (on show the screen as drawn, its plan and week still the ones on it: no draw; every change since came by schedule.
+    // A #/player card closing routes back here, and redrew the whole screen under the next sheet: a comparison's pick
+    // ~150 ms on a load test's phone; owner, 2026-11-12, "compare players ... must be instant")
+    show() { if (!S.drawn || S.drawn !== plan(ctx) || S.drawnGw !== gwNow(S.drawn) || S.held) render(); },
     hide() {},
     unmount() {
       if (GO_GW === setGw) GO_GW = null;
