@@ -720,8 +720,11 @@ function statsSection(card, W, { view, setView, among, setAmong, period = 'seaso
   // (his last 4 rounds where the card has them, else the season's: no switch)
   const hasRecent = !!card?.stats?.[`${view}${RECENT_SUFFIX}`];
   const recent = hasRecent && period === 'l4', vk = recent ? `${view}${RECENT_SUFFIX}` : view;
-  // among every position (api/card.py stats.all) or his own
-  const of = (s) => (among === 'all' ? s?.all?.[vk] : s?.[vk]) ?? null;
+  // among every position (api/card.py stats.all) or his own; no minute in the span: every figure 0, drawn (the card
+  // sends none for him), never the section gone with its switches (owner, 2026-11-12, "why walle egeli missing stats",
+  // "why not display just zero stats instead of hide section completely": 211 of 670 players had none)
+  const zeros = (s) => (s?.min === 0 ? { ...s, rows: Object.fromEntries(Object.entries(s.rows).map(([k, r]) => [k, { ...r, value: r.value ?? 0 }])) } : s);
+  const of = (s) => zeros((among === 'all' ? s?.all?.[vk] : s?.[vk]) ?? null);
   const p = of(card?.stats);
   if (!p || !Object.values(p.rows).some((r) => r.value != null)) return null;
   // (two compared: the other's ring on each line, his value beside this one's, no ranks; owner, 2026-11-09, "fix so this
