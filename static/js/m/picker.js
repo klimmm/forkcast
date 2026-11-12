@@ -18,8 +18,8 @@
 export const SEARCH = Object.freeze({ debounceMs: 150, min: 1, max: 40, limit: 8 });
 
 export const COPY = Object.freeze({
-  placeholder: 'Such as 383130 or Raketa',
-  placeholderId: 'Such as 383130',
+  placeholder: "Such as 41 or Let's Talk FPL",
+  placeholderId: 'Such as 41',
   label: 'FPL team ID or team name',
   where: 'Where do I find my ID?',
   recent: 'Recent',
