@@ -94,7 +94,9 @@ const RESUMES = 30;
 // through, and of its /api/meta every META_MS), so a page never mixes two releases' files with an API; every other
 // request, and every request while they differ or are not known, goes to the laptop as before. Only the app's own
 // paths (the laptop's access.APP_STATIC, its test files refused), GET only (a HEAD, the app's release and module checks,
-// still asks the laptop), with the headers the laptop sends: no-cache with an ETag, gzip where it would.
+// still asks the laptop), with the headers the laptop sends: no-cache with an ETag, gzip where it would; at its content's
+// own URL (the laptop's stamped page asks `?v=<its sha1's first 10>`, stamp_static.py) kept a year, IMMUTABLE (owner,
+// 2026-11-12, "find why 429 and fix": every open re-asked its scripts, and Render's free plan refuses past a rate).
 const STATIC_DIR = path.join(__dirname, 'static');
 const APP_STATIC = /^\/(?:m\/.*|js\/m\/.+|js\/plan\/.+|js\/ui\.js|js\/api\.js|js\/vendor\/qr\.js|css\/app\.css|css\/m\.css|css\/m-[a-z0-9-]+\.css|css\/views\/plan-pitch\.css)$/i;
 const TYPES = {
@@ -104,6 +106,7 @@ const TYPES = {
 };
 const GZIP_TYPES = /^(?:text\/|application\/json|application\/javascript|image\/svg\+xml)/;  // the laptop's server.GZIP_TYPES
 const META_MS = 15_000;
+const IMMUTABLE = 'public, max-age=31536000, immutable';  // (the laptop's server.IMMUTABLE)
 let laptop = null;
 
 // static/ read once at start: url path -> {body, gz, type, etag}; a directory's index.html also under its own path
@@ -123,10 +126,11 @@ function loadStatic() {
       const type = TYPES[path.extname(p).toLowerCase()];
       if (!type || !APP_STATIC.test(url) || /\.test\.mjs$/i.test(url)) continue;
       const body = fs.readFileSync(p);
+      const sha = crypto.createHash('sha1').update(body).digest('hex');
       const f = {
-        body, type,
+        body, type, v: sha.slice(0, 10),
         gz: GZIP_TYPES.test(type) && body.length >= 1024 ? zlib.gzipSync(body, { level: 6 }) : null,
-        etag: `W/"${crypto.createHash('sha1').update(body).digest('hex').slice(0, 16)}"`,
+        etag: `W/"${sha.slice(0, 16)}"`,
       };
       files.set(url, f);
       if (url.endsWith('/index.html')) files.set(url.slice(0, -'index.html'.length), f);
@@ -144,10 +148,11 @@ const gzipOk = (accept) => (accept || '').split(',').some((e) => e.split(';')[0]
 function local(req, res) {
   if (req.method !== 'GET' || !STATIC.release || laptop !== STATIC.release) return false;
   // the raw path, never parsed: new URL() throws on a path like //a:b/ and took the process down (the review, 2026-10-23)
-  const f = STATIC.files.get(req.url.split('?')[0]);
+  const [where, query = ''] = req.url.split('?');
+  const f = STATIC.files.get(where);
   if (!f) return false;
   const headers = {
-    'cache-control': 'no-cache', etag: f.etag, 'x-forkcast-release': STATIC.release,
+    'cache-control': new URLSearchParams(query).get('v') === f.v ? IMMUTABLE : 'no-cache', etag: f.etag, 'x-forkcast-release': STATIC.release,
     'x-frame-options': 'SAMEORIGIN', 'content-security-policy': "frame-ancestors 'self'",
     ...(f.gz ? { vary: 'Accept-Encoding' } : {}),
   };
@@ -388,7 +393,7 @@ http.createServer((req, res) => {
   // which forwarder runs (a deploy checked from outside, no laptop involved)
   if (req.url === '/__version') {
     res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
-    return res.end(`stall-resume 2026-10-26; static ${STATIC.release || '-'} (${STATIC.files.size} files); laptop ${laptop || '-'}\n`);
+    return res.end(`stall-resume 2026-10-26, immutable 2026-11-12; static ${STATIC.release || '-'} (${STATIC.files.size} files); laptop ${laptop || '-'}\n`);
   }
   if (req.url === '/__ping') {
     res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
