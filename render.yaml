@@ -1,7 +1,7 @@
 # Render Blueprint: Forkcast's fixed address (forwarder.js), a free web service with no dependencies.
 services:
   - type: web
-    name: forkcast
+    name: forkcast-fpl
     runtime: node
     plan: free
     buildCommand: "true"
@@ -10,3 +10,10 @@ services:
     envVars:
       - key: TARGET_SOURCE
         value: https://raw.githubusercontent.com/klimmm/forkcast/main/target.txt
+  - type: web
+    name: forkcast
+    runtime: node
+    plan: free
+    buildCommand: "true"
+    startCommand: node redirect.js
+    healthCheckPath: /__ping
