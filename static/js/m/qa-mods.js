@@ -1,52 +1,39 @@
-import {
-  about_exports
-} from "./chunks/chunk-BPLCWC2A.js";
-import {
-  player_exports
-} from "./chunks/chunk-TEOTBFD6.js";
-import {
-  ahead_exports,
-  choices_exports,
-  core_exports,
-  forks_exports,
-  pieces_exports,
-  presolve_exports
-} from "./chunks/chunk-677LBVT3.js";
-import {
-  kits_exports,
-  memory_exports,
-  pitch_exports
-} from "./chunks/chunk-IBIGFFAK.js";
-import {
-  api_exports,
-  calls_exports,
-  engine_exports,
-  ui_exports
-} from "./chunks/chunk-TCPZEJ5A.js";
-import {
-  strip_exports
-} from "./chunks/chunk-Y6DMPKP6.js";
-import "./chunks/chunk-WSFCRVEQ.js";
+// Every module tools/qa reads inside the page, by the URL it names it (tools/qa/lib/inpage.js qa.import): the page's own
+// instances, whatever a release's bundle made of their files (tools/bundle/bundle.mjs builds this as one more entry, so
+// it shares the page's chunks; an import of the file itself would be a second copy, its plan memory never attached;
+// owner, 2026-11-12, "find why 429 and fix"). The app never loads it.
+import * as ui from '../ui.js';
+import * as engine from '../plan/engine.js';
+import * as kits from '../plan/kits.js';
+import * as pitch from '../plan/pitch.js';
+import * as api from './api.js';
+import * as calls from './calls.js';
+import * as memory from './memory.js';
+import * as ahead from './ahead.js';
+import * as core from './ahead/core.js';
+import * as pieces from './ahead/pieces.js';
+import * as presolve from './ahead/presolve.js';
+import * as choices from './ahead/plans/choices.js';
+import * as forks from './ahead/plans/forks.js';
+import * as about from './sheets/about.js';
+import * as player from './sheets/player.js';
+import * as strip from './sheets/strip.js';
 
-// js/m/qa-mods.js
-var MODS = {
-  "/js/ui.js": ui_exports,
-  "/js/plan/engine.js": engine_exports,
-  "/js/plan/kits.js": kits_exports,
-  "/js/plan/pitch.js": pitch_exports,
-  "/js/m/api.js": api_exports,
-  "/js/m/calls.js": calls_exports,
-  "/js/m/memory.js": memory_exports,
-  "/js/m/ahead.js": ahead_exports,
-  "/js/m/ahead/core.js": core_exports,
-  "/js/m/ahead/pieces.js": pieces_exports,
-  "/js/m/ahead/presolve.js": presolve_exports,
-  "/js/m/ahead/plans/choices.js": choices_exports,
-  "/js/m/ahead/plans/forks.js": forks_exports,
-  "/js/m/sheets/about.js": about_exports,
-  "/js/m/sheets/player.js": player_exports,
-  "/js/m/sheets/strip.js": strip_exports
-};
-export {
-  MODS
+export const MODS = {
+  '/js/ui.js': ui,
+  '/js/plan/engine.js': engine,
+  '/js/plan/kits.js': kits,
+  '/js/plan/pitch.js': pitch,
+  '/js/m/api.js': api,
+  '/js/m/calls.js': calls,
+  '/js/m/memory.js': memory,
+  '/js/m/ahead.js': ahead,
+  '/js/m/ahead/core.js': core,
+  '/js/m/ahead/pieces.js': pieces,
+  '/js/m/ahead/presolve.js': presolve,
+  '/js/m/ahead/plans/choices.js': choices,
+  '/js/m/ahead/plans/forks.js': forks,
+  '/js/m/sheets/about.js': about,
+  '/js/m/sheets/player.js': player,
+  '/js/m/sheets/strip.js': strip,
 };
