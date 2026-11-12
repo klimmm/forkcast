@@ -1,8 +1,8 @@
 // screen.js mount: the pitch, the GW rail, the total and Player data
 
-import { FLASH, MINUS, boardMarks, boughtIn, inFor, plan, span } from './core.js';
-import { choosing, fplOf, inkAt, planHasYours, replaceable, replaceWith } from './buys.js';
-import { h, fmt, fill, toastRegion, chipName, plural, icon, roving, xpNum, xpGain } from '../../ui.js';
+import { FLASH, MINUS, boardMarks, boughtIn, inFor, plan, setBoard, span } from './core.js';
+import { choosable, chooseSub, choosing, fplOf, inkAt, planHasYours, replaceWith } from './buys.js';
+import { h, fmt, fill, chipName, plural, icon, roving, xpNum, xpGain } from '../../ui.js';
 import { CHIPS_OFF, COPY, gwFlags } from '../calls.js';
 import { chipsAvail, squadWeek } from './pieces.js';
 import { tickWas, totalShift } from './edits.js';
@@ -11,14 +11,15 @@ import { fitNum, oneLook } from './screen.js';
 import { showingAt, tappedSuggestion } from './presolve.js';
 
 export function pitchPart(V) {
-  /** Bring in's second step on the pitch: who he can replace in green, the rest quiet (choosing). */
+  /** Bring in's second step on the pitch, or a sub's: who he can replace or swap with in green, the rest quiet but the
+   *  sub chosen (choosing). */
   function paintChoosing(P, w) { const { ctx, pitchHost } = V;
-    const who = choosing(ctx, P, w.gw), can = new Set(who ? replaceable(ctx, who.id, w.gw).map((x) => x.out) : []);
+    const who = choosing(ctx, P, w.gw), can = new Set(who ? choosable(ctx, who) : []);
     pitchHost.classList.toggle('ah-choosing', !!who);
     for (const c of pitchHost.querySelectorAll('.pm-card[data-id]')) {
       const id = Number(c.dataset.id);
       c.classList.toggle('ah-can', can.has(id));
-      c.classList.toggle('ah-cant', !!who && !can.has(id));
+      c.classList.toggle('ah-cant', !!who && !can.has(id) && id !== who.id);
     }
   }
   /** The card's swap on the pitch before its tap, a substitution board (design_1105h; owner, 2026-11-05: "Yes, build it"): the
@@ -39,7 +40,8 @@ export function pitchPart(V) {
     S.board = { key, pitch: S.pitch };
     if (!after) return;
     const nm = P.L.name, marks = boardMarks(w, after, P.L.pos);
-    mountHere({ ...pitchProps(P, w), xi: after.xi, bench: after.bench, captain: after.captain, vice: after.vice });
+    // (its bench labels no buttons: a sub list is the plan's week, not the one drawn (boardAt))
+    mountHere({ ...pitchProps(P, w), xi: after.xi, bench: after.bench, captain: after.captain, vice: after.vice, onBench: null }, w.gw);
     const marked = marks.map((m) => ({ ...m, c: pitchHost.querySelector(`.pm-card[data-id="${m.id}"]`) })).filter((m) => m.c);
     for (const { place, id, sold, kind, c } of marked) {
       if (kind === 'in') {
@@ -55,7 +57,7 @@ export function pitchPart(V) {
     }
   }
   /** The pitch's props for week w of plan view P (renderPitch's): its lineup, buys, plate and taps. */
-  function pitchProps(P, w, plate = plateOf()) { const { armbandSheet, ctx, subSheet, tapIn, whyMove } = V;
+  function pitchProps(P, w, plate = plateOf()) { const { armbandSheet, ctx, tapIn, whyMove } = V;
     const d = ctx.data;
     return {
       xi: w.xi, bench: w.bench, captain: w.captain, vice: w.vice, chip: w.chip, players: d.byId, gw: w.gw, horizon: d.xpGws,
@@ -74,8 +76,8 @@ export function pitchPart(V) {
         if (b) { armbandSheet(b.dataset.badge, w.gw); return; }
         tapIn(w.gw, id);
       },
-      // a tap on a sub's label on the bench ("1", his order; the keeper's none: m-ahead.css .pm-blp): the starters he can replace (subSheet)
-      onBench: (id) => { if (choosing(ctx, plan(ctx), w.gw)) replaceWith(ctx, id); else subSheet(id, w.gw); },
+      // a tap on a sub's label on the bench ("1", his order; the keeper's none: m-ahead.css .pm-blp): the starters he can replace lit (chooseSub)
+      onBench: (id) => { if (choosing(ctx, plan(ctx), w.gw)) replaceWith(ctx, id); else chooseSub(ctx, id, w.gw); },
     };
   }
   function renderPitch(P, w) { const { S, ctx, pitchHost, rsBtn } = V;
@@ -113,8 +115,9 @@ export function pitchPart(V) {
   }
   /** The pitch on Ahead (pitch.mountPitch), Player data, Reset lineup, Reset plan and the choices on it first
    *  (m-ahead.css: its top-right corner, beside the goal, then the layer the choices are drawn in: renderDecks; read
-   *  before the eleven). An open place closes: its cards were the pitch's. */
-  function mountHere(props) { const { S, cardBoxes, cardIn, chipsHint, closePlace, ctx, decks, pdBtn, pitchHost, settle } = V;
+   *  before the eleven). An open place closes: its cards were the pitch's. `board`: the GW whose card's swap it draws
+   *  (paintBoard; boardAt), none the plan's own. */
+  function mountHere(props, board = null) { const { S, cardBoxes, cardIn, chipsHint, closePlace, ctx, decks, pdBtn, pitchHost, settle } = V;
     const pill = pdBtn === document.activeElement ? pdBtn : null;
     // a place open with the focus in it: on his card once the pitch is mounted anew (a keyboard's, VoiceOver's)
     const inPlace = S.place && pitchHost.querySelector(':scope > .pm > .ah-place')?.contains(document.activeElement) ? S.place.a : null;
@@ -123,6 +126,7 @@ export function pitchPart(V) {
     const old = pitchHost.querySelector(':scope > .pm');
     S.snap = old ? new Map(cardBoxes(old).map((c) => [c.id, { rect: c.n.getBoundingClientRect(), node: c.n.cloneNode(true) }])) : null;
     ctx.pitch.mountPitch(pitchHost, props);
+    setBoard(plan(ctx), board);
     if (inPlace) cardIn(pitchHost.querySelector(':scope > .pm'), inPlace)?.focus({ preventScroll: true });
     pitchHost.querySelector(':scope > .pm')?.prepend(pdBtn, decks);
     if (pill) (pill.hidden ? pdBtn : pill).focus({ preventScroll: true });  // a corner pill keeps focus over a pitch drawn anew
@@ -255,8 +259,7 @@ export function pitchPart(V) {
     onClick: (e) => { if (e.detail === 0) setGw(x); },
     'aria-label': `Gameweek ${x}, locked: past your plan`,
   }, h('span.g', null, h('span.gn', null, `GW${x}`)), h('span.p', null, h('span.ah-tlock', { 'aria-hidden': 'true' }, icon('lock', { size: 13 }))))); };
-  const toastOver = () => !!globalThis.document?.querySelector('#toasts:not([data-place="dock"]) > .toast:not(.leaving)');
-  function renderTotal(P) { const { S, TOTAL_MS, ctx, el, toastGone, totLine, totSaid } = V;
+  function renderTotal(P) { const { S, TOTAL_MS, ctx, el, totLine, totSaid } = V;
     // (its window too: a horizon changed in Settings counts another window, never a change of yours, horizon QA:
     // "(total −169.7)" one week against four)
     const key = `${P.entry}|${P.A}|${P.gws.join(',')}`;
@@ -268,9 +271,7 @@ export function pitchPart(V) {
       const t = totalShift(was, P.total, undo);
       if (t.shift === 'back') { S.totDelta = null; fill(totSaid); }
       else if (t.shift != null) {
-        const over = !!toastGone && toastOver();
-        S.totDelta = { from: was.v, to: P.total, at: over ? null : Date.now(), undo };
-        if (over) toastGone.observe(toastRegion(), { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+        S.totDelta = { from: was.v, to: P.total, at: Date.now(), undo };
         fill(totSaid, `${span(P.gws)} total ${fmt.num(P.total)}, ${fmt.signed(t.shift)} points`);
       }
       S.tot = { key, v: P.total, flash: FLASH?.at, before: t.before };
@@ -360,5 +361,5 @@ export function pitchPart(V) {
       },
     });
   }
-  return { paintBoard, paintChoosing, pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, tabAt, toastOver, renderTotal, totalNum, keepGwLine, sellOf, hasField, plateOk, plateOf, renderPdBtn, playerDataSheet };
+  return { paintBoard, paintChoosing, pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, tabAt, renderTotal, totalNum, keepGwLine, sellOf, hasField, plateOk, plateOf, renderPdBtn, playerDataSheet };
 }

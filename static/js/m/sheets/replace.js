@@ -9,19 +9,16 @@
 // is (owner, 2026-10-28): the plan goes short as FPL's draft does (ahead.saleBuy → bringIn, memory.holdOf's debts),
 // paid back the pitch's best way (ahead.plansOf, owedRoad). The hit is said once over the list.
 
-import { h, fmt, fill, toast, norm, posName, icon, xpGain } from '../../ui.js';
+import { h, fmt, fill, toast, norm, posName, icon, xpNum } from '../../ui.js';
 import * as E from '../../plan/engine.js';
 import { COPY } from '../calls.js';
-import { plan, squadBefore, inTeamAt, addMove, draftOf, planBaseline, takenBy, sellOut, problemText, problemShort, barred, barringRules, removeRule, openRules, baseOf, weekOf, saleBuy, bringIn, sayBuyProblem, presolveTaps, buyPlan } from '../ahead.js';
-import { weekPills, sortsOf, orderOf, sortChips, barTop, bars, ownWeeks, who, found } from './buylist.js';
+import { plan, squadBefore, inTeamAt, addMove, draftOf, planBaseline, takenBy, sellOut, problemText, problemShort, barred, barringRules, removeRule, openRules, baseOf, weekOf, saleBuy, bringIn, sayBuyProblem, presolveTaps } from '../ahead.js';
+import { weekPills, sortsOf, orderOf, sortChips, barTop, bars, ownWeeks, who, found, SORTS } from './buylist.js';
 
 const CAP = 30;
 /** Hits the estimate takes from GW g on. */
 const hitsFrom = (ev, g) => ev.gws.filter((s) => s.gw >= g).reduce((n, s) => n + (s.hits || 0), 0);
 const POS_WORD = { GK: 'goalkeeper', DEF: 'defender', MID: 'midfielder', FWD: 'forward' };
-/** Replace's own sort, first among the lists' chips (buylist.sortsOf): the swap's estimate over the window, each row's
- *  number, named by its weeks ("Best GW6–9"). */
-const BEST = { key: 'plan', name: (P) => `Best ${COPY.span(P.gws)}`, val: (P, r, g, o) => o.delta ?? null };
 
 export function open(ctx, rawOut, rawGw) {
   const out = Number(rawOut);
@@ -29,21 +26,14 @@ export function open(ctx, rawOut, rawGw) {
   if (!P0) return null;
   const valid = P0.gws.filter((g) => squadBefore(P0, g).includes(out));
   if (!valid.length) { toast(`${P0.L.name(out)} isn't in your plan's squad in ${COPY.span(P0.gws)}.`, 'info'); return null; }
-  const st = { g: valid.includes(Number(rawGw)) ? Number(rawGw) : valid[0], sort: 'plan', flip: false, q: '', busy: false };
+  const st = { g: valid.includes(Number(rawGw)) ? Number(rawGw) : valid[0], sort: SORTS[0].key, flip: false, q: '', busy: false };
   const cache = new Map();
   const pos = P0.L.pos(out);
   const word = POS_WORD[pos] || 'player';
   /** Sell · "From GW6…" opens "Sell Scott from GW6", the week a pill picks (one title, both places). */
   const titleOf = (g) => `Sell ${P0.L.name(out)} from GW${g}`;
 
-  /** Every same-position player for GW g: {id, row, delta, ev, blocked, problem} (memoised per GW). */
-  /** Row `o` the bank can't pay for counted with the sale that pays for him (buyPlan's funded way, as Bring in counts
-   *  it): its delta against `ev0`, GW g's plan as taken; once a row. */
-  function fund(o, g, ev0 = score(g).ev0) {
-    o.funded = true;
-    const bp = buyPlan(ctx, o.id, g, { out });
-    if (bp.kind === 'two') Object.assign(o, { delta: bp.ev.total - ev0.total, fund: bp.fund });
-  }
+  /** Every same-position player for GW g: {id, row, hit, blocked, problem} (memoised per GW). */
   function score(g) {
     if (cache.has(g)) return cache.get(g);
     const P = plan(ctx);
@@ -62,16 +52,10 @@ export function open(ctx, rawOut, rawGw) {
       const res = addMove(ctx, d0, g, out, id, takenBy(ctx, P));
       const p = res.problem;
       // (one the bank can't pay for: what it gives unpaid, an upper bound of its number, `over`; below)
-      if (p) return { id, row: r, blocked: problemShort(p), code: p.code, problem: p, ...(p.code === 'budget' ? { over: res.ev.total - ev0.total } : {}) };
+      if (p) return { id, row: r, blocked: problemShort(p), code: p.code, problem: p };
       // a −4 this swap needs that the plan didn't (GW g's free transfer already used): said once over the list
-      return { id, row: r, ev: res.ev, draft: res.draft, delta: res.ev.total - ev0.total, hit: hitsFrom(res.ev, g) > hitsFrom(ev0, g) };
+      return { id, row: r, hit: hitsFrom(res.ev, g) > hitsFrom(ev0, g) };
     });
-    // one the bank can't pay for ranks by Best too: its number with the sale that pays for it (buyPlan's funded way, as
-    // Bring in counts it; the plan once Forkcast pays the shortfall back), never last for having none (owner,
-    // 2026-11-11, "why is Bruno Fernandes not in the list": £11.6m against £8.3m, past the 30 rows). Counted only for
-    // those whose unpaid number could reach the list (`over` above its 30th)
-    const cut = list.filter((o) => o.delta != null).map((o) => o.delta).sort((a, b) => b - a)[CAP - 1] ?? -Infinity;
-    for (const o of list.filter((x) => x.code === 'budget' && x.over > cut)) fund(o, g, ev0);
     const out0 = { list, ev0, P };
     cache.set(g, out0);
     return out0;
@@ -89,9 +73,8 @@ export function open(ctx, rawOut, rawGw) {
       const input = h('input', { type: 'search', placeholder: `Search ${word}s by surname`, 'aria-label': `Search ${word}s by surname`, autocomplete: 'off', spellcheck: 'false', enterkeyhint: 'search' });
       const sortEl = h('div.ws-sorts', { role: 'radiogroup', 'aria-label': 'Sort by' });
       const list = h('div.ah-list', { role: 'list' });
-      const foot = h('p.m-foot.rs-foot');
       const hitNote = h('p.rs-hitnote', { hidden: true });
-      body.append(subEl, pills, h('label.ah-search', null, icon('search', { size: 16 }), input), sortEl, hitNote, list, foot);
+      body.append(subEl, pills, h('label.ah-search', null, icon('search', { size: 16 }), input), sortEl, hitNote, list);
       input.addEventListener('input', () => { st.q = input.value; draw(); });
       const title = sheet.el.querySelector('.m-sh h2');
 
@@ -122,43 +105,40 @@ export function open(ctx, rawOut, rawGw) {
         fill(hitNote, anyHit ? COPY.replaceHit(st.g, others || null) : null);
         hitNote.hidden = !anyHit;
         weekPills(pills, P.gws, st.g, (g) => valid.includes(g), (g) => { st.g = g; draw(); });
-        // the lists' sort chips, its own first (owner, 2026-10-28; buylist.sortChips): the row's number stays the
-        // swap's ≈; the chosen stat follows his club and price where nothing else shows it
-        const sorts = sortsOf(ctx, [BEST]), x = sorts.find((y) => y.key === st.sort) ?? BEST;
+        // the lists' sort chips, Predicted first and chosen at open (buylist.sortChips; no Best, the swap's estimate:
+        // owner, 2026-11-12, "remove 'best gw11-14' from the table"): the row's number his forecast, the chosen stat
+        // following his club and price where nothing else shows it
+        const sorts = sortsOf(ctx), x = sorts.find((y) => y.key === st.sort) ?? sorts[0];
         sortChips(sortEl, sorts, st, P, st.g, draw);
-        const statOf = x === BEST || x.xp || x.key === 'price' ? () => null
+        // (his own xP, never the swap's ≈ gain: owner, 2026-11-12, "displays here actual xps not the negative/positive
+        // numbers"): the chosen week's where that is the sort, else the window's (Predicted)
+        const xpOf = x.xp ? x : SORTS[0];
+        const statOf = x.xp || x.key === 'price' ? () => null
           : (o) => { const v = x.val(P, o.row, st.g); return v == null ? null : h('span.rs-stat', null, ` · ${x.num(v)} ${x.unit(P, st.g)}`); };
         const q = norm(st.q.trim());
         const by = orderOf(x, st.flip, P, st.g, (o) => o.row);
         // rows that can't be taken last (in team, your rule, …); one the bank can't pay for is taken as it is (FPL's
-        // draft short of money), so it ranks by the chosen sort like any row, after the estimated ones only by Best,
-        // which has no estimate for it (owner, 2026-10-28/29)
+        // draft short of money), so it ranks by the chosen sort like any row (owner, 2026-10-28/29)
         const last = (o) => !!o.blocked && o.code !== 'budget';
         const shown = all.filter((o) => !q || found(o.row, q))
           .sort((a, b) => (last(a) - last(b)) || by(a, b)).filter((o, i) => i < CAP);
-        // (every row shown that the bank can't pay for counted with the sale that pays for him, whatever the sort: score
-        // counts only those that could reach Best's 30; owner, 2026-11-11, "why saka and semenyo xp missing")
-        for (const o of shown.filter((x) => x.code === 'budget' && x.delta == null && !x.funded)) fund(o, st.g);
         const weeks = ownWeeks(P, st.g), top = barTop(L, shown, weeks);
         fill(list, shown.length ? shown.map((o) => {
           const rowEl = h('button.ah-lrow', {
             // (one the bank can't pay for is made as it is: pick, never greyed)
             type: 'button', role: 'listitem', class: { blocked: !!o.blocked && o.code !== 'budget' }, disabled: (!o.blocked || o.code === 'budget') && !plan(ctx)?.editable,
-            'aria-label': o.blocked && o.code !== 'budget' ? null : o.delta == null ? `Sell ${L.name(out)} for ${o.row.name} from GW${st.g}`
-              : `Sell ${L.name(out)} for ${o.row.name} from GW${st.g}: ${COPY.listTotalSaid(o.delta, true)}`,
+            'aria-label': o.blocked && o.code !== 'budget' ? null : `Sell ${L.name(out)} for ${o.row.name} from GW${st.g}`,
             onClick: () => pick(o),
           },
           // (no "bench in GW11" under a name: owner, 2026-11-10, "удали 'bench in gw11'")
           who(L, o.row, [statOf(o)]),
           bars(L, o.id, weeks, st.g, top, st.sort),
-          // its ≈ over what it counts, your total; forecast points, blue with "xP" (ui.js xpGain; owner, 2026-10-22), no word
-          // under it (owner, 2026-11-11, "fix this 'total' crap"); one the bank can't pay for its number as any row's, never
-          // "£1.4m short" (owner, 2026-11-11, "remove x '£1.4m short' crap completely"), none where not even one more sale
-          // pays for him (buyPlan 'none'); one you can't take says why (In team, your rule)
-          h('span.rt.m-num', null, o.delta != null ? xpGain(o.delta, 'span', null, true, '≈ ') : o.code === 'budget' ? null : h('small', null, o.blocked)));
+          // his xP (xpOf), blue with "xP" (ui.js xpNum; owner, 2026-10-22), no word under it (owner, 2026-11-11, "fix this
+          // 'total' crap"), one the bank can't pay for too (never "£1.4m short": owner, 2026-11-11); one you can't take
+          // says why (In team, your rule)
+          h('span.rt.m-num', null, o.blocked && o.code !== 'budget' ? h('small', null, o.blocked) : xpNum(fmt.num(xpOf.val(P, o.row, st.g)))));
           return rowEl;
         }) : h('p.ah-empty', null, COPY.noneCalled(word, st.q.trim())));
-        fill(foot, `"${BEST.name(P)}" is an estimate over ${COPY.span(P.gws)} (best XI each week but a lineup you saved); Forkcast confirms it.`);
         // its taps solved ahead while open (presolveTaps; owner, 2026-10-26): the rows the list ranks first that can be
         // made
         const g = st.g;

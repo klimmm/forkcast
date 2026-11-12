@@ -1,11 +1,11 @@
 // ahead.js: the screen: mount
 
 import * as E from '../../plan/engine.js';
-import { h, svg, fmt, fill, append, toast, toastRegion, chipName, plural, icon, statusInfo, roving, reduceMotion, holdTouch, flick, focusKey, refocus, xpNum, xpGain, shownGain } from '../../ui.js';
+import { h, svg, fmt, fill, append, toast, chipName, plural, icon, statusInfo, roving, reduceMotion, holdTouch, flick, focusKey, refocus, xpNum, xpGain, shownGain } from '../../ui.js';
 import { subOrder, fitFixtures } from '../../plan/pitch.js';
 import { CHIPS_OFF, COPY, captainGap, priceMorning, pricePlate, gwFlags, liveCheck, clockText, stepShare } from '../calls.js';
 import { rollKeeps } from '../memory.js';
-import { EDGE_PX, FLASH, GRIP_MS, LEARN_KEY, LONG_MS, MINUS, NIGHT_KEY, SPENT_PX, SWIPE_MS, SWIPE_PX, TC_MS, WAIT_KEY, boughtIn, capFirst, closedOf, clubCounts, compare, draftOf, dropMove, editable, flatMoves, ids, inFor, info, inputs, lockedFrom, memOf, memPlan, num, paintWaitView, plan, removedAt, span, squadBefore, takeRulesAsk, viewedGw, waitView, weekOf } from './core.js';
+import { EDGE_PX, FLASH, GRIP_MS, LEARN_KEY, LONG_MS, MINUS, NIGHT_KEY, SPENT_PX, SWIPE_MS, SWIPE_PX, TC_MS, WAIT_KEY, boughtIn, capFirst, closedOf, clubCounts, compare, draftOf, dropMove, editable, flatMoves, ids, inFor, info, inputs, lockedFrom, memOf, memPlan, num, paintWaitView, plan, removedAt, span, squadBefore, takeRulesAsk, waitView, weekOf } from './core.js';
 import { aboutRules, asksOf, benchedBuys, captain, clashLine, clashParts, edit, keep, pendingAgain, pendingTick, removeRule, rescope, resetLineup, ruleOf, sayCheer, scopeLabels, sub, subChoices, tickWas, toastOf, totalShift, useChip, veto, vice, vsPrev } from './edits.js';
 import { PLACE_SLOTS, SQUAD_CHIPS, approxAt, asTaken, askPlace, byGain, choiceVs, countedAfter, decksOf, failedWords, forkKey, lineMoves, lineNotices, listedOf, litOf, litShown, mineAny, multiMove, noteOf, placeBuys, placeFirst, placeOrder, placePages, placeSplit, planBack, planBaseline, planWeeks, plansOf, rollOnly, settleDue, singleMove, slotsBeside, squadChanges, takesBack, weekKey, weekRollOf, weekSettled, weekWait, yoursAt } from './plans.js';
 import { AHEAD, addPlan, fundingOf, moveTo, movesInOrder, pairOf, pinOfMove, planTake, presolveTaps, removeMove, rollingAt, rowGains, takenKeep, weekTaps, whenOf, whenOnBase, whyFacts } from './presolve.js';
@@ -302,12 +302,10 @@ export function mount(el, ctx) {
     get spent() { return spent; },
     get statusLine() { return statusLine; },
     get strip() { return strip; },
-    get subSheet() { return subSheet; },
     get takeFrom() { return takeFrom; },
     get tapIn() { return tapIn; },
     get textOf() { return textOf; },
     get ticks() { return ticks; },
-    get toastGone() { return toastGone; },
     get topRow() { return topRow; },
     get totLine() { return totLine; },
     get totSaid() { return totSaid; },
@@ -340,8 +338,8 @@ export function mount(el, ctx) {
   const { drawPlace, planLine, fitLine, scaleHeads, fitBlocks, stepPlace, shadeTap, weekSheet } = placePart(V);
   const { drawWeek, clashRow, noteRow, forecastLine, waitSig, waitWatch, keepNight, sayNight, sayCarried, barNode, dotted, bsep, textOf, bankWarn, bankLead, weekLead, roadOfEv, movesTitle, openWhy, deckOf, placeLink, whenFree, placeAct, whyTaps, whyActs, notOf, vetoBack, notAct, whenSheet, gainOf, whySub, numOf, numSaid, plNumSaid, hitTag, hitSaid, plansVs, whyPart, rowTies } = weekPart(V);
   const { moveX, xferRow, factSpans, itbNode, rollFacts, door, openChips, chipsDoor, bringDoor, doorStubs, changeRow, priceOf, addOnce, litPays, planKey, planSaid, takePlan, planRow, openPlanWhy, ftAfter, weekRoll, rollOf, shareWeek, moveGain, moveNum, weekPending, rollPending, rolling, whyMove, tapIn } = rowsPart(V);
-  const { paintBoard, paintChoosing, pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, tabAt, toastOver, renderTotal, totalNum, keepGwLine, sellOf, hasField, plateOk, plateOf, renderPdBtn, playerDataSheet } = pitchPart(V);
-  const { spend, letGo, atEdge, tickAt, railEnd, unfill, benchBare, swipeGw, pitchEnd, settle, releaseSoon, gesture, cancelGesture, dragBadge, dropBadge, armTo, armbandSheet, subSheet, lift, dragTo, dropOn, pitchChip, liftShirt, wireMoveRow, vetoRow, vetoFromWhy, pressed, stray, lifted, spentUp, spentDown, spentClick } = touchPart(V);
+  const { paintBoard, paintChoosing, pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, tabAt, renderTotal, totalNum, keepGwLine, sellOf, hasField, plateOk, plateOf, renderPdBtn, playerDataSheet } = pitchPart(V);
+  const { spend, letGo, atEdge, tickAt, railEnd, unfill, benchBare, swipeGw, pitchEnd, settle, releaseSoon, gesture, cancelGesture, dragBadge, dropBadge, armTo, armbandSheet, lift, dragTo, dropOn, pitchChip, liftShirt, wireMoveRow, vetoRow, vetoFromWhy, pressed, stray, lifted, spentUp, spentDown, spentClick } = touchPart(V);
   el.classList.add('ah');
   // the legacy suggestions' hide (v1.3.27 or earlier: one for every team), let go
   ctx.api?.local?.set?.('fc:ahead:sugg', null);
@@ -361,10 +359,14 @@ export function mount(el, ctx) {
   // Help is the You sheet's row). A toast stops short of it, as of the avatar (m.css #toasts)
   const setBtn = h('button.ah-set', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.settingsTitle, onClick: () => ctx.openSheet('you', 'settings') }, icon('settings', { size: 22 }));
   // (dev mode alone: a release's page never shows it, its place kept (the header's columns mirror); a page stamped as a
-  // release (meta forkcast-release) hides it at once, the server's word (api.access: release null, the tree's own)
-  // shows it again; owner, 2026-11-11, "disable the settings button in the release, leave it only in dev mode")
+  // release (meta forkcast-release) hides it at once, the server's word (ctx.servedRelease, its first answer: null,
+  // the tree's own) shows it again, none yet leaves it; owner, 2026-11-11, "disable the settings button in the release,
+  // leave it only in dev mode")
   if (document.querySelector('meta[name="forkcast-release"]')) setBtn.style.visibility = 'hidden';
-  ctx.api?.access?.().then((a) => { setBtn.style.visibility = a?.release ? 'hidden' : ''; setBtn.disabled = !!a?.release; }).catch(() => {});
+  Promise.resolve(ctx.servedRelease?.()).then((r) => {
+    setBtn.style.visibility = r ? 'hidden' : '';
+    setBtn.disabled = !!r;
+  }).catch(() => {});
   // the header's second line, under the team's name (owner, 2026-10-22): two facts on one line: GW A's deadline,
   // whatever GW is viewed ("Deadline Sat 13:00 · 4d 17h": tick() runs the countdown), and the window's total where it
   // fits (keepGwLine; renderTotal: "GW6–9 218.9"; an edit's change for a few seconds, "229.0 (+10.1)"; shimmering while
@@ -521,15 +523,6 @@ export function mount(el, ctx) {
    * the next touch), so it is seen once.
    */
   const TOTAL_MS = 6000;
-  /** The change waiting for the toast over it to go (S.totDelta.at null): its time from then, drawn then. */
-  const toastGone = globalThis.MutationObserver ? new MutationObserver(() => {
-    if (S.totDelta && S.totDelta.at === null && toastOver()) return;
-    toastGone.disconnect();
-    if (S.totDelta?.at !== null) return;
-    S.totDelta.at = Date.now();
-    const Q = plan(ctx);
-    if (Q && el.isConnected) renderTotal(Q);
-  }) : null;
   const PLATES = [
     // the sheet's names are the pill's, word for word (the spoken label says more)
     { key: 'fxpts', label: 'Points + opponent', spoken: 'Points and opponent', short: 'Points + opp', second: 'both' },
@@ -673,18 +666,7 @@ export function mount(el, ctx) {
   globalThis.addEventListener('pointerup', spentUp);
   globalThis.addEventListener('pointerdown', spentDown, true);
   globalThis.addEventListener('click', spentClick, true);
-  /** A GW's toast with an Undo while another GW is shown shrinks to its chip, "GW10: Undo" (m.css .toast.away; review 7
-   *  B15: no old news over another week), whole again back on its GW. */
-  const awayToasts = () => {
-    const g = viewedGw(ctx, plan(ctx));
-    for (const t of toastRegion().querySelectorAll('.toast')) {
-      const m = t.querySelector('button.btn') && /\bGW(\d+)\b/.exec(t.querySelector('.toast-msg')?.textContent ?? '');
-      const away = !!m && g != null && Number(m[1]) !== g;
-      t.classList.toggle('away', away);
-      if (away) t.dataset.chip = `GW${m[1]}:`;
-    }
-  };
-  const offs = [ctx.store.on('entry', () => AHEAD.showing.clear()), ctx.store.on('gw', () => { awayToasts(); schedule(); }), ctx.store.on('memory', () => schedule('mem')), ctx.store.on('aheadRev', () => schedule()), ctx.store.on('bringing', () => schedule()),
+  const offs = [ctx.store.on('entry', () => AHEAD.showing.clear()), ctx.store.on('gw', () => schedule()), ctx.store.on('memory', () => schedule('mem')), ctx.store.on('aheadRev', () => schedule()), ctx.store.on('bringing', () => schedule()),
     ctx.store.on('learnt', () => { S.learnt = new Set(); schedule(); }),
     ctx.store.on('aheadPair', () => schedule('pair'))];
   // (plan memory at once: it asks the plan, renderBaking waits for it)
@@ -711,7 +693,6 @@ export function mount(el, ctx) {
       clearTimeout(S.dimTimer);
       closePlace(false);
       refitPitch?.disconnect();
-      toastGone?.disconnect();
       uncovered.disconnect();
     },
   };

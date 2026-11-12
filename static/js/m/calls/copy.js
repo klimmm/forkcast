@@ -30,14 +30,9 @@ export const COPY = Object.freeze({
   viceDrop: 'Drop the vice armband on a starter',
   /** ahead.armbandSheet's title. */
   armIn: (arm, gw) => `${arm === 'v' ? 'Vice-captain' : 'Captain'} · GW${gw}`,
-  /** A sub's list title (ahead.subSheet), as his card names him ("substitute 1", the keeper "goalkeeper"); n his place
-   *  in the bench order (pitch.subOrder), null for the keeper. */
-  subIn: (n, gw) => `${n == null ? 'Goalkeeper' : `Substitute ${n}`} · GW${gw}`,
   /** A player-you-have's card buttons: sell him and choose who comes in; swap him with a sub. */
   replaceGo: 'Replace…',
   subGo: 'Sub…',
-  /** A starter's sub list (his card's Sub): who can come on for him. */
-  subOut: (name, gw) => `Sub off ${name} · GW${gw}`,
   /** Replace's "Let Forkcast choose" (owner, 2026-10-13): the sale alone yours, the buy the full plan's
    *  (ahead.sellAny). */
   autoBuy: 'The full plan picks who comes in',
@@ -142,9 +137,6 @@ export const COPY = Object.freeze({
   moneyShort: (x) => `${fmt.money(x)} short`,
   /** …the same fact after the sale or buy it is about, in noFit's words: "Groß · needs £5.2m more". */
   moneyNeeds: (x) => `needs ${fmt.money(x)} more`,
-  /** A Sell list row's ≈ and a Bring in week pill's number (replace.js, wish.js pillWords): what your total moves by
-   *  when it is made, said to VoiceOver; no word under it on screen (owner, 2026-11-11, "fix this 'total' crap"). */
-  listTotalSaid: (delta, about = false) => `${about ? 'about ' : ''}${pts(delta)} points to your total`,
   /** An edit's toast at once, with its Undo, while the full plan solves (its verdict replaces it in place); from 5 s
    *  its age after the ellipsis ("Planning Groß in your plan… 0:12"), and while the server is away the wait it is in. */
   // (every solve's wait has one word, an edit's, a week's checks, a chip's, a bring-in's and the plan's alike: owner,
@@ -795,6 +787,10 @@ export const COPY = Object.freeze({
   offForNow: '(off for now)',
   /** The card while the pitch asks who he replaces (design_1109a slip): "B.Fernandes → ?", the ask under it. */
   bringWho: (name) => `${name} → ?`,
+  /** A sub's pick on the pitch (buys.chooseSub): a bench player chosen asks who he comes on for, a starter who comes on
+   *  for him. */
+  subWho: (name, on) => `${name} ${on ? 'on' : 'off'} for ?`,
+  subTap: 'Tap the player he swaps with',
   bringTap: 'Tap the player he replaces',
   bringCancel: 'Cancel',
   /** A place on the pitch the card's swap would change, said. */

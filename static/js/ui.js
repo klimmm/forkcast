@@ -366,6 +366,10 @@ export function toastRegion() {
  *  data-place (CSS); fn may place the region itself (app.js placeToasts). */
 let toastPlace = null;
 export const setToastPlace = (fn) => { toastPlace = typeof fn === 'function' ? fn : null; };
+/** setToastsOff(): no toast is shown from then on, each call's dismiss a no-op (the phone: owner, 2026-11-12, "remove
+ *  all pop up plates from above"). */
+let toastsOff = false;
+export const setToastsOff = () => { toastsOff = true; };
 
 /** Where rect r overlaps rect o grown by pad: that rect, or null. */
 export function overlapOf(r, o, pad = 0) {
@@ -439,6 +443,7 @@ const toastWords = (m, clips = null) => {
 const SPLITS = !!globalThis.CSS?.supports?.('grid-template-columns', 'subgrid');
 
 export function toast(msg, kind = 'info', opts = {}) {
+  if (toastsOff) return () => {};
   const region = toastRegion();
   const up = opts.replaces ? [...region.children].find((t) => t.dataset.tag === opts.replaces && !t.classList.contains('leaving')) : null;
   if (up?.retoast) return up.retoast(msg, kind, opts);

@@ -323,10 +323,17 @@ export function apiPart(V) {
    *  (COPY.carried); Plan.carried hands it to Ahead, which says it once (no Undo). */
   async function carryOver(entry, A) { const { S, ctx, endNow, ensure, lookupNow, mutate, replan, setPins } = V;
     S.carried = A;
-    let docs;
-    try { docs = await loadAll(); } catch { return; }
+    // (the GW before's document comes with the bundle, memory_before: no GET ?gw=all on each open of a team with no
+    // plan saved this GW; owner, 2026-11-12, "merge"; a bundle without the field, an older server's, asks)
+    const b = ctx.bundle;
+    let prev;
+    if (b && 'memory_before' in b && String(b.entry?.id) === entry && Number(b.meta?.gw) === A) prev = b.memory_before;
+    else {
+      let docs;
+      try { docs = await loadAll(); } catch { return; }
+      prev = docs[String(A - 1)];
+    }
     if (S.entry !== entry || S.A !== A || S.doc) return;
-    const prev = docs[String(A - 1)];
     // to the longest plan's end (meta.reach), not this plan's: a shorter one (Settings → Plan ahead) carries your rules for
     // the weeks past it too, as it keeps them while they are past its weeks (planValues sends its weeks' alone)
     const end = ids(ctx.bundle?.meta?.reach).at(-1) ?? endNow();

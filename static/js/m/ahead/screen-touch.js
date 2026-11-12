@@ -185,8 +185,6 @@ export function touchPart(V) {
       },
     });
   }
-  /** A sub's list (sheets/sub.js), from his label on the bench (pitch.js benchPanel, m-ahead.css .pm-blp). */
-  function subSheet(id, g) { const { ctx } = V; ctx.openSheet('sub', id, g); }
 
   /** The shirt's drag to a tick: a lifted ghost follows the finger, valid ticks glow; also onto a player (`subs`: the
    *  ids he can swap with, outlined on the pitch; `onPlayer(id)` the drop there). */
@@ -405,5 +403,5 @@ export function touchPart(V) {
     e.stopPropagation();
     e.preventDefault();
   };
-  return { spend, letGo, atEdge, tickAt, railEnd, unfill, benchBare, swipeGw, pitchEnd, settle, releaseSoon, gesture, cancelGesture, dragBadge, dropBadge, armTo, armbandSheet, subSheet, lift, dragTo, dropOn, pitchChip, liftShirt, wireMoveRow, vetoRow, vetoFromWhy, pressed, stray, lifted, spentUp, spentDown, spentClick };
+  return { spend, letGo, atEdge, tickAt, railEnd, unfill, benchBare, swipeGw, pitchEnd, settle, releaseSoon, gesture, cancelGesture, dragBadge, dropBadge, armTo, armbandSheet, lift, dragTo, dropOn, pitchChip, liftShirt, wireMoveRow, vetoRow, vetoFromWhy, pressed, stray, lifted, spentUp, spentDown, spentClick };
 }

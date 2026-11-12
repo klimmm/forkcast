@@ -123,6 +123,12 @@ export function flashLanding(ctx, prevP, more = {}) {
 }
 /** A landing's changes (changedOf) for mount's render to flash once, stamped with P's team and GW A (`team`) so a team
  *  switch doesn't show them on another team's tiles. */
+/** The week the pitch draws as the card's swap before its tap (screen-pitch paintBoard), `${entry}|${gw}`, null none: its
+ *  lineup is the card's, not the plan's, so no sub is made on it (a sub made on the plan's own week the board kept
+ *  hidden: owner, 2026-11-12, "why when i click sub in nothing happens"). */
+let BOARD = null;
+export const setBoard = (P, g) => { BOARD = P && g != null ? `${P.entry}|${g}` : null; };
+export const boardAt = (P, g) => !!P && BOARD === `${P.entry}|${g}`;
 export const setFlash = (P, x) => { FLASH = { ...x, team: P ? `${P.entry}|${P.A}` : null, at: Date.now() }; };
 /** Moves taken off this session ("removed by you"; removeMove), per entry and GW A: {key, by: {gw: [`${out}>${in}`]}}.
  *  A choice selling and buying only such players carries the label (plansOf `removed`) but keeps its rank (owner,

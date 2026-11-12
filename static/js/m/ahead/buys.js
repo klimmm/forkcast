@@ -5,8 +5,8 @@ import { h, toMs, reduceMotion } from '../../ui.js';
 import { fplMarks } from '../../plan/pitch.js';
 import { COPY, priceWatch, hitCap } from '../calls.js';
 import { pinSell, isRoll, composePins, parseSpans, deadlinePassed } from '../memory.js';
-import { OFFLINE_EDIT, REMOVED, addMove, asYours, clone, compare, draftOf, dropMove, editable, flashLanding, flatMoves, ids, info, inputs, isFrozen, lineups, memOf, movedFrom, num, pairedMoves, plan, problemText, problemsOf, removedBy, setLineups, solveFor, squadBefore, weekOf, wishDrop, wishPin } from './core.js';
-import { asksOf, buyCandidates, clashing, derivedPin, edit, endingOf, forgetEdit, keptFrom, ruleOf, say, subjectOf, toastOf, undoOf, vsPrev, withTaken } from './edits.js';
+import { OFFLINE_EDIT, REMOVED, addMove, asYours, boardAt, clone, compare, draftOf, dropMove, editable, flashLanding, flatMoves, ids, info, inputs, isFrozen, lineups, memOf, movedFrom, num, pairedMoves, plan, problemText, problemsOf, removedBy, setLineups, solveFor, squadBefore, weekOf, wishDrop, wishPin } from './core.js';
+import { asksOf, buyCandidates, clashing, derivedPin, edit, endingOf, forgetEdit, keptFrom, ruleOf, say, sub, subChoices, subjectOf, toastOf, undoOf, vsPrev, withTaken } from './edits.js';
 import { planBaseline, takenBy } from './plans.js';
 import { pairChanged, pairMovesOf, showSuggestion, showTransfer } from './presolve.js';
 import { squadWeek } from './pieces.js';
@@ -173,13 +173,25 @@ export function bringIn(ctx, id, g, bp) {
  *  removeWeek) puts them back as the toast's Undo does (qa-tk125 f15-onetap: "Not Steele" lost by Undo transfer). */
 const tookBy = (p, taken) => (taken.length ? { ...p, took: taken.map((q) => structuredClone(q)) } : p);
 /** Bring in a player's second step (owner, 2026-11-05): he is chosen and the pitch of GW g asks who he replaces, nothing
- *  solved till he is on it. → {id, g, team} while it asks (for GW g, given), else null */
+ *  solved till he is on it; or a sub's (kind 'sub', chooseSub): who he swaps with. → {id, g, team, kind?} while it asks
+ *  (for GW g, given), else null */
 const teamKey = (P) => `${P.entry}|${P.A}`;
 export const choosing = (ctx, P, g = null) => { const b = ctx.store.get('bringing'); return b && P && b.team === teamKey(P) && (g == null || b.g === g) ? b : null; };
 export const stopChoosing = (ctx) => ctx.store.set('bringing', null);
 /** Who player `id` can replace in GW g: every sale of his position but one the club limit stops, `short` what the money
  *  lacks (saleBuy makes it all the same). → [{out, short}] */
 export const replaceable = (ctx, id, g) => saleOptions(ctx, id, g).filter((x) => !x.problem || x.problem.code === 'budget').map((x) => ({ out: x.out, short: x.problem?.short ?? 0 }));
+/** The players the pitch lights while it asks (choosing's b): who he can replace, or swap with. → [id] */
+export const choosable = (ctx, b) => (b.kind === 'sub' ? subChoices(ctx, plan(ctx), b.g, b.id).map((c) => c.id) : replaceable(ctx, b.id, b.g).map((x) => x.out));
+/** A sub on the pitch (owner, 2026-11-12, "highlight players to choose to replace on pitch when sub instead of showing
+ *  list"): player `id` of GW g's lineup chosen, the pitch lights who he can swap with (subChoices); a tap on one makes
+ *  the sub (replaceWith). None while GW g can't be edited or is drawn as the card's swap (boardAt). → bool */
+export function chooseSub(ctx, id, g) {
+  const P = plan(ctx);
+  if (!editable(ctx) || inkAt(ctx, P, g) || boardAt(P, g) || !subChoices(ctx, P, g, id).length) return false;
+  ctx.store.set('bringing', { kind: 'sub', id: Number(id), g, team: teamKey(P) });
+  return true;
+}
 /** His + on the Bring in list: the pitch asks who he replaces; a Wildcard or Free Hit week has no sale to choose, him in
  *  its squad at once; no one he can replace, the reason. → bool (the sheet may go) */
 export function chooseOnPitch(ctx, id, g) {
@@ -195,10 +207,12 @@ export function chooseOnPitch(ctx, id, g) {
 let PLACED = null;
 export const placedAt = (g) => (PLACED?.g === g ? PLACED : null);
 export const placedDone = () => { PLACED = null; };
-/** A player tapped on the pitch while it asks: him out, the chosen player in; one who can't go is no answer. → bool */
+/** A player tapped on the pitch while it asks: him out, the chosen player in (a sub's: the two swapped); one who can't go
+ *  is no answer. → bool */
 export function replaceWith(ctx, out) {
   const P = plan(ctx), b = choosing(ctx, P);
-  if (!b || !replaceable(ctx, b.id, b.g).some((x) => x.out === Number(out))) return false;
+  if (!b || !choosable(ctx, b).includes(Number(out))) return false;
+  if (b.kind === 'sub') { stopChoosing(ctx); return sub(ctx, b.g, b.id, out); }
   const bp = saleBuy(ctx, b.id, b.g, out);
   if (bp.kind !== 'one') { sayBuyProblem(ctx, P, b.id, bp, 'info'); return false; }
   stopChoosing(ctx);

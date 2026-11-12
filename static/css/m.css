@@ -21,7 +21,7 @@
 *Pop       --pop --pop-ink the ONE bright colour (design 1028c P4-bright): a fill with ink on it, never text, never on
 *the turf, only for a chip your plan plays (its GW-tile token, its mark in Chips…) and the countdown under 24 h; its
 *words always say it too
-*Chrome    --token --token-ink chip tokens (BB TC FH WC: --pop) · --toast --toast-ink toasts · --scrim behind sheets
+*Chrome    --token --token-ink chip tokens (BB TC FH WC: --pop) · --toast --toast-ink the dark plate (hints) · --scrim behind sheets
 *Type      --f-text the system stack only; numbers tabular. ONE scale (rem off -apple-system-body, Dynamic Type; px at
 *the default size): --t-title 22/700 · --t-head 17/600 · --t-body 15/400 · --t-sub 13/400 · --t-cap 11/600 (uppercase
 *labels, chart text); 600 for emphasis; weights 400 and 600 only. Line-height 1.3, titles 1.2. Letter-spacing 0,
@@ -38,7 +38,7 @@
 *Shape     4-based · --gutter 16 · --r-sm 5 (small buttons) · --r-ctl 8 (buttons, inputs, cards, strip) · --r-sheet 12
 *· no pills, shadows, gradients or blur
 *Safe area --safe-top / --safe-bot (env insets, floors for desktop)
-*Motion    --ease / --dur (150-200 ms) for sheets, toasts and state changes only; no bounce, odometer, rain, shimmer,
+*Motion    --ease / --dur (150-200 ms) for sheets and state changes only; no bounce, odometer, rain, shimmer,
 *lens or drop-ins; Reduce Motion at the bottom of this file
 *Old names kept as aliases (not for new rules): --text --text-2 --accent --accent-ink --accent-soft --clear --lean
 *--coin --line --line-strong --soft --soft-2 --surface-2 --surface-3 --surface-elev --glass --shadow-c --f-round
@@ -119,7 +119,7 @@
   --pop-ink:     #17191A;
   --token:       light-dark(var(--pop), #D9DEDB);  /* a played chip (BB TC FH WC) */
   --token-ink:   light-dark(var(--pop-ink), #111312);
-  --toast:       light-dark(#1F2221, #ECEFED);
+  --toast:       light-dark(#1F2221, #ECEFED);  /* the dark plate: hints, the hold label (m-ahead.css) */
   --toast-ink:   light-dark(#FFFFFF, #0F1110);
   --scrim:       light-dark(rgb(0 0 0 / .32), rgb(0 0 0 / .55));
 
@@ -204,13 +204,13 @@ button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-c
 p { margin: 0; }
 /* the scale's base (zero specificity: any rule wins): headings, <b>, <small> and fields never bring the browser's own
 sizes or bold (700) in; every number tabular, whatever font shorthand a rule sets */
-:where(.m-app, #toasts) :where(h1, h2, h3, h4) { margin: 0; font: inherit; }
-:where(.m-app, #toasts) :where(b, strong) { font-weight: 600; }
-:where(.m-app, #toasts) :where(small) { font-size: var(--t-sub); }
-:where(.m-app, #toasts) :where(input, textarea, select) { font: 400 var(--t-body)/1.3 var(--f-text); }
+:where(.m-app) :where(h1, h2, h3, h4) { margin: 0; font: inherit; }
+:where(.m-app) :where(b, strong) { font-weight: 600; }
+:where(.m-app) :where(small) { font-size: var(--t-sub); }
+:where(.m-app) :where(input, textarea, select) { font: 400 var(--t-body)/1.3 var(--f-text); }
 /* tabular figures where numbers line up, never on a whole line of words (tnum widens the hyphen) */
 .m-num, .num, .m-app :is(.ah-tick .p, .ah-bg, .ah-tot, .ah-dl, .ah-fg .md, .ah-lrow .rt, .wy-cmp .c,
-  .y-stats b, .pm-pf, .pm-px, .ps-chart, .ps-rk, .ps-sv), #toasts .toast-msg .m-num { font-variant-numeric: tabular-nums; }
+  .y-stats b, .pm-pf, .pm-px, .ps-chart, .ps-rk, .ps-sv) { font-variant-numeric: tabular-nums; }
 /* a forecast number (ui.js xpNum, xpGain): the figures in the forecast's blue, no chip, then "xP" in it; a surface's
 own blue by --xp-c (the plate's, the pitch's dark green's: --xp-l, --xp-d) */
 .m-app .xp { color: var(--xp-c, var(--xp)); font-variant-numeric: tabular-nums; }
@@ -250,7 +250,7 @@ float over the page, so a bottom: 0 column ran under them): Ahead fits it, and a
 /* …and a narrow window taller than any phone, 932 + 32 (a desktop browser's side pane: owner, 2026-11-02, "why no
 limit of height"): the same column, a phone never framed */
 @media (min-width: 560px) and (min-height: 700px), (min-height: 964px) {
-  /* --col-top: the column's top (and its bottom's gap), the toasts' too (#toasts) */
+  /* --col-top: the column's top (and its bottom's gap) */
   :root { --col-top: max(16px, calc((100svh - var(--col-h)) / 2)); }
   .m-app { top: var(--col-top); height: min(calc(100svh - 32px), var(--col-h)); border-radius: var(--r-sheet); }
 }
@@ -407,14 +407,12 @@ render): what it changed takes one tint that fades within --dur, nothing under R
 .m-sheet.back { filter: brightness(.94); }
 .m-grab { flex: none; height: 18px; display: grid; place-items: center; cursor: grab; touch-action: none; }
 .m-grab span { width: 36px; height: 5px; border-radius: 3px; background: var(--border-2); }
-/* a toast docked on the sheet (app.js placeToasts): the body ends --toast-dock above the sheet's bottom, so no control
-scrolls under it; --toast-dock-room (the most a dock took) stays in the scroll range, so nothing moves when the dock
-comes or goes. At a small or medium detent the body also ends --sheet-off (how far the sheet sits below the screen:
-app.js createSheets place) above the sheet's bottom */
+/* at a small or medium detent the body ends --sheet-off (how far the sheet sits below the screen: app.js createSheets
+place) above the sheet's bottom */
 .m-sbody {
   flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; overscroll-behavior: contain;
-  margin-bottom: calc(var(--sheet-off, 0px) + var(--toast-dock, 0px));
-  padding: 0 var(--gutter) calc(var(--safe-bot) + 24px + var(--toast-dock-room, 0px) - var(--toast-dock, 0px));
+  margin-bottom: var(--sheet-off, 0px);
+  padding: 0 var(--gutter) calc(var(--safe-bot) + 24px);
 }
 .m-sbody::-webkit-scrollbar { display: none; }
 .m-sh { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 4px 0 10px; touch-action: none; }
@@ -524,124 +522,6 @@ accent, 600), so it reads as a button, not a status */
 .ah-pwatch:has(> .pw-wait) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: center; }
 .ah-pwatch > p { grid-column: 1; }
 .pw-wait { grid-column: 2; grid-row: 1 / span 2; }  /* a link of the block (.ah-lnk: 15/600, a 44 px target) */
-
-/* ------------------------------------------------------------------ toasts (ui.js toast(), restyled) */
-
-/* one rule for every toast: it never blocks a control. Taps pass through it: only its Undo takes one, and it has no ✕
-(it leaves by itself).
-One place for every toast (app.js placeToasts): the top of the screen, over the header's row (m-ahead.css
-.m-screen.ah), between the header's two 44 pt columns (Settings gear left, avatar right, 10 px in from each edge),
-both clear and tappable (owner, 2026-10-29); one compact line in --t-sub (36 px), two when the words need them (42
-px), three at most, reaching into the GW tiles' top, each still taking a tap under it (m-ahead.css .ah-head). It
-stays until your next touch; the header's total waits for it to go (ahead.js renderTotal). While a sheet is up it
-keeps that place when the sheet rests below it, else (a full-height sheet) it docks at the sheet's foot, full width
-(data-place="dock": .m-sbody --toast-dock) */
-#toasts {
-  --toast-col: min(100vw, var(--col-w));
-  position: fixed; top: calc(var(--toast-top, 0px) + env(safe-area-inset-top, 0px) + 4px); bottom: auto; z-index: 400;
-  left: calc(50% - var(--toast-col) / 2 + 54px); right: auto; width: calc(var(--toast-col) - 2 * 54px); transform: none;
-  display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none;
-}
-#toasts[data-place="dock"] { top: auto; bottom: calc(100lvh - 100svh + var(--safe-bot) + 8px); left: calc(50% - var(--toast-col) / 2 + 12px); width: calc(var(--toast-col) - 24px); flex-direction: column-reverse; }
-/* the column's own top and foot (.m-app, --col-top) */
-@media (min-width: 560px) and (min-height: 700px), (min-height: 964px) {
-  #toasts { --toast-top: var(--col-top); }
-  #toasts[data-place="dock"] { bottom: calc(var(--col-top) + var(--safe-bot) + 8px); }
-}
-/* its buttons wrap to a line of their own under the words, at its right end, where its widest number (" · +2.6 vs
-rolling", whole: .toast-msg's min-width) can't sit beside them (larger text on a 320–375 px phone); all together
-(.under: ui.toast's fit) */
-#toasts .toast {
-  pointer-events: none; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px 8px; width: 100%; max-width: 100%; padding: 4px 8px 4px 14px; border: 0; border-radius: var(--r-ctl);
-  background: var(--toast); color: var(--toast-ink);
-  font: 400 var(--t-sub)/1.3 var(--f-text); animation: m-toast-in var(--dur) var(--ease);
-}
-#toasts .toast > .icon { display: none; }
-#toasts .toast.quiet { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); pointer-events: none; }  /* said to VoiceOver alone (ui.toast opts.quiet) */
-/* its Undo takes a tap once it has come in (app.js placeToasts: .armed): on a sheet, one a control has slid under since
-it was placed dims and lets the tap through until it is placed again */
-#toasts .toast .toast-msg { flex: 1; min-width: auto; max-width: 100%; }
-/* …together: a line break (its ::after, ordered after the words) before the first, none between them */
-#toasts .toast.under { row-gap: 0; }
-#toasts .toast.under > .btn { order: 1; }
-#toasts .toast.under::after { content: ''; flex-basis: 100%; height: 0; }
-/* never more than three lines: its words clip, never its number (ui.js toastWords: the tail opens with its last " · +x
-pts" and its weak word, kept whole, on the head's line when it fits, else on its own); the whole text is read out */
-#toasts .toast .toast-msg { display: flex; flex-wrap: wrap; align-items: baseline; }
-#toasts .toast :is(.toast-head, .toast-tail) { flex: 0 1 auto; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
-/* …on a line of its own the tail starts flush with the line above: its first line starts a space (--toast-sp) to the
-left, its " · "'s space in the toast's padding (margin out, padding in), and on the head's line a gap of --toast-sp
-gives that back. .28em: the system font's space at text size */
-#toasts .toast .toast-msg { --toast-sp: .28em; column-gap: var(--toast-sp); }
-#toasts .toast .toast-tail { margin-inline-start: calc(-1 * var(--toast-sp)); padding-inline-start: var(--toast-sp); text-indent: calc(-1 * var(--toast-sp)); }
-/* a number on a line of its own: its " · " not drawn, still in its words (ui.js fit: .tailrow; owner, 2026-10-26: no
-line opened with "·") */
-#toasts .toast .toast-msg.tailrow .toast-tail { margin-inline-start: 0; padding-inline-start: 0; text-indent: 0; }
-#toasts .toast .toast-msg.tailrow .toast-sep { font-size: 0; }
-/* each number whole; a take's two (" · +2.6 vs rolling · total +4.0") may break between them (ui.js toastWords) */
-#toasts .toast .toast-num > span { white-space: pre; }
-/* ui.toast, past three lines: the lines each part keeps (the tail up to two, the number on its first); in the head its
-lead (a take's moves) clips, what follows it (.toast-also) keeps its lines, on its own */
-#toasts .toast .toast-msg.long .toast-head { display: block; }
-#toasts .toast .toast-msg.long .toast-lead { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; -webkit-line-clamp: var(--lead-lines, 2); line-clamp: var(--lead-lines, 2); }
-#toasts .toast .toast-msg.long .toast-also { display: block; }
-#toasts .toast .toast-msg.long .toast-tail { -webkit-line-clamp: var(--tail-lines, 1); line-clamp: var(--tail-lines, 1); }
-/* ui.toast, a take's receipt in two rows where its words with its buttons take more than one line (.split: ui.js fit;
-owner, 2026-10-26): the head on row one, the toast's full width, one line, the sales clipping first with "…", then the
-clauses that may (.toast-may) going whole, the last first (.off: ui.js fit), the buy last, every other clause whole
-(else not split); its one number on row
-two at the left, its " · " not drawn, the buttons at the right, in order; a warning's icon in a column of its own
-over both. The words' box (.toast-msg) spans both rows on the toast's own columns (subgrid; without it, iOS < 16, no
-.split: ui.js SPLITS) */
-@supports (grid-template-columns: subgrid) {
-  #toasts .toast.split { display: grid; grid-template-columns: [msg] minmax(0, 1fr) [b1] auto [b2] auto [end]; grid-template-rows: auto auto; column-gap: 0; row-gap: 2px; align-items: center; }
-  #toasts .toast.split:is(.warn, .error) { grid-template-columns: [icon] auto [msg] minmax(0, 1fr) [b1] auto [b2] auto [end]; }
-  #toasts .toast.split > .icon { grid-column: icon; grid-row: 1 / 3; }
-  #toasts .toast.split .toast-msg { grid-column: msg / end; grid-row: 1 / 3; display: grid; grid-template-columns: subgrid; grid-template-rows: subgrid; align-items: center; column-gap: inherit; }
-  #toasts .toast.split .toast-head { grid-column: 1 / -1; grid-row: 1; display: flex; min-width: 0; overflow: hidden; white-space: nowrap; }
-  #toasts .toast.split :is(.toast-lead.moves, .toast-also) { display: contents; }
-  #toasts .toast.split .toast-head :where(.toast-lead, .toast-from, .toast-to, .toast-also > span) { flex: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
-  #toasts .toast.split .toast-head :is(.toast-lead:not(.moves), .toast-from) { flex: 0 1000 auto; min-width: 3.5em; }
-  #toasts .toast.split .toast-head .toast-may { flex: 0 10 auto; }
-  #toasts .toast.split .toast-head .toast-may.off { flex: 0 0 0; }
-  #toasts .toast.split .toast-head .toast-to { flex: 0 .01 auto; }  /* (a shrink weighed by its width: last, by far) */
-  #toasts .toast.split .toast-tail { grid-column: 1; grid-row: 2; margin: 0; padding: 0; text-indent: 0; }
-  #toasts .toast.split .toast-sep { font-size: 0; }
-  /* (its buttons take 22 px of the row, their 44 pt target reaching past it: .btn below; the toast's 8 px gap before
-  each, as a column of none, takes no room) */
-  #toasts .toast.split > .btn { grid-row: 2; margin-block: -11px; margin-inline-start: 8px; }
-  #toasts .toast.split > .icon { margin-inline-end: 12px; }
-  #toasts .toast.split > .btn:nth-of-type(1) { grid-column: b1; }
-  #toasts .toast.split > .btn:nth-last-of-type(2) { grid-column: b2; }  /* (the × the last button: Undo, alone too) */
-}
-/* Undo: a 44pt target that takes 28 px in its row (negative margins), the button's box reaching 4 px past the compact
-line above and below; that box is the whole target, so placeToasts' "covers no control" check sees all of it. 44 px
-wide at least, 8 px each side of its word and 8 px before it, as the two-row layout (.split) has (owner, 2026-10-29:
-Why and Undo fit one line on a 367 px toast) */
-#toasts .toast .btn { pointer-events: none; height: 44px; min-width: 44px; margin: -8px -4px; border: 0; background: none; color: inherit; font: 600 var(--t-sub)/1.3 var(--f-text); text-decoration: underline; text-underline-offset: 2px; padding: 0 8px; transition: opacity .15s; }
-#toasts .toast.armed:not(.leaving) .btn { pointer-events: auto; }
-#toasts .toast[data-in]:not(.armed) .btn { opacity: .4; }
-#toasts .toast .icon-btn { display: none; }
-/* a GW's toast while another GW is shown (ahead.js awayToasts; review 7 B15): a chip at the right end, "GW10:" and its
-Undo, its words out of sight (still read out) */
-#toasts .toast.away { display: flex; width: auto; align-self: flex-end; padding-inline-start: 10px; }
-#toasts .toast.away .toast-msg { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-#toasts .toast.away::before { content: attr(data-chip); font-variant-numeric: tabular-nums; }
-/* one leaving takes no room (out of flow, it fades where it sat first), so the toast that replaced it is placed where
-it stays, never shifted when the old one goes */
-#toasts .toast.leaving { position: absolute; opacity: 0; transform: translateY(-6px); transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease); }
-#toasts .toast.up { animation-name: m-toast-up; }  /* one that came in at a sheet's foot (app.js): placing it again never restarts it */
-/* a warn or error toast shows the warning icon ui.js builds, in amber, an amber edge (coral for an error) and one nudge
-sideways once it has come in (no bounce; Reduce Motion's fade below replaces it), so a refusal or failure doesn't
-look like a success. Info and ok toasts stay as they are */
-#toasts .toast:is(.warn, .error) { box-shadow: inset 3px 0 0 var(--warn); animation: m-toast-in var(--dur) var(--ease), m-toast-nudge var(--dur) var(--ease) var(--dur); }
-/* an error's bar wider than a warning's, in a red for the dark toast (--loss was 2.7:1 on #1F2221 and the same icon, so
-warn vs error was the bar's hue alone) */
-#toasts .toast.error { box-shadow: inset 5px 0 0 light-dark(#FF8A7F, var(--loss)); }
-#toasts .toast.up:is(.warn, .error) { animation-name: m-toast-up, m-toast-nudge; }
-#toasts .toast:is(.warn, .error) > .icon { display: block; flex: none; color: var(--warn); }
-#toasts .toast.error > .icon { color: light-dark(#FF8A7F, var(--loss)); }
-#toasts[data-place="dock"] .toast.leaving { transform: translateY(6px); }
 
 /* ------------------------------------------------------------------ pull to refresh */
 
@@ -810,9 +690,6 @@ stays (m-tint fades a see-through background: on a plate the turf showed through
 @keyframes m-pulse { }
 @keyframes m-bump { }
 @keyframes m-cap-in { from { opacity: 0; } }
-@keyframes m-toast-in { from { transform: translateY(-6px); opacity: 0; } }
-@keyframes m-toast-up { from { transform: translateY(6px); opacity: 0; } }
-@keyframes m-toast-nudge { 50% { transform: translateX(4px); } }
 @keyframes m-fade-in { from { opacity: 0; } }
 @keyframes pm-tint { from { box-shadow: inset 0 0 0 40px color-mix(in oklab, var(--acc-bg) 40%, transparent); } }
 @keyframes pm-tint-ring { from { box-shadow: inset 0 0 0 2px var(--plate-ink), inset 0 0 0 40px color-mix(in oklab, var(--acc-bg) 40%, transparent); } }
@@ -825,7 +702,6 @@ stays (m-tint fades a see-through background: on a plate the turf showed through
   .m-app .m-screen, .m-app .m-gate, .m-app .m-scrim { transition: opacity .15s ease !important; transform: none; }
   .m-app .m-sheet { transition: opacity .15s ease !important; }  /* placed at once, it fades (.m-fade), never slides */
   .m-app .pm-face.front { animation-duration: .15s !important; }
-  #toasts .toast { animation: m-fade-in .15s ease !important; }
   .m-shimmer.once { animation: none !important; }
   i.m-eta.sweep { animation: none !important; width: 100%; opacity: .45; }  /* no sweep: the bar dimmed, whole */
   .m-wlb > i { transition: none !important; }  /* the wait line's bar steps by its count, never glides (ahead.js waitNow) */

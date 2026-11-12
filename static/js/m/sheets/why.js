@@ -73,7 +73,11 @@ export function open(ctx, spec = {}) {
       if (spec.later) body.append(h('div.m-sec.wy-after', null, h('h3', null, spec.later.head), h('ul.wy-facts', null, spec.later.lines.map((t) => h('li', null, t)))));
       const runs = h('div');
       body.append(runs);
-      if (why.cmp?.runs) Promise.resolve(ctx.api?.access?.()).then((a) => { if (a?.local && runs.isConnected) runs.replaceWith(runStrip(why, sheet)); }).catch(() => {});
+      // (a local page alone: the runs come for it, ctx.localRuns)
+      Promise.resolve(ctx.localRuns?.()).then((seeds) => {
+        const cmp = seeds && runs.isConnected ? C.compare({ ...inputs, seeds }, spec.a.road, spec.b.road) : null;
+        if (cmp?.runs) runs.replaceWith(runStrip({ ...why, cmp }, sheet));
+      }).catch(() => {});
     },
   });
 }

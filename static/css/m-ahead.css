@@ -50,7 +50,9 @@ link's colour (.ah-lnk's), target 44 pt or more; a page toast stops short of it,
 /* GW A's deadline and the window's total on one centred line under the team's name, in the header's small type (owner,
 2026-10-22); where they don't fit, the total's label goes, then the total (ahead.js keepGwLine). The countdown
 (.ah-dl) is never cut: only where the deadline alone doesn't fit (larger text) it wraps between words */
-.ah-gwline { display: flex; align-items: baseline; justify-content: center; margin: 0; padding: 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--ink); }
+/* (never wider than its column: under .ah-hmid's flex-start it took its content's width, so keepGwLine saw no overflow
+and an edit's "(total +2.9xP)" ran past a 320 px screen at a large text size; qa-tk135 fit) */
+.ah-gwline { display: flex; align-items: baseline; justify-content: center; max-width: 100%; margin: 0; padding: 0; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--ink); }
 .ah-dlpart { flex: 0 1 auto; min-width: 0; text-align: center; }
 .ah-dl { white-space: nowrap; }
 .ah-tot { flex: none; white-space: nowrap; color: var(--muted); }
@@ -1144,7 +1146,6 @@ segments 13) */
 /* ------------------------------------------------------------------ Replace (§5.7) · Wish (§5.8) */
 
 .rs-sub { margin: -4px 0 10px; font: 400 var(--t-sub)/1.3 var(--f-text); color: var(--text-2); }
-.rs-foot { margin-top: 10px; }
 .ws-item { border-bottom: .5px solid var(--hair); }
 .ws-item .ah-lrow { border-bottom: 0; }
 .ws-name { border: 0; background: none; padding: 0; color: inherit; text-align: left; font: inherit; }
@@ -1190,9 +1191,9 @@ those that take a background instead are left out): text buttons, links, segment
    · grey-filled controls take a step darker (--press); green-filled ones dim as Find my team does (.m-primary)
    · on the turf a card dims (its plate lets the green through); the corner pills keep .ah-pp:active */
 
-.m-app, #toasts { --press: color-mix(in oklab, var(--track), var(--border-2) 55%); }
+.m-app { --press: color-mix(in oklab, var(--track), var(--border-2) 55%); }
 
-:where(.m-app, #toasts) :where(button:active:not(:disabled, .m-primary, .m-secondary, .m-chipbtn, .m-xbtn, .m-recent-row,
+:where(.m-app) :where(button:active:not(:disabled, .m-primary, .m-secondary, .m-chipbtn, .m-xbtn, .m-recent-row,
   .ah-brow, .ah-add, .ah-x, .ah-pp, .ah-pdo, .pm-card, .ah-lrow, .ah-rule:not(.all), .ah-ap, .ah-tick, .ah-avatar, .ah-tok, .ah-tbody, .ah-walk button,
   .wy-tgl, .ps-grid > button, .ah-btnrow button, .ah-pills button,
   .m-banner button, .m-err button, .ws-name)) { opacity: .55; transition-duration: 0s; }

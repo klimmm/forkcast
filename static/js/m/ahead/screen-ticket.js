@@ -9,6 +9,7 @@ import { forkRead } from './plans/forks.js';
 import { cardGain, extraWeek, owedAt, owedRoad, presolveSwap, refusalRoads, removeWeek, showSuggestion, showTransfer, showingAt, suggestedAt, swapWeek, tappedSuggestion, tookOf, sameWindow, windowRounds } from './presolve.js';
 import { choosing, placedAt, placedDone, stopChoosing } from './buys.js';
 import { cardUndo, removeRule, takingBack, tickWas, veto } from './edits.js';
+import { MOVE_KINDS } from './screen.js';
 
 /** The card's line: words at its left, `right` at its right edge (design_1109a slip). */
 const lineRow = (words, right = null, data = null) => h('p.ah-tkline', { dataset: data }, h('span.ah-tkl', null, words), right ? [' ', h('span.ah-tkr.m-num', null, right)] : null);
@@ -207,8 +208,12 @@ export function ticketPart(V) {
     const prev = showing && last ? h('button.ah-rsbtn.undo.back', { type: 'button', disabled: off, dataset: { row: `tk:prev:${g}` }, onClick: () => { showTransfer(P, g, false); V.schedule(); } }, COPY.previous) : null;
     // (the week's transfers take back their own: "Undo swap" ran a newer edit's Undo where one of the same week stood, a
     // captain's or a lineup's, under the transfer's words; card audit 2026-11-10)
-    const undo = swaps ? takingBack(() => removeWeek(ctx, g)) : last ?? (refused ? takingBack(() => removeRule(ctx, refused.id)) : shown ? () => { showTransfer(P, g, false); V.schedule(); } : null);
-    const undoWords = swaps ? COPY.undoSwaps(swaps) : refused || shown ? COPY.previous : COPY.undoLast;
+    // (…but a Show another on top of them, a refusal newer than the week's transfers of yours: its Previous first, one
+    // suggestion back, then Undo transfer once back at yours; still one button. Owner, 2026-11-12, "how to see previous
+    // suggestion")
+    const onTop = swaps && refused && refused.at >= Math.max(-Infinity, ...P.pins.filter((p) => MOVE_KINDS.has(p.kind) && Number(p.gw) === g).map((p) => p.at ?? 0));
+    const undo = onTop ? takingBack(() => removeRule(ctx, refused.id)) : swaps ? takingBack(() => removeWeek(ctx, g)) : last ?? (refused ? takingBack(() => removeRule(ctx, refused.id)) : shown ? () => { showTransfer(P, g, false); V.schedule(); } : null);
+    const undoWords = onTop ? COPY.previous : swaps ? COPY.undoSwaps(swaps) : refused || shown ? COPY.previous : COPY.undoLast;
     // (the solver's answer you asked for with Show suggestion: its Previous back to the week's choice, where no Previous
     // of a refusal or of Show another stands; owner, 2026-11-09, "why no undo button")
     const toChoice = !swaps && !refused && !prev && !(undo && undoWords === COPY.previous) && tappedSuggestion(P, g)
@@ -348,7 +353,11 @@ export function ticketPart(V) {
       right = btn('go', COPY.swap, `tok:best:${g}`, (ev) => { answeredAsk(); return best.querySelector('.ah-tgo') ? best.take(ev) : best.click(); });
     };
 
-    if (who) {
+    if (who?.kind === 'sub') {
+      title = COPY.subWho(P.L.name(who.id), w.bench.includes(who.id));
+      line = lineRow(COPY.subTap);
+      left = btn('alt', COPY.bringCancel, 'tk:cancel', () => stopChoosing(ctx));
+    } else if (who) {
       const pr = P.L.price(who.id);
       title = COPY.bringWho(P.L.name(who.id));
       line = lineRow(COPY.bringTap, pr == null ? null : fmt.money(pr));
@@ -430,7 +439,7 @@ export function ticketPart(V) {
     // every card they stand on (the made card, the wait after it, a suggestion or a save on top of them); the Previous on
     // top of them only took the ask off, to a made card never shown (dynamics D4), with Undo transfer beside it the row
     // ran to two lines and the card grew; owner 2026-11-10)
-    fill(block.querySelector(':scope > .ah-tklinks'), who ? null : h('span.ah-tkback', null, toChoice, undo && !toChoice && !prev ? h('button.ah-rsbtn.undo', { type: 'button', disabled: off, class: { back: !swaps && (!!refused || shown) }, dataset: { row: `tk:undo:${g}` }, onClick: undo }, undoWords) : null, prev, rsBtn),
+    fill(block.querySelector(':scope > .ah-tklinks'), who ? null : h('span.ah-tkback', null, toChoice, undo && !toChoice && !prev ? h('button.ah-rsbtn.undo', { type: 'button', disabled: off, class: { back: !!onTop || (!swaps && (!!refused || shown)) }, dataset: { row: `tk:undo:${g}` }, onClick: undo }, undoWords) : null, prev, rsBtn),
       // (chips off, calls.js CHIPS_OFF: no Play a chip at all, never a link a tap does nothing on; owner, 2026-11-09, "why play
       // a chip not respond")
       chips ? h('span.ah-tkor', null, noBring || bringBy ? null : chips[0], CHIPS_OFF ? null : chips[1]) : null);

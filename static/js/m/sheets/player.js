@@ -111,8 +111,8 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
   }
   const shownGw = Number(ctx.store.get('gw'));
   const g = P0.gws.includes(Number(gw)) ? Number(gw) : P0.gws.includes(shownGw) ? shownGw : P0.A;
-  // local: a local page (api.access), where forecast columns carry the runs as ticks
-  let off = null, card, cardState = 'loading', local = false, closed = false;
+  // local: a local page's runs (ctx.localRuns), which forecast columns carry as ticks; null elsewhere
+  let off = null, card, cardState = 'loading', local = null, closed = false;
   // header facts: redrawn when the card lands (the API's card gives ownership now; the bundle's carries none, so its
   // row's stands)
   const entry = d.base?.squad?.find((r) => Number(r.id) === id);
@@ -211,7 +211,7 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
           P.editable ? liveWhy(P, pin) : h('p.ps-off.m-foot', null, P.why));
       }
       /** Buttons under the header: for a player you have, Replace… (sell him from the first week he can go: who comes in,
-       *  or Forkcast's pick; sheets/replace.js) and Sub… (his week's legal swaps: sheets/sub.js), his Keep and Force out
+       *  or Forkcast's pick; sheets/replace.js) and Sub… (his week's legal swaps lit on the pitch: buys.chooseSub), his Keep and Force out
        *  hidden (owner, 2026-11-09, "hide this buttons and only add button on replace and sub"); for one you don't,
        *  Bring him in… (whole row) and Force out. */
       function actions(P) {
@@ -221,7 +221,7 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
           const w = weekOf(P, g), from = pinOf(P, 'sell', id) ? null : AH.sellWeek(ctx, P, id, g);
           grid = [
             b(COPY.replaceGo, () => { close(); ctx.openSheet('replace', id, from); }, '', from == null),
-            b(COPY.subGo, () => { close(); ctx.openSheet('sub', id, g); }, '', AH.squadWeek(w) || !(w.xi.includes(id) || w.bench.includes(id))),
+            b(COPY.subGo, () => { close(); AH.chooseSub(ctx, id, g); }, '', AH.squadWeek(w) || AH.boardAt(P, g) || !(w.xi.includes(id) || w.bench.includes(id))),
           ];
         }
         else {
@@ -252,7 +252,7 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
       cardOf(ctx, id, two ? vs : null, () => !closed).then((c) => { card = c; cardState = 'ready'; }, () => { cardState = 'none'; })
         .then(draw);
       // runs as ticks are model internals (as the Why sheet's run strip): shown once a local page's verdict lands
-      Promise.resolve(ctx.api?.access?.()).then((a) => { if (a?.local) { local = true; draw(); } }).catch(() => {});
+      Promise.resolve(ctx.localRuns?.()).then((s) => { if (s) { local = s; draw(); } }).catch(() => {});
     },
   });
 }
@@ -319,12 +319,12 @@ function xpRank(ctx, pos, xp, g) {
 
 /** Past matches (the card), the five forecasts (bundle row and runs), the replaced player of a buy, opponents (bundle
  *  fixtures + FPL difficulty), his cups and coming ties (card cups, cup_next). Past columns are held open while the
- *  card loads; a card with none draws the forecast across the width. Runs: a local page only (`local`). */
-function model(ctx, P, row, id, card, state, local = false, vs = null, vsCard = null) {
+ *  card loads; a card with none draws the forecast across the width. Runs: a local page only (`local`, its runs). */
+function model(ctx, P, row, id, card, state, local = null, vs = null, vsCard = null) {
   const d = ctx.data;
   const pos = P.L.pos(id) ?? posName(row.pos);
   const runsOf = (pid, g) => {
-    const s = d.seeds;
+    const s = local;
     if (!s?.has?.(pid)) return [];
     return Array.from({ length: s.runs }, (_, r) => s.at(pid, g, r)).filter(Number.isFinite);
   };

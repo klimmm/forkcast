@@ -226,7 +226,7 @@ export function linePart(V) {
     const b = root.getBoundingClientRect();
     return [...root.querySelectorAll(':scope > :is(.pm-field, .pm-benchzone) .pm-card:not(.ah-ghost)')].map((n) => ({ id: Number(n.dataset.id), ...boxOf(n, b), bench: !!n.closest('.pm-bench') }));
   }
-  /** Each sub's label (pitch.js benchPanel's button: his sub list, subSheet) is a target from his card's top up over
+  /** Each sub's label (pitch.js benchPanel's button: who he swaps with lit, chooseSub) is a target from his card's top up over
    *  free turf (m-ahead.css .pm-bl::before, --up): 44 px where the turf has them, never onto a card (reachOf). A sub's
    *  card behind waits under his label (labelWalls): the target then ends at its top (--dn). Placed after the choices
    *  (renderDecks), also in a week that draws none. */

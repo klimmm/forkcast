@@ -57,7 +57,7 @@ export {
   clockText, waitedText, stepShare, afterPaint, waitView, paintWaitView, editable, openRules, showTipsAgain, baseOf,
   viewOfRoadWeek, frozenOf, isFrozen, asYours, plan, weekOf, squadBefore, inTeamAt, inFor, boughtIn, draftOf,
   estimate, inputsOf, compare, baseline, problemsOf, problemOf, problemText, problemShort, addMove, dropMove,
-  wishPin, isPick, valuesFor, solveFor, baked
+  wishPin, isPick, valuesFor, solveFor, baked, boardAt
 } from './ahead/core.js';
 export {
   plannerFor, pendingTick, pendingAgain, sayCheer, changedOf, weekChanged, tickWas, totalShift,
@@ -79,7 +79,7 @@ export {
   removeMove, rowGains, onBase, whenOnBase, ifMisses, whyFacts, rootStill
 } from './ahead/presolve.js';
 export {
-  buyPlan, saleOptions, saleBuy, bringIn, chooseOnPitch, choosing, replaceable, replaceWith, stopChoosing, wishSolve, bringInTakes, removesText, holdBuy, weekWith, inWords,
+  buyPlan, saleOptions, saleBuy, bringIn, chooseOnPitch, chooseSub, choosable, choosing, replaceable, replaceWith, stopChoosing, wishSolve, bringInTakes, removesText, holdBuy, weekWith, inWords,
   buyProblem, fitsLater, bringInFrom, sayBuyProblem, solvesRound, resetPlan, planHasYours, hitsChoices,
   setHitsMaxWithUndo, chipWeek, gwMode, watchOf, watchView, deadlineInfo, isLive, fplSubs, fplSets, inkAt, sellWeek,
   liftsLive, initials, reroute

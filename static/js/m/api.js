@@ -69,16 +69,23 @@ export async function access() {
 const releaseName = (v) => (typeof v === 'string' && /^v\d+(\.\d+)*$/.test(v) ? v : null);
 
 /** The release the server serves now (X-Forkcast-Release on every reply, read off a HEAD of the page): null for the
- *  tree's own front end, or when the server doesn't answer within RELEASE_TIMEOUT_MS. */
+ *  tree's own front end, undefined when the server doesn't answer within RELEASE_TIMEOUT_MS. */
 export async function servedRelease() {
   const stop = new AbortController();
   const timer = setTimeout(() => stop.abort(), RELEASE_TIMEOUT_MS);
   try {
     const r = await fetch('/m/', { method: 'HEAD', cache: 'no-store', signal: stop.signal });
     return releaseName(r.headers.get('X-Forkcast-Release'));
-  } catch { return null; } finally { clearTimeout(timer); }
+  } catch { return undefined; } finally { clearTimeout(timer); }
 }
 const RELEASE_TIMEOUT_MS = 3000;
+
+/** The release the last bundle reply named (its X-Forkcast-Release, as servedRelease's: server.py sends it on every
+ *  reply), so a page open needs no HEAD for it (owner, 2026-11-12, "why these needed separate requests"): null for
+ *  the tree's own front end, undefined before one answered. Only the bundle's: a kept reply (the browser's cache, the
+ *  Render forwarder's KEPT) names the release it was kept under. */
+let heard;
+export const heardRelease = () => heard;
 
 /**
  * GET /api/meta's `access` (server.py, ACCESS_V2) → {local, mode, share, release}, read tolerantly: `local` (boolean)
@@ -137,10 +144,12 @@ function fail(code, message, { status = 0, detail = '', path = '' } = {}) {
   return e;
 }
 
-/** One /api call → its unwrapped `data`. query drops null/''/false (qs); body is sent as JSON. */
-export async function request(method, path, { query, body, timeout = TIMEOUT_MS, signal } = {}) {
+/** One /api call → its unwrapped `data`. query drops null/''/false (qs); body is sent as JSON. cache: the browser's
+ *  (fetch's own), 'no-store' unless the reply is one kept for ever (getAllCards). hear: its
+ *  release noted (heardRelease). */
+export async function request(method, path, { query, body, timeout = TIMEOUT_MS, signal, cache = 'no-store', hear = false } = {}) {
   const headers = { Accept: 'application/json', 'X-Forkcast-Client': clientId() };
-  const init = { method, headers, cache: 'no-store' };
+  const init = { method, headers, cache };
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
     init.body = JSON.stringify(body);
@@ -174,6 +183,7 @@ export async function request(method, path, { query, body, timeout = TIMEOUT_MS,
   if (!res.ok || payload?.ok !== true) {
     throw fail('http', payload?.error || `${method} ${path} failed with HTTP ${res.status}`, { status: res.status, detail: payload?.detail || '', path });
   }
+  if (hear) heard = releaseName(res.headers.get('X-Forkcast-Release'));
   return payload.data;
 }
 
@@ -189,55 +199,122 @@ export const getMeta = () => get('/api/meta');
  * live block's stamp held (live_v) → the live block (calls.shownPlayers) comes back null while unchanged. w = the
  * plan's weeks (calls.planWeeks; none: the server's longest).
  */
-export const getBundle = (entry, { refresh, have, hc, hl, w, cl, signal } = {}) =>
-  get('/api/m/bundle', { entry, refresh, have, hc, hl, w, cl: cl ? 1 : null }, { timeout: have ? BUNDLE_TIMEOUT_MS : FIRST_BUNDLE_TIMEOUT_MS, signal })
+export const getBundle = (entry, { refresh, have, hc, hl, w, cl, fa, signal } = {}) =>
+  get('/api/m/bundle', { entry, refresh, have, hc, hl, w, cl: cl ? 1 : null, fa: fa ? 1 : null }, { timeout: have ? BUNDLE_TIMEOUT_MS : FIRST_BUNDLE_TIMEOUT_MS, signal, hear: true })
     .then((b) => (b?.cards ? { ...b, cards: unpackCards(b.cards) } : b));
 /** The cards of the players the bundle carries (api/mobile.py cards; a bundle asked with cl=1 comes without them) →
  *  {cards: unpacked (unpackCards), or null while `hc` is still their stamp, cards_v}. */
 export const getCards = ({ entry, hc, w, signal } = {}) =>
   get('/api/m/cards', { entry, hc, w }, { timeout: CARDS_TIMEOUT_MS, signal })
     .then((c) => ({ cards: unpackCards(c?.cards ?? null), cards_v: c?.cards_v ?? null }));
+/** The buyable players' rows at stamp `v` (a bundle asked with fa=1: its forecast_all; api/mobile.py forecast_all), the
+ *  same for every team, kept a year by this browser and the Render forwarder (owner, 2026-11-12, "fix bug"); in a live
+ *  week without the live block's fields, which each bundle brings → {players, forecast_v}; 404 (code 'http', status
+ *  404) for a stamp the server no longer holds. */
+export const getAllForecast = (v, { signal } = {}) =>
+  get('/api/m/forecast/all', { v }, { timeout: BUNDLE_TIMEOUT_MS, signal, cache: 'default' });
+/** A bundle's players: the shared ones (getAllForecast) with this team's others (the bundle's own, fa=1), one table as
+ *  a bundle of them all carried them → {players}. */
+export function joinForecast(all, own) {
+  const players = !own?.players?.rows?.length ? all?.players ?? null : !all?.players ? own.players
+    : { ...all.players, rows: [...all.players.rows, ...own.players.rows] };
+  return { players };
+}
+/** Every player's cards at stamp `v` (the bundle's cards_all; api/mobile.py cards_all), the same file for every team:
+ *  the server keeps it a year at its stamp, so this browser and the Render forwarder ask each stamp once and a phone
+ *  off line reads it from its own cache (owner, 2026-11-12, "fix bug") → {cards: unpacked, cards_v}. */
+export const getAllCards = (v, { signal } = {}) =>
+  get('/api/m/cards/all', { v }, { timeout: CARDS_TIMEOUT_MS, signal, cache: 'default' })
+    .then((c) => ({ cards: unpackCards(c?.cards ?? null), cards_v: c?.cards_v ?? null }));
 
 // a past match: the fixture's fields and his own; a cup match: the tie's and his own (api/card.py STRIP_FIELDS, CUP_FIELDS)
 const MATCH = { fields: ['season', 'gw', 'opp', 'home', 'minutes', 'points', 'kickoff', 'fdr'], own: ['minutes', 'points'] };
 const CUP = { fields: ['league', 'season', 'kickoff', 'minutes', 'in_squad', 'after_gw', 'opp', 'opp_name', 'home'], own: ['minutes', 'in_squad'] };
-const VIEW = ['n', 'min', 'peer_min', 'matches', 'n_all'];
 /**
- * The cards as api/card.py cards() made them, from its pack: each match from its fixture's row (`fx`, `cupfx`) and his
- * own fields, rows and kinds from `lists`, each view's stats from its array in his position's order (`keys`); every
- * value as sent, so sheets/player.js reads what it always read. Cards that aren't packed come back as they are; a pack
+ * The cards as api/card.py cards() made them, from its pack (api/card_build.py pack, PACK 2): each match from its
+ * fixture's row (`fx`) and his own fields, his league and cup matches one list; rows and kinds from `lists`; each view's
+ * stats his minutes and values in his position's order (`keys`), its counts from `head`; the peer lists and ranks the
+ * server leaves out counted here as it counts them; every value as made, so sheets/player.js reads what it always read. Cards that aren't packed come back as they are; a pack
  * this front end doesn't know, as none (each card then asks GET /api/m/player).
  */
 export function unpackCards(c) {
   if (!c || c.pack == null) return c ?? null;
-  if (c.pack !== 1) return null;
-  const matches = (flat, { fields, own }, table) => {
+  if (c.pack !== 2) return null;
+  // a fixture row's length says whose it is (api/card_build.py LEAGUE_ROW): a league match's, else a cup tie's
+  const LEAGUE_ROW = MATCH.fields.length - MATCH.own.length;
+  const matches = (flat, cup) => {
+    const { fields, own } = cup ? CUP : MATCH;
     const shared = fields.filter((k) => !own.includes(k));
     const out = [];
-    for (let i = 0; i < flat.length; i += 1 + own.length) {
+    for (let i = 0; i < flat.length; i += 3) {
+      const row = c.fx[flat[i]];
+      if ((row.length !== LEAGUE_ROW) !== cup) continue;
       const m = {};
-      shared.forEach((k, j) => { m[k] = table[flat[i]][j]; });
+      shared.forEach((k, j) => { m[k] = row[j]; });
       own.forEach((k, j) => { m[k] = flat[i + 1 + j]; });
       out.push(Object.fromEntries(fields.map((k) => [k, m[k]])));
     }
     return out;
   };
-  const players = {};
-  for (const [id, [pos, pos_avg, club, lm, cups, ...more]] of Object.entries(c.players)) {
-    const me = { pos, pos_avg, club, last_matches: matches(lm, MATCH, c.fx), cups: matches(cups, CUP, c.cupfx) };
+  const players = {}, sent = new Map();
+  for (const [id, [pos, pos_avg, club, played, ...more]] of Object.entries(c.players)) {
+    const me = { pos, pos_avg, club, last_matches: matches(played, false), cups: matches(played, true) };
     if (more.length) {
-      const [rows, kinds, views] = more;
+      const [rows, kinds, views] = more, ks = c.keys[pos];
       me.rows = [...c.lists[rows]];
       me.kinds = [...c.lists[kinds]];
-      const n = VIEW.length;
-      me.stats = Object.fromEntries(Object.entries(views).map(([v, a]) => [v, {
-        ...Object.fromEntries(VIEW.map((k, j) => [k, a[j]])),
-        rows: Object.fromEntries(c.keys[pos].map((k, i) => [k, a.slice(n + 3 * i, n + 3 * i + 3)])),
-      }]));
+      me.stats = {};
+      for (const [v, a] of Object.entries(views)) {
+        const hd = c.head[v];
+        me.stats[v] = { n: hd.n[pos], min: a[0], peer_min: hd.peer_min, matches: hd.matches, n_all: hd.n_all,
+          rows: Object.fromEntries(ks.map((k, i) => [k, [a[1 + i], null, null]])) };
+        if (a.length > 1 + ks.length) sent.set(`${id}|${v}`, a.slice(1 + ks.length));
+      }
     }
     players[id] = me;
   }
-  return { season: c.season, season_rounds: c.season_rounds, dist: c.dist, cup_next: c.cup_next, players, v: c.v };
+  // (api/card_build.py _peers, _dist_unpacked, _rank: the peer lists and ranks the server leaves to the phone)
+  const ALL = 'ALL';
+  // every view's peers' values by position (and ALL) and row, in one pass over the players
+  const by = {};
+  for (const p of Object.values(players)) {
+    for (const [v, st] of Object.entries(p.stats ?? {})) {
+      if (st.min < st.peer_min) continue;
+      for (const key of [p.pos, ALL]) {
+        const at = ((by[v] ??= {})[key] ??= {});
+        for (const [k, r] of Object.entries(st.rows)) (at[k] ??= []).push(r[0]);
+      }
+    }
+  }
+  const peers = (v, key, k) => {
+    const vals = by[v]?.[key]?.[k] ?? [];
+    return vals.some((x) => x == null) ? null : vals.sort((x, y) => x - y);
+  };
+  const distOf = (own, s) => (s == null ? own : Array.isArray(s) ? s : [...(own ?? []), ...s.more].sort((x, y) => x - y));
+  const dist = Object.fromEntries(Object.entries(c.dist).map(([v, byKey]) => [v, Object.fromEntries(Object.entries(byKey)
+    .map(([key, byK]) => [key, Object.fromEntries(Object.entries(byK).map(([k, s]) => [k, distOf(peers(v, key, k), s)]))]))]));
+  const fewer = new Set(c.fewer ?? []);
+  // (the first index whose value is past `value`: `strict` >, else >=; a peer list is sorted)
+  const cut = (xs, value, strict) => {
+    let lo = 0, hi = xs.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (strict ? xs[mid] <= value : xs[mid] < value) lo = mid + 1; else hi = mid; }
+    return lo;
+  };
+  const rank = (v, key, k, value, peer) => {
+    if (!peer) return null;
+    const xs = dist[v]?.[key]?.[k];
+    if (xs == null || value == null) return -1;
+    return 1 + (fewer.has(k) ? cut(xs, value, false) : xs.length - cut(xs, value, true));
+  };
+  for (const [id, me] of Object.entries(players)) {
+    for (const [v, st] of Object.entries(me.stats ?? {})) {
+      const peer = st.min >= st.peer_min, got = sent.get(`${id}|${v}`);
+      Object.entries(st.rows).forEach(([k, r], i) => {
+        [r[1], r[2]] = got ? got.slice(2 * i, 2 * i + 2) : [rank(v, me.pos, k, r[0], peer), rank(v, ALL, k, r[0], peer)];
+      });
+    }
+  }
+  return { season: c.season, season_rounds: c.season_rounds, dist, cup_next: c.cup_next, players, v: c.v };
 }
 /** The Player sheet's on-disk half (api/card.py): last matches, per-90 peers, opponents' xG, price and ownership at the
  *  season's start, other competitions; `now` is the bundle row's price, ownership, status and preview. */
@@ -404,7 +481,10 @@ export function solve({ entry, purpose, values: asked, lane = 0, said = null }, 
 
 /** Keep the last bundle (raw, as received) so the app can still show the plan when the server is away. */
 export function saveSnapshot(entry, bundle) {
-  return local.set(KEYS.snapshot, JSON.stringify({ entry: String(entry), at: Date.now(), bundle }));
+  // (every player's cards are the browser's, kept at their stamp, cards_all: the snapshot keeps the stamp alone, not
+  // ~1.6 MB more in a store a browser caps near 5 MB)
+  const kept = bundle?.cards_all ? { ...bundle, cards: null, cards_v: null } : bundle;
+  return local.set(KEYS.snapshot, JSON.stringify({ entry: String(entry), at: Date.now(), bundle: kept }));
 }
 /** {entry, at (ms), bundle} for this entry, or null. */
 export function loadSnapshot(entry) {

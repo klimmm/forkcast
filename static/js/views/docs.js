@@ -67,7 +67,7 @@ function howItWorks(meta) {
       id: 'bench', title: 'Bench weights',
       body: [
         'Bench players count for a fraction of their forecast, by slot: the backup keeper, then substitutes one to three (`--bn-w-slots`, four numbers or a derived spec). The default, auto-raw, derives each slot’s chance of coming on from the previous season: how often a nailed starter (60+ minutes, fit) played no minutes the next gameweek.',
-        'Separate tables apply to the look-ahead rounds (`--bn-w-slots-future`), to builds and rebuilds (`--bn-w-slots-build`) and to free hits (`--bn-w-slots-fh`, a near-zero bench). With bench boost the bench counts in full.',
+        'A separate table (`--bn-w-slots-fh`, a near-zero bench) applies to free hits and, in --fresh runs, to builds and rebuilds. With bench boost the bench counts in full.',
       ],
     },
     {
