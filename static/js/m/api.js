@@ -314,7 +314,7 @@ export function unpackCards(c) {
       });
     }
   }
-  return { season: c.season, season_rounds: c.season_rounds, dist, cup_next: c.cup_next, players, v: c.v };
+  return { season: c.season, season_rounds: c.season_rounds, dist, cup_next: c.cup_next, players, v: c.v, ...(c.peers ? { peers: c.peers } : {}) };
 }
 /** The Player sheet's on-disk half (api/card.py): last matches, per-90 peers, opponents' xG, price and ownership at the
  *  season's start, other competitions; `now` is the bundle row's price, ownership, status and preview. */

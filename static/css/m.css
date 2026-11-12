@@ -422,6 +422,7 @@ place) above the sheet's bottom */
 /* a sheet's section head: a cap label (SUGGESTED's style: --t-cap 600, uppercase, +.04em, muted), so a sheet's title
 and the player's name are its only large type */
 .m-sec > h3, .m-sec > .ps-stathead > h3 { margin: 0 0 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font: 600 var(--t-cap)/1.3 var(--f-text); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.ps-stats > h3.ps-group { margin-top: 14px; }  /* the On the ball rows' head, under the rows the data chose */
 .m-sec > h3 > :not(:first-child) { flex: none; font: 400 var(--t-sub)/1.3 var(--f-text); letter-spacing: 0; text-transform: none; color: var(--muted); }  /* its aside: "GW6–10 9.3" */
 .m-kv { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--hair); font: 400 var(--t-body)/1.3 var(--f-text); }
 .m-kv > :last-child { color: var(--muted); text-align: right; }  /* a value beside its label: the second grey */
@@ -707,3 +708,7 @@ stays (m-tint fades a see-through background: on a plate the turf showed through
   .m-wlb > i { transition: none !important; }  /* the wait line's bar steps by its count, never glides (ahead.js waitNow) */
   .m-wlb > i.sweep { animation: none !important; width: 100%; opacity: .3; }  /* no sweep: its rest at once */
 }
+
+.ps-definitions { margin-top: 16px; }
+.ps-definitions summary { cursor: pointer; font-size: 13px; }
+.ps-definitions .m-foot { margin-top: 10px; }

@@ -15,7 +15,7 @@
 import * as C from '../calls.js';
 import { h, svg, fmt, fill, posCode, posName, xpNum, xpGain, xpMark } from '../../ui.js';
 import { inputsOf, plan, xpShown, presolveTaps } from '../ahead.js';
-import { STAT, WORD, statusOf, cardOf, statsView, keepStatsView, segControl, pastSums } from './player.js';
+import { STAT, STAT_HELP, WORD, BALL, ballAt, statusOf, cardOf, statsView, keepStatsView, segControl, pastSums } from './player.js';
 import { oppText } from '../../plan/pitch.js';
 
 const num = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
@@ -124,7 +124,7 @@ function pairTable(ctx, P, pr, g, gws, onStats) {
     return h('div.c', { role: 'cell', 'aria-label': o.said ? `${nm[i]}, ${o.said}` : null },
       o.aux ? h('span.a', { class: { on: !!o.on } }, o.aux) : null, h('span.v', null, o.node ?? DASH), o.sub ? h('span.o', null, o.sub) : null);
   };
-  const row = (label, cells, cls = '', dataset = null) => h(`div.r${cls}`, { role: 'row', dataset }, h('div.n', { role: 'rowheader' }, label), cells.map(cellOf));
+  const row = (label, cells, cls = '', dataset = null) => h(`div.r${cls}`, { role: 'row', dataset }, h('div.n', { role: 'rowheader', title: STAT_HELP[dataset?.key] ?? '' }, label), cells.map(cellOf));
   const grp = (label, extra = null, dataset = null) => h('div.grp', { role: 'row', dataset }, h('span', { role: 'rowheader' }, label), extra);
   // the opponent's code its venue, "COV" at home, "cov" away (owner, 2026-10-16), spoken in words; a double GW's one a
   // line, so its slot holds at 320
@@ -179,7 +179,9 @@ function pairTable(ctx, P, pr, g, gws, onStats) {
         opts: [['match', 'Match', 'Per match'], ['p90', 'Per 90', 'Per 90 minutes']], current: view, label: 'Stats per match or per 90 minutes', cls: '.small',
         onPick: (v) => { view = v; keepStatsView(ctx, v); paint(); },
       }), { view }));
-      for (const [k, r] of Object.entries(mine.rows)) {
+      const ball = ballAt(Object.keys(mine.rows));
+      for (const [i, [k, r]] of Object.entries(mine.rows).entries()) {
+        if (i === ball) kids.push(grp(BALL));
         const [lab, dp] = STAT[k] ?? [k, 1];
         // the better rank of the two in ink (none on a tie): the row's comparison at a glance, without a verdict's bold
         const rk = [r?.rank, theirs.rows[k]?.rank];

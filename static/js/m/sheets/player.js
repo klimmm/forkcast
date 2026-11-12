@@ -43,6 +43,50 @@ export const STAT = {
   shots_six_yards: ['Six-yard shots', 2], shots_outside_box: ['Shots outside box', 1], shots_middle_side: ['Central shots', 1],
   shots_left_side: ['Shots from left', 1], shots_right_side: ['Shots from right', 1], penalties_scored: ['Penalties scored', 2],
   saves_outside_box: ['Saves outside box', 1], penalties_saved: ['Penalties saved', 2], clearances_off_line: ['Off-line clearances', 2],
+  // the On the ball rows (api/card_play.py PLAY, the card's last rows; owner, 2026-11-13, "display more stats ... like
+  // progressive_passes, carries, ... sca, gca, npxg"). Definitions and data sources are below.
+  npxg: ['npxG (est.)', 2], sca: ['Shot-creating acts', 1], gca: ['Goal-creating acts', 2],
+  progressive_passes: ['Prog. passes', 1], progressive_carries: ['Prog. carries', 1],
+  progressive_received: ['Prog. received', 1], carries: ['Carries', 1], final_third_passes: ['Into final third', 1],
+  take_ons: ['Take-ons tried', 1],
+  pens_att: ['Penalties taken', 2], shots_total: ['Shots (no pens)', 1],
+  touches: ['Touches', 1], passes_att: ['Passes tried', 1], passes_cmp: ['Passes completed', 1],
+  passes_pct: ['Pass completion %', 1], tackles: ['Tackles attempted', 1], blocks: ['Shot/pass blocks', 1],
+  yellow_cards: ['Yellow cards', 2], red_cards: ['Red cards', 2],
+};
+export const BALL = 'On the ball';
+/** The server appends PLAY starting with npxg, after the chosen rows (which can share other PLAY keys). */
+export const ballAt = (keys) => keys.indexOf('npxg');
+
+/** Counting definitions shared by the player sheet and comparison table. */
+export const STAT_HELP = {
+  xg_opta: 'Expected goals: how many goals the player’s chances would usually produce. Better chances add more to the total.',
+  xa_opta: 'Expected assists: how likely the player’s passes were to lead to goals, whether or not a teammate scored.',
+  xgi_opta: 'Expected goal involvement: expected goals plus expected assists. Covers both scoring chances and chances made for teammates.',
+  expected_goals_conceded: 'How many goals the opposition’s chances would usually produce while this player was on the pitch.',
+  npxg: 'Expected goals with penalties removed. This is an estimate because every penalty is given the same chance of being scored.',
+  goals_scored: 'Goals scored, excluding own goals.',
+  assists: 'The final pass or touch that set up a teammate’s goal. These totals can differ from fantasy assist points.',
+  penalties_scored: 'Penalty kicks scored.', pens_att: 'Penalty kicks taken, scored or missed.',
+  shots_total: 'Shots taken, excluding penalties and own goals.',
+  shots_on_target: 'Shots that scored or were saved, including penalties.',
+  sca: 'Passes, dribbles, shots, fouls won or balls won that helped create a shot. Up to two of these are counted before each shot. This is an estimate.',
+  gca: 'The same as shot-creating actions, but only before a goal. Up to two are counted before each goal. This is an estimate.',
+  touches: 'Times the player was involved on the ball. A dribble counts as one involvement, rather than every touch of the ball.',
+  passes_att: 'All passes tried, including crosses, through balls and throw-ins.',
+  passes_cmp: 'Passes that reached a teammate, including crosses, through balls and throw-ins.',
+  passes_pct: 'The percentage of passes that reached a teammate. For example, 80% means 8 out of every 10 passes were completed.',
+  progressive_passes: 'Completed passes that move the ball significantly closer to goal or into the penalty area. Passes starting deep in the player’s own half and throw-ins are excluded.',
+  progressive_received: 'Times the player received one of these forward passes. This is an estimate.',
+  final_third_passes: 'Completed passes into the third of the pitch nearest the opponent’s goal, from outside that area. Throw-ins are excluded.',
+  carries: 'Times the player moved with the ball before passing, shooting or making another play. Receiving the ball and playing it immediately does not count. This is an estimate.',
+  progressive_carries: 'Runs with the ball that move it significantly closer to goal or into the penalty area. Runs starting deep in the player’s own half are excluded. This is an estimate.',
+  take_ons: 'Attempts to dribble past an opponent, successful or not.',
+  successful_dribbles: 'Times the player successfully dribbled past an opponent.',
+  tackles: 'Attempts to win the ball from an opponent with a tackle, successful or not.',
+  interceptions: 'Opponent passes cut out before they reached their target.',
+  blocks: 'Opponent shots, passes or crosses stopped by the player.',
+  yellow_cards: 'Yellow cards received.', red_cards: 'Red cards received.',
 };
 
 // one fetch per (data version, player, compared player): the card's files change only with the version
@@ -94,7 +138,7 @@ function fromBundle(cards, id, vs) {
     ...views(me), kinds: me.kinds,
     ...(other?.stats && other.pos === me.pos ? { vs: views(other) } : {}),
   } : null;
-  return { season: cards.season, season_rounds: cards.season_rounds, pos: me.pos, pos_avg: me.pos_avg,
+  return { peers: cards.peers, season: cards.season, season_rounds: cards.season_rounds, pos: me.pos, pos_avg: me.pos_avg,
     last_matches: me.last_matches, cups: me.cups, cup_next: cards.cup_next?.[me.club] ?? [], stats };
 }
 
@@ -173,7 +217,7 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
           two ? null : statusLines(row, P, { available: false, lineup: false }),
           // (two compared: one strip, the two in every GW column, league games only)
           stripSection(two ? { ...m, two: true, rows: [row, orow], nameA: P.L.name(id), from: g } : m, G, chartKey),
-          statsSection(card, W, { view, setView, among, setAmong, period, setPeriod }, two));
+          statsSection(card, W, { view, setView, among, setAmong, period, setPeriod, names: [P.L.name(id), two ? P.L.name(vs) : null] }, two));
         if (kept) main.querySelector(kept)?.focus({ preventScroll: true });
         // his controls' taps solved ahead while the sheet is open (AH.presolveTaps; owner, 2026-10-26): each option not
         // in force
@@ -718,7 +762,7 @@ const statsPeriod = (ctx) => { try { return ctx.api?.local?.get?.(STATS_SPAN_KEY
 /** STATS: every peer of his position (faint), him in ink, his value and rank (ties share the better rank), on the stats
  *  the data chose for him (api/stats_pick.json, api/card.py _rows; owner, 2026-10-14), per match he played or per 90
  *  (owner, 2026-10-13: per match first). */
-function statsSection(card, W, { view, setView, among, setAmong, period = 'season', setPeriod = null }, two = false) {
+function statsSection(card, W, { view, setView, among, setAmong, period = 'season', setPeriod = null, names = [] }, two = false) {
   // (his last 4 rounds where the card has them, else the season's: no switch)
   const hasRecent = !!card?.stats?.[`${view}${RECENT_SUFFIX}`];
   const recent = hasRecent && period === 'l4', vk = recent ? `${view}${RECENT_SUFFIX}` : view;
@@ -743,17 +787,31 @@ function statsSection(card, W, { view, setView, among, setAmong, period = 'seaso
     const hi = Math.max(...vals, r.value ?? 0, ov ?? 0) * 1.02 || 1;
     const sx = (v) => AX + (Math.min(Math.max(v, 0), hi) / hi) * span;
     const b = [L(AX, y, AX + span, y, 'var(--hair)'), T(0, y + 4.5, lab, { anchor: 'start' })];
-    for (const v of vals) b.push(`<circle class="peer" cx="${sx(v).toFixed(1)}" cy="${y}" r="2.6" fill="var(--border-2)" opacity=".7"/>`);
-    if (o && ov != null) b.push(`<circle class="vs" cx="${sx(ov).toFixed(1)}" cy="${y}" r="4.3" fill="var(--surface)" stroke="var(--pair-b)" stroke-width="2"/>`);
-    if (r.value != null) b.push(`<circle class="me" cx="${sx(r.value).toFixed(1)}" cy="${y}" r="5" fill="${o ? 'var(--pair-a)' : 'var(--ink)'}" stroke="var(--surface)" stroke-width="1.5"/>`);
+    const ids = card.peers?.ids?.[vk]?.[among === 'all' ? 'ALL' : p.pos]?.[k] ?? [];
+    const dotLabel = (name, value) => `${name} · ${lab}: ${value.toFixed(dp)} ${k === 'passes_pct' ? '%' : per}`;
+    const tied = new Map();
+    vals.forEach((v, i) => {
+      const label = card.peers?.names?.[ids[i]];
+      if (label) tied.set(v, [...(tied.get(v) ?? []), label]);
+    });
+    const namesAt = (value, name) => [...new Set([name, ...(tied.get(value) ?? [])])].join(', ');
+    const clusters = new Map();
+    vals.forEach((v, i) => clusters.set(v, [...(clusters.get(v) ?? []), i]));
+    // Keep every peer's circle, sharing one title where values overlap.
+    for (const [v, indices] of clusters) b.push(`<g class="peer-cluster"><title>${esc(dotLabel((tied.get(v) ?? ['Player']).join(', '), v))}</title>${indices.map((i) => `<circle class="peer" data-player="${ids[i] ?? ''}" cx="${sx(v).toFixed(1)}" cy="${y}" r="2.6" fill="var(--border-2)" opacity=".7"/>`).join('')}</g>`);
+    if (o && ov != null) b.push(`<circle class="vs" cx="${sx(ov).toFixed(1)}" cy="${y}" r="4.3" fill="var(--surface)" stroke="var(--pair-b)" stroke-width="2"><title>${esc(dotLabel(namesAt(ov, names[1] ?? 'Compared player'), ov))}</title></circle>`);
+    if (r.value != null) b.push(`<circle class="me" cx="${sx(r.value).toFixed(1)}" cy="${y}" r="5" fill="${o ? 'var(--pair-a)' : 'var(--ink)'}" stroke="var(--surface)" stroke-width="1.5"><title>${esc(dotLabel(namesAt(r.value, names[0] ?? 'This player'), r.value))}</title></circle>`);
     b.push(T(o ? SW - 42 : SW, y + 4.5, r.value == null ? '–' : r.value.toFixed(dp), { anchor: 'end', fill: o ? 'var(--pair-a)' : 'var(--ink)', cls: 'v' }));
     if (o) b.push(T(SW, y + 4.5, ov == null ? '–' : ov.toFixed(dp), { anchor: 'end', fill: 'var(--pair-b)', cls: 'v' }));
     const rank = r.rank == null ? '–' : fmt.ordinal(r.rank);
     const said = `${r.value == null ? 'none' : r.value.toFixed(dp)}, ${r.rank == null ? 'no rank' : `${fmt.ordinal(r.rank)} of ${p.n} ${word}`}`;
-    return h('div.ps-srow', { 'data-key': k, 'data-rank': r.rank ?? '', 'data-value': r.value ?? '' },
+    return h('div.ps-srow', { title: STAT_HELP[k] ?? '', 'data-key': k, 'data-rank': r.rank ?? '', 'data-value': r.value ?? '' },
       svgEl(SW, hh, b.join(''), `${lab} ${per}: ${said}`, 'ps-chart'),
       o ? null : h('span.ps-rk.m-num', null, rank));
   });
+  // (the On the ball rows under their head)
+  const at = ballAt(Object.keys(p.rows));
+  if (at >= 0) rows.splice(at, 0, h('h3.ps-group', null, BALL));
   const [s0, g1] = card.season_rounds ?? [];
   const g0 = recent && g1 != null ? Math.max(s0 ?? 1, g1 - RECENT + 1) : s0;
   return h('div.m-sec.ps-stats', { 'data-view': view, 'data-among': among, 'data-span': recent ? 'l4' : 'season' },
@@ -768,6 +826,7 @@ function statsSection(card, W, { view, setView, among, setAmong, period = 'seaso
         segControl({ opts: [['all', 'All', 'All positions'], ['pos', p.pos, WORD[p.pos] ?? p.pos]], current: among, onPick: setAmong, label: 'Ranked among all positions or his own', cls: '.small.ps-among' }),
         // "Match" on a phone's one line ("Per match" its spoken name)
         segControl({ opts: [['match', 'Match', 'Per match'], ['p90', 'Per 90', 'Per 90 minutes']], current: view, onPick: setView, label: 'Stats per match or per 90 minutes', cls: '.small' }))),
-    rows);
+    rows, h('details.ps-definitions', null, h('summary', null, 'What these stats mean'),
+      Object.keys(p.rows).filter((k) => STAT_HELP[k]).map((k) => h('p.m-foot', null, h('strong', null, `${STAT[k]?.[0] ?? k}: `), STAT_HELP[k]))));
 }
 

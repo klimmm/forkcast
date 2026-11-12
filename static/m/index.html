@@ -1702,6 +1702,7 @@ place) above the sheet's bottom */
 /* a sheet's section head: a cap label (SUGGESTED's style: --t-cap 600, uppercase, +.04em, muted), so a sheet's title
 and the player's name are its only large type */
 .m-sec > h3, .m-sec > .ps-stathead > h3 { margin: 0 0 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font: 600 var(--t-cap)/1.3 var(--f-text); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.ps-stats > h3.ps-group { margin-top: 14px; }  /* the On the ball rows' head, under the rows the data chose */
 .m-sec > h3 > :not(:first-child) { flex: none; font: 400 var(--t-sub)/1.3 var(--f-text); letter-spacing: 0; text-transform: none; color: var(--muted); }  /* its aside: "GW6–10 9.3" */
 .m-kv { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--hair); font: 400 var(--t-body)/1.3 var(--f-text); }
 .m-kv > :last-child { color: var(--muted); text-align: right; }  /* a value beside its label: the second grey */
@@ -1987,6 +1988,10 @@ stays (m-tint fades a see-through background: on a plate the turf showed through
   .m-wlb > i { transition: none !important; }  /* the wait line's bar steps by its count, never glides (ahead.js waitNow) */
   .m-wlb > i.sweep { animation: none !important; width: 100%; opacity: .3; }  /* no sweep: its rest at once */
 }
+
+.ps-definitions { margin-top: 16px; }
+.ps-definitions summary { cursor: pointer; font-size: 13px; }
+.ps-definitions .m-foot { margin-top: 10px; }
 
 /* Forkcast: the You sheet (static/js/m/sheets/you.js, IPHONE_DESIGN §5.10), linked after m.css; m.css tokens only.
 *.y-team .y-avatar .y-name .y-sub team header (56pt initials avatar); .y-stats .y-rate .y-cheer rank / points tiles,
@@ -3843,8 +3848,8 @@ one in the selected look's tint and green ring, 600, with its arrow (a second ta
 .m-banner.offline .m-banner-ic { opacity: .6; }
 
 </style>
-<meta name="forkcast-release" content="v1.3.229">
-<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=b3caa5f3e1","/js/app.js":"/js/app.js?v=d7871c4487","/js/m/ahead.js":"/js/m/ahead.js?v=1a3a45189e","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=ea634a09d3","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=9e3bfdf0fe","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=c4a8d8abb7","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=80a6be1bc2","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=5d8c48ccca","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=97940d5b11","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=e7eb6b278f","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=98e62c8795","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=645e6c9c47","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=d98a0d6c72","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=b1bb3a68a3","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=bd6a2e9b77","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=cb1f15304d","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=cbdc5c496f","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=bb93f7b39f","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=9aa5c5689b","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=6b0860ec49","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=4acbd15e4c","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=1981b7833d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=c58efead2d","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=f975ff538c","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=a816c0e84e","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=331990872e","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=cfce24e093","/js/m/api.js":"/js/m/api.js?v=27112227cc","/js/m/app.js":"/js/m/app.js?v=29f32bc966","/js/m/calls.js":"/js/m/calls.js?v=0b0e99968a","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=e045754c71","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=3a26737f9b","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=6d3835eda9","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=3cf482dd6a","/js/m/memory.js":"/js/m/memory.js?v=835f0dd1df","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=64d355fb52","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=8760d61f37","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=0af9ca007a","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=bfdebe4cdf","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=18e75f603f","/js/m/memory/live.js":"/js/m/memory/live.js?v=d76b0dc8fb","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=4c64f76cdd","/js/m/memory/values.js":"/js/m/memory/values.js?v=4d7ff96d44","/js/m/picker.js":"/js/m/picker.js?v=40c7bc336f","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=67f7e9687a","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=9576783de3","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=43737bdc0a","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=1f607adade","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=bc24c27906","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=9f2ef4f880","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=7cbcb9ddab","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=51004a1e4f","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=b118315353","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=b3455c19f2","/js/m/shell/store.js":"/js/m/shell/store.js?v=d57be956cc","/js/marks.js":"/js/marks.js?v=c34a920720","/js/plan/engine.js":"/js/plan/engine.js?v=ed5912a0d1","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=3fc37880a6","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=1200f7b422","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=1ecbec2ebb","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=2fd30e083a","/js/plan/kits.js":"/js/plan/kits.js?v=cda7d0ceb5","/js/plan/pitch.js":"/js/plan/pitch.js?v=080c4beb8e","/js/studio/flags.js":"/js/studio/flags.js?v=a8cd3ecd9b","/js/studio/kit.js":"/js/studio/kit.js?v=20c9937b9e","/js/studio/tables.js":"/js/studio/tables.js?v=65f8b07c32","/js/ui.js":"/js/ui.js?v=95b40ba139","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=9f0f364620","/js/views/compare.js":"/js/views/compare.js?v=6ad8f349d3","/js/views/dashboard.js":"/js/views/dashboard.js?v=8a1f0c98d1","/js/views/data.js":"/js/views/data.js?v=90e9f05369","/js/views/docs.js":"/js/views/docs.js?v=f696c42510","/js/views/fixtures.js":"/js/views/fixtures.js?v=319a00ca42","/js/views/planner.js":"/js/views/planner.js?v=c4c601da19","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=7fde223c58","/js/views/planner/model.js":"/js/views/planner/model.js?v=71f793cc1d","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=d4151c7331","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=14bd7e2b61","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=f72f49fd45","/js/views/players.js":"/js/views/players.js?v=358b613d94","/js/views/preview.js":"/js/views/preview.js?v=8c7c4bcf84","/js/views/runs.js":"/js/views/runs.js?v=c11f23245f"}}</script>
+<meta name="forkcast-release" content="v1.3.230">
+<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=b3caa5f3e1","/js/app.js":"/js/app.js?v=d7871c4487","/js/m/ahead.js":"/js/m/ahead.js?v=1a3a45189e","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=ea634a09d3","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=9e3bfdf0fe","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=c4a8d8abb7","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=80a6be1bc2","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=5d8c48ccca","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=97940d5b11","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=e7eb6b278f","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=98e62c8795","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=645e6c9c47","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=d98a0d6c72","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=b1bb3a68a3","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=bd6a2e9b77","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=cb1f15304d","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=cbdc5c496f","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=bb93f7b39f","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=9aa5c5689b","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=6b0860ec49","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=4acbd15e4c","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=1981b7833d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=c58efead2d","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=f975ff538c","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=a816c0e84e","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=331990872e","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=cfce24e093","/js/m/api.js":"/js/m/api.js?v=f07595d7b0","/js/m/app.js":"/js/m/app.js?v=29f32bc966","/js/m/calls.js":"/js/m/calls.js?v=0b0e99968a","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=e045754c71","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=3a26737f9b","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=6d3835eda9","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=3cf482dd6a","/js/m/memory.js":"/js/m/memory.js?v=835f0dd1df","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=64d355fb52","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=8760d61f37","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=0af9ca007a","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=bfdebe4cdf","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=18e75f603f","/js/m/memory/live.js":"/js/m/memory/live.js?v=d76b0dc8fb","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=4c64f76cdd","/js/m/memory/values.js":"/js/m/memory/values.js?v=4d7ff96d44","/js/m/picker.js":"/js/m/picker.js?v=40c7bc336f","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=67f7e9687a","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=9576783de3","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=43737bdc0a","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=5dc37a3188","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=bc24c27906","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=9f2ef4f880","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=5f01937458","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=51004a1e4f","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=b118315353","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=b3455c19f2","/js/m/shell/store.js":"/js/m/shell/store.js?v=d57be956cc","/js/marks.js":"/js/marks.js?v=c34a920720","/js/plan/engine.js":"/js/plan/engine.js?v=ed5912a0d1","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=3fc37880a6","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=1200f7b422","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=1ecbec2ebb","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=2fd30e083a","/js/plan/kits.js":"/js/plan/kits.js?v=cda7d0ceb5","/js/plan/pitch.js":"/js/plan/pitch.js?v=080c4beb8e","/js/studio/flags.js":"/js/studio/flags.js?v=a8cd3ecd9b","/js/studio/kit.js":"/js/studio/kit.js?v=20c9937b9e","/js/studio/tables.js":"/js/studio/tables.js?v=65f8b07c32","/js/ui.js":"/js/ui.js?v=95b40ba139","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=9f0f364620","/js/views/compare.js":"/js/views/compare.js?v=6ad8f349d3","/js/views/dashboard.js":"/js/views/dashboard.js?v=8a1f0c98d1","/js/views/data.js":"/js/views/data.js?v=90e9f05369","/js/views/docs.js":"/js/views/docs.js?v=f696c42510","/js/views/fixtures.js":"/js/views/fixtures.js?v=319a00ca42","/js/views/planner.js":"/js/views/planner.js?v=c4c601da19","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=7fde223c58","/js/views/planner/model.js":"/js/views/planner/model.js?v=71f793cc1d","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=d4151c7331","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=14bd7e2b61","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=f72f49fd45","/js/views/players.js":"/js/views/players.js?v=358b613d94","/js/views/preview.js":"/js/views/preview.js?v=8c7c4bcf84","/js/views/runs.js":"/js/views/runs.js?v=c11f23245f"}}</script>
 </head>
 <body>
 <div class="m-app" id="app">
@@ -4803,7 +4808,7 @@ function unpackCards(c) {
       });
     }
   }
-  return { season: c.season, season_rounds: c.season_rounds, dist, cup_next: c.cup_next, players, v: c.v };
+  return { season: c.season, season_rounds: c.season_rounds, dist, cup_next: c.cup_next, players, v: c.v, ...c.peers ? { peers: c.peers } : {} };
 }
 async function putMemory(doc) {
   const saved = await request2("PUT", "/api/m/memory", { body: doc });
@@ -21641,9 +21646,12 @@ var init_strip = __esm({
 // js/m/sheets/player.js
 var player_exports = {};
 __export(player_exports, {
+  BALL: () => BALL,
   NEXT_N: () => NEXT_N,
   STAT: () => STAT,
+  STAT_HELP: () => STAT_HELP,
   WORD: () => WORD,
+  ballAt: () => ballAt,
   cardOf: () => cardOf,
   keepStatsView: () => keepStatsView,
   open: () => open3,
@@ -21699,6 +21707,7 @@ function fromBundle(cards, id, vs) {
     ...other2?.stats && other2.pos === me.pos ? { vs: views(other2) } : {}
   } : null;
   return {
+    peers: cards.peers,
     season: cards.season,
     season_rounds: cards.season_rounds,
     pos: me.pos,
@@ -21813,7 +21822,7 @@ function open3(ctx2, rawId, { gw, place = null, vs = null } = {}) {
           two3 ? null : statusLines(row, P, { available: false, lineup: false }),
           // (two compared: one strip, the two in every GW column, league games only)
           stripSection(two3 ? { ...m, two: true, rows: [row, orow], nameA: P.L.name(id), from: g } : m, G, chartKey),
-          statsSection(card2, W, { view, setView, among, setAmong, period, setPeriod }, two3)
+          statsSection(card2, W, { view, setView, among, setAmong, period, setPeriod, names: [P.L.name(id), two3 ? P.L.name(vs) : null] }, two3)
         );
         if (kept) main.querySelector(kept)?.focus({ preventScroll: true });
         if (P.editable) presolveTaps(ctx2, aheadTaps(P), { gw: g, owner: row });
@@ -22239,7 +22248,7 @@ function matchStrip(m, G, { low, peak } = scaleOf(m, G)) {
     return yEnd + 6;
   }
 }
-function statsSection(card2, W, { view, setView, among, setAmong, period = "season", setPeriod = null }, two3 = false) {
+function statsSection(card2, W, { view, setView, among, setAmong, period = "season", setPeriod = null, names = [] }, two3 = false) {
   const hasRecent = !!card2?.stats?.[`${view}${RECENT_SUFFIX}`];
   const recent2 = hasRecent && period === "l4", vk = recent2 ? `${view}${RECENT_SUFFIX}` : view;
   const zeros = (s) => s?.min === 0 ? { ...s, rows: Object.fromEntries(Object.entries(s.rows).map(([k, r]) => [k, { ...r, value: r.value ?? 0 }])) } : s;
@@ -22258,20 +22267,32 @@ function statsSection(card2, W, { view, setView, among, setAmong, period = "seas
     const hi = Math.max(...vals, r.value ?? 0, ov ?? 0) * 1.02 || 1;
     const sx = (v) => AX + Math.min(Math.max(v, 0), hi) / hi * span5;
     const b = [L(AX, y, AX + span5, y, "var(--hair)"), T2(0, y + 4.5, lab, { anchor: "start" })];
-    for (const v of vals) b.push(`<circle class="peer" cx="${sx(v).toFixed(1)}" cy="${y}" r="2.6" fill="var(--border-2)" opacity=".7"/>`);
-    if (o && ov != null) b.push(`<circle class="vs" cx="${sx(ov).toFixed(1)}" cy="${y}" r="4.3" fill="var(--surface)" stroke="var(--pair-b)" stroke-width="2"/>`);
-    if (r.value != null) b.push(`<circle class="me" cx="${sx(r.value).toFixed(1)}" cy="${y}" r="5" fill="${o ? "var(--pair-a)" : "var(--ink)"}" stroke="var(--surface)" stroke-width="1.5"/>`);
+    const ids5 = card2.peers?.ids?.[vk]?.[among === "all" ? "ALL" : p.pos]?.[k] ?? [];
+    const dotLabel = (name, value) => `${name} \xB7 ${lab}: ${value.toFixed(dp)} ${k === "passes_pct" ? "%" : per}`;
+    const tied = /* @__PURE__ */ new Map();
+    vals.forEach((v, i) => {
+      const label = card2.peers?.names?.[ids5[i]];
+      if (label) tied.set(v, [...tied.get(v) ?? [], label]);
+    });
+    const namesAt = (value, name) => [.../* @__PURE__ */ new Set([name, ...tied.get(value) ?? []])].join(", ");
+    const clusters = /* @__PURE__ */ new Map();
+    vals.forEach((v, i) => clusters.set(v, [...clusters.get(v) ?? [], i]));
+    for (const [v, indices] of clusters) b.push(`<g class="peer-cluster"><title>${esc(dotLabel((tied.get(v) ?? ["Player"]).join(", "), v))}</title>${indices.map((i) => `<circle class="peer" data-player="${ids5[i] ?? ""}" cx="${sx(v).toFixed(1)}" cy="${y}" r="2.6" fill="var(--border-2)" opacity=".7"/>`).join("")}</g>`);
+    if (o && ov != null) b.push(`<circle class="vs" cx="${sx(ov).toFixed(1)}" cy="${y}" r="4.3" fill="var(--surface)" stroke="var(--pair-b)" stroke-width="2"><title>${esc(dotLabel(namesAt(ov, names[1] ?? "Compared player"), ov))}</title></circle>`);
+    if (r.value != null) b.push(`<circle class="me" cx="${sx(r.value).toFixed(1)}" cy="${y}" r="5" fill="${o ? "var(--pair-a)" : "var(--ink)"}" stroke="var(--surface)" stroke-width="1.5"><title>${esc(dotLabel(namesAt(r.value, names[0] ?? "This player"), r.value))}</title></circle>`);
     b.push(T2(o ? SW - 42 : SW, y + 4.5, r.value == null ? "\u2013" : r.value.toFixed(dp), { anchor: "end", fill: o ? "var(--pair-a)" : "var(--ink)", cls: "v" }));
     if (o) b.push(T2(SW, y + 4.5, ov == null ? "\u2013" : ov.toFixed(dp), { anchor: "end", fill: "var(--pair-b)", cls: "v" }));
     const rank = r.rank == null ? "\u2013" : fmt.ordinal(r.rank);
     const said = `${r.value == null ? "none" : r.value.toFixed(dp)}, ${r.rank == null ? "no rank" : `${fmt.ordinal(r.rank)} of ${p.n} ${word}`}`;
     return h(
       "div.ps-srow",
-      { "data-key": k, "data-rank": r.rank ?? "", "data-value": r.value ?? "" },
+      { title: STAT_HELP[k] ?? "", "data-key": k, "data-rank": r.rank ?? "", "data-value": r.value ?? "" },
       svgEl(SW, hh, b.join(""), `${lab} ${per}: ${said}`, "ps-chart"),
       o ? null : h("span.ps-rk.m-num", null, rank)
     );
   });
+  const at2 = ballAt(Object.keys(p.rows));
+  if (at2 >= 0) rows.splice(at2, 0, h("h3.ps-group", null, BALL));
   const [s0, g1] = card2.season_rounds ?? [];
   const g0 = recent2 && g1 != null ? Math.max(s0 ?? 1, g1 - RECENT + 1) : s0;
   return h(
@@ -22295,10 +22316,16 @@ function statsSection(card2, W, { view, setView, among, setAmong, period = "seas
         segControl({ opts: [["match", "Match", "Per match"], ["p90", "Per 90", "Per 90 minutes"]], current: view, onPick: setView, label: "Stats per match or per 90 minutes", cls: ".small" })
       )
     ),
-    rows
+    rows,
+    h(
+      "details.ps-definitions",
+      null,
+      h("summary", null, "What these stats mean"),
+      Object.keys(p.rows).filter((k) => STAT_HELP[k]).map((k) => h("p.m-foot", null, h("strong", null, `${STAT[k]?.[0] ?? k}: `), STAT_HELP[k]))
+    )
   );
 }
-var PREVIEW, LAST_N, NEXT_N, WORD, STAT, CARDS, RETRY_MS, esc, f1, xpSvg, L, R, niceMax, LABEL_ROOM, fixText, sum3, pastSums, WIDTHS2, PEN, INFO, rankWords, STATS_VIEW_KEY, statsView, keepStatsView, STATS_AMONG_KEY, statsAmong, RECENT, RECENT_SUFFIX, STATS_SPAN_KEY, statsPeriod;
+var PREVIEW, LAST_N, NEXT_N, WORD, STAT, BALL, ballAt, STAT_HELP, CARDS, RETRY_MS, esc, f1, xpSvg, L, R, niceMax, LABEL_ROOM, fixText, sum3, pastSums, WIDTHS2, PEN, INFO, rankWords, STATS_VIEW_KEY, statsView, keepStatsView, STATS_AMONG_KEY, statsAmong, RECENT, RECENT_SUFFIX, STATS_SPAN_KEY, statsPeriod;
 var init_player = __esm({
   "js/m/sheets/player.js"() {
     init_ui();
@@ -22349,7 +22376,61 @@ var init_player = __esm({
       penalties_scored: ["Penalties scored", 2],
       saves_outside_box: ["Saves outside box", 1],
       penalties_saved: ["Penalties saved", 2],
-      clearances_off_line: ["Off-line clearances", 2]
+      clearances_off_line: ["Off-line clearances", 2],
+      // the On the ball rows (api/card_play.py PLAY, the card's last rows; owner, 2026-11-13, "display more stats ... like
+      // progressive_passes, carries, ... sca, gca, npxg"). Definitions and data sources are below.
+      npxg: ["npxG (est.)", 2],
+      sca: ["Shot-creating acts", 1],
+      gca: ["Goal-creating acts", 2],
+      progressive_passes: ["Prog. passes", 1],
+      progressive_carries: ["Prog. carries", 1],
+      progressive_received: ["Prog. received", 1],
+      carries: ["Carries", 1],
+      final_third_passes: ["Into final third", 1],
+      take_ons: ["Take-ons tried", 1],
+      pens_att: ["Penalties taken", 2],
+      shots_total: ["Shots (no pens)", 1],
+      touches: ["Touches", 1],
+      passes_att: ["Passes tried", 1],
+      passes_cmp: ["Passes completed", 1],
+      passes_pct: ["Pass completion %", 1],
+      tackles: ["Tackles attempted", 1],
+      blocks: ["Shot/pass blocks", 1],
+      yellow_cards: ["Yellow cards", 2],
+      red_cards: ["Red cards", 2]
+    };
+    BALL = "On the ball";
+    ballAt = (keys) => keys.indexOf("npxg");
+    STAT_HELP = {
+      xg_opta: "Expected goals: how many goals the player\u2019s chances would usually produce. Better chances add more to the total.",
+      xa_opta: "Expected assists: how likely the player\u2019s passes were to lead to goals, whether or not a teammate scored.",
+      xgi_opta: "Expected goal involvement: expected goals plus expected assists. Covers both scoring chances and chances made for teammates.",
+      expected_goals_conceded: "How many goals the opposition\u2019s chances would usually produce while this player was on the pitch.",
+      npxg: "Expected goals with penalties removed. This is an estimate because every penalty is given the same chance of being scored.",
+      goals_scored: "Goals scored, excluding own goals.",
+      assists: "The final pass or touch that set up a teammate\u2019s goal. These totals can differ from fantasy assist points.",
+      penalties_scored: "Penalty kicks scored.",
+      pens_att: "Penalty kicks taken, scored or missed.",
+      shots_total: "Shots taken, excluding penalties and own goals.",
+      shots_on_target: "Shots that scored or were saved, including penalties.",
+      sca: "Passes, dribbles, shots, fouls won or balls won that helped create a shot. Up to two of these are counted before each shot. This is an estimate.",
+      gca: "The same as shot-creating actions, but only before a goal. Up to two are counted before each goal. This is an estimate.",
+      touches: "Times the player was involved on the ball. A dribble counts as one involvement, rather than every touch of the ball.",
+      passes_att: "All passes tried, including crosses, through balls and throw-ins.",
+      passes_cmp: "Passes that reached a teammate, including crosses, through balls and throw-ins.",
+      passes_pct: "The percentage of passes that reached a teammate. For example, 80% means 8 out of every 10 passes were completed.",
+      progressive_passes: "Completed passes that move the ball significantly closer to goal or into the penalty area. Passes starting deep in the player\u2019s own half and throw-ins are excluded.",
+      progressive_received: "Times the player received one of these forward passes. This is an estimate.",
+      final_third_passes: "Completed passes into the third of the pitch nearest the opponent\u2019s goal, from outside that area. Throw-ins are excluded.",
+      carries: "Times the player moved with the ball before passing, shooting or making another play. Receiving the ball and playing it immediately does not count. This is an estimate.",
+      progressive_carries: "Runs with the ball that move it significantly closer to goal or into the penalty area. Runs starting deep in the player\u2019s own half are excluded. This is an estimate.",
+      take_ons: "Attempts to dribble past an opponent, successful or not.",
+      successful_dribbles: "Times the player successfully dribbled past an opponent.",
+      tackles: "Attempts to win the ball from an opponent with a tackle, successful or not.",
+      interceptions: "Opponent passes cut out before they reached their target.",
+      blocks: "Opponent shots, passes or crosses stopped by the player.",
+      yellow_cards: "Yellow cards received.",
+      red_cards: "Red cards received."
     };
     CARDS = /* @__PURE__ */ new Map();
     RETRY_MS = [2e3, 4e3, 8e3, 15e3];
@@ -22761,7 +22842,7 @@ function pairTable(ctx2, P, pr, g, gws, onStats) {
       o.sub ? h("span.o", null, o.sub) : null
     );
   };
-  const row = (label, cells, cls = "", dataset = null) => h(`div.r${cls}`, { role: "row", dataset }, h("div.n", { role: "rowheader" }, label), cells.map(cellOf));
+  const row = (label, cells, cls = "", dataset = null) => h(`div.r${cls}`, { role: "row", dataset }, h("div.n", { role: "rowheader", title: STAT_HELP[dataset?.key] ?? "" }, label), cells.map(cellOf));
   const grp = (label, extra = null, dataset = null) => h("div.grp", { role: "row", dataset }, h("span", { role: "rowheader" }, label), extra);
   const fxs = (row2, x) => ctx2.pitch?.fixturesAt?.(row2, x, d.xpGws) || [];
   const opp = (row2, x) => {
@@ -22838,14 +22919,16 @@ function pairTable(ctx2, P, pr, g, gws, onStats) {
           paint();
         }
       }), { view }));
-      for (const [k, r] of Object.entries(mine.rows)) {
+      const ball = ballAt(Object.keys(mine.rows));
+      for (const [i, [k, r]] of Object.entries(mine.rows).entries()) {
+        if (i === ball) kids.push(grp(BALL));
         const [lab, dp] = STAT[k] ?? [k, 1];
         const rk = [r?.rank, theirs.rows[k]?.rank];
         const best = rk.every((v) => v != null) && rk[0] !== rk[1] ? rk[0] < rk[1] ? 0 : 1 : -1;
-        const cell = (x, of, i) => ({
+        const cell = (x, of, i2) => ({
           node: x?.value == null ? DASH3 : x.value.toFixed(dp),
           aux: x?.rank == null ? null : fmt.ordinal(x.rank),
-          on: i === best,
+          on: i2 === best,
           said: `${x?.value == null ? "none" : x.value.toFixed(dp)}${x?.rank == null ? "" : `, ${fmt.ordinal(x.rank)} of ${of.n} ${WORD[of.pos] ?? "players"}`}`
         });
         kids.push(row(lab, [cell(r, mine, 0), cell(theirs.rows[k], theirs, 1)], ".st", { key: k, in: r.value ?? "", out: theirs.rows[k]?.value ?? "" }));
