@@ -4,10 +4,13 @@ import * as E from '../../plan/engine.js';
 import { solveGap } from '../api.js';
 import { fmt, chipName } from '../../ui.js';
 import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
-import { SOLVES, SWAPS, attach, pinSell, pinHits, pinNotFor, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
+import { SOLVES, SWAPS, attach, pinSell, pinHits, pinRefusal, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
 import { MINUS, WHY_SHEET, addMove, asYours, sum, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
 import { saidNow, sayAgain, asksOf, autoRuleName, barred, refusedAt, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
-import { FORK_FLIGHTS, SQUAD_CHIPS, answeredBy, noteAnswered, asTaken, byGain, choiceVs, fitsAt, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, forkValues, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
+import { recordDecision } from './diagnostics.js';
+import { refusedRoad } from '../memory/pins.js';
+import { fitOf } from './plans/lit.js';
+import { FORK_FLIGHTS, SQUAD_CHIPS, answeredBy, noteAnswered, asTaken, byGain, choiceVs, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, forkValues, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
 import { freedBy, lineupMoved, gwMode, inkAt, isLive } from './buys.js';
 import { plPays, squadWeek } from './pieces.js';
 import { rulesOf } from './screen.js';
@@ -556,8 +559,9 @@ export function rootStill(was0, now0, road) {
   const fw = toks(was.not_for), fn = toks(now.not_for);
   if ([...fw].some((t) => !fn.has(t))) return false;
   for (const t of [...fn].filter((x) => !fw.has(x))) {
-    const [g, out, inn] = t.split(':').map(Number), w = weeks.get(g);
-    if (!fixed(g) || (w && ids(w.in).includes(inn) && ids(w.out).includes(out))) return false;
+    const i = t.indexOf(':'), g = Number(t.slice(0, i)), w = weeks.get(g);
+    const blocked = refusedRoad(t, w);
+    if (!fixed(g) || blocked) return false;
   }
   const nn = new Set([...toks(now.no_buys_gw)].map(Number));
   if ([...held].some((g) => !nn.has(g))) return false;
@@ -582,14 +586,6 @@ function rootValues(ctx, P, g, extra = [], drop = []) {
   // plan's (planOfRoad); owner, 2026-11-03, "why anytime goes to GW11–13": the ✕ and Keep refusals 8-10 s, GW10 0.3 s)
   const values = valuesFor(ctx, [...P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x)), ...extra.filter((p) => p.id !== roll)], [...drop, ...P.pins.filter((p) => p.id === roll).map((p) => p.id)]);
   return { ...noHitsFrom(P, g, values), to: g };
-}
-/** A card's solve `values` with `buys` buys in GW g beside your own there (values.max_buys_gw, the solver's
- *  --max-buys-gw): the solver's best `buys` transfers for the week. → values */
-function buysValues(P, g, values, buys) {
-  const caps = new Map(String(values.max_buys_gw ?? '').split(',').filter(Boolean).map((t) => t.split(':').map(Number)));
-  const n = (weekOf(P, g)?.moves.length ?? 0) + buys;
-  caps.set(g, Math.min(caps.get(g) ?? n, n));
-  return { ...values, max_buys_gw: [...caps].sort(([x], [y]) => x - y).map(([y, k]) => `${y}:${k}`).join(',') };
 }
 /**
  * A week after GW A solved without hits (owner, 2026-11-09, "solve gws after 11 without hits", "fix so gw12 and gw13
@@ -626,7 +622,7 @@ export function noHitsFrom(P, g, values, own = false, last = g) {
  *  2026-11-02, Boss of the gym GW10: the token Palmer, the refusal solved ahead Hill's, so each ✕ waited on a solve). */
 /** Another week's refusal solving ahead (a side flight, not a root): what holds GW g's refusals ahead back. */
 const sideBusy = (g, key) => forkFlights().some(([, f]) => f.side && !f.root && f.key !== key && f.gw !== g);
-export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1, lead: best = null } = {}) {
+export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1, offered = null } = {}) {
   const yours = weekOf(P, g)?.moves || [], out = [], seen = new Set(), d0 = draftOf(ctx);
   // (`chain`: the node is Show another's next card, the root's own refused: its swap solved ahead too, presolveNext)
   const walk = (extra, d, chain = false) => {
@@ -666,44 +662,32 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1,
       const kept = ms.filter((m) => outs.includes(Number(m.out)) && ins.includes(Number(m.in)));
       return kept.length === outs.length ? kept : pairedMoves(outs, ins, P.L).map((m) => ({ gw: g, ...m }));
     };
-    // (fewest transfers a card: a card whose solve makes two or more GW-g moves shows the solver's best one transfer for the
-    // week (one solve, one buy allowed, no move forced: the solver picks which), the number it orders its moves by falling
-    // card by card as each refusal narrows its choice; owner, 2026-11-11, "it suggest evanilson why the fuck app suggest
-    // hill", "every next suggestion it offers show less points then previous")
-    // (…but where the plan has a move the week can't make alone (money and a club's room, fitsAt: another of its sales
-    // pays for it), the plan whole, never its moves apart: a single first read 395's GW11 N.Jackson → Evanilson +1.1,
-    // Calafiori → Hill +0.9, then the plan +1.9; owner, 2026-11-11, "if another sell has to pay then it must be shown as
-    // combination not separately", "one move transfer must not block best combination". One by one where every move can
-    // be made alone: "if combination can be reached by individual offered one by one", 41's GW11)
-    let road = free;
-    const halves = [];
-    // (the card on screen's alone: its root asked for the viewed week, never a card ahead (Show another's next, solved
-    // ahead) nor a week prepared ahead; owner, 2026-11-10, "(a) On tap")
-    const all = free ? movesOf(free) : [];
-    if (root && !prep && free && !SQUAD_CHIPS.has(weekOf(P, g)?.chip) && all.length > 1) {
-      const apart = all.every((x) => fitsAt(ctx, P, g, { moves: [...yours.map((y) => ({ gw: g, out: y.out, in: y.in })), x], chips: {} }, d0));
-      if (apart) {
-        const v = buysValues(P, g, rootValues(ctx, P, g, extra), 1), k = valuesKey(P, v), got = ask(k, v);
-        halves.push({ k });
-        // (the card waits on it; one that makes no transfer leaves the plan's)
-        road = !got ? null : got.weeks && movesOf(got).length === 1 ? got : free;
-      }
+    const road = free;
+    const ms = road ? movesOf(road) : [];
+    let single;
+    if (root && ms.length > 1 && !SQUAD_CHIPS.has(weekOf(P, g)?.chip)) {
+      const caps = new Map(String(values.max_buys_gw ?? '').split(',').filter(Boolean).map(x => x.split(':').map(Number)));
+      caps.set(g, Math.min(caps.get(g) ?? Infinity, yours.length + 1));
+      const v = { ...values, max_buys_gw: [...caps].sort(([a], [b]) => a - b).map(([gw, n]) => `${gw}:${n}`).join(',') };
+      const k = valuesKey(P, v), answer = ask(k, v);
+      single = { key: k, values: v, road: answer?.weeks ? answer : null, answered: answer != null, single: true };
     }
-    const w = d > 0 && road ? road.weeks.find((x) => Number(x.gw) === g) : null;
-    const ms = w ? movesOf(road) : [];
+    if (root && !prep) {
+      const checks = ms.length > 1 ? ms.map((move) => ({
+        ...move, ...fitOf(ctx, P, g, { moves: [...yours, move], chips: {} }, d0),
+      })) : [];
+      recordDecision(P, g, {
+        key, checks, reason: road ? 'solver-plan' : 'pending', original: ms,
+        requests: [{ label: 'Week plan', key, values, state: road ? 'ready' : got ?? 'pending', moves: ms }, ...(single ? [{ label: 'Best single transfer', key: single.key, values: single.values, state: single.road ? 'ready' : single.answered ? 'unavailable' : 'pending', moves: movesOf(single.road) }] : [])],
+      });
+    }
     out.push({ key, road });
-    for (const x of halves) out.push({ key: x.k, road: null });  // (their flights kept while the card waits on them: plansOf lets go a flight no node names)
-    const lead = (root && best && ms.find((m) => Number(m.out) === Number(best.out) && Number(m.in) === Number(best.in))) || ms[0] || null;
-    // (rolling best here: the chain ends, the week's card the solver's own "Save"; no transfer is offered past the solver's
-    // own (a forced buy, a shorter window: never its suggestion; owner, 2026-11-09, "move there bring a player"))
-    if (!lead) {
-      return;
-    }
-    // (Show another, the card's one refusal: no Keep or per-name refusal solved ahead since the ticket took their buttons
-    // off the screen; owner, 2026-11-05, "delete all solves which are not needed")
+    if (single) out.push(single);
+    const refusal = root && offered ? offered : ms.length === 1 ? ms : [];
+    if (!d || !refusal.length) return;
     // (the next card's Make the swap, its transfer alone (a pair's half is the card's own pick: weekBest), once its road is in)
     if (chain && road && ms.length === 1 && !peek && !prep) presolveNext(ctx, P, g, road, extra, d0);
-    const nx = [...extra, pinNotFor(lead.out, lead.in, g)];
+    const nx = [...extra, pinRefusal(refusal, g)];
     walk(nx, d - 1, root);
   };
   walk([], depth);
@@ -1097,7 +1081,8 @@ export function addPlan(ctx, g, pl) {
   // the week's Roll is the choice itself, never a rule against your moves it keeps; a Wish the take makes an exact sale
   // is no rule taken back
   const wished = new Set(own.flatMap((m) => wishDrop(P, m.in)));
-  const taken = [...new Map([...pins.filter((p) => !isRoll(p) && !chain.has(p.id)).flatMap((p) => clashing(P, p, asks)), ...limit].filter((q) => !ids.has(q.id) && !drop.includes(q.id) && !wished.has(q.id)).map((q) => [q.id, q])).values()];
+  // A refused card may be a subset of this suggestion. Keep its history for Undo.
+  const taken = [...new Map([...pins.filter((p) => !isRoll(p) && !chain.has(p.id)).flatMap((p) => clashing(P, p, asks)), ...limit].filter((q) => q.kind !== 'notfor' && !ids.has(q.id) && !drop.includes(q.id) && !wished.has(q.id)).map((q) => [q.id, q])).values()];
   const move = (m) => `${nm(m.out)} → ${nm(m.in)}`;
   const hit = own.length && pl.hits?.[g] ? ` (${MINUS}${E.HIT_COST * pl.hits[g]})` : '';
   const head = chipSaid.get(g) ?? (own.length ? `GW${g} ${own.map(move).join(' + ')}${hit}` : !pl.moves.some((m) => m.gw === g) ? COPY.planRoll(g) : null);

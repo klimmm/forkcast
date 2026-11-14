@@ -159,7 +159,7 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
       const g = num(pin.gw) ?? 0, keep = Math.min(rollKeeps(pin), exactAt(list, g).length);
       if (g >= from && g <= to) { if (keep) caps[g] = keep; else rolls.add(g); }
     }
-    if (kindOf(pin) === 'notfor') refused.push([num(pin.gw), Number(pin.out), Number(pin.player)]);
+    if (kindOf(pin) === 'notfor') refused.push(pin);
     for (const g of pin.rolls || []) if (Number(g) >= from && Number(g) <= to) rolls.add(Number(g));  // the hold's (holdOf)
     for (const g of pin.debts || []) if (Number(g) >= from && Number(g) <= to) debts.add(Number(g));  // the hold's (holdOf)
     if (!isRoll(pin)) for (const [g, n] of Object.entries(pin.caps || {})) if (Number(g) >= from && Number(g) <= to) caps[Number(g)] = Number(n);
@@ -203,8 +203,12 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
   // a squad held whole, a week of no transfers (the roll a Show another's next card counts against is the solve it was,
   // so its tap waits on none: owner, 2026-11-05, "why it never presolves next moves"), or a week your rules make that
   // very move (pinConflicts takes such a refusal back)
-  const notFor = [...new Set(refused.filter(([g, o, i]) => g >= from && g <= to && !['wc', 'fh'].includes(chips[g]) && !holds.has(g) && !rolls.has(g) && !makesMove(cells, g, o, i))
-    .map((x) => x.join(':')))].sort();
+  const notFor = [...new Set(refused.filter((p) => p.gw >= from && p.gw <= to && !['wc', 'fh'].includes(chips[p.gw]) && !holds.has(p.gw) && !rolls.has(p.gw) && !refusalMade(cells, p))
+    .map(p => {
+      const existing = made.filter(t => t.startsWith(p.gw + ':')).map(t => t.slice(t.indexOf(':') + 1));
+      const pairs = new Set([...existing, ...refusalKey(refusedMoves(p)).split('+')]);
+      return `${p.gw}:=${[...pairs].sort().join('+')}`;
+    }))].sort();
   return {
     must_have, sent_must: spanString(sent), exclude, sent_exclude: spanString(sentExcl), for_gw: [...new Set(made)].sort().join(','), must: parseSpans(must_have), excl: parseSpans(exclude), hits, notFor, not_for: notFor.join(','),
     rolls: [...rolls].sort((a, b) => a - b), caps, debts: [...debts].sort((a, b) => a - b), chips, cash, cells, overridden,
@@ -246,7 +250,7 @@ export function pinConflicts(list, pin, { into = null, ...opts } = {}) {
     if (o.by === pin.id) add(others.find((p) => p.id === o.pin), o.id, o.was, o.gw);
   }
   // (a transfer you refused, now one you ask for: the refusal goes)
-  for (const q of others) if (kindOf(q) === 'notfor' && makesMove(c.cells, num(q.gw), Number(q.out), Number(q.player))) add(q, Number(q.player), 'out', num(q.gw));
+  for (const q of others) if (kindOf(q) === 'notfor' && refusalMade(c.cells, q)) add(q, Number(refusedMoves(q)[0].in), 'out', num(q.gw));
   if (into) {
     const inWindow = (g) => g !== null && g >= (opts.from ?? 1) && g <= (opts.to ?? E.LAST_ROUND);
     const g0 = num(pin.gw);
@@ -574,6 +578,14 @@ export function pinVeto(id, A, end, { label, kind = 'veto', scope = 'all', ...o 
 export const pinNever = (id, A, end, o = {}) => pinVeto(id, A, end, { ...o, kind: 'never' });
 /** A transfer refused, `out` for `inn` in GW g alone (Show another; owner, 2026-11-05, "not rice for mbeumo"): no window
  *  of its own, so `inn` can still come for someone else and `out` go for someone else (values.not_for: --not-for-gw). */
+export const refusedMoves = (p) => p.moves ?? [{ out: p.out, in: p.player }];
+const refusalMade = (cells, p) => refusedMoves(p).every((m) => makesMove(cells, num(p.gw), Number(m.out), Number(m.in)));
+const refusalKey = (moves) => moves.map((m) => `${m.out}:${m.in}`).sort().join('+');
+export function pinRefusal(moves, gw, options = {}) {
+  if (moves.length === 1) return pinNotFor(moves[0].out, moves[0].in, gw, options);
+  return makePin({ id: `notfor:${refusalKey(moves)}@${gw}`, kind: 'notfor', gw,
+    moves: moves.map((m) => ({ out: Number(m.out), in: Number(m.in) })), ...options });
+}
 export const pinNotFor = (out, inn, g, { label, ...o } = {}) => makePin({ ...o, id: `notfor:${out}>${inn}@${g}`, kind: 'notfor', player: Number(inn), out: Number(out), label, gw: g });
 export function pinKeep(id, from, end, { label, scope = 'all', ...o } = {}) {
   const s = scoped('keep', id, from, end, scope);
@@ -663,4 +675,20 @@ export function carryPins(prevDoc, A, end) {
     out.push({ ...rest, must, excl, max_hits: 0, ...(Object.keys(chips).length ? { chips } : {}), ...(Object.keys(hits).length ? { hits } : {}), gw: p.gw === null ? null : Math.max(p.gw, A) });
   }
   return out;
+}
+
+export function matchesRefusedMoves(pairs, outs, ins) {
+  return pairs.length === ins.length && pairs.every(m => outs.includes(Number(m.out)) && ins.includes(Number(m.in)));
+}
+
+export function refusedRoad(token, week) {
+  if (!week) return false;
+  const body = token.slice(token.indexOf(':') + 1);
+  const pairs = body.replace(/^=/, '').split('+').map(pair => {
+    const [out, inn] = pair.split(':').map(Number);
+    return { out, in: inn };
+  });
+  const outs = ids(week.out), ins = ids(week.in);
+  return body.startsWith('=') ? matchesRefusedMoves(pairs, outs, ins)
+    : pairs.every(m => outs.includes(m.out) && ins.includes(m.in));
 }

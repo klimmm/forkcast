@@ -3,7 +3,7 @@
 import * as E from '../../../plan/engine.js';
 import { subOrder } from '../../../plan/pitch.js';
 import { COPY, subGap, sentence, hitCap } from '../../calls.js';
-import { pinSell, pinVeto, pinNever, pinNotFor, pinKeep, pinChip, composePins, pinConflicts, barredAt, ruleText, scopeOf, parseSpans } from '../../memory.js';
+import { pinSell, pinVeto, pinNever, pinNotFor, pinRefusal, pinKeep, pinChip, composePins, pinConflicts, barredAt, ruleText, scopeOf, parseSpans } from '../../memory.js';
 import { baked, ids, inputs, noteRemoved, num, plan, problemText, span, squadBefore, sum, weekOf, wishDrop } from '../core.js';
 import { addYours, pinOfMove, removeMove, repicks, withFlag } from '../presolve.js';
 import { bringIn, captainMoved, holdBuy, liftFrom, liftsLive, sayBuyProblem, takenBack } from '../buys.js';
@@ -99,6 +99,10 @@ export function veto(ctx, m, { scope = 'gw' } = {}) {
   const nm = P.L.name;
   // scope 'pair': the transfer alone, in its week (Show another: pinNotFor); 'gw': him that week; 'all': him in every week
   const pair = scope === 'pair', one = pair || scope === 'gw';
+  if (pair && m.moves?.length > 1) {
+    const label = `Skip this ${m.moves.length}-transfer combination in GW${m.gw}`;
+    return edit(ctx, { pins: [pinRefusal(m.moves, m.gw, { label })], from: m.gw, text: () => label, what: label });
+  }
   const label = pair ? `Not ${nm(m.in)} for ${nm(m.out)} in GW${m.gw}` : `Not ${nm(m.in)} in GW${m.gw}`;
   const pin = pair ? pinNotFor(m.out, m.in, m.gw, { label }) : one ? pinVeto(m.in, m.gw, m.gw, { scope, label }) : pinVeto(m.in, P.A, P.end, { label: `Not ${nm(m.in)}` });
   // his asks it contradicts go (a wish or pick of him, a Keep holding him then), named in the verdict (withTaken), and
@@ -261,7 +265,7 @@ export const pinOf = (P, kind, id, gw = null) => pinsOf(P, kind, id).find((p) =>
 /** The players your pins keep out in any GW from..to (memory.barredAt), but not the player a sale of yours sells from a
  *  later GW (he can come in before it), nor its buy before it (laterBuys). */
 /** The transfers you refused in GW g (memory.pinNotFor): "out>in". */
-export const refusedAt = (P, g) => new Set(P.pins.filter((p) => p.kind === 'notfor' && Number(p.gw) === g).map((p) => `${p.out}>${p.player}`));
+export const refusedAt = (P, g) => new Set(P.pins.filter((p) => p.kind === 'notfor' && !p.moves && Number(p.gw) === g).map((p) => `${p.out}>${p.player}`));
 export const barred = (P, from, to = P.end) => barredAt(P.pins.map((p) => (p.kind === 'sell' && Number(p.gw) > from
   ? { ...p, in: null, excl: (p.excl || []).filter(([id]) => Number(id) !== Number(p.player)) } : p)), from, to);
 /** The players your Keeps hold in GW g or later: Map(id → the first such GW). A sale from GW g has him out from g on,

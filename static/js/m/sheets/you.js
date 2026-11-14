@@ -141,6 +141,10 @@ export function open(ctx, what = null) {
           Number.isFinite(noise) ? h('div.m-kv', null, h('span', null, COPY.chargeName), h('span', null, COPY.noiseValue(noise, b.meta.gw))) : null,
           b?.meta?.scale ? h('p.m-foot.y-scale', null, COPY.realScale(b.meta.scale)) : null,
           acc.share.length ? h('button.m-nav', { type: 'button', onClick: () => shareSheet(ctx, acc) }, 'Open on iPhone') : null,
+          document.querySelector('.ah-diagnostics') ? h('button.m-nav', { type: 'button', onClick: () => {
+            ctx.sheets.closeAll();
+            document.querySelector('.ah-diagnostics header button')?.click();
+          } }, 'Suggestion logic') : null,
           h('a.m-nav.y-studio', { href: '/studio/', target: '_blank', rel: 'noopener' }, 'Open Studio (Dev mode)'),
           h('p.m-foot.y-center', null, 'Every solver setting, the runs and the data jobs live in the Studio.'));
       }

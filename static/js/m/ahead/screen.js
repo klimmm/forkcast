@@ -18,6 +18,7 @@ import { placePart } from './screen-place.js';
 import { weekPart } from './screen-week.js';
 import { rowsPart } from './screen-rows.js';
 import { pitchPart } from './screen-pitch.js';
+import { mountDiagnostics } from './diagnostics.js';
 import { mountSolveLog } from './solvelog.js';
 import { touchPart } from './screen-touch.js';
 import { ticketPart } from './screen-ticket.js';
@@ -161,6 +162,7 @@ let FORGET_ASKS = null;
 export function mount(el, ctx) {
   // (?solves=1 only: the fork solves in words, and the server's planning of a new team while it bakes)
   mountSolveLog(ctx);
+  const closeDiagnostics = mountDiagnostics(ctx);
   // the parts' view of this function's scope (live getters) and the parts' functions, by their own names
   const V = {
     get ADD_HOLD_MS() { return ADD_HOLD_MS; },
@@ -684,6 +686,7 @@ export function mount(el, ctx) {
     show() { if (!S.drawn || S.drawn !== plan(ctx) || S.drawnGw !== gwNow(S.drawn) || S.held) render(); },
     hide() {},
     unmount() {
+      closeDiagnostics();
       if (GO_GW === setGw) GO_GW = null;
       if (TAP_IN === tapIn) TAP_IN = null;
       offs.forEach((f) => f());

@@ -3,7 +3,7 @@
 import * as E from '../../plan/engine.js';
 import { COPY, hitBook, hitCap } from '../calls.js';
 import { chipName } from '../../ui.js';
-import { capsOf, composePins, parseSpans, spanString, heldAt, ids, idsKey, isExact, isRoll, kindOf, makePin, movedAt, movesIn, num, parseCaps, pinFrozen, range, rollKeeps, scopeOf, span, squadKey, squadOf, weekAt } from './pins.js';
+import { refusedRoad, capsOf, composePins, parseSpans, spanString, heldAt, ids, idsKey, isExact, isRoll, kindOf, makePin, movedAt, movesIn, num, parseCaps, pinFrozen, range, rollKeeps, scopeOf, span, squadKey, squadOf, weekAt } from './pins.js';
 import { sigOf } from './drift.js';
 
 // ================================================================ the default plan: your team, no transfers
@@ -251,7 +251,7 @@ export function roadFits(road, c, gws) {
   // a road solved refusing a transfer you don't refuse, or making one you do
   const refused = c.notFor ?? [];
   if (String(v.not_for ?? '').split(',').filter(Boolean).some((t) => !refused.includes(t))) return false;
-  if (refused.some((t) => { const [g, o, i] = t.split(':').map(Number), w = weekAt(road, g); return ids(w?.out).includes(o) && ids(w?.in).includes(i); })) return false;
+  if (refused.some(t => refusedRoad(t, weekAt(road, Number(t.split(':')[0]))))) return false;
   return brokenCells(road, c).length === 0;
 }
 
@@ -374,6 +374,8 @@ function ruleWords(p, nameOf, { end, start, cap = null, hold = false } = {}) {
         desc: one ? `The plan doesn't buy ${nm(p.player)} in ${sc}; it may later.` : `The plan never buys ${nm(p.player)}${g ? ` in ${COPY.range(g, to)}` : ''}.` };
     }
     case 'notfor':
+      if (p.moves) return { icon: 'ban', text: p.label, removable: true,
+        desc: p.moves.map((m) => `${nm(m.out)} → ${nm(m.in)}`).join(', ') };
       return { icon: 'ban', text: `Not ${nm(p.player)} for ${nm(p.out)} · GW${g}`, removable: true,
         desc: `The plan doesn't swap ${nm(p.out)} for ${nm(p.player)} in GW${g}. ${nm(p.player)} can still come for someone else, and ${nm(p.out)} can still go for someone else.` };
     case 'keep': {

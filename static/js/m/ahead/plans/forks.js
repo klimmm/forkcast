@@ -275,7 +275,9 @@ export function rulesWords(P, gw, values, base, freed = null) {
   const by = new Map();
   for (const x of out) { const [, v, rest] = /^(\S+(?: \S+)?) (.+) (GW[\d-]+)$/.exec(x) ? [, x.replace(/ .+$/, ''), x] : [, x, x]; const g = /GW[\d-]+$/.exec(x)?.[0] ?? ''; const k = `${v} ${g}`; by.set(k, [...(by.get(k) ?? []), rest]); }
   // (a transfer refused as its toast says it, "not Hill for Murillo GW10"; the rolls after the players, never counted among them)
-  const was = set(base?.not_for), refused = [...set(values?.not_for)].filter((x) => !was.has(x)).map((x) => { const [g, o, i] = x.split(':'); return `not ${nm(i)} for ${nm(o)} GW${g}`; });
+  const was = set(base?.not_for), refused = [...set(values?.not_for)].filter((x) => !was.has(x)).map((x) => { const at = x.indexOf(':'), gw = x.slice(0, at);
+    const pairs = x.slice(at + 1).replace(/^=/, '').split('+').map((p) => { const [o, i] = p.split(':'); return `${nm(i)} for ${nm(o)}`; });
+    return `not ${pairs.join(' + ')} GW${gw}`; });
   return [...[...by].map(([k, xs]) => (xs.length > 3 ? `${k.split(' ')[0]} ${xs.length} players ${k.split(' ').at(-1)}` : xs.join(', '))), ...refused, ...rolls].join(', ');
 }
 // (what a solve asks beyond the plan as it stands, then your own rules it is solved under, apart: two lines in the same

@@ -1,6 +1,7 @@
 // screen.js mount: the week's ticket: one decision, one line, two buttons (owner, 2026-11-05: "either i transfer, or refuse
 // and see another suggestion"; "stop wasting space on useless crap"; design_1105f prototype/ticket.html)
 
+import { showDiagnostics } from './diagnostics.js';
 import { h, fill, fmt, plural, reduceMotion, xpGain, xpNum } from '../../ui.js';
 import { CHIPS_OFF, COPY } from '../calls.js';
 import { MINUS, memOf, pairAsPlaced, plan, viewOfRoadWeek, weekOf } from './core.js';
@@ -205,7 +206,7 @@ export function ticketPart(V) {
     // the armband you moved after the tap had no Undo, qa-tk137 pitch-drag)
     const toChoice = !swaps && !refused && !prev && !(undo && undoWords === COPY.previous) && tappedSuggestion(P, g)
       ? h('button.ah-rsbtn.undo.back', { type: 'button', disabled: off, dataset: { row: `tk:choice:${g}` }, onClick: () => { showSuggestion(P, g, false); showTransfer(P, g, false); V.schedule(); } }, COPY.previous) : null;
-    let title, line = null, left = null, right = null, noBring = false;
+    let title, line = null, left = null, right = null, noBring = false, diagnosticComparison = null;
     // The card is one of a few states, each drawn one way on every team and week (owner, 2026-11-10, "make sure that
     // transfer cards have a few unified states"; design_1109b review.md):
     //   opening   nothing of yours, not asked: "No transfer made"; Show suggestion | –
@@ -312,11 +313,6 @@ export function ticketPart(V) {
     };
     const offer = () => {
       const { e, pl } = best.move;
-      // (the solver's moves as it makes them, never one of them made alone: how many is refusalRoads' (fewest transfers a
-      // card, the plan's own); the move freeing the most money shown alone, since 2026-11-10, showed 395's GW11 Gabriel →
-      // Diop −3.5, the sale paying for Manzambi → Palmer; owner, 2026-11-11, "how it now offer gabriel diop to me",
-      // "one move transfer must not block best combination")
-      // (a combination the week can make one move at a time comes one move a card: refusalRoads solves each alone)
       const own = pl.road?.weeks?.find((x) => Number(x.gw) === g);
       after = swapWeek(ctx, P, g, pl) ?? (own ? viewOfRoadWeek(own, P.L) : null) ?? (e.adds.length ? inPlaces(w, e.adds) : null);
       clearTimeout(S.swapAsk);
@@ -337,8 +333,9 @@ export function ticketPart(V) {
       const vs = !short && !extraWeek(P, g) && (w.ft ?? 1) > 0 ? COPY.vsSaving : COPY.planVs(true);
       // (a move the solver's count puts below saving the small state, a transfer the plan would not make, whoever
       // offers it; owner, 2026-11-11, "the card should show number which will not mislead or confuse users")
+      diagnosticComparison = { gain: pts, rounds, vs };
       line = withCompare(moveLine(pts, !!pl.forced || fmt.signed(pts).startsWith(MINUS), rounds, vs), one);
-      const not = best.dataset.notIn ? { gw: g, out: Number(best.dataset.notOut), in: Number(best.dataset.notIn) } : null;
+      const not = best.dataset.notIn ? { gw: g, moves: ms, out: Number(best.dataset.notOut), in: Number(best.dataset.notIn) } : null;
       // (refuse and see another, on every suggestion, a pay-back's too; your swaps' take-back among the links; owner,
       // 2026-11-05, "either i transfer, or refuse and see another suggestion"; review 2)
       // (…where the suggestion has one out and one in to refuse: with none it opened the Week sheet; card audit 2026-11-10)
@@ -400,6 +397,9 @@ export function ticketPart(V) {
       title = S.status?.one ?? '';
       right = next ? onward : null;
     }
+    showDiagnostics(ctx, P, w, { asked, wanted, offerable, solving, failed, short: !!short, freeLeft, refused,
+      comparison: diagnosticComparison, candidate: best?.move, candidates: (M?.plans ?? []).filter(pl => pl.solver && !pl.refRow).map(pl => ({ pl, moves: pl.choice.moves.filter(m => !w.moves.some(y => y.out === m.out && y.in === m.in)) })),
+      status: who ? 'Choosing a player' : M?.live ? 'Live week' : offerable ? 'Suggestion' : solving ? 'Calculating' : yours.length ? 'Your transfers' : wanted && ans ? 'Save transfers' : 'Suggestion not requested' });
     // (the same two buttons from paint to paint of a week: a paint between a finger's down and up took its tap, a solve
     // landing as you tap "bring in a player")
     if (S.doors?.g !== g || S.doors.editable !== P.editable) S.doors = { g, editable: P.editable, of: [bringDoor(P, g), chipsDoor(P, g)] };

@@ -173,7 +173,7 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
       pick: (x) => { const [a, b] = to(Number(x)); ctx.openSheet('player', a, { gw: g, vs: b }); },
       back: () => ctx.openSheet('player', id, { gw: g, vs }),
     } });
-  } }, P0.L.name(pid), h('i.ps-chev', { 'aria-hidden': 'true' }));
+  } }, h('span.ps-pick-name', { title: P0.L.name(pid) }, P0.L.name(pid)), h('i.ps-chev', { 'aria-hidden': 'true' }));
   const side = (pid, r, sub, me) => h(`span.ps-side${me ? '' : '.vs'}`, null, h('span.ps-kit', { 'aria-hidden': 'true' }, shirtOf(P0.L, pid, 40)),
     h('span', null, h('span.ps-nm', null, h(`span.${me ? 'ps-memark' : 'ps-vsmark'}`, { 'aria-hidden': 'true' }), pick(pid, (x) => (me ? [x, vs] : [id, x]))), sub,
       statusLines(r, P0, { available: false, lineup: false })));
