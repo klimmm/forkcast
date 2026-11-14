@@ -2,7 +2,7 @@
 
 import * as E from '../../plan/engine.js';
 import { fmt, chipName, plural } from '../../ui.js';
-import { AWAY, EPS, MINUS, ORD, WORDS, andList, gwList, gwsWords, hitsWords, ids, num, pts, range, rankOrd, rankShort, setsRow, setsSaid, signedMoney, span } from './helpers.js';
+import { EPS, MINUS, ORD, WORDS, andList, gwList, gwsWords, hitsWords, ids, num, pts, range, rankOrd, rankShort, setsRow, setsSaid, signedMoney, span } from './helpers.js';
 import { priceSaid } from './prices.js';
 
 // ---------------------------------------------------------------- copy (IPHONE_DESIGN §9, §7.9, §5)
@@ -160,7 +160,7 @@ export const COPY = Object.freeze({
   /** Help (the header's "Help", You → Help): a three-sentence lead, then one section per task, each a short list of
    *  actions in the app's own control names, each folding on its own (helpSheet: its head a button, the first open).
    *  Covers: a plan's + freezes its week (a Roll in Your rules), the card's Keep / Force out, the pitch's drags and
-   *  holds, Chips… and Bring in… on the week line, the sign-out after FORGET_MS away. */
+   *  holds, Chips… and Bring in… on the week line. */
   helpShort: 'Help',
   /** Settings (Ahead's header gear, in Help's old place; owner, 2026-10-29): its sheet's title and the gear's name. */
   settingsTitle: 'Settings',
@@ -280,7 +280,6 @@ export const COPY = Object.freeze({
       'Tap your initials, then Reset all weeks.',
       // (the pitch's pill, owner, 2026-10-21; ahead.planHasYours, resetFits)
       'Reset all weeks is on the week\'s card too while your plan has a transfer, chip or rule of yours.',
-      `Leave Forkcast for more than ${AWAY} and it signs you out of the team and clears its choices.`,
     ]],
   ],
   /** About Forkcast (sheets/about.js): under Connect's form for whoever reads on, and from Help and the You sheet
@@ -620,8 +619,6 @@ export const COPY = Object.freeze({
   resetLineupName: (g) => `Reset GW${g} lineup`,
   resetLineupWhat: (g) => `The plan's best lineup in GW${g} again; your transfers stay`,
   resetPlanWhat: 'Every transfer, chip, rule and lineup of yours off; Hits back to its default',
-  /** Back after FORGET_MS away: signed out, its choices gone (app.js signOut away). */
-  awaySignedOut: (name) => `Signed out of ${name} after ${AWAY} away; its choices are cleared.`,
   /** The suggested plans' label, once (the Week sheet's plans heading and the pitch's hidden choices heading; `lead`
    *  plansHead; uppercase by CSS): rows come best first once none still checks, said by no tag; the weeks its numbers
    *  count (gws: valuedOver), "Suggested plans · GW8–9"; then what they count against, `vsPlan` planVs's words ("· vs

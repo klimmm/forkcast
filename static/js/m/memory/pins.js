@@ -1,7 +1,7 @@
 // memory.js: pins: compose, parse and word your rules
 
 import * as E from '../../plan/engine.js';
-import { COPY, FORGET_MS } from '../calls.js';
+import { COPY } from '../calls.js';
 import { fin, toMs } from '../../ui.js';
 import { sinceText } from './drift.js';
 
@@ -10,8 +10,6 @@ const SQUAD = Object.values(E.POS_LIMITS).reduce((s, [n]) => s + n, 0);  // 15: 
 /** §7.8: a heal waits 600 ms after the gesture ends; a dirty plan is flushed 250 ms after the last change. One object
  *  so tests can shorten both. */
 export const TIMING = { heal: 600, flush: 250 };
-/** How long your choices stay away from Forkcast (calls.js); app.js and the tests read it here. */
-export { FORGET_MS };
 export const OFFERED_MAX = 24;  // offered roads kept per roads version: a window's chips × GWs and some
 // solves asked ahead (Memory.offer `values`, ahead.js presolve), kept per roads version: takes, Removes, open-sheet
 // taps (PRESOLVE_MAX each), Undo views
@@ -19,9 +17,6 @@ export const SOLVED_MAX = 48;
 export const LOCAL = (entry) => `fc:mem:${entry}`;
 export const SEEN = (entry) => `fc:mem:seen:${entry}`;
 export const EDIT = (entry) => `fc:mem:edit:${entry}`;
-/** When this browser last used a team (ms; app.js seen). A team unused for FORGET_MS (here, or editedAt on any device)
- *  loads as Reset plan leaves it, server copy too (owner, 2026-10-14); a sign-out forgets it at once (forget). */
-export const USED = (entry) => `fc:mem:used:${entry}`;
 /** A team whose forgetting (forget) hasn't reached the server: its next load here starts as Reset plan leaves it. */
 export const FORGET = (entry) => `fc:mem:forget:${entry}`;
 

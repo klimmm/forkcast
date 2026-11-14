@@ -1,8 +1,8 @@
 // memory.js: the live memory: createMemory
 
 import * as E from '../../plan/engine.js';
-import { planInputs, planFromRoad, compare as compareIn, changeText, transfersOf, withForced, hitCap, FORGET_MS } from '../calls.js';
-import { EDIT, FORGET, LOCAL, OFFERED_MAX, SEEN, SOLVED_MAX, TIMING, USED, carryPins, changesGwA, clone, composePins, deadlinePassed, frozenClash, frozenOnOf, frozenSince, frozenWeeks, heldAt, ids, idsKey, inkRepair, isRoll, kindOf, makePin, nowS, num, pinConflicts, pinsAfter, range, roadWeek, rollKeeps, squadInto, squadKey, weekAt, withBank } from './pins.js';
+import { planInputs, planFromRoad, compare as compareIn, changeText, transfersOf, withForced, hitCap } from '../calls.js';
+import { EDIT, FORGET, LOCAL, OFFERED_MAX, SEEN, SOLVED_MAX, TIMING, carryPins, changesGwA, clone, composePins, deadlinePassed, frozenClash, frozenOnOf, frozenSince, frozenWeeks, heldAt, ids, idsKey, inkRepair, isRoll, kindOf, makePin, nowS, num, pinConflicts, pinsAfter, range, roadWeek, rollKeeps, squadInto, squadKey, weekAt, withBank } from './pins.js';
 import { brokenCells, findRoad, forcedHits, holdOf, idleRules, planValues, ruleText, solveKept } from './values.js';
 import { detectDrift, freshOf, isNews, journalRows, madeOn, movesChanged, normalizeAccepted, pencilChanges, planOfRoad, sigOf, solvedKey } from './drift.js';
 import { statePart } from './live-state.js';
@@ -20,7 +20,7 @@ export const blankAccepted = (roadsV, dataV = roadsV, hold = false) => ({ hold,
  *  (accepted.at) and the times its rules (pins.items[].at) and calls (roads_taken[].at) were made. Never the server's
  *  updated_epoch (every PUT stamps it) nor an automatic re-save (a re-plan, inkRepair's lock, idleRules' clean-up, a
  *  carry-over): those are no use of the team (owner, 2026-10-22). Nor the notes: rejudge writes 'kept' ones on new data
- *  alone. A change that stamps nothing (a lineup, Hits, a rule taken off) reads as the edit before it: USED counts it. */
+ *  alone. A change that stamps nothing (a lineup, Hits, a rule taken off) reads as the edit before it. */
 export function editedAt(doc) {
   const a = doc?.accepted;
   if (!a) return 0;
@@ -85,7 +85,7 @@ export function createMemory(ctx) {
   };
   const { cctxNow, versionNow, gwsNow, endNow, accNow, holdOn, holdNow, capFor, storedNow, withHold, withHits, pinsNow, frozenNow, lockedNow, composeNow, ownedNow, intoNow, lookupNow, getPlan, transferInForce, weekState, emit, roadByKey, roadOf, saveLocal, loadLocal, flushSoon, flush, samePlan, mutate, op, ensure, stamp, setPins } = statePart(V);
   const { replan, keyNow, took, batch, keepBase, baseNow, lastNow, cancelHeal, scheduleHeal, yours, runHeal, settled, values, offer, rejudge, round2 } = healPart(V);
-  const { ideaOf, inkOf, inkClash, changesLiveA, addPin, clashText, dropPins, removePin, reset, setHitsMax, setLineup, setPlan, heal, compare, evalOf, lite, noteEdit, claimEdit, receipt, restorePins, pencilDiff, markSeen, forecastChange, loadAll, journal, unused, onData, syncPlan, carryOver } = apiPart(V);
+  const { ideaOf, inkOf, inkClash, changesLiveA, addPin, clashText, dropPins, removePin, reset, setHitsMax, setLineup, setPlan, heal, compare, evalOf, lite, noteEdit, claimEdit, receipt, restorePins, pencilDiff, markSeen, forecastChange, loadAll, journal, onData, syncPlan, carryOver } = apiPart(V);
   const S = {
     entry: null, A: null, doc: null, docs: null, dirty: false, seq: 0, inflight: null, flushTimer: null,
     judged: null, pending: null, healTimer: null, healSeq: 0, queued: null, error: null, carried: null, notice: null,
@@ -135,7 +135,7 @@ export function attach(ctx) {
   if (!current && ctx) current = createMemory(ctx);
   return current;
 }
-/** Sign-out, by you or after FORGET_MS away: the page's memory lets go of the team (timers and heal stop, unsent
+/** Sign-out: the page's memory lets go of the team (timers and heal stop, unsent
  *  changes are dropped; the next screen to attach makes a fresh one) and the team's choices go (forget). → forget's
  *  promise */
 export function release(api, entry) {

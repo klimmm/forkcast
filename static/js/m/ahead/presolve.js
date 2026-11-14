@@ -67,16 +67,20 @@ if (typeof document !== 'undefined' && document.addEventListener) {
   document.addEventListener('click', () => { if (Date.now() - pressedAt > 1000) tapNow(); }, opt);
   document.addEventListener('keydown', tapNow, opt);
 }
+// A manual purchase changes the squad the user can ask about. Undo restores the previous squad's choice.
+export const manualSales = (P, g) => (P.pins ?? []).filter((p) => p.kind === 'sell' && p.in != null && Number(p.gw) === g &&
+  (p.manual || p.must?.some(([, , end]) => end > g)));
+const suggestionKey = (P, g) => JSON.stringify([P.entry, g, manualSales(P, g).map((p) => [p.player, p.in, p.at])]);
 /** The weeks whose card shows a transfer though the plan rolls them (their Show a transfer, AHEAD.showing; owner, 2026-11-06:
  *  shown as any other transfer, not a list, and there when you come back), till its Previous or Reset all weeks. */
-export const showTransfer = (P, g, on = true) => { AHEAD.showing[on ? 'add' : 'delete'](`${P.entry}|${g}`); PAIR.rev++; };
-export const showingAt = (P, g) => AHEAD.showing.has(`${P.entry}|${g}`);
+export const showTransfer = (P, g, on = true) => { AHEAD.showing[on ? 'add' : 'delete'](suggestionKey(P, g)); PAIR.rev++; };
+export const showingAt = (P, g) => AHEAD.showing.has(suggestionKey(P, g));
 /** The week's card past its opening choice (Show suggestion | Bring in a player): the solver's answer shown, this page's
  *  session (owner, 2026-11-09, "make user initially choose whether to show a suggestion - so user can just bring a
  *  player - make buttons equal to each other"). */
-export const showSuggestion = (P, g, on = true) => { AHEAD.suggested[on ? 'add' : 'delete'](`${P.entry}|${g}`); PAIR.rev++; };
+export const showSuggestion = (P, g, on = true) => { AHEAD.suggested[on ? 'add' : 'delete'](suggestionKey(P, g)); PAIR.rev++; };
 /** …by your tap on Show suggestion (its Previous back to the choice). */
-export const tappedSuggestion = (P, g) => AHEAD.suggested.has(`${P.entry}|${g}`);
+export const tappedSuggestion = (P, g) => AHEAD.suggested.has(suggestionKey(P, g));
 /** Your last tap on this team has asked the 6 it may (SOLVE_MAX). No tap yet is no action, nor the tap that opened it, a
  *  load like any other: its own solves spent the 6 and left Make the swap and Show another unsolved (owner, 2026-11-05,
  *  "Yes, full preparation"). */

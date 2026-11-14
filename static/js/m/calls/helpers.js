@@ -3,13 +3,6 @@
 import * as E from '../../plan/engine.js';
 import { fmt, fin, statusInfo } from '../../ui.js';
 
-/** How long your choices are kept (owner, 2026-10-18: 30 min): unused that long, the team is signed out (app.js away,
- *  also on an open page) and its choices forgotten (memory forget); a team unused that long (memory USED, editedAt:
- *  your own edits, never an automatic re-save) loads as Reset plan leaves it. Here beside the words that say it (AWAY:
- *  COPY.awaySignedOut, Help's "Start over"); memory.js re-exports it. */
-export const FORGET_MS = 30 * 60 * 1000;
-export const AWAY = `${FORGET_MS / 60000} minutes`;
-
 /** GW gw's switcher marks from meta.dgw_bgw.window: ['DGW'] where a club plays twice, ['BGW'] where one doesn't play,
  *  both, or []. */
 export function gwFlags(win, gw) {

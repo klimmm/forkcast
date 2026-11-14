@@ -67,7 +67,7 @@ import * as engine from '../plan/engine.js';
 import * as kits from '../plan/kits.js';
 import * as pitch from '../plan/pitch.js';
 import { teamPicker, readId, COPY as PICK } from './picker.js';
-import { release as releaseMemory, FORGET_MS, USED } from './memory.js';
+import { release as releaseMemory } from './memory.js';
 import { createStore, derive, horizonOf, reachOf } from './shell/store.js';
 import { $, createSheets } from './shell/sheets.js';
 
@@ -549,13 +549,8 @@ function accept(entry, b, { at = Date.now(), offline = false, snapshot = false }
 }
 
 document.addEventListener('visibilitychange', async () => {
-  // hidden: away counts from here unless it already does (a page left open unused FORGET_MS, then reloaded, is signed
-  // out); shown again: reload into a new release if the server moved to one, else sign out after FORGET_MS away
-  if (document.visibilityState !== 'visible') { if (!away()) seen(true); return; }
-  shownCheck = true;
-  if (await reloadIfReleased()) return;  // (the page is going: it stays set)
-  shownCheck = false;
-  if (signOutIfAway() || !store.get('entry') || !gate.hidden) return;
+  if (document.visibilityState !== 'visible' || await reloadIfReleased()) return;
+  if (!store.get('entry') || !gate.hidden) return;
   const at = store.get('conn')?.at;
   if (!Number.isFinite(at) || Date.now() - at > 30000 || store.get('conn')?.state !== 'ok') loader.load().catch(() => {});
 });
@@ -702,11 +697,9 @@ function showConnect({ error = '', tone = '', retry = null, value = '' } = {}) {
 
 /**
  * Sign out of <team>: this device forgets the team (store entry, offline snapshot, its fc:mem / fc:ahead keys, Plan
- * ahead length) and so does the server: its plan memory of every GW goes as Reset plan leaves it (memory release →
- * forget; owner, 2026-10-22); also after FORGET_MS away. Then Connect. Solves stay cached; recent chips keep the team
- * for a one-tap return, as a fresh plan. No toast (owner, 2026-10-21), except after FORGET_MS away (awaySignedOut).
+ * ahead length) and so does the server: its plan memory of every GW goes as Reset plan leaves it (memory release → forget).
  */
-function signOut({ away = false } = {}) {
+function signOut() {
   const entry = store.get('entry');
   if (!entry) return null;
   const name = store.get('bundle')?.entry?.team_name || api.recent.list().find((r) => String(r.entry_id) === String(entry))?.team_name || `Team ${entry}`;
@@ -726,55 +719,8 @@ function signOut({ away = false } = {}) {
   loader.last = '';
   history.replaceState(history.state, '', `#/${SCREEN}`);  // a sheet's entry keeps its marker
   showConnect();
-  // no plan is kept, no Undo (forget); after FORGET_MS away the toast says why
-  if (away) ui.toast(calls.COPY.awaySignedOut(name), 'info', { timeout: 8000 });
   return { name };
 }
-
-/** When this browser last used Forkcast (touch, key, page hidden, a plan landing): FORGET_MS after it the team is
- *  signed out and its choices go (signOut away; owner, 2026-10-14); also the open team's own last use (memory USED:
- *  unused that long starts as Reset plan leaves it). `force`: write now (else at most every 15 s); `team` false: a plan
- *  landing, not yet a use of the team. */
-const SEEN_KEY = 'fc:seen';
-let seenAt = 0;
-/** Shown again, the release check under way or its reload: the sign-out is the shown-again path's or the new page's. The
- *  minute check signing out meanwhile said why on a page about to go, and the new page, used a moment ago, said nothing
- *  (a busy server's HEAD: QA release, 2 full runs of 4). */
-let shownCheck = false;
-function seen(force = false, team = true) {
-  const now = Date.now();
-  if (!force && now - seenAt < 15000) return;
-  seenAt = now;
-  api.local.set(SEEN_KEY, String(now));
-  const entry = team ? store.get('entry') : null;
-  if (entry) api.local.set(USED(entry), String(now));
-}
-/** Away longer than FORGET_MS since the last use, or no use kept at all (signed out once; owner, 2026-10-14). QA's
- *  phones are seeded used (scenario.mjs boot). */
-const away = () => { const t = Number(api.local.get(SEEN_KEY)); return !(t > 0) || Date.now() - t > FORGET_MS; };
-/** Back after FORGET_MS away with a team open: signed out (launch, or tab shown again) → whether it was */
-function signOutIfAway() {
-  const was = !!store.get('entry') && away();
-  if (was) signOut({ away: true });
-  seen(true);
-  return was;
-}
-/** A page left open on screen unused FORGET_MS signs itself out too (owner, 2026-10-22; the visibilitychange and boot
- *  checks never run while it stays shown): checked about once a minute and by the first touch or key, before seen()
- *  restarts the clock. */
-function awayOnScreen(e) {
-  if (shownCheck) return true;
-  if (!store.get('entry') || !away()) return false;
-  signOutIfAway();
-  if (e?.type === 'pointerdown') {
-    const eat = (c) => { c.stopPropagation(); c.preventDefault(); };
-    document.addEventListener('click', eat, { capture: true, once: true });
-    setTimeout(() => document.removeEventListener('click', eat, { capture: true }), 1000);
-  }
-  return true;
-}
-setInterval(() => { if (document.visibilityState === 'visible') awayOnScreen(); }, 60000);
-for (const t of ['pointerdown', 'keydown']) document.addEventListener(t, (e) => { if (!awayOnScreen(e)) seen(); }, { capture: true, passive: true });
 
 /** The release this page runs: the server's as it booted (`ask`: the first bundle's reply, api.heardRelease, else
  *  api.servedRelease; null: the tree's own; undefined, no answer: the next answer's, which `served` waits for). Shown again after the server moved to another, the page reloads into it (owner, 2026-10-14). →
@@ -902,9 +848,6 @@ async function firstLoad(entry) {
 /** Into Ahead at GW A (the next deadline): mount behind the gate, then cross-fade (reveal: after Connect's first load,
  *  ctx.reveal). */
 async function enter(entry, b, { reveal = false } = {}) {
-  // the team landing is a use (a first load can wait for minutes untouched), but not yet of the team, whose last use
-  // decides whether its choices stand (memory USED)
-  seen(true, false);
   store.set('entry', entry);
   api.recent.add(entry, b.entry || {});
   drop();
@@ -944,7 +887,6 @@ async function boot() {
   // (304 where unchanged). Never twice: after it the navigation is a reload. Any other load asked the server for the
   // page (no-cache), so it is the served release: the first bundle's reply names it (fetchBundle), no HEAD here
   if (globalThis.performance?.getEntriesByType?.('navigation')[0]?.type === 'back_forward') { location.reload(); return; }
-  if (signOutIfAway()) return;  // back after FORGET_MS away: Connect, the team's choices gone
   const entry = store.get('entry');
   if (!entry) return showConnect();
   // warm start: the last snapshot draws at once, the server refreshes it behind (no GW in the address: GW A)

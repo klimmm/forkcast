@@ -6,7 +6,7 @@ import { h, fill, fmt, plural, reduceMotion, xpGain, xpNum } from '../../ui.js';
 import { CHIPS_OFF, COPY } from '../calls.js';
 import { MINUS, memOf, pairAsPlaced, plan, viewOfRoadWeek, weekOf } from './core.js';
 import { forkRead } from './plans/forks.js';
-import { cardGain, extraWeek, owedAt, owedRoad, presolveSwap, refusalRoads, removeWeek, showSuggestion, showTransfer, showingAt, swapWeek, tappedSuggestion, tookOf, tookSaid, sameWindow, windowRounds } from './presolve.js';
+import { cardGain, extraWeek, owedAt, owedRoad, presolveSwap, refusalRoads, removeWeek, showSuggestion, showTransfer, showingAt, swapWeek, manualSales, tappedSuggestion, tookOf, tookSaid, sameWindow, windowRounds } from './presolve.js';
 import { choosing, placedAt, placedDone, stopChoosing } from './buys.js';
 import { cardUndo, removeRule, takingBack, tickWas, veto } from './edits.js';
 import { MOVE_KINDS, fitNum } from './screen.js';
@@ -300,7 +300,8 @@ export function ticketPart(V) {
     const made = () => {
       title = withMine('');
       line = withCompare(yoursLine(), yours.length === 1 ? yours[0] : null);
-      if ((short || moreAvail || freeLeft) && !asked && P.editable) left = askLeft();
+      const manual = manualSales(P, g).length > 0;
+      if ((manual || short || moreAvail || freeLeft) && !asked && P.editable) left = askLeft();
       else right = onward;
       if (placed) after = inPlaces(w, [placed]);
     };

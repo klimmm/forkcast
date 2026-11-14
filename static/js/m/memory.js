@@ -101,7 +101,7 @@
 // createMemory
 
 export {
-  TIMING, FORGET_MS, USED, isRoll, isExact, exactAt, rollKeeps, parseSpans, spanString, composePins, pinConflicts,
+  TIMING, isRoll, isExact, exactAt, rollKeeps, parseSpans, spanString, composePins, pinConflicts,
   pinsDir, makePin, barredAt, changesGwA, yieldRoad, pinsAfter, pinRoad, splitRoad, ticketSquad, pinFrozen, lockPin,
   frozenHolds, thawPin, frozenClash, deadlinePassed, frozenWeeks, frozenOnOf, frozenSince, inkRepair, pinWish,
   pinSell, pinSlide, pinVeto, pinNever, pinNotFor, pinRefusal, pinKeep, scopeOf, pinChip, pinCash, withBank, pinHits, movesIn, squadInto,

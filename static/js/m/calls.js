@@ -51,7 +51,7 @@ export const HELP_OFF = true;
 export const CHIPS_OFF = true;
 
 export {
-  FORGET_MS, gwFlags, OUT, newsReason, statusText, hitCap, horizonFeature, planWeeks
+  gwFlags, OUT, newsReason, statusText, hitCap, horizonFeature, planWeeks
 } from './calls/helpers.js';
 export {
   sentence, COPY, liveCheck

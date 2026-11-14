@@ -2,8 +2,8 @@
 
 import * as E from '../../plan/engine.js';
 import { cardSaysIt } from '../../ui.js';
-import { COPY, planFromRoad, compare as compareIn, changeText, transfersOf, withForced, FORGET_MS } from '../calls.js';
-import { EDIT, FORGET, SEEN, USED, carryPins, changesGwA, deadlinePassed, frozenClash, frozenOnOf, frozenSince, heldAt, ids, inkRepair, isRoll, kindOf, makePin, nowS, num, pinConflicts, pinsAfter, rollKeeps, weekAt } from './pins.js';
+import { COPY, planFromRoad, compare as compareIn, changeText, transfersOf, withForced } from '../calls.js';
+import { EDIT, FORGET, SEEN, carryPins, changesGwA, deadlinePassed, frozenClash, frozenOnOf, frozenSince, heldAt, ids, inkRepair, isRoll, kindOf, makePin, nowS, num, pinConflicts, pinsAfter, rollKeeps, weekAt } from './pins.js';
 import { freshOf, isNews, journalRows, madeOn, movesChanged, pencilChanges, planOfRoad, sigOf } from './drift.js';
 import { forcedHits, idleRules, ruleText } from './values.js';
 import { blankAccepted, editedAt, forget } from './live.js';
@@ -253,12 +253,6 @@ export function apiPart(V) {
   }
 
   // ---------------------------------------------------------------- following the shell
-  /** A team whose choices have gone unused FORGET_MS: the later of this browser's last use (USED) and your last edit in
-   *  its documents (editedAt, any device) is that long ago. No document: nothing to clear. */
-  function unused(entry, ...docs) { const { local } = V;
-    const last = Math.max(Number(local.get(USED(entry))) || 0, ...docs.map((d) => editedAt(d) * 1000));
-    return last > 0 && Date.now() - last > FORGET_MS;
-  }
   function onData() { const { S, cancelHeal, capFor, ctx, emit, endNow, ensure, flushSoon, loadLocal, local, lookupNow, mutate, rejudge, replan, saveLocal } = V;
     const b = ctx.bundle;
     if (!b?.entry || !b.meta || !ctx.data) return;
@@ -273,9 +267,7 @@ export function apiPart(V) {
       const r = local.json(EDIT(entry));
       Object.assign(S, { entry, A, doc: kept?.doc ?? null, docs: null, dirty: !!kept?.dirty, judged: null, error: null, carried: null, notice: null, base: null,
         reopened: r && Number(r.gw) === A ? r : null,
-        // not used for FORGET_MS (USED), or signed out of before its forgetting reached the server (forget): wiped as it
-        // loads, with no way back
-        wipe: unused(entry, kept?.doc, b.memory) || !!local.get(FORGET(entry)) });
+        wipe: !!local.get(FORGET(entry)) });
       // a forgetting that has not reached the server (offline, or still on its way): its other GWs' documents too
       if (local.get(FORGET(entry))) forget(ctx.api, entry);
     }
@@ -284,9 +276,6 @@ export function apiPart(V) {
       S.doc = server;
       saveLocal();  // the mirror the plan shows from when the server can't be reached
     }
-    // unused or forgotten (USED, editedAt, FORGET): loaded as Reset plan leaves it (reset), once, before anything reads
-    // it. Always written, so a new GW A has a document of its own and nothing carries into it from the GW before
-    // (carryOver)
     if (S.wipe) {
       S.wipe = false;
       reset();
@@ -350,5 +339,5 @@ export function apiPart(V) {
     }, 'pins');
     replan('sync');
   }
-  return { ideaOf, inkOf, inkClash, changesLiveA, addPin, clashText, dropPins, removePin, reset, setHitsMax, setLineup, setPlan, heal, compare, evalOf, lite, noteEdit, claimEdit, receipt, restorePins, pencilDiff, markSeen, forecastChange, loadAll, journal, unused, onData, syncPlan, carryOver };
+  return { ideaOf, inkOf, inkClash, changesLiveA, addPin, clashText, dropPins, removePin, reset, setHitsMax, setLineup, setPlan, heal, compare, evalOf, lite, noteEdit, claimEdit, receipt, restorePins, pencilDiff, markSeen, forecastChange, loadAll, journal, onData, syncPlan, carryOver };
 }

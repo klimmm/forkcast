@@ -487,7 +487,7 @@ export const clubCounts = (L, squad) => {
  * has. short: what the edit adds to that week's shortfall. For a pair's move that alone says what it lacks: all of
  * them (fitOf; owner, 2026-10-26: "£1.3m short · needs Calafiori's and João Pedro's sales").
  */
-export function problemsOf(ctx, ev, from) {
+export function problemsOf(ctx, ev, from, { ignoreBudget = false } = {}) {
   const I = info(ctx);
   const before = baseline(ctx, from);
   for (const s of ev.gws.filter((x) => x.gw >= from)) {
@@ -496,7 +496,7 @@ export function problemsOf(ctx, ev, from) {
     if (bad) return [{ code: 'move', gw: s.gw, reason: bad.reason }];
     const out = [];
     const was = Math.min(0, b?.bank ?? 0);
-    if (s.bank < -1e-9 && s.bank < was - 1e-9) out.push({ code: 'budget', gw: s.gw, short: was - s.bank });
+    if (!ignoreBudget && s.bank < -1e-9 && s.bank < was - 1e-9) out.push({ code: 'budget', gw: s.gw, short: was - s.bank });
     const had = clubCounts(I.L, b?.squad);
     for (const [club, n] of clubCounts(I.L, s.squad)) if (n > E.MAX_PER_CLUB && n > (had.get(club) ?? 0)) out.push({ code: 'club', gw: s.gw, club, count: n });
     if (out.length) return out;

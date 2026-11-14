@@ -8,7 +8,7 @@ import { pinSell, isRoll, composePins, parseSpans, deadlinePassed } from '../mem
 import { OFFLINE_EDIT, REMOVED, addMove, asYours, boardAt, clone, compare, draftOf, dropMove, editable, flashLanding, flatMoves, ids, info, inputs, isFrozen, lineups, memOf, movedFrom, num, pairedMoves, plan, problemText, problemsOf, removedBy, setLineups, solveFor, squadBefore, weekOf, wishDrop, wishPin } from './core.js';
 import { asksOf, buyCandidates, clashing, derivedPin, edit, endingOf, forgetEdit, keptFrom, ruleOf, say, sub, subChoices, subjectOf, toastOf, undoOf, vsPrev, withTaken } from './edits.js';
 import { planBaseline, takenBy } from './plans.js';
-import { pairChanged, pairMovesOf, showSuggestion, showTransfer } from './presolve.js';
+import { AHEAD, pairChanged, pairMovesOf } from './presolve.js';
 import { squadWeek } from './pieces.js';
 
 // ---------------------------------------------------------------- A1: a buy does only what it says
@@ -49,6 +49,12 @@ function saleTries(ctx, P, id, g, fixed = null) {
   return sells.map((o) => ({ o, r: addMove(ctx, d0, g, o, id, takenBy(ctx, P)) })).sort((a, b) => b.r.ev.total - a.r.ev.total);
 }
 
+// Manual buys allow a short bank. Check the rest of the plan before offering that exception.
+function saleProblem(ctx, result, g) {
+  if (result.problem?.code !== 'budget') return result.problem;
+  return problemsOf(ctx, result.ev, g, { ignoreBudget: true })[0] ?? result.problem;
+}
+
 /** The sales that can bring player `id` in from GW g, for you to choose from (owner, 2026-10-10): each as saleTries
  *  makes it, against your plan (planBaseline): [{out, cmp | null, problem (budget: its `short`; club)}], best first.
  *  Once per plan view, player and GW. */
@@ -61,7 +67,7 @@ export function saleOptions(ctx, id, g) {
   const k = `${id}:${g}`;
   if (!by.has(k)) {
     const ev0 = planBaseline(ctx, P, g);
-    by.set(k, saleTries(ctx, P, Number(id), Number(g)).map(({ o, r }) => ({ out: o, cmp: r.problem ? null : compare(ctx, r.ev, ev0), problem: r.problem })));
+    by.set(k, saleTries(ctx, P, Number(id), Number(g)).map(({ o, r }) => ({ out: o, cmp: r.problem ? null : compare(ctx, r.ev, ev0), problem: saleProblem(ctx, r, g) })));
   }
   return by.get(k);
 }
@@ -135,7 +141,9 @@ export function saleBuy(ctx, id, g, out) {
   if (bp.kind === 'one' || (bp.kind === 'none' && bp.problem?.code !== 'budget')) return bp;
   const P = plan(ctx);
   const t = saleTries(ctx, P, Number(id), Number(g), Number(out))[0];
-  if (!t || problemsOf(ctx, t.r.ev, g).some((p) => p.code !== 'budget')) return bp;
+  if (!t) return bp;
+  const problem = saleProblem(ctx, t.r, g);
+  if (problem && problem.code !== 'budget') return { kind: 'none', short: null, problem };
   const ev0 = planBaseline(ctx, P, g);
   const hitsAt = (ev) => ev.gws.find((s) => s.gw === g)?.hits ?? 0;
   return { kind: 'one', out: Number(out), in: Number(id), draft: t.r.draft, ev: t.r.ev, cmp: compare(ctx, t.r.ev, ev0), hits: Math.max(0, hitsAt(t.r.ev) - hitsAt(ev0)), short: t.r.problem?.short ?? 0 };
@@ -229,7 +237,7 @@ export const freedBy = (ev, g, m) => { const x = ev?.gws.find((s) => s.gw === g)
 /** A bring-in's sales as your exact transfers (memory.pinSell): his, then each other sale, marked `funds` only when it
  *  frees money. */
 const buyPins = (P, id, g, bp) => [
-  pinSell(bp.out, g, P.end, { in: id, label: `${P.L.name(bp.out)} → ${P.L.name(id)} from GW${g}` }),
+  { ...pinSell(bp.out, g, P.end, { in: id, label: `${P.L.name(bp.out)} → ${P.L.name(id)} from GW${g}` }), manual: true },
   ...fundsOf(bp).map((f) => pinSell(f.out, g, P.end, { in: f.in, funds: freedBy(bp.ev, g, f) > 0 ? Number(id) : null, label: `${P.L.name(f.out)} → ${P.L.name(f.in)} from GW${g}` })),
 ];
 /** Your later buy of player `id` (a sale of yours for him after GW g) and the sales that fund it, that GW: [Pin]. Him
@@ -396,7 +404,8 @@ export function resetPlan(ctx) {
   stopChoosing(ctx);
   // (…and every week's suggestion shown taken back to its choice; owner, 2026-11-09, "why it still displays suggestions
   // after i clicked reset all weeks")
-  prevP?.gws.forEach((g) => { showTransfer(prevP, g, false); showSuggestion(prevP, g, false); });
+  AHEAD.showing.clear();
+  AHEAD.suggested.clear();
   // (…and where your plan has nothing of yours, no lineup either, only those views go back: no reset made, no Undo that
   // brings the suggestion back; owner, 2026-11-09, "why when i click reset it shows undo and when i click undo it shows
   // first screen")
