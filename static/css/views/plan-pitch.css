@@ -271,7 +271,7 @@ it keeps them on one line */
   overflow: visible; isolation: isolate; border-radius: 0; background: none; box-shadow: none;
 }
 /* the turf's top corners rounded as FPL's (~14 px radius in the 390 x 446 box: four points per corner) */
-.pm .pm-turf { position: absolute; inset: 0; clip-path: polygon(8.59% 4.66%, 9.23% 3.7%, 10.26% 3.05%, 11.92% 2.69%, 88.08% 2.69%, 89.74% 3.05%, 90.77% 3.7%, 91.41% 4.66%, 100% 23.5%, 100% 100%, 0 100%, 0 23.5%); }
+.pm .pm-turf { position: absolute; inset: 0; clip-path: var(--pm-turf-clip, polygon(8.59% 4.66%, 9.23% 3.7%, 10.26% 3.05%, 11.92% 2.69%, 88.08% 2.69%, 89.74% 3.05%, 90.77% 3.7%, 91.41% 4.66%, 100% 23.5%, 100% 100%, 0 100%, 0 23.5%)); }
 .pm .pm-lines, .pm .pm-goal { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
 .pm .pm-band { fill: var(--turf-1); }
 .pm .pm-band.b { fill: var(--turf-2); }

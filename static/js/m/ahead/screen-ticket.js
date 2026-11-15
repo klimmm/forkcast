@@ -13,13 +13,33 @@ import { MOVE_KINDS, fitNum } from './screen.js';
 
 /** The card's line: words at its left, `right` at its right edge (design_1109a slip). */
 const lineRow = (words, right = null, data = null) => h('p.ah-tkline', { dataset: data }, h('span.ah-tkl', null, words), right ? [' ', h('span.ah-tkr.m-num', null, right)] : null);
+/** The combined comparison line's explanation, kept in a sheet so the ticket itself remains one line. */
+function comparisonInfo(ctx, rounds, vs, points, overall) {
+  const span = rounds === 1 ? 'next week' : `next ${rounds} weeks`;
+  const number = (label, value) => h('section.m-sec.ah-scorepart', null,
+    h('h3', null, `${label} ${fmt.signed(value)}`),
+    h('p', null, label === 'xP'
+      ? `The change in projected FPL points over the ${span}. It adds up how the weekly forecasts change if you make this swap.`
+      : 'The number Forkcast uses to compare and order transfer options. It includes projected points plus the effects of the starting XI, captain and vice-captain, bench cover, substitutions, hits, and using or keeping free transfers.'));
+  ctx.sheets.open({
+    title: 'What these numbers mean',
+    sub: `This option compared with ${vs}`,
+    detent: 'medium',
+    build: (body) => body.append(h('div.ah-scorehelp', null,
+      h('p', null, `Both numbers compare the same two plans over the ${span}. A positive number favours this option; a negative number favours ${vs}.`),
+      number('xP', points), number('Overall', overall),
+      h('p.ah-scoregap', null, `They can differ because xP shows the forecast-points change only, while Overall also counts the planning effects listed above. Here the forecast change is ${fmt.signed(points)} xP and the all-factors comparison is ${fmt.signed(overall)}.`)))
+  });
+}
+
 /** Forecast change over the stated weeks, with its comparison plan named beside it. */
-function moveLine(gain, forced, rounds, vs, decision = false, points = null) {
+function moveLine(ctx, gain, forced, rounds, vs, decision = false, points = null) {
   // (a loss in the muted ink, never the gain's blue: books review 2026-11-08; "−0.0" and "0.0" are no loss)
   const signed = fmt.signed(gain), cls = `span.ah-tkcount${signed.startsWith(MINUS) ? '.neg' : ''}`;
   if (decision) return h('p.ah-tkline.ah-tkone', { dataset: { ...(forced ? { forced: '' } : {}), score: gain } }, [
     `${rounds === 1 ? 'Next week' : `Next ${rounds} weeks`} vs ${vs}`, ' · ', points == null ? null : h('span.ah-tkpoints', null, xpGain(points)),
     points == null ? null : ' · ', h('span.ah-adjusted', null, ['Overall ', h(cls, null, signed)]),
+    points == null ? null : h('button.ah-scoreinfo', { type: 'button', 'aria-label': 'What xP and Overall mean', 'aria-haspopup': 'dialog', onClick: () => comparisonInfo(ctx, rounds, vs, points, gain) }),
   ]);
   return lineRow(COPY.vsNext(rounds, vs), xpGain(gain, cls), forced ? { forced: '' } : null);
 }
@@ -286,20 +306,23 @@ export function ticketPart(V) {
       if (took?.said) {
         const pts = took.said.pts ?? forecastGain(from, took.said.before, P.weeks);
         const rounds = took.said.rounds ?? from.length;
-        return pts == null ? null : moveLine(pts, !!took.forced, rounds, took.said.vs, !!took.said.decision, took.said.forecastPts);
+        return pts == null ? null : moveLine(ctx, pts, !!took.forced, rounds, took.said.vs, !!took.said.decision, took.said.forecastPts);
       }
       const tabs = !from.some(x => x > g && weekOf(P, x)?.moves.length) && P.bare
         ? forecastGain(from, [...P.bare.values()], P.weeks) : null;
-      if (tabs != null) return moveLine(tabs, !!took?.forced, from.length, COPY.planVs(false));
+      if (tabs != null) return moveLine(ctx, tabs, !!took?.forced, from.length, COPY.planVs(false));
       const win = r?.shown != null && r.counted ? sameWindow(...r.counted, g) : 0;
       const pts = win ? r.shown : r?.pts?.delta;
-      return pts == null ? null : moveLine(pts, !!took?.forced, win || from.length, COPY.planVsRoll);
+      return pts == null ? null : moveLine(ctx, pts, !!took?.forced, win || from.length, COPY.planVsRoll);
     };
     const made = () => {
-      title = withMine('');
-      line = withCompare(yoursLine(), yours.length === 1 ? yours[0] : null);
       const manual = manualSales(P, g).length > 0;
-      if ((manual || short || moreAvail || freeLeft) && !asked && P.editable) left = askLeft();
+      const canAsk = (manual || short || moreAvail || freeLeft) && !asked && P.editable;
+      // When there is no further suggestion to request, say why the only action is moving on. The answer strip already
+      // has this verdict, but the made card used to discard it and show a blank title above "On to GW<n>".
+      title = withMine(!failed && !canAsk ? ans?.querySelector('.ah-tl')?.textContent ?? COPY.answerDone : '');
+      line = withCompare(yoursLine(), yours.length === 1 ? yours[0] : null);
+      if (canAsk) left = askLeft();
       else right = onward;
       if (placed) after = inPlaces(w, [placed]);
     };
@@ -319,7 +342,7 @@ export function ticketPart(V) {
       after = result.preview ?? (own ? viewOfRoadWeek(own, P.L) : null) ?? (moves.length ? inPlaces(w, moves) : null);
       title = withMine(moves.length ? movesTitle(ctx, P, g, pairAsPlaced(w, after, P.L.pos, moves)) : fallback);
       diagnosticComparison = { gain: pts, rounds, vs };
-      const gain = pts == null ? lineRow(COPY.vsNext(rounds, vs), '…') : moveLine(pts, pl.forced || fmt.signed(pts).startsWith(MINUS), rounds, vs, !!result.decision, result.forecastPts);
+      const gain = pts == null ? lineRow(COPY.vsNext(rounds, vs), '…') : moveLine(ctx, pts, pl.forced || fmt.signed(pts).startsWith(MINUS), rounds, vs, !!result.decision, result.forecastPts);
       if (notice) gain.querySelector('.ah-tkl').append(' ', notice);
       line = withCompare(gain, moves.length === 1 ? moves[0] : null);
       left = another ? btn('alt', COPY.showAnother, `tok:not:${g}`, another) : null;
