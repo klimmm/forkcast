@@ -4,11 +4,11 @@ import * as E from '../../plan/engine.js';
 import { h, toMs, reduceMotion } from '../../ui.js';
 import { fplMarks } from '../../plan/pitch.js';
 import { COPY, priceWatch, hitCap } from '../calls.js';
-import { pinSell, isRoll, composePins, parseSpans, deadlinePassed } from '../memory.js';
-import { OFFLINE_EDIT, REMOVED, addMove, asYours, boardAt, clone, compare, draftOf, dropMove, editable, flashLanding, flatMoves, ids, info, inputs, isFrozen, lineups, memOf, movedFrom, num, pairedMoves, plan, problemText, problemsOf, removedBy, setLineups, solveFor, squadBefore, weekOf, wishDrop, wishPin } from './core.js';
+import { pinRefusal, pinSell, isRoll, composePins, parseSpans, deadlinePassed } from '../memory.js';
+import { OFFLINE_EDIT, REMOVED, addMove, asYours, clone, compare, draftOf, dropMove, editable, flashLanding, flatMoves, ids, info, inputs, isFrozen, lineups, memOf, movedFrom, num, pairedMoves, plan, problemText, problemsOf, removedBy, setLineups, solveFor, squadBefore, weekOf, wishDrop, wishPin } from './core.js';
 import { asksOf, buyCandidates, clashing, derivedPin, edit, endingOf, forgetEdit, keptFrom, ruleOf, say, sub, subChoices, subjectOf, toastOf, undoOf, vsPrev, withTaken } from './edits.js';
 import { planBaseline, takenBy } from './plans.js';
-import { AHEAD, pairChanged, pairMovesOf } from './presolve.js';
+import { AHEAD, forecastGain, pairChanged, pairMovesOf } from './presolve.js';
 import { squadWeek } from './pieces.js';
 
 // ---------------------------------------------------------------- A1: a buy does only what it says
@@ -163,7 +163,7 @@ export function bringIn(ctx, id, g, bp) {
     const pin = wishPin(P, id, g), was = asksOf(P).find((q) => q.id === pin.id && JSON.stringify(q.must) !== JSON.stringify(pin.must));
     const taken = [...new Map([...bringInTakes(P, id, g, bp), ...(was ? [was] : [])].map((q) => [q.id, q])).values()], what = withTaken(P, pin.label, taken);
     // its number named as its week pill's, what your total moves by (edit's default's)
-    return edit(ctx, { pins: [tookBy(pin, taken)], drop: [pin.id, ...taken.map((q) => q.id)], road: bp.road, from: g, what, taken, text: vsPrev(ctx, what, { total: true }) });
+    return edit(ctx, { pins: [tookBy(bp.refusals?.length ? { ...pin, purchaseRefusals: bp.refusals } : pin, taken)], drop: [pin.id, ...taken.map((q) => q.id)], road: bp.road, from: g, what, taken, text: vsPrev(ctx, what, { total: true }) });
   }
   if (!bp || (bp.kind !== 'one' && bp.kind !== 'two')) return false;
   const nm = P.L.name;
@@ -185,18 +185,26 @@ const tookBy = (p, taken) => (taken.length ? { ...p, took: taken.map((q) => stru
  *  (for GW g, given), else null */
 const teamKey = (P) => `${P.entry}|${P.A}`;
 export const choosing = (ctx, P, g = null) => { const b = ctx.store.get('bringing'); return b && P && b.team === teamKey(P) && (g == null || b.g === g) ? b : null; };
+export function pitchChoice(ctx, P, g = null) {
+  const pick = choosing(ctx, P, g);
+  return pick?.bp || pick?.pending ? null : pick;
+}
+export function previousPurchase(ctx, pick) {
+  if (pick.previous && choosing(ctx, plan(ctx)) === pick) ctx.store.set('bringing', pick.previous);
+}
 export const stopChoosing = (ctx) => ctx.store.set('bringing', null);
 /** Who player `id` can replace in GW g: every sale of his position but one the club limit stops, `short` what the money
  *  lacks (saleBuy makes it all the same). → [{out, short}] */
 export const replaceable = (ctx, id, g) => saleOptions(ctx, id, g).filter((x) => !x.problem || x.problem.code === 'budget').map((x) => ({ out: x.out, short: x.problem?.short ?? 0 }));
 /** The players the pitch lights while it asks (choosing's b): who he can replace, or swap with. → [id] */
 export const choosable = (ctx, b) => (b.kind === 'sub' ? subChoices(ctx, plan(ctx), b.g, b.id).map((c) => c.id) : replaceable(ctx, b.id, b.g).map((x) => x.out));
+export const canChooseSub = (ctx, P, id, g) => !!P?.editable && !inkAt(ctx, P, g) && !squadWeek(weekOf(P, g)) && subChoices(ctx, P, g, id).length > 0;
 /** A sub on the pitch (owner, 2026-11-12, "highlight players to choose to replace on pitch when sub instead of showing
  *  list"): player `id` of GW g's lineup chosen, the pitch lights who he can swap with (subChoices); a tap on one makes
- *  the sub (replaceWith). None while GW g can't be edited or is drawn as the card's swap (boardAt). → bool */
+ *  the sub (replaceWith). Choosing restores the plan’s own lineup before highlighting its legal swaps. → bool */
 export function chooseSub(ctx, id, g) {
   const P = plan(ctx);
-  if (!editable(ctx) || inkAt(ctx, P, g) || boardAt(P, g) || !subChoices(ctx, P, g, id).length) return false;
+  if (!canChooseSub(ctx, P, id, g)) return false;
   ctx.store.set('bringing', { kind: 'sub', id: Number(id), g, team: teamKey(P) });
   return true;
 }
@@ -210,6 +218,47 @@ export function chooseOnPitch(ctx, id, g) {
   ctx.store.set('bringing', { id: Number(id), g, team: teamKey(P) });
   return true;
 }
+/** Preview the solver's purchase without editing the plan. Ignore a late result after a cancel or another pick. */
+export async function suggestPurchase(ctx, pick) {
+  const P = plan(ctx);
+  if (choosing(ctx, P) !== pick || pick.kind === 'sub' || pick.pending || !P.editable) return;
+  const refusals = [...(pick.bp?.refusals ?? [])];
+  if (pick.bp) {
+    const { moves } = weekWith(P, pick.g, { bp: pick.bp });
+    refusals.push(pinRefusal(moves, pick.g, { label: `Skip ${moves.map(m => P.L.name(m.out) + ' → ' + P.L.name(m.in)).join(', ')} in GW${pick.g}` }));
+  }
+  const pending = { ...pick, previous: pick, pending: true, error: null };
+  ctx.store.set('bringing', pending);
+  let bp = null, exhausted = false, error = COPY.unfinished;
+  try {
+    const res = await wishSolve(ctx, P, pick.id, pick.g, 'wish', refusals);
+    if (choosing(ctx, plan(ctx)) !== pending) return;
+    if (res?.road) {
+      const candidate = holdBuy(ctx, pick.id, pick.g, res.road);
+      if (candidate?.kind === 'pick' && weekWith(P, pick.g, { bp: candidate })?.moves.some(m => m.in === pick.id)) bp = { ...candidate, refusals };
+    }
+    if (res?.error?.code === 'infeasible') {
+      exhausted = !!pick.bp;
+      error = exhausted ? COPY.noOtherPurchase : COPY.infeasible(pick.g);
+    }
+  } catch { /* Keep manual selection and retry available. */ }
+  if (choosing(ctx, plan(ctx)) === pending) ctx.store.set('bringing', { ...pick, previous: bp ? pick : pick.previous, bp: bp ?? pick.bp, exhausted, error: bp ? null : error });
+}
+/** Adapt a completed buy-constrained solve to the same offer consumed by the week ticket. */
+export function purchaseOffer(ctx, P, pick) {
+  if (!pick?.bp || pick.pending) return null;
+  const { bp, id, g } = pick;
+  const { moves } = weekWith(P, g, { bp });
+  const gws = P.gws.filter(x => x >= g);
+  return {
+    candidate: { pl: bp, e: { adds: moves } }, pts: forecastGain(gws, P.weeks, asYours(ctx, bp.road).weeks), rounds: gws.length,
+    vs: COPY.planVs(true), notice: [pick.error, removesText(P, bringInTakes(P, id, g, bp))].filter(Boolean).join(' '),
+    exhausted: pick.exhausted, another: () => suggestPurchase(ctx, pick),
+    take: () => {
+      if (choosing(ctx, plan(ctx), g) === pick && bringIn(ctx, id, g, bp)) stopChoosing(ctx);
+    },
+  };
+}
 /** The move a tap on the pitch made, while its solve is out: the card says it and the pitch shows it at once, nothing being
  *  solved before that tap. → {g, out, in} | null */
 let PLACED = null;
@@ -218,7 +267,7 @@ export const placedDone = () => { PLACED = null; };
 /** A player tapped on the pitch while it asks: him out, the chosen player in (a sub's: the two swapped); one who can't go
  *  is no answer. → bool */
 export function replaceWith(ctx, out) {
-  const P = plan(ctx), b = choosing(ctx, P);
+  const P = plan(ctx), b = pitchChoice(ctx, P);
   if (!b || !choosable(ctx, b).includes(Number(out))) return false;
   if (b.kind === 'sub') { stopChoosing(ctx); return sub(ctx, b.g, b.id, out); }
   const bp = saleBuy(ctx, b.id, b.g, out);
@@ -246,7 +295,7 @@ const buyPins = (P, id, g, bp) => [
  *  and its funding off (laterBuys: the tap takes them back, bringInTakes). → solveFor */
 // the rules its tap takes back left out of the solve too (bringInTakes): your later buy of him (laterBuys) and every
 // rule his wish clashes with, a Roll of yours in GW g first
-export const wishSolve = (ctx, P, id, g, purpose) => solveFor(ctx, [wishPin(P, id, g)], purpose, wishTakes(P, id, g).map((p) => p.id));
+export const wishSolve = (ctx, P, id, g, purpose, refusals = []) => solveFor(ctx, [wishPin(P, id, g), ...refusals], purpose, wishTakes(P, id, g).map((p) => p.id));
 /** The rules of yours his wish from GW g takes back, each once: the ones it clashes with, a Roll of yours in GW g first,
  *  and your later buy of him with its funding (laterBuys). wishSolve solves without them and a 'pick' tap drops them
  *  (bringInTakes), so the road it lands is the plan of the rules it leaves. → [Pin] */

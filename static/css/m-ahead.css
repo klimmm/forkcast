@@ -823,12 +823,7 @@ pitchChip) */
 /* a sideways swipe moves the pitch with the finger (ahead.js: an inline transform); let go, it settles over --dur: back
 in place, or the next week's coming in beside it (ahead.js settle) */
 .ah-pitch.settle { transition: transform var(--dur) var(--ease); }
-.ah-pitch :is(.pm-pl, .pm-bs).ah-captarget .pm-kit { outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 2px rgb(0 0 0 / .6); transform: scale(1.08); transform-origin: 50% 100%; }  /* larger than a swap, on any ground; grown up and out, never over his name */
-/* a held shirt's swaps (ahead.js lift: the players he can swap with), each ringed white over a dark band while he is
-lifted (≥3.3:1 on either turf); the one under the finger, as the armband's target, a wider ring and his shirt a
-little larger (.ah-captarget above) */
-.ah-pitch :is(.pm-pl, .pm-bs).ah-subok:not(.ah-captarget) .pm-kit { outline: 2px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 2px rgb(0 0 0 / .6); }  /* a dark band inside the white ring: ≥3.3:1 on either turf */
-
+.ah-pitch :is(.pm-pl, .pm-bs).ah-captarget:not(.ah-subok) .pm-kit { outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 2px rgb(0 0 0 / .6); transform: scale(1.08); transform-origin: 50% 100%; }  /* larger than a swap, on any ground; grown up and out, never over his name */
 .ah-dragghost { position: fixed; left: 0; top: 0; z-index: 500; pointer-events: none; width: 56px; height: 56px; display: grid; place-items: center; filter: drop-shadow(0 6px 10px rgb(0 0 0 / .35)); }
 .ah-dragghost svg { width: 56px; height: 56px; }
 .ah-dragghost.badge { width: 24px; height: 24px; }
@@ -1398,7 +1393,14 @@ FPL's, no shirt tiles */
 "why official shirts so small they must larger partly hidded behind name palate"): the plates over the shirt. Its foot
 down to the plates' bottom (the face the card's whole height): what shows above them as tall as before, the shirt
 wider; owner, 2026-11-11, "why such small shirts: bigger, partly hidden behind their name plate, same height, wider" */
-.m-screen.ah .pm-card > .pm-plate { position: relative; z-index: 1; }
+/* Back the join between the two rows so fractional pixel rounding cannot expose the tile. */
+.m-screen.ah .pm .pm-card > .pm-plate {
+  position: relative; z-index: 1;
+  background-image: linear-gradient(var(--plate-2), var(--plate-2));
+  background-size: calc(100% - 2px) 2px;
+  background-position: center calc(var(--pm-plate) - 1px);
+  background-repeat: no-repeat;
+}
 .m-screen.ah .pm-card .pm-badge { position: absolute; left: calc(50% - 30px); top: 1px; z-index: 2; width: 14px; height: 14px; margin: 0; padding: 0; border: 0; border-radius: 50%; box-shadow: none; background: #fff; color: var(--tk-ink); font: 700 9px/14px var(--f-text); text-align: center; }
 /* (one line always, at every text size: a row is the height the pitch was fitted for, the longest fixture ellipsises; the
 wider system font took a second line at the largest sizes and ran the rows together, QA fit 2026-11-05) */
@@ -1423,11 +1425,11 @@ whole, nothing moves */
 @media (prefers-reduced-motion: no-preference) {
   .m-screen.ah .pm :is(.sb-card .pm-pn, .sb-off, .sb-arm) { animation: ah-in .16s ease-out 1; }
 }
-/* Bring in, who he replaces (screen-pitch.js paintChoosing): those he can in the go colour, the rest quiet; what the money
-lacks in the fixture's place */
-.m-screen.ah .ah-choosing .pm-card.ah-cant { opacity: .35; }
-.m-screen.ah .ah-choosing .pm-card.ah-cant .pm-pn { background: none; color: #fff; }
-.m-screen.ah .ah-choosing .pm-card.ah-can .pm-pn { background: var(--tk-go); color: var(--tk-ink); padding: 0 4px; }
+/* Tap and drag share the same target colours. Keep the lifted shirt visible and enlarge only the current drop target. */
+.m-screen.ah :is(.ah-choosing .pm-card.ah-cant, .ah-pitch:has(.ah-lifted) .pm-card:not(.ah-subok, .ah-lifted)) { opacity: .35; }
+.m-screen.ah :is(.ah-choosing .pm-card.ah-cant, .ah-pitch:has(.ah-lifted) .pm-card:not(.ah-subok, .ah-lifted)) .pm-pn { background: none; color: #fff; }
+.m-screen.ah :is(.ah-choosing .pm-card.ah-can, .ah-pitch .pm-card.ah-subok) .pm-pn { background: var(--tk-go); color: var(--tk-ink); padding: 0 4px; }
+.ah-pitch .ah-subok.ah-captarget .pm-kit { transform: scale(1.08); transform-origin: 50% 100%; }
 .m-screen.ah .pm-card.f-red, .m-screen.ah .pm-card.low { opacity: .55; }
 .m-screen.ah .ah-pitch .pm .pm-benchzone { background: #0d3620 !important; border-radius: 0; margin: 0; box-shadow: none; }
 /* waiting, the whole frame greys with the turf: the header, the bench and what is round the stack (owner, 2026-11-05: "why
@@ -1522,6 +1524,7 @@ back the next card rises over it */
 .m-screen.ah :is(.ah-tkline, .ah-tkpad.l) { display: flex; align-items: baseline; gap: 8px; margin: 0; font: 500 var(--tk3)/1.33 var(--f-text); color: var(--tk-mute); }
 .m-screen.ah .ah-tkline .ah-tkl { flex: 1 1 auto; min-width: 0; }
 .m-screen.ah .ah-tkline .ah-tkr { flex: none; white-space: nowrap; color: var(--tk-ink); }
+.m-screen.ah .ah-tkline.ah-tkone { display: block; overflow: hidden; white-space: nowrap; font-size: var(--tk3); letter-spacing: -.02em; color: var(--tk-ink); }
 .m-screen.ah .ah-tkline .xp, .m-screen.ah .ah-tkline .xp-u, .m-screen.ah .ah-tkline .xp-g { color: var(--tk-xp); font-weight: 600; }
 /* (a loss in the muted ink at the line's weight, never the gain's blue; books review 2026-11-08) */
 .m-screen.ah .ah-tkline .xp-g.neg, .m-screen.ah .ah-tkline .xp-g.neg + .xp-u { color: var(--tk-mute); font-weight: 500; }

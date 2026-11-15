@@ -181,8 +181,12 @@ function unpricedWhere(planner, dir) {
  * never charged one (plannerOf's hits): never "a stronger bench" for a plan rated better because its count left out a
  * −4.
  */
-function plannerReason(planner, dTransfers, dir) {
-  const k = reasonParts(planner, dir)[0]?.[0] ?? (dTransfers ? 'ft_cost' : null);
+function plannerReasonKind(planner, dTransfers, dir) {
+  return reasonParts(planner, dir)[0]?.[0] ?? (dTransfers ? 'ft_cost' : null);
+}
+
+export function plannerReason(planner, dTransfers, dir) {
+  const k = plannerReasonKind(planner, dTransfers, dir);
   const n = Math.abs(dTransfers);
   if (k === 'ft_cost' && n) return `it uses ${n} ${dTransfers > 0 ? 'more' : 'fewer'} transfer${n === 1 ? '' : 's'}`;
   if (k === 'ft_value' || k === 'ft_cost') return dir < 0 ? 'it keeps fewer free transfers for later weeks' : 'it keeps more free transfers for later weeks';

@@ -2947,12 +2947,7 @@ pitchChip) */
 /* a sideways swipe moves the pitch with the finger (ahead.js: an inline transform); let go, it settles over --dur: back
 in place, or the next week's coming in beside it (ahead.js settle) */
 .ah-pitch.settle { transition: transform var(--dur) var(--ease); }
-.ah-pitch :is(.pm-pl, .pm-bs).ah-captarget .pm-kit { outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 2px rgb(0 0 0 / .6); transform: scale(1.08); transform-origin: 50% 100%; }  /* larger than a swap, on any ground; grown up and out, never over his name */
-/* a held shirt's swaps (ahead.js lift: the players he can swap with), each ringed white over a dark band while he is
-lifted (≥3.3:1 on either turf); the one under the finger, as the armband's target, a wider ring and his shirt a
-little larger (.ah-captarget above) */
-.ah-pitch :is(.pm-pl, .pm-bs).ah-subok:not(.ah-captarget) .pm-kit { outline: 2px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 2px rgb(0 0 0 / .6); }  /* a dark band inside the white ring: ≥3.3:1 on either turf */
-
+.ah-pitch :is(.pm-pl, .pm-bs).ah-captarget:not(.ah-subok) .pm-kit { outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 2px rgb(0 0 0 / .6); transform: scale(1.08); transform-origin: 50% 100%; }  /* larger than a swap, on any ground; grown up and out, never over his name */
 .ah-dragghost { position: fixed; left: 0; top: 0; z-index: 500; pointer-events: none; width: 56px; height: 56px; display: grid; place-items: center; filter: drop-shadow(0 6px 10px rgb(0 0 0 / .35)); }
 .ah-dragghost svg { width: 56px; height: 56px; }
 .ah-dragghost.badge { width: 24px; height: 24px; }
@@ -3522,7 +3517,14 @@ FPL's, no shirt tiles */
 "why official shirts so small they must larger partly hidded behind name palate"): the plates over the shirt. Its foot
 down to the plates' bottom (the face the card's whole height): what shows above them as tall as before, the shirt
 wider; owner, 2026-11-11, "why such small shirts: bigger, partly hidden behind their name plate, same height, wider" */
-.m-screen.ah .pm-card > .pm-plate { position: relative; z-index: 1; }
+/* Back the join between the two rows so fractional pixel rounding cannot expose the tile. */
+.m-screen.ah .pm .pm-card > .pm-plate {
+  position: relative; z-index: 1;
+  background-image: linear-gradient(var(--plate-2), var(--plate-2));
+  background-size: calc(100% - 2px) 2px;
+  background-position: center calc(var(--pm-plate) - 1px);
+  background-repeat: no-repeat;
+}
 .m-screen.ah .pm-card .pm-badge { position: absolute; left: calc(50% - 30px); top: 1px; z-index: 2; width: 14px; height: 14px; margin: 0; padding: 0; border: 0; border-radius: 50%; box-shadow: none; background: #fff; color: var(--tk-ink); font: 700 9px/14px var(--f-text); text-align: center; }
 /* (one line always, at every text size: a row is the height the pitch was fitted for, the longest fixture ellipsises; the
 wider system font took a second line at the largest sizes and ran the rows together, QA fit 2026-11-05) */
@@ -3547,11 +3549,11 @@ whole, nothing moves */
 @media (prefers-reduced-motion: no-preference) {
   .m-screen.ah .pm :is(.sb-card .pm-pn, .sb-off, .sb-arm) { animation: ah-in .16s ease-out 1; }
 }
-/* Bring in, who he replaces (screen-pitch.js paintChoosing): those he can in the go colour, the rest quiet; what the money
-lacks in the fixture's place */
-.m-screen.ah .ah-choosing .pm-card.ah-cant { opacity: .35; }
-.m-screen.ah .ah-choosing .pm-card.ah-cant .pm-pn { background: none; color: #fff; }
-.m-screen.ah .ah-choosing .pm-card.ah-can .pm-pn { background: var(--tk-go); color: var(--tk-ink); padding: 0 4px; }
+/* Tap and drag share the same target colours. Keep the lifted shirt visible and enlarge only the current drop target. */
+.m-screen.ah :is(.ah-choosing .pm-card.ah-cant, .ah-pitch:has(.ah-lifted) .pm-card:not(.ah-subok, .ah-lifted)) { opacity: .35; }
+.m-screen.ah :is(.ah-choosing .pm-card.ah-cant, .ah-pitch:has(.ah-lifted) .pm-card:not(.ah-subok, .ah-lifted)) .pm-pn { background: none; color: #fff; }
+.m-screen.ah :is(.ah-choosing .pm-card.ah-can, .ah-pitch .pm-card.ah-subok) .pm-pn { background: var(--tk-go); color: var(--tk-ink); padding: 0 4px; }
+.ah-pitch .ah-subok.ah-captarget .pm-kit { transform: scale(1.08); transform-origin: 50% 100%; }
 .m-screen.ah .pm-card.f-red, .m-screen.ah .pm-card.low { opacity: .55; }
 .m-screen.ah .ah-pitch .pm .pm-benchzone { background: #0d3620 !important; border-radius: 0; margin: 0; box-shadow: none; }
 /* waiting, the whole frame greys with the turf: the header, the bench and what is round the stack (owner, 2026-11-05: "why
@@ -3646,6 +3648,7 @@ back the next card rises over it */
 .m-screen.ah :is(.ah-tkline, .ah-tkpad.l) { display: flex; align-items: baseline; gap: 8px; margin: 0; font: 500 var(--tk3)/1.33 var(--f-text); color: var(--tk-mute); }
 .m-screen.ah .ah-tkline .ah-tkl { flex: 1 1 auto; min-width: 0; }
 .m-screen.ah .ah-tkline .ah-tkr { flex: none; white-space: nowrap; color: var(--tk-ink); }
+.m-screen.ah .ah-tkline.ah-tkone { display: block; overflow: hidden; white-space: nowrap; font-size: var(--tk3); letter-spacing: -.02em; color: var(--tk-ink); }
 .m-screen.ah .ah-tkline .xp, .m-screen.ah .ah-tkline .xp-u, .m-screen.ah .ah-tkline .xp-g { color: var(--tk-xp); font-weight: 600; }
 /* (a loss in the muted ink at the line's weight, never the gain's blue; books review 2026-11-08) */
 .m-screen.ah .ah-tkline .xp-g.neg, .m-screen.ah .ah-tkline .xp-g.neg + .xp-u { color: var(--tk-mute); font-weight: 500; }
@@ -3868,8 +3871,8 @@ one in the selected look's tint and green ring, 600, with its arrow (a second ta
 .m-banner.offline .m-banner-ic { opacity: .6; }
 
 </style>
-<meta name="forkcast-release" content="v1.3.233">
-<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=b3caa5f3e1","/js/app.js":"/js/app.js?v=d7871c4487","/js/m/ahead.js":"/js/m/ahead.js?v=1a3a45189e","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=437559678f","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=6eae059c5e","/js/m/ahead/diagnostics.js":"/js/m/ahead/diagnostics.js?v=ceebed413c","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=c4a8d8abb7","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=80a6be1bc2","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=08bf97c5f0","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=97940d5b11","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=e7eb6b278f","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=98e62c8795","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=2bd3a8ed73","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=546c5f1048","/js/m/ahead/plans/groups.js":"/js/m/ahead/plans/groups.js?v=8b506e21c5","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=b1bb3a68a3","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=bd6a2e9b77","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=1d6afe7360","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=cbdc5c496f","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=bb93f7b39f","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=9aa5c5689b","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=6b0860ec49","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=4acbd15e4c","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=1981b7833d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=e44d6c0a39","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=f975ff538c","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=a816c0e84e","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=1d9343fee9","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=cfce24e093","/js/m/api.js":"/js/m/api.js?v=f07595d7b0","/js/m/app.js":"/js/m/app.js?v=3d461fb349","/js/m/calls.js":"/js/m/calls.js?v=d0dd27507a","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=86bacd6a6e","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=ff53661cb7","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=6d3835eda9","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=3cf482dd6a","/js/m/memory.js":"/js/m/memory.js?v=0d6ca06e1b","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=64d355fb52","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=1227a951f5","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=0af9ca007a","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=bfdebe4cdf","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=18e75f603f","/js/m/memory/live.js":"/js/m/memory/live.js?v=30e4830cd1","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=5ea6bb5d93","/js/m/memory/values.js":"/js/m/memory/values.js?v=e74874bcf6","/js/m/picker.js":"/js/m/picker.js?v=3da5f950bd","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=67f7e9687a","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=9576783de3","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=43737bdc0a","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=6d5e16fac3","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=bc24c27906","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=9f2ef4f880","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=5f01937458","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=51004a1e4f","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=85eb1b73b6","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=b3455c19f2","/js/m/shell/store.js":"/js/m/shell/store.js?v=d57be956cc","/js/marks.js":"/js/marks.js?v=c34a920720","/js/plan/engine.js":"/js/plan/engine.js?v=ed5912a0d1","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=3fc37880a6","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=1200f7b422","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=1ecbec2ebb","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=2fd30e083a","/js/plan/kits.js":"/js/plan/kits.js?v=cda7d0ceb5","/js/plan/pitch.js":"/js/plan/pitch.js?v=080c4beb8e","/js/studio/flags.js":"/js/studio/flags.js?v=a8cd3ecd9b","/js/studio/kit.js":"/js/studio/kit.js?v=20c9937b9e","/js/studio/tables.js":"/js/studio/tables.js?v=65f8b07c32","/js/ui.js":"/js/ui.js?v=95b40ba139","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=9f0f364620","/js/views/compare.js":"/js/views/compare.js?v=6ad8f349d3","/js/views/dashboard.js":"/js/views/dashboard.js?v=8a1f0c98d1","/js/views/data.js":"/js/views/data.js?v=90e9f05369","/js/views/docs.js":"/js/views/docs.js?v=f696c42510","/js/views/fixtures.js":"/js/views/fixtures.js?v=319a00ca42","/js/views/planner.js":"/js/views/planner.js?v=c4c601da19","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=7fde223c58","/js/views/planner/model.js":"/js/views/planner/model.js?v=71f793cc1d","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=d4151c7331","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=14bd7e2b61","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=f72f49fd45","/js/views/players.js":"/js/views/players.js?v=358b613d94","/js/views/preview.js":"/js/views/preview.js?v=8c7c4bcf84","/js/views/runs.js":"/js/views/runs.js?v=c11f23245f"}}</script>
+<meta name="forkcast-release" content="forkcast-v1.3.234">
+<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=b3caa5f3e1","/js/app.js":"/js/app.js?v=d7871c4487","/js/m/ahead.js":"/js/m/ahead.js?v=78886e2b4f","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=f0abb7557d","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=67657271e8","/js/m/ahead/diagnostics.js":"/js/m/ahead/diagnostics.js?v=600572bd02","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=c4a8d8abb7","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=80a6be1bc2","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=be4c00fcfa","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=97940d5b11","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=e7eb6b278f","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=98e62c8795","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=2bd3a8ed73","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=546c5f1048","/js/m/ahead/plans/groups.js":"/js/m/ahead/plans/groups.js?v=8b506e21c5","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=b1bb3a68a3","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=bd6a2e9b77","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=2bbc8162c1","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=cbdc5c496f","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=bb93f7b39f","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=9aa5c5689b","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=d431b493da","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=4acbd15e4c","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=1981b7833d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=ef8ee417f1","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=f975ff538c","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=a816c0e84e","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=2b39159e7b","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=cfce24e093","/js/m/api.js":"/js/m/api.js?v=f07595d7b0","/js/m/app.js":"/js/m/app.js?v=3d461fb349","/js/m/calls.js":"/js/m/calls.js?v=0d74fc97a2","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=52d88d569b","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=ff53661cb7","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=552b00cbf2","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=3cf482dd6a","/js/m/memory.js":"/js/m/memory.js?v=0d6ca06e1b","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=478c277335","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=1227a951f5","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=0af9ca007a","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=bfdebe4cdf","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=18e75f603f","/js/m/memory/live.js":"/js/m/memory/live.js?v=30e4830cd1","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=88de0d5d40","/js/m/memory/values.js":"/js/m/memory/values.js?v=e74874bcf6","/js/m/picker.js":"/js/m/picker.js?v=3da5f950bd","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=67f7e9687a","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=9576783de3","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=43737bdc0a","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=7d12b58491","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=bc24c27906","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=9f2ef4f880","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=5f01937458","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=51004a1e4f","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=293132900c","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=b3455c19f2","/js/m/shell/store.js":"/js/m/shell/store.js?v=d57be956cc","/js/marks.js":"/js/marks.js?v=c34a920720","/js/plan/engine.js":"/js/plan/engine.js?v=ed5912a0d1","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=3fc37880a6","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=1200f7b422","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=1ecbec2ebb","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=2fd30e083a","/js/plan/kits.js":"/js/plan/kits.js?v=cda7d0ceb5","/js/plan/pitch.js":"/js/plan/pitch.js?v=080c4beb8e","/js/studio/flags.js":"/js/studio/flags.js?v=a8cd3ecd9b","/js/studio/kit.js":"/js/studio/kit.js?v=20c9937b9e","/js/studio/tables.js":"/js/studio/tables.js?v=65f8b07c32","/js/ui.js":"/js/ui.js?v=95b40ba139","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=9f0f364620","/js/views/compare.js":"/js/views/compare.js?v=6ad8f349d3","/js/views/dashboard.js":"/js/views/dashboard.js?v=8a1f0c98d1","/js/views/data.js":"/js/views/data.js?v=90e9f05369","/js/views/docs.js":"/js/views/docs.js?v=f696c42510","/js/views/fixtures.js":"/js/views/fixtures.js?v=319a00ca42","/js/views/planner.js":"/js/views/planner.js?v=c4c601da19","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=7fde223c58","/js/views/planner/model.js":"/js/views/planner/model.js?v=71f793cc1d","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=d4151c7331","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=14bd7e2b61","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=f72f49fd45","/js/views/players.js":"/js/views/players.js?v=358b613d94","/js/views/preview.js":"/js/views/preview.js?v=8c7c4bcf84","/js/views/runs.js":"/js/views/runs.js?v=c11f23245f"}}</script>
 </head>
 <body>
 <div class="m-app" id="app">
@@ -6309,8 +6312,11 @@ function unpricedWhere(planner, dir) {
   const [own, other2] = dir > 0 ? [hg.a, hg.b] : [hg.b, hg.a];
   return forcedNew(own, other2).map((x) => `${hitsWords(x.hits)} in GW${x.gw}`).join(" and ");
 }
+function plannerReasonKind(planner, dTransfers, dir) {
+  return reasonParts(planner, dir)[0]?.[0] ?? (dTransfers ? "ft_cost" : null);
+}
 function plannerReason(planner, dTransfers, dir) {
-  const k = reasonParts(planner, dir)[0]?.[0] ?? (dTransfers ? "ft_cost" : null);
+  const k = plannerReasonKind(planner, dTransfers, dir);
   const n = Math.abs(dTransfers);
   if (k === "ft_cost" && n) return `it uses ${n} ${dTransfers > 0 ? "more" : "fewer"} transfer${n === 1 ? "" : "s"}`;
   if (k === "ft_value" || k === "ft_cost") return dir < 0 ? "it keeps fewer free transfers for later weeks" : "it keeps more free transfers for later weeks";
@@ -7361,6 +7367,7 @@ var init_copy = __esm({
        *  take-back say ("Swap" beside "1 transfer made" and "Save your free transfer"; card audit 2026-11-10). */
       swap: "Transfer",
       showAnother: "Show another",
+      noOtherPurchase: "No other transfer fits.",
       showATransfer: "Show a transfer",
       /** The card's take-backs, each saying what it takes back (owner, 2026-11-05, "fix undo / reset buttions signs and theier
        *  meaning and wording"): this week's transfers, or the card before your Show another. */
@@ -7380,9 +7387,7 @@ var init_copy = __esm({
       offForNow: "(off for now)",
       /** The card while the pitch asks who he replaces (design_1109a slip): "B.Fernandes → ?", the ask under it. */
       bringWho: (name) => `${name} \u2192 ?`,
-      /** A sub's pick on the pitch (buys.chooseSub): a bench player chosen asks who he comes on for, a starter who comes on
-       *  for him. */
-      subWho: (name, on) => `${name} ${on ? "on" : "off"} for ?`,
+      subWho: (name, benched) => benched ? `Swap ${name} with ?` : `${name} off for ?`,
       subTap: "Tap the player he swaps with",
       bringTap: "Tap the player he replaces",
       bringCancel: "Cancel",
@@ -7545,6 +7550,7 @@ __export(calls_exports, {
   planInputs: () => planInputs,
   planWeeks: () => planWeeks2,
   plannerOf: () => plannerOf,
+  plannerReason: () => plannerReason,
   priceMorning: () => priceMorning,
   priceNights: () => priceNights,
   priceOutlook: () => priceOutlook,
@@ -9408,6 +9414,14 @@ function normalizeAccepted(acc, { A, end, roadOf = () => null, hitCap: hitCap2 =
     if (road && !items.some((p) => p.id === "road")) items = [pinRoad(road, A, { key: t.road, label: t.label }), ...items];
   }
   items = items.filter((p) => p.kind !== "hits");
+  const purchaseSkips = items.filter((p) => p.kind === "notfor" && /^Skip .+ → .+ in GW\d+$/.test(p.label));
+  if (purchaseSkips.length) {
+    items = items.filter((p) => !purchaseSkips.includes(p)).map((p) => {
+      if (p.kind !== "wish") return p;
+      const skips = purchaseSkips.filter((q) => q.gw === p.gw && refusedMoves(q).some((m) => m.in === p.player));
+      return skips.length ? { ...p, purchaseRefusals: [...p.purchaseRefusals ?? [], ...skips] } : p;
+    });
+  }
   items = splitItems(items, A, end);
   if (frozenWeeks(acc, A, end).length || items.some((p) => p.id === "road" && p.locked)) {
     const rp = items.find((p) => p.id === "road");
@@ -9555,6 +9569,7 @@ function composePins(list = [], { from = 1, to = LAST_ROUND } = {}) {
       }
     }
     if (kindOf(pin) === "notfor") refused.push(pin);
+    if (kindOf(pin) === "wish" && pin.purchaseRefusals) refused.push(...pin.purchaseRefusals);
     for (const g of pin.rolls || []) if (Number(g) >= from && Number(g) <= to) rolls.add(Number(g));
     for (const g of pin.debts || []) if (Number(g) >= from && Number(g) <= to) debts.add(Number(g));
     if (!isRoll(pin)) {
@@ -11440,7 +11455,7 @@ function recordDecision(P, gw, trace) {
   weeks.set(gw, trace);
 }
 function showDiagnostics(ctx2, P, w, data) {
-  views.set(ctx2, { P, w, data, trace: decisionOf(P, w.gw) });
+  views.set(ctx2, { P, w, data, trace: data.playerChoice ? null : decisionOf(P, w.gw) });
   listeners.get(ctx2)?.();
 }
 function mountDiagnostics(ctx2) {
@@ -11640,7 +11655,7 @@ function bringIn(ctx2, id, g, bp) {
   if (bp?.kind === "pick") {
     const pin = wishPin(P, id, g), was = asksOf(P).find((q) => q.id === pin.id && JSON.stringify(q.must) !== JSON.stringify(pin.must));
     const taken2 = [...new Map([...bringInTakes(P, id, g, bp), ...was ? [was] : []].map((q) => [q.id, q])).values()], what2 = withTaken(P, pin.label, taken2);
-    return edit(ctx2, { pins: [tookBy(pin, taken2)], drop: [pin.id, ...taken2.map((q) => q.id)], road: bp.road, from: g, what: what2, taken: taken2, text: vsPrev(ctx2, what2, { total: true }) });
+    return edit(ctx2, { pins: [tookBy(bp.refusals?.length ? { ...pin, purchaseRefusals: bp.refusals } : pin, taken2)], drop: [pin.id, ...taken2.map((q) => q.id)], road: bp.road, from: g, what: what2, taken: taken2, text: vsPrev(ctx2, what2, { total: true }) });
   }
   if (!bp || bp.kind !== "one" && bp.kind !== "two") return false;
   const nm = P.L.name;
@@ -11657,9 +11672,16 @@ function bringIn(ctx2, id, g, bp) {
     ending: (Q, prev) => endingOf(Q, prev, g, { own: bp.out, named: funds })
   });
 }
+function pitchChoice(ctx2, P, g = null) {
+  const pick = choosing(ctx2, P, g);
+  return pick?.bp || pick?.pending ? null : pick;
+}
+function previousPurchase(ctx2, pick) {
+  if (pick.previous && choosing(ctx2, plan(ctx2)) === pick) ctx2.store.set("bringing", pick.previous);
+}
 function chooseSub(ctx2, id, g) {
   const P = plan(ctx2);
-  if (!editable(ctx2) || inkAt(ctx2, P, g) || boardAt(P, g) || !subChoices(ctx2, P, g, id).length) return false;
+  if (!canChooseSub(ctx2, P, id, g)) return false;
   ctx2.store.set("bringing", { kind: "sub", id: Number(id), g, team: teamKey(P) });
   return true;
 }
@@ -11677,8 +11699,52 @@ function chooseOnPitch(ctx2, id, g) {
   ctx2.store.set("bringing", { id: Number(id), g, team: teamKey(P) });
   return true;
 }
+async function suggestPurchase(ctx2, pick) {
+  const P = plan(ctx2);
+  if (choosing(ctx2, P) !== pick || pick.kind === "sub" || pick.pending || !P.editable) return;
+  const refusals = [...pick.bp?.refusals ?? []];
+  if (pick.bp) {
+    const { moves } = weekWith(P, pick.g, { bp: pick.bp });
+    refusals.push(pinRefusal(moves, pick.g, { label: `Skip ${moves.map((m) => P.L.name(m.out) + " \u2192 " + P.L.name(m.in)).join(", ")} in GW${pick.g}` }));
+  }
+  const pending = { ...pick, previous: pick, pending: true, error: null };
+  ctx2.store.set("bringing", pending);
+  let bp = null, exhausted = false, error = COPY.unfinished;
+  try {
+    const res = await wishSolve(ctx2, P, pick.id, pick.g, "wish", refusals);
+    if (choosing(ctx2, plan(ctx2)) !== pending) return;
+    if (res?.road) {
+      const candidate = holdBuy(ctx2, pick.id, pick.g, res.road);
+      if (candidate?.kind === "pick" && weekWith(P, pick.g, { bp: candidate })?.moves.some((m) => m.in === pick.id)) bp = { ...candidate, refusals };
+    }
+    if (res?.error?.code === "infeasible") {
+      exhausted = !!pick.bp;
+      error = exhausted ? COPY.noOtherPurchase : COPY.infeasible(pick.g);
+    }
+  } catch {
+  }
+  if (choosing(ctx2, plan(ctx2)) === pending) ctx2.store.set("bringing", { ...pick, previous: bp ? pick : pick.previous, bp: bp ?? pick.bp, exhausted, error: bp ? null : error });
+}
+function purchaseOffer(ctx2, P, pick) {
+  if (!pick?.bp || pick.pending) return null;
+  const { bp, id, g } = pick;
+  const { moves } = weekWith(P, g, { bp });
+  const gws = P.gws.filter((x) => x >= g);
+  return {
+    candidate: { pl: bp, e: { adds: moves } },
+    pts: forecastGain(gws, P.weeks, asYours(ctx2, bp.road).weeks),
+    rounds: gws.length,
+    vs: COPY.planVs(true),
+    notice: [pick.error, removesText(P, bringInTakes(P, id, g, bp))].filter(Boolean).join(" "),
+    exhausted: pick.exhausted,
+    another: () => suggestPurchase(ctx2, pick),
+    take: () => {
+      if (choosing(ctx2, plan(ctx2), g) === pick && bringIn(ctx2, id, g, bp)) stopChoosing(ctx2);
+    }
+  };
+}
 function replaceWith(ctx2, out) {
-  const P = plan(ctx2), b = choosing(ctx2, P);
+  const P = plan(ctx2), b = pitchChoice(ctx2, P);
   if (!b || !choosable(ctx2, b).includes(Number(out))) return false;
   if (b.kind === "sub") {
     stopChoosing(ctx2);
@@ -11922,7 +11988,7 @@ function reroute(g) {
     t.classList.add("reroute");
   }, (reduceMotion() ? 0 : 140) * i));
 }
-var FUND_MAINS, FUND_SELLS, FUND_BUYS, BUYS, SALES, tookBy, teamKey, choosing, stopChoosing, replaceable, choosable, PLACED, placedAt, placedDone, fundsOf, freedBy, buyPins, wishSolve, wishTakes, laterBuys, movedBesides, draftFor, removesText, fitsLater, solvesRound, captainMoved, lineupMoved, planHasYours, solverCap, takenBack, plainRule, rowName, WATCHES, DL_WORDS, isLive, fplOf, fplGw, inkAt, sellWeek, liftFrom, liftsLive;
+var FUND_MAINS, FUND_SELLS, FUND_BUYS, BUYS, SALES, tookBy, teamKey, choosing, stopChoosing, replaceable, choosable, canChooseSub, PLACED, placedAt, placedDone, fundsOf, freedBy, buyPins, wishSolve, wishTakes, laterBuys, movedBesides, draftFor, removesText, fitsLater, solvesRound, captainMoved, lineupMoved, planHasYours, solverCap, takenBack, plainRule, rowName, WATCHES, DL_WORDS, isLive, fplOf, fplGw, inkAt, sellWeek, liftFrom, liftsLive;
 var init_buys = __esm({
   "js/m/ahead/buys.js"() {
     init_engine();
@@ -11949,6 +12015,7 @@ var init_buys = __esm({
     stopChoosing = (ctx2) => ctx2.store.set("bringing", null);
     replaceable = (ctx2, id, g) => saleOptions(ctx2, id, g).filter((x) => !x.problem || x.problem.code === "budget").map((x) => ({ out: x.out, short: x.problem?.short ?? 0 }));
     choosable = (ctx2, b) => b.kind === "sub" ? subChoices(ctx2, plan(ctx2), b.g, b.id).map((c) => c.id) : replaceable(ctx2, b.id, b.g).map((x) => x.out);
+    canChooseSub = (ctx2, P, id, g) => !!P?.editable && !inkAt(ctx2, P, g) && !squadWeek(weekOf(P, g)) && subChoices(ctx2, P, g, id).length > 0;
     PLACED = null;
     placedAt = (g) => PLACED?.g === g ? PLACED : null;
     placedDone = () => {
@@ -11963,7 +12030,7 @@ var init_buys = __esm({
       { ...pinSell(bp.out, g, P.end, { in: id, label: `${P.L.name(bp.out)} \u2192 ${P.L.name(id)} from GW${g}` }), manual: true },
       ...fundsOf(bp).map((f) => pinSell(f.out, g, P.end, { in: f.in, funds: freedBy(bp.ev, g, f) > 0 ? Number(id) : null, label: `${P.L.name(f.out)} \u2192 ${P.L.name(f.in)} from GW${g}` }))
     ];
-    wishSolve = (ctx2, P, id, g, purpose) => solveFor(ctx2, [wishPin(P, id, g)], purpose, wishTakes(P, id, g).map((p) => p.id));
+    wishSolve = (ctx2, P, id, g, purpose, refusals = []) => solveFor(ctx2, [wishPin(P, id, g), ...refusals], purpose, wishTakes(P, id, g).map((p) => p.id));
     wishTakes = (P, id, g) => [...new Map([...clashing(P, wishPin(P, id, g)), ...laterBuys(P, id, g)].map((p) => [p.id, p])).values()];
     laterBuys = (P, id, g) => {
       if (squadWeek(weekOf(P, g)) === "fh") return [];
@@ -15745,7 +15812,7 @@ var init_screen_rows = __esm({
 function pitchPart(V) {
   function paintChoosing(P, w) {
     const { ctx: ctx2, pitchHost } = V;
-    const who2 = choosing(ctx2, P, w.gw), can = new Set(who2 ? choosable(ctx2, who2) : []);
+    const who2 = pitchChoice(ctx2, P, w.gw), can = new Set(who2 ? choosable(ctx2, who2) : []);
     pitchHost.classList.toggle("ah-choosing", !!who2);
     for (const c of pitchHost.querySelectorAll(".pm-card[data-id]")) {
       const id = Number(c.dataset.id);
@@ -15766,7 +15833,7 @@ function pitchPart(V) {
     S.board = { key, pitch: S.pitch };
     if (!after) return;
     const nm = P.L.name, marks = boardMarks(w, after, P.L.pos);
-    mountHere({ ...pitchProps(P, w), xi: after.xi, bench: after.bench, captain: after.captain, vice: after.vice, onBench: null }, w.gw);
+    mountHere({ ...pitchProps(P, w), xi: after.xi, bench: after.bench, captain: after.captain, vice: after.vice, onBench: null });
     const marked = marks.map((m) => ({ ...m, c: pitchHost.querySelector(`.pm-card[data-id="${m.id}"]`) })).filter((m) => m.c);
     for (const { place, id, sold, kind, c } of marked) {
       if (kind === "in") {
@@ -15809,7 +15876,7 @@ function pitchPart(V) {
       // transfer's Why sheet; anywhere else on a card, his sheet (tapIn). The plan as it is at the tap: a pitch drawn
       // the same is not mounted again (renderPitch)
       onPlayer: (id, e) => {
-        if (choosing(ctx2, plan(ctx2), w.gw)) {
+        if (pitchChoice(ctx2, plan(ctx2), w.gw)) {
           replaceWith(ctx2, id);
           return;
         }
@@ -15822,7 +15889,7 @@ function pitchPart(V) {
       },
       // a tap on a sub's label on the bench ("1", his order; the keeper's none: m-ahead.css .pm-blp): the starters he can replace lit (chooseSub)
       onBench: (id) => {
-        if (choosing(ctx2, plan(ctx2), w.gw)) replaceWith(ctx2, id);
+        if (pitchChoice(ctx2, plan(ctx2), w.gw)) replaceWith(ctx2, id);
         else chooseSub(ctx2, id, w.gw);
       }
     };
@@ -15830,7 +15897,7 @@ function pitchPart(V) {
   function renderPitch2(P, w) {
     const { S, ctx: ctx2, pitchHost, rsBtn } = V;
     const d = ctx2.data;
-    const lu = !!w.lineup, mine = planHasYours(P) || P.gws.some((g) => g !== w.gw && (showingAt(P, g) || tappedSuggestion(P, g)));
+    const lu = !!w.lineup, mine = !!choosing(ctx2, P)?.previous || planHasYours(P) || P.gws.some((g) => g !== w.gw && (showingAt(P, g) || tappedSuggestion(P, g)));
     S.reset = lu || mine ? { lu, plan: mine, gw: w.gw } : null;
     rsBtn.hidden = !S.reset;
     rsBtn.disabled = !P.editable;
@@ -15855,7 +15922,7 @@ function pitchPart(V) {
     S.pitch = { key, data: d, chip: props.chip ?? null };
     mountHere(props);
   }
-  function mountHere(props, board = null) {
+  function mountHere(props) {
     const { S, cardBoxes, cardIn, chipsHint, closePlace, ctx: ctx2, decks, pdBtn, pitchHost, settle } = V;
     const pill = pdBtn === document.activeElement ? pdBtn : null;
     const inPlace = S.place && pitchHost.querySelector(":scope > .pm > .ah-place")?.contains(document.activeElement) ? S.place.a : null;
@@ -15863,7 +15930,6 @@ function pitchPart(V) {
     const old = pitchHost.querySelector(":scope > .pm");
     S.snap = old ? new Map(cardBoxes(old).map((c) => [c.id, { rect: c.n.getBoundingClientRect(), node: c.n.cloneNode(true) }])) : null;
     ctx2.pitch.mountPitch(pitchHost, props);
-    setBoard(plan(ctx2), board);
     if (inPlace) cardIn(pitchHost.querySelector(":scope > .pm"), inPlace)?.focus({ preventScroll: true });
     pitchHost.querySelector(":scope > .pm")?.prepend(pdBtn, decks);
     if (pill) (pill.hidden ? pdBtn : pill).focus({ preventScroll: true });
@@ -16696,8 +16762,16 @@ var init_screen_touch = __esm({
 });
 
 // js/m/ahead/screen-ticket.js
-function moveLine(gain, forced, rounds, vs) {
-  return lineRow(COPY.vsNext(rounds, vs), xpGain(gain, `span.ah-tkcount${fmt.signed(gain).startsWith(MINUS4) ? ".neg" : ""}`), forced ? { forced: "" } : null);
+function moveLine(gain, forced, rounds, vs, decision = false, points = null) {
+  const signed = fmt.signed(gain), cls = `span.ah-tkcount${signed.startsWith(MINUS4) ? ".neg" : ""}`;
+  if (decision) return h("p.ah-tkline.ah-tkone", { dataset: { ...forced ? { forced: "" } : {}, score: gain } }, [
+    `${rounds === 1 ? "Next week" : `Next ${rounds} weeks`} vs ${vs}`,
+    " \xB7 ",
+    points == null ? null : h("span.ah-tkpoints", null, xpGain(points)),
+    points == null ? null : " \xB7 ",
+    h("span.ah-adjusted", null, ["Overall ", h(cls, null, signed)])
+  ]);
+  return lineRow(COPY.vsNext(rounds, vs), xpGain(gain, cls), forced ? { forced: "" } : null);
 }
 function cardRows(node2) {
   const box = node2 && !node2.matches(".ah-tkline, .ah-tksug") ? node2 : h("div", null, node2);
@@ -16845,31 +16919,38 @@ function ticketPart(V) {
     const best = tk.find((t) => t.matches(".mv.lead")), ans = tk.find((t) => t.matches(".ah-ans"));
     const none = !best && !!ans && showingAt(P, g) && !!M2?.settled && !M2.shownOut;
     const showing = !swaps && !refused && showingAt(P, g) && !none && (!best || !!best.move?.pl?.forced), shown2 = showing && !last;
-    const prev = showing && last ? h("button.ah-rsbtn.undo.back", { type: "button", disabled: off, dataset: { row: `tk:prev:${g}` }, onClick: () => {
+    const backButton = (row, run, words = COPY.previous, back = true) => h("button.ah-rsbtn.undo", {
+      type: "button",
+      disabled: off,
+      class: { back },
+      dataset: { row },
+      onClick: run
+    }, words);
+    const prev = showing && last ? backButton(`tk:prev:${g}`, () => {
       showTransfer(P, g, false);
       V.schedule();
-    } }, COPY.previous) : null;
+    }) : null;
     const onTop = swaps && refused && refused.at >= Math.max(-Infinity, ...P.pins.filter((p) => MOVE_KINDS.has(p.kind) && Number(p.gw) === g).map((p) => p.at ?? 0));
     const undo = onTop ? takingBack(() => removeRule(ctx2, refused.id)) : swaps ? takingBack(() => removeWeek(ctx2, g)) : last ?? (refused ? takingBack(() => removeRule(ctx2, refused.id)) : shown2 ? () => {
       showTransfer(P, g, false);
       V.schedule();
     } : null);
     const undoWords = onTop ? COPY.previous : swaps ? COPY.undoSwaps(swaps) : refused || shown2 ? COPY.previous : COPY.undoLast;
-    const toChoice = !swaps && !refused && !prev && !(undo && undoWords === COPY.previous) && tappedSuggestion(P, g) ? h("button.ah-rsbtn.undo.back", { type: "button", disabled: off, dataset: { row: `tk:choice:${g}` }, onClick: () => {
+    const toChoice = !swaps && !refused && !prev && !(undo && undoWords === COPY.previous) && tappedSuggestion(P, g) ? backButton(`tk:choice:${g}`, () => {
       showSuggestion(P, g, false);
       showTransfer(P, g, false);
       V.schedule();
-    } }, COPY.previous) : null;
+    }) : null;
     let title, line = null, left = null, right = null, noBring = false, diagnosticComparison = null;
     const placed = P.healing && !w.moves.length ? placedAt(g) : null;
     if (!placed) placedDone();
     const yours = M2?.sq ? [] : placed ? [placed] : w.moves;
     const withMine = (t) => yours.length ? [h("span.ah-tkmine", null, yours.map((m) => `${P.L.name(m.out)} \u2192 ${P.L.name(m.in)}`).join(", ")), t] : t;
     const withCompare = (row, one = null) => h("div", null, row == null ? null : row instanceof Node ? row : lineRow(row), h("div.ah-tksug", null, one ? h("button.ah-rsbtn", { type: "button", dataset: { row: `tk:vs:${g}` }, onClick: () => ctx2.openSheet("player", Number(one.out), { gw: g, vs: one.in }) }, COPY.comparePlayers) : h("button.ah-rsbtn", { type: "button", dataset: { row: `tk:compare:${g}` }, onClick: () => comparePick(ctx2, P, g) }, COPY.comparePlayers)));
-    const askLeft = () => btn("alt", COPY.showSuggestion, `tok:suggest:${g}`, () => {
+    const askLeft = (row = `tok:suggest:${g}`, ask = () => {
       showSuggestion(P, g);
       V.schedule();
-    });
+    }) => btn("alt", COPY.showSuggestion, row, ask);
     const short = !M2?.sq && !placed && owedAt(P, w), asked = tappedSuggestion(P, g);
     const moreAvail = !!best && !M2?.sq && !!w.moves.length && best.move.e.adds.length >= 1 && !best.move.e.taken.length && !best.move.e.chipNow;
     const owes = !!best && short && asked;
@@ -16901,11 +16982,16 @@ function ticketPart(V) {
     const yoursLine = () => {
       if (placed) return null;
       const took = tookOf(P, w), from = P.gws.filter((x) => x >= g), r = V.weekRoll(P, w);
-      if (took?.said) return moveLine(took.said.pts, !!took.forced || fmt.signed(took.said.pts).startsWith(MINUS4), took.said.rounds, took.said.vs);
+      if (took?.said) {
+        const pts3 = took.said.pts ?? forecastGain(from, took.said.before, P.weeks);
+        const rounds = took.said.rounds ?? from.length;
+        return pts3 == null ? null : moveLine(pts3, !!took.forced, rounds, took.said.vs, !!took.said.decision, took.said.forecastPts);
+      }
+      const tabs3 = !from.some((x) => x > g && weekOf(P, x)?.moves.length) && P.bare ? forecastGain(from, [...P.bare.values()], P.weeks) : null;
+      if (tabs3 != null) return moveLine(tabs3, !!took?.forced, from.length, COPY.planVs(false));
       const win = r?.shown != null && r.counted ? sameWindow(...r.counted, g) : 0;
-      if (r) return moveLine(win ? r.shown : r.pts?.delta ?? r.delta, !!took?.forced, win || from.length, COPY.planVsRoll);
-      const tabs3 = from.some((x) => x > g && weekOf(P, x)?.moves.length) || !from.every((x) => P.bare?.has(x)) ? null : from.reduce((t, x) => t + weekOf(P, x).points - P.bare.get(x).points, 0);
-      return tabs3 == null ? null : moveLine(tabs3, !!took?.forced, from.length, COPY.planVs(false));
+      const pts2 = win ? r.shown : r?.pts?.delta;
+      return pts2 == null ? null : moveLine(pts2, !!took?.forced, win || from.length, COPY.planVsRoll);
     };
     const made = () => {
       title = withMine("");
@@ -16921,47 +17007,70 @@ function ticketPart(V) {
       line = withCompare(mine ?? ans.querySelector(".ah-tw")?.textContent ?? null, mine && yours.length === 1 ? yours[0] : null);
       right = onward;
     };
-    const offer = () => {
+    const constrained = purchaseOffer(ctx2, P, who2);
+    let currentOffer = null;
+    const offer = (result) => {
+      currentOffer = result;
+      const { candidate: { e, pl }, pts: pts2, rounds, vs, fallback, notice, another, take, exhausted } = result;
+      const moves = e.adds, own = pl.road?.weeks?.find((x) => Number(x.gw) === g);
+      after = result.preview ?? (own ? viewOfRoadWeek(own, P.L) : null) ?? (moves.length ? inPlaces(w, moves) : null);
+      title = withMine(moves.length ? movesTitle(ctx2, P, g, pairAsPlaced(w, after, P.L.pos, moves)) : fallback);
+      diagnosticComparison = { gain: pts2, rounds, vs };
+      const gain = pts2 == null ? lineRow(COPY.vsNext(rounds, vs), "\u2026") : moveLine(pts2, pl.forced || fmt.signed(pts2).startsWith(MINUS4), rounds, vs, !!result.decision, result.forecastPts);
+      if (notice) gain.querySelector(".ah-tkl").append(" ", notice);
+      line = withCompare(gain, moves.length === 1 ? moves[0] : null);
+      left = another ? btn("alt", COPY.showAnother, `tok:not:${g}`, another) : null;
+      if (left && exhausted) left.disabled = true;
+      right = btn("go", COPY.swap, `tok:best:${g}`, take);
+    };
+    const weekOffer = () => {
       const { e, pl } = best.move;
-      const own = pl.road?.weeks?.find((x) => Number(x.gw) === g);
-      after = swapWeek(ctx2, P, g, pl) ?? (own ? viewOfRoadWeek(own, P.L) : null) ?? (e.adds.length ? inPlaces(w, e.adds) : null);
       clearTimeout(S.swapAsk);
       S.swapAsk = setTimeout(() => presolveSwap(ctx2, P, g, pl));
+      const { preview, pts: forecastPts } = swapForecast(ctx2, P, g, pl);
       const pts2 = cardGain(ctx2, P, g, pl), rounds = windowRounds(pl.road, g) || P.gws.filter((x) => x >= g).length;
-      if (pts2 == null) return wait2();
-      const ms = e.adds;
-      title = withMine(ms.length ? movesTitle(ctx2, P, g, pairAsPlaced(w, after, P.L.pos, ms)) : best.querySelector(".ah-tl").textContent);
-      const one = ms.length === 1 ? ms[0] : null;
-      const vs = !short && !extraWeek(P, g) && (w.ft ?? 1) > 0 ? COPY.vsSaving : COPY.planVs(true);
-      diagnosticComparison = { gain: pts2, rounds, vs };
-      line = withCompare(moveLine(pts2, !!pl.forced || fmt.signed(pts2).startsWith(MINUS4), rounds, vs), one);
+      const ms = e.adds, vs = COPY.planVs(true);
       const not = best.dataset.notIn ? { gw: g, moves: ms, out: Number(best.dataset.notOut), in: Number(best.dataset.notIn) } : null;
-      left = not ? btn("alt", COPY.showAnother, `tok:not:${g}`, () => {
-        showTransfer(P, g);
-        veto(ctx2, not, { scope: "pair" });
-      }) : null;
-      const answeredAsk = () => {
-        if (!ctx2.presolveOn?.()) {
-          showSuggestion(P, g, false);
-          showTransfer(P, g, false);
+      return {
+        candidate: best.move,
+        preview,
+        pts: pts2,
+        forecastPts,
+        rounds,
+        vs,
+        decision: true,
+        fallback: best.querySelector(".ah-tl").textContent,
+        another: not && (() => {
+          showTransfer(P, g);
+          veto(ctx2, not, { scope: "pair" });
+        }),
+        take: (ev) => {
+          if (!ctx2.presolveOn?.()) {
+            showSuggestion(P, g, false);
+            showTransfer(P, g, false);
+          }
+          const result = best.querySelector(".ah-tgo") ? best.take(ev) : best.click();
+          tookSaid(g, { pts: pts2, forecastPts, rounds, vs, decision: true });
+          return result;
         }
       };
-      right = btn("go", COPY.swap, `tok:best:${g}`, (ev) => {
-        answeredAsk();
-        const r = best.querySelector(".ah-tgo") ? best.take(ev) : best.click();
-        tookSaid(g, { pts: pts2, rounds, vs });
-        return r;
-      });
     };
     if (who2?.kind === "sub") {
       title = COPY.subWho(P.L.name(who2.id), w.bench.includes(who2.id));
       line = lineRow(COPY.subTap);
       left = btn("alt", COPY.bringCancel, "tk:cancel", () => stopChoosing(ctx2));
-    } else if (who2) {
+    } else if (who2?.pending) {
+      wait2();
+    } else if (who2 && !constrained) {
       const pr = P.L.price(who2.id);
       title = COPY.bringWho(P.L.name(who2.id));
-      line = lineRow(COPY.bringTap, pr == null ? null : fmt.money(pr));
-      left = btn("alt", COPY.bringCancel, "tk:cancel", () => stopChoosing(ctx2));
+      line = h(
+        "div",
+        null,
+        who2.error ? lineRow(who2.error) : lineRow(COPY.bringTap, pr == null ? null : fmt.money(pr)),
+        h("div.ah-tksug", null, h("button.ah-rsbtn", { type: "button", dataset: { row: "tk:cancel" }, onClick: () => stopChoosing(ctx2) }, COPY.bringCancel))
+      );
+      left = askLeft("tk:buy-suggest", () => suggestPurchase(ctx2, who2));
     } else if (M2?.sq && w.moves.length) {
       title = S.status?.one ?? "";
       line = plural(w.moves.length, "change");
@@ -16970,8 +17079,8 @@ function ticketPart(V) {
     } else if (M2?.live) {
       title = M2.liveText;
       right = next ? onward : null;
-    } else if (offerable) {
-      offer();
+    } else if (constrained || offerable) {
+      offer(constrained ?? weekOffer());
     } else if (placed) {
       wait2();
     } else if (failed2 && !solving) {
@@ -17001,19 +17110,20 @@ function ticketPart(V) {
     showDiagnostics(ctx2, P, w, {
       asked,
       wanted,
-      offerable,
-      solving,
+      offerable: !!currentOffer,
+      solving: who2 ? !!who2.pending : solving,
       failed: failed2,
       short: !!short,
       freeLeft,
       refused,
       comparison: diagnosticComparison,
-      candidate: best?.move,
-      candidates: (M2?.plans ?? []).filter((pl) => pl.solver && !pl.refRow).map((pl) => ({ pl, moves: pl.choice.moves.filter((m) => !w.moves.some((y) => y.out === m.out && y.in === m.in)) })),
-      status: who2 ? "Choosing a player" : M2?.live ? "Live week" : offerable ? "Suggestion" : solving ? "Calculating" : yours.length ? "Your transfers" : wanted && ans ? "Save transfers" : "Suggestion not requested"
+      candidate: currentOffer?.candidate,
+      playerChoice: !!who2,
+      candidates: constrained ? [{ pl: constrained.candidate.pl, moves: constrained.candidate.e.adds }] : (M2?.plans ?? []).filter((pl) => pl.solver && !pl.refRow).map((pl) => ({ pl, moves: pl.choice.moves.filter((m) => !w.moves.some((y) => y.out === m.out && y.in === m.in)) })),
+      status: currentOffer ? "Suggestion" : who2?.pending ? "Calculating" : who2 ? "Choosing a player" : M2?.live ? "Live week" : solving ? "Calculating" : yours.length ? "Your transfers" : wanted && ans ? "Save transfers" : "Suggestion not requested"
     });
     if (S.doors?.g !== g || S.doors.editable !== P.editable) S.doors = { g, editable: P.editable, of: [bringDoor(P, g), chipsDoor(P, g)] };
-    const chips = who2 || inkAt2(ctx2, P, g) ? null : S.doors.of;
+    const chips = who2 && !currentOffer || inkAt2(ctx2, P, g) ? null : S.doors.of;
     if (chips) {
       chips[0].textContent = COPY.bringInPlayer;
       chips[1].textContent = COPY.playAChip;
@@ -17049,13 +17159,13 @@ function ticketPart(V) {
     if (sug) acts.after(sug);
     fill(
       block.querySelector(":scope > .ah-tklinks"),
-      who2 ? null : h("span.ah-tkback", null, toChoice, undo && (!toChoice || last) && !prev ? h("button.ah-rsbtn.undo", { type: "button", disabled: off, class: { back: !!onTop || !swaps && (!!refused || shown2) }, dataset: { row: `tk:undo:${g}` }, onClick: undo }, undoWords) : null, prev, rsBtn),
+      h("span.ah-tkback", null, who2 ? who2.previous && backButton(`tk:prev:${g}`, () => previousPurchase(ctx2, who2)) : [toChoice, undo && (!toChoice || last) && !prev ? backButton(`tk:undo:${g}`, undo, undoWords, !!onTop || !swaps && (!!refused || shown2)) : null, prev], rsBtn),
       // (chips off, calls.js CHIPS_OFF: no Play a chip at all, never a link a tap does nothing on; owner, 2026-11-09, "why play
       // a chip not respond")
       chips ? h("span.ah-tkor", null, noBring || bringBy ? null : chips[0], CHIPS_OFF ? null : chips[1]) : null
     );
     if (held2) rsBtn.focus({ preventScroll: true });
-    V.paintBoard(P, w, who2 ? null : after);
+    V.paintBoard(P, w, after);
     playStack(g);
     V.fitPitch();
     V.paintWait();
@@ -17818,7 +17928,7 @@ function mount(el, ctx2) {
       }
       return;
     }
-    if (pl && P?.editable && !choosing(ctx2, P)) st.timer = setTimeout(() => liftShirt(st, e), LONG_MS);
+    if (pl && P?.editable && !pitchChoice(ctx2, P)) st.timer = setTimeout(() => liftShirt(st, e), LONG_MS);
     else if (bare && P?.editable && !CHIPS_OFF) {
       st.fill = holdFill(e.clientX, e.clientY, LONG_MS, "BB");
       st.timer = setTimeout(() => {
@@ -18615,6 +18725,7 @@ __export(presolve_exports, {
   cheaperFirst: () => cheaperFirst,
   clearRoots: () => clearRoots,
   extraWeek: () => extraWeek,
+  forecastGain: () => forecastGain,
   fundingOf: () => fundingOf,
   goneIds: () => goneIds,
   ifMisses: () => ifMisses,
@@ -18657,8 +18768,8 @@ __export(presolve_exports, {
   stopAhead: () => stopAhead,
   swapAsked: () => swapAsked,
   swapComing: () => swapComing,
+  swapForecast: () => swapForecast,
   swapGain: () => swapGain,
-  swapWeek: () => swapWeek,
   takenKeep: () => takenKeep,
   tapNow: () => tapNow,
   tapSpent: () => tapSpent,
@@ -18762,13 +18873,16 @@ function presolveSwap(ctx2, P, g, pl) {
   if (P.healing || leftBehind(ctx2, P) || inkAt(ctx2, P, g)) return;
   const [take] = weekTaps(ctx2, P, g, [pl]).takes;
   if (!take) return;
-  swapKept(ctx2, P, g, pl, take);
+  const a = swapAsk(ctx2, P, g, take);
+  if (a && !memOf(ctx2).solved(a.values) && !forkRead(a.key) && ctx2.api?.solve && ctx2.store.get("conn")?.state !== "offline") {
+    forkPump(ctx2, P, { key: a.key, values: a.values, gw: g, card: true, side: true, said: "Transfer forecast" });
+    return;
+  }
   presolve(ctx2, P, "week", [take], { gw: g, sig: take.id, owner: take.id });
 }
-function swapKept(ctx2, P, g, pl, take) {
+function swapKept(ctx2, P, g, pl, a) {
   const from = pl.road?.from ?? pl.road?.key, got = SWAPS.get(from), road = got?.weeks?.[g]?.road, mem = memOf(ctx2);
   if (!road || DRY) return;
-  const a = askOf(ctx2, P, { ...take, bare: true }, "week");
   const after = P.gws.filter((x) => x > g), rolled = new Set(String(a?.values.no_buys_gw ?? "").split(",").map(Number));
   if (!a || !after.every((x) => rolled.has(x)) || mem.solved(a.values)) return;
   mem.offer({ ...road, from, key: a.key, values: a.values }, { values: a.values, version: got.version });
@@ -18782,8 +18896,18 @@ function presolveNext(ctx2, P, g, road, refusals, d0) {
   presolve(ctx2, P, "next", [{ kind: "take", gw: g, id: `next:${key}`, bare: true, extra: refusals, run: () => addPlan(ctx2, g, { ...plan2, state: "ready" }) }], { gw: g, sig: key, owner: key });
 }
 function swapGain(ctx2, P, g, pl) {
-  const road = swapRoad(ctx2, P, g, pl);
-  return road ? sum2(asYours(ctx2, road).weeks.map((w) => w.points)) - P.total : null;
+  return swapForecast(ctx2, P, g, pl).pts;
+}
+function forecastGain(gws, before, after) {
+  if (!gws.length) return null;
+  let gain = 0;
+  for (const g of gws) {
+    const points = (weeks) => weeks.find((w) => Number(w.gw) === g)?.points;
+    const a = points(before), b = points(after);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    gain += b - a;
+  }
+  return gain;
 }
 function shownGain2(ctx2, P, g, pl) {
   const gain = cardGain(ctx2, P, g, pl);
@@ -18795,9 +18919,11 @@ function swapComing(ctx2, P, g, pl) {
   if (!a || AHEAD.failed.has(a.key)) return false;
   return true;
 }
-function swapWeek(ctx2, P, g, pl) {
+function swapForecast(ctx2, P, g, pl) {
   const road = swapRoad(ctx2, P, g, pl);
-  return road ? asYours(ctx2, road).weeks.find((w) => Number(w.gw) === g) ?? null : null;
+  const weeks = road ? asYours(ctx2, road).weeks : [];
+  const gws = P.gws.filter((x) => x >= g);
+  return { preview: weeks.find((w) => Number(w.gw) === g), pts: forecastGain(gws, P.weeks, weeks), rounds: gws.length };
 }
 function presolveTaps(ctx2, taps, { gw = null, sig = "", owner = null } = {}) {
   const P = plan(ctx2);
@@ -19446,7 +19572,7 @@ function whyFacts(ctx2, P, g, m, withIt, without, { drafts = null, c = null, you
     better ? COPY.instead(`${nm(use.out)} \u2192 ${nm(use.in)}`, onBase(use.cmp.delta, c.delta, head), head ?? c.delta, vs) : null
   ].filter(Boolean);
 }
-var PRESOLVE_MAX, SOLVE_MAX, PRESOLVE_RATE, PRESOLVE_WINDOW_MS, DRY, AHEAD, teamOn, pressedAt, tapNow, manualSales, suggestionKey, showTransfer, showingAt, showSuggestion, tappedSuggestion, tapSpent, swapAsked, movesKey, rulesKey, tookCmp, ownIn, ownSwapIn, ownLeft, sameWindow, windowRounds, cardGain, swapRoad, aheadAsks, aheadWaited, owedAt, paysBack, ROOTS, clearRoots, ROOT_NARROW, sameRest, spanWeeks, buysNoneTo, sideBusy, OWN_ALTS, OWN_ALT_TRIES, OWN_ALTS_ALONE, OWNALTS, choiceGain, tiedBuy, OTHERUSE, PAIR, PAIR_AGAIN_MS, PAIR_HOLD_MS, PAIR_TAKES, PREP_BESIDE, pairChanged, goneIds, madeEarlier, wishWeeks, weekOnto, isYours, yoursTakenBack, rollingAt, pinOfMove, soldBy, boughtBy, moveSaid, ROWGAINS, onBase, pairOf, withFlag;
+var PRESOLVE_MAX, SOLVE_MAX, PRESOLVE_RATE, PRESOLVE_WINDOW_MS, DRY, AHEAD, teamOn, pressedAt, tapNow, manualSales, suggestionKey, showTransfer, showingAt, showSuggestion, tappedSuggestion, tapSpent, swapAsked, movesKey, rulesKey, tookCmp, ownIn, ownSwapIn, ownLeft, sameWindow, windowRounds, cardGain, swapAsk, swapRoad, aheadAsks, aheadWaited, owedAt, paysBack, ROOTS, clearRoots, ROOT_NARROW, sameRest, spanWeeks, buysNoneTo, sideBusy, OWN_ALTS, OWN_ALT_TRIES, OWN_ALTS_ALONE, OWNALTS, choiceGain, tiedBuy, OTHERUSE, PAIR, PAIR_AGAIN_MS, PAIR_HOLD_MS, PAIR_TAKES, PREP_BESIDE, pairChanged, goneIds, madeEarlier, wishWeeks, weekOnto, isYours, yoursTakenBack, rollingAt, pinOfMove, soldBy, boughtBy, moveSaid, ROWGAINS, onBase, pairOf, withFlag;
 var init_presolve = __esm({
   "js/m/ahead/presolve.js"() {
     init_engine();
@@ -19523,10 +19649,19 @@ var init_presolve = __esm({
     };
     windowRounds = (road, g) => new Set(Object.values(road?.windows?.[g] ?? {}).flatMap((by) => Object.keys(by ?? {}))).size;
     cardGain = (ctx2, P, g, pl) => pl?.state === "ready" && pl.cmp ? pl.cmp.delta : null;
+    swapAsk = (ctx2, P, g, take) => askOf(ctx2, P, { ...take, bare: true }, "week");
     swapRoad = (ctx2, P, g, pl) => {
       const [take] = weekTaps(ctx2, P, g, [pl]).takes;
-      const a = take ? askOf(ctx2, P, take, "week") : null;
-      return a ? memOf(ctx2).solvedRoad(a.values) : null;
+      if (!take) return null;
+      const a = swapAsk(ctx2, P, g, take);
+      if (!a) return null;
+      const mem = memOf(ctx2);
+      if (!mem.solved(a.values)) {
+        swapKept(ctx2, P, g, pl, a);
+        const forecast = forkRead(a.key);
+        if (!mem.solved(a.values) && forecast?.weeks?.length) mem.offer(forecast, { values: a.values, version: P.b.version });
+      }
+      return mem.solvedRoad(a.values);
     };
     aheadAsks = (f, P, g) => {
       if (!f.ahead) return false;
@@ -20030,9 +20165,8 @@ function sub(ctx2, g, a, b) {
 }
 function subChoices(ctx2, P, g, id) {
   const w = weekOf(P, g);
-  const other2 = w?.bench.includes(Number(id)) ? w.xi : w?.xi.includes(Number(id)) ? w.bench : null;
-  if (!other2) return [];
-  return swapCandidates(w, id, P.L.pos).filter((p) => other2.includes(p)).map((p) => {
+  if (!w) return [];
+  return swapCandidates(w, id, P.L.pos).map((p) => {
     const s = subLineup(w, id, p, P.L);
     return { id: p, s, what: subWords(P, w, s), cmp: subGap(inputs(ctx2), w, s) };
   }).sort((x, y) => y.cmp.delta - x.cmp.delta || (P.L.xp(x.id, g) ?? 0) - (P.L.xp(y.id, g) ?? 0));
@@ -20503,7 +20637,6 @@ __export(core_exports, {
   baseOf: () => baseOf,
   baseline: () => baseline,
   bestOf: () => bestOf,
-  boardAt: () => boardAt,
   boardMarks: () => boardMarks,
   boughtIn: () => boughtIn,
   bump: () => bump,
@@ -20555,7 +20688,6 @@ __export(core_exports, {
   sameMove: () => sameMove,
   sameSet: () => sameSet,
   sameView: () => sameView,
-  setBoard: () => setBoard,
   setFlash: () => setFlash,
   setLineups: () => setLineups,
   showTipsAgain: () => showTipsAgain,
@@ -20946,7 +21078,7 @@ function baked(ctx2, extra = [], drop2 = [], P = plan(ctx2)) {
   const c = composePins([...P.pins.filter((p) => !drop2.includes(p.id)), ...extra], { from: P.A, to: P.end });
   return findRoad(P.base, c, P.gws);
 }
-var LONG_MS, SWIPE_PX, SWIPE_MS, GRIP_MS, TC_MS, EDGE_PX, SPENT_PX, MINUS4, afterPaint, num4, ids4, sum2, span3, sameSet, clone2, capFirst, ownFirst, editable, lockedFrom, leftBehind, OFFLINE_EDIT, memOf, memPlan, RULES_ASK, FLASH, viewedGw, WHY_SHEET, whyAct, closedOf, BOARD, setBoard, boardAt, setFlash, REMOVED, removedBy, removedAt, LU, rev, bump, luKey, laterGws, luWindow, WAIT_KEY, NIGHT_KEY, LEARN_KEY, baseOf, roadId, DRAFTS, BANKS, pairsOf, pairedMoves, sameList, lineupOf, frozenOf, isFrozen, memo2, SAME_SKIP, sameMemPlan, sameView, OPTIONS, valuesKey, specOk, weekOf, squadBefore, inTeamAt, placesTaken, INPUTS, inputs, compare2, ownCount, BASELINES, clubCounts, problemOf, problemShort, flatMoves, withMoves, sameMove, movedFrom, draftMove, dropDrafted, isPick, wishDrop, picksAt, valuesFor;
+var LONG_MS, SWIPE_PX, SWIPE_MS, GRIP_MS, TC_MS, EDGE_PX, SPENT_PX, MINUS4, afterPaint, num4, ids4, sum2, span3, sameSet, clone2, capFirst, ownFirst, editable, lockedFrom, leftBehind, OFFLINE_EDIT, memOf, memPlan, RULES_ASK, FLASH, viewedGw, WHY_SHEET, whyAct, closedOf, setFlash, REMOVED, removedBy, removedAt, LU, rev, bump, luKey, laterGws, luWindow, WAIT_KEY, NIGHT_KEY, LEARN_KEY, baseOf, roadId, DRAFTS, BANKS, pairsOf, pairedMoves, sameList, lineupOf, frozenOf, isFrozen, memo2, SAME_SKIP, sameMemPlan, sameView, OPTIONS, valuesKey, specOk, weekOf, squadBefore, inTeamAt, placesTaken, INPUTS, inputs, compare2, ownCount, BASELINES, clubCounts, problemOf, problemShort, flatMoves, withMoves, sameMove, movedFrom, draftMove, dropDrafted, isPick, wishDrop, picksAt, valuesFor;
 var init_core = __esm({
   "js/m/ahead/core.js"() {
     init_engine();
@@ -20999,11 +21131,6 @@ var init_core = __esm({
         done();
       };
     }));
-    BOARD = null;
-    setBoard = (P, g) => {
-      BOARD = P && g != null ? `${P.entry}|${g}` : null;
-    };
-    boardAt = (P, g) => !!P && BOARD === `${P.entry}|${g}`;
     setFlash = (P, x) => {
       FLASH = { ...x, team: P ? `${P.entry}|${P.A}` : null, at: Date.now() };
     };
@@ -21116,7 +21243,6 @@ __export(ahead_exports, {
   baseline: () => baseline,
   benchOnly: () => benchOnly,
   benchedBuys: () => benchedBuys,
-  boardAt: () => boardAt,
   boughtIn: () => boughtIn,
   boxesMeet: () => boxesMeet,
   bringIn: () => bringIn,
@@ -21125,6 +21251,7 @@ __export(ahead_exports, {
   buyCandidates: () => buyCandidates,
   buyPlan: () => buyPlan,
   buyProblem: () => buyProblem,
+  canChooseSub: () => canChooseSub,
   captain: () => captain,
   changedCards: () => changedCards,
   changedOf: () => changedOf,
@@ -22012,7 +22139,7 @@ function open3(ctx2, rawId, { gw, place = null, vs = null } = {}) {
         const b = (label, onClick, cls = "", off2 = false) => h("button", { type: "button", class: cls, disabled: !P.editable || off2, onClick }, label);
         let grid;
         if (owns(P)) {
-          const w = weekOf(P, g), from = pinOf(P, "sell", id) ? null : sellWeek(ctx2, P, id, g);
+          const from = pinOf(P, "sell", id) ? null : sellWeek(ctx2, P, id, g);
           grid = [
             b(COPY.replaceGo, () => {
               close();
@@ -22021,7 +22148,7 @@ function open3(ctx2, rawId, { gw, place = null, vs = null } = {}) {
             b(COPY.subGo, () => {
               close();
               chooseSub(ctx2, id, g);
-            }, "", squadWeek(w) || boardAt(P, g) || !(w.xi.includes(id) || w.bench.includes(id)))
+            }, "", !canChooseSub(ctx2, P, id, g))
           ];
         } else {
           grid = [
@@ -22241,11 +22368,8 @@ function oppChip(c, opp, home, fdr, y, W) {
 function pairView(m, rows, W) {
   const c2 = m.comp;
   const past = m.past.filter((x) => x.gw != null), fut = m.futAll ?? m.fut;
-  const ptsA = past.map((x) => x.minutes ? Number(x.points ?? 0) : null);
-  const ptsB = past.map((x) => {
-    const o = c2?.past?.get(Number(x.gw));
-    return o?.minutes ? Number(o.points ?? 0) : null;
-  });
+  const ptsA = past.map((x) => x.points ?? null);
+  const ptsB = past.map((x) => c2?.past?.get(Number(x.gw))?.points ?? null);
   const from = m.from ?? fut.find((f) => f.inPlan)?.gw ?? fut[0]?.gw;
   const plan4 = fut.filter((f) => f.gw >= from).slice(0, 4), xp4A = plan4.map((f) => f.xp ?? null), xp4B = plan4.map((f) => c2?.xp[fut.indexOf(f)] ?? null);
   const tot = (xs) => xs.reduce((t, v) => t + (v ?? 0), 0);
@@ -24057,11 +24181,12 @@ var you_exports = {};
 __export(you_exports, {
   open: () => open7
 });
-function when(epoch) {
+function when(epoch, { fullDate = false } = {}) {
   const ms = Number(epoch) * (Number(epoch) > 1e12 ? 1 : 1e3);
   if (!Number.isFinite(ms) || !ms) return null;
   const d = new Date(ms);
   const t = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  if (fullDate) return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(d);
   return d.toDateString() === (/* @__PURE__ */ new Date()).toDateString() ? t : `${new Intl.DateTimeFormat("en-GB", { weekday: "short" }).format(d)} ${t}`;
 }
 function solvedAt(road) {
@@ -24139,7 +24264,7 @@ function open7(ctx2, what = null) {
           h2("div.m-kv", null, h2("span", null, "Connection"), h2("span", { class: conn.state === "offline" ? "g-loss" : "" }, link)),
           // the front end's release (api.access), "dev" for the tree's own; none until the server has said
           // (…and when it was released, as Forecast and Plan show theirs; owner, 2026-11-09, "why time of version not displayed")
-          acc ? h2("div.m-kv", null, h2("span", null, "Version"), h2("span.m-num", null, [acc.release ?? "dev", when(acc.released_at)].filter(Boolean).join(" \xB7 "))) : null,
+          acc ? h2("div.m-kv", null, h2("span", null, "Version"), h2("span.m-num", null, [acc.release ?? "dev", when(acc.released_at, { fullDate: true })].filter(Boolean).join(" \xB7 "))) : null,
           // (rows to their sheets, green with ›, not buttons: design 1028d K2)
           h2("button.m-nav", { type: "button", disabled: HELP_OFF, onClick: () => helpSheet(ctx2) }, COPY.helpShort, offNote),
           // the app's pitch, from inside it too (owner, 2026-10-14)

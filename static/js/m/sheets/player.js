@@ -262,10 +262,10 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
         const b = (label, onClick, cls = '', off = false) => h('button', { type: 'button', class: cls, disabled: !P.editable || off, onClick }, label);
         let grid;
         if (owns(P)) {
-          const w = weekOf(P, g), from = pinOf(P, 'sell', id) ? null : AH.sellWeek(ctx, P, id, g);
+          const from = pinOf(P, 'sell', id) ? null : AH.sellWeek(ctx, P, id, g);
           grid = [
             b(COPY.replaceGo, () => { close(); ctx.openSheet('replace', id, from); }, '', from == null),
-            b(COPY.subGo, () => { close(); AH.chooseSub(ctx, id, g); }, '', AH.squadWeek(w) || AH.boardAt(P, g) || !(w.xi.includes(id) || w.bench.includes(id))),
+            b(COPY.subGo, () => { close(); AH.chooseSub(ctx, id, g); }, '', !AH.canChooseSub(ctx, P, id, g)),
           ];
         }
         else {
@@ -547,8 +547,8 @@ function oppChip(c, opp, home, fdr, y, W) {
 function pairView(m, rows, W) {
   const c2 = m.comp;
   const past = m.past.filter((x) => x.gw != null), fut = m.futAll ?? m.fut;
-  const ptsA = past.map((x) => (x.minutes ? Number(x.points ?? 0) : null));
-  const ptsB = past.map((x) => { const o = c2?.past?.get(Number(x.gw)); return o?.minutes ? Number(o.points ?? 0) : null; });
+  const ptsA = past.map((x) => x.points ?? null);
+  const ptsB = past.map((x) => c2?.past?.get(Number(x.gw))?.points ?? null);
   // (the forecast's next four from the week it was opened from (`from`, GW g): from GW13, GW13-16, never the plan's
   // GW11-14; owner, 2026-11-09, "why it not shows forecast for next gws when i click compare from gw13")
   const from = m.from ?? fut.find((f) => f.inPlan)?.gw ?? fut[0]?.gw;

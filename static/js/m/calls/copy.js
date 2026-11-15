@@ -765,6 +765,7 @@ export const COPY = Object.freeze({
    *  take-back say ("Swap" beside "1 transfer made" and "Save your free transfer"; card audit 2026-11-10). */
   swap: 'Transfer',
   showAnother: 'Show another',
+  noOtherPurchase: 'No other transfer fits.',
   showATransfer: 'Show a transfer',
   /** The card's take-backs, each saying what it takes back (owner, 2026-11-05, "fix undo / reset buttions signs and theier
    *  meaning and wording"): this week's transfers, or the card before your Show another. */
@@ -784,9 +785,7 @@ export const COPY = Object.freeze({
   offForNow: '(off for now)',
   /** The card while the pitch asks who he replaces (design_1109a slip): "B.Fernandes → ?", the ask under it. */
   bringWho: (name) => `${name} → ?`,
-  /** A sub's pick on the pitch (buys.chooseSub): a bench player chosen asks who he comes on for, a starter who comes on
-   *  for him. */
-  subWho: (name, on) => `${name} ${on ? 'on' : 'off'} for ?`,
+  subWho: (name, benched) => benched ? `Swap ${name} with ?` : `${name} off for ?`,
   subTap: 'Tap the player he swaps with',
   bringTap: 'Tap the player he replaces',
   bringCancel: 'Cancel',

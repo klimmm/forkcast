@@ -1,7 +1,7 @@
 // screen.js mount: the pitch, the GW rail, the total and Player data
 
-import { FLASH, MINUS, boardMarks, boughtIn, inFor, plan, setBoard, span } from './core.js';
-import { choosable, chooseSub, choosing, fplOf, inkAt, planHasYours, replaceWith } from './buys.js';
+import { FLASH, MINUS, boardMarks, boughtIn, inFor, plan, span } from './core.js';
+import { choosable, chooseSub, choosing, pitchChoice, fplOf, inkAt, planHasYours, replaceWith } from './buys.js';
 import { h, fmt, fill, chipName, plural, icon, roving, xpNum, xpGain } from '../../ui.js';
 import { CHIPS_OFF, COPY, gwFlags } from '../calls.js';
 import { chipsAvail, squadWeek } from './pieces.js';
@@ -14,7 +14,7 @@ export function pitchPart(V) {
   /** Bring in's second step on the pitch, or a sub's: who he can replace or swap with in green, the rest quiet but the
    *  sub chosen (choosing). */
   function paintChoosing(P, w) { const { ctx, pitchHost } = V;
-    const who = choosing(ctx, P, w.gw), can = new Set(who ? choosable(ctx, who) : []);
+    const who = pitchChoice(ctx, P, w.gw), can = new Set(who ? choosable(ctx, who) : []);
     pitchHost.classList.toggle('ah-choosing', !!who);
     for (const c of pitchHost.querySelectorAll('.pm-card[data-id]')) {
       const id = Number(c.dataset.id);
@@ -40,8 +40,8 @@ export function pitchPart(V) {
     S.board = { key, pitch: S.pitch };
     if (!after) return;
     const nm = P.L.name, marks = boardMarks(w, after, P.L.pos);
-    // (its bench labels no buttons: a sub list is the plan's week, not the one drawn (boardAt))
-    mountHere({ ...pitchProps(P, w), xi: after.xi, bench: after.bench, captain: after.captain, vice: after.vice, onBench: null }, w.gw);
+    // (its bench labels no buttons: a sub list is the plan's week, not the one drawn)
+    mountHere({ ...pitchProps(P, w), xi: after.xi, bench: after.bench, captain: after.captain, vice: after.vice, onBench: null });
     const marked = marks.map((m) => ({ ...m, c: pitchHost.querySelector(`.pm-card[data-id="${m.id}"]`) })).filter((m) => m.c);
     for (const { place, id, sold, kind, c } of marked) {
       if (kind === 'in') {
@@ -71,13 +71,13 @@ export function pitchPart(V) {
       // transfer's Why sheet; anywhere else on a card, his sheet (tapIn). The plan as it is at the tap: a pitch drawn
       // the same is not mounted again (renderPitch)
       onPlayer: (id, e) => {
-        if (choosing(ctx, plan(ctx), w.gw)) { replaceWith(ctx, id); return; }
+        if (pitchChoice(ctx, plan(ctx), w.gw)) { replaceWith(ctx, id); return; }
         const b = e?.target?.closest?.('.pm-badge[data-badge="c"], .pm-badge[data-badge="v"]');
         if (b) { armbandSheet(b.dataset.badge, w.gw); return; }
         tapIn(w.gw, id);
       },
       // a tap on a sub's label on the bench ("1", his order; the keeper's none: m-ahead.css .pm-blp): the starters he can replace lit (chooseSub)
-      onBench: (id) => { if (choosing(ctx, plan(ctx), w.gw)) replaceWith(ctx, id); else chooseSub(ctx, id, w.gw); },
+      onBench: (id) => { if (pitchChoice(ctx, plan(ctx), w.gw)) replaceWith(ctx, id); else chooseSub(ctx, id, w.gw); },
     };
   }
   function renderPitch(P, w) { const { S, ctx, pitchHost, rsBtn } = V;
@@ -89,7 +89,8 @@ export function pitchPart(V) {
     // button")
     // (…or a suggestion shown in any week: Reset all weeks takes every week back to its choice; the viewed week's own ask
     // alone not: its card's Previous takes it back, and Reset beside it did the same; card audit 2026-11-10)
-    const lu = !!w.lineup, mine = planHasYours(P) || P.gws.some((g) => g !== w.gw && (showingAt(P, g) || tappedSuggestion(P, g)));
+    // A purchase preview also has history: Previous goes back one choice, Reset discards the whole search.
+    const lu = !!w.lineup, mine = !!choosing(ctx, P)?.previous || planHasYours(P) || P.gws.some((g) => g !== w.gw && (showingAt(P, g) || tappedSuggestion(P, g)));
     S.reset = lu || mine ? { lu, plan: mine, gw: w.gw } : null;
     rsBtn.hidden = !S.reset;
     rsBtn.disabled = !P.editable;
@@ -115,9 +116,8 @@ export function pitchPart(V) {
   }
   /** The pitch on Ahead (pitch.mountPitch), Player data, Reset lineup, Reset plan and the choices on it first
    *  (m-ahead.css: its top-right corner, beside the goal, then the layer the choices are drawn in: renderDecks; read
-   *  before the eleven). An open place closes: its cards were the pitch's. `board`: the GW whose card's swap it draws
-   *  (paintBoard; boardAt), none the plan's own. */
-  function mountHere(props, board = null) { const { S, cardBoxes, cardIn, chipsHint, closePlace, ctx, decks, pdBtn, pitchHost, settle } = V;
+   *  before the eleven). An open place closes: its cards were the pitch's. */
+  function mountHere(props) { const { S, cardBoxes, cardIn, chipsHint, closePlace, ctx, decks, pdBtn, pitchHost, settle } = V;
     const pill = pdBtn === document.activeElement ? pdBtn : null;
     // a place open with the focus in it: on his card once the pitch is mounted anew (a keyboard's, VoiceOver's)
     const inPlace = S.place && pitchHost.querySelector(':scope > .pm > .ah-place')?.contains(document.activeElement) ? S.place.a : null;
@@ -126,7 +126,6 @@ export function pitchPart(V) {
     const old = pitchHost.querySelector(':scope > .pm');
     S.snap = old ? new Map(cardBoxes(old).map((c) => [c.id, { rect: c.n.getBoundingClientRect(), node: c.n.cloneNode(true) }])) : null;
     ctx.pitch.mountPitch(pitchHost, props);
-    setBoard(plan(ctx), board);
     if (inPlace) cardIn(pitchHost.querySelector(':scope > .pm'), inPlace)?.focus({ preventScroll: true });
     pitchHost.querySelector(':scope > .pm')?.prepend(pdBtn, decks);
     if (pill) (pill.hidden ? pdBtn : pill).focus({ preventScroll: true });  // a corner pill keeps focus over a pitch drawn anew

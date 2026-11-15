@@ -155,6 +155,7 @@ export function composePins(list = [], { from = 1, to = E.LAST_ROUND } = {}) {
       if (g >= from && g <= to) { if (keep) caps[g] = keep; else rolls.add(g); }
     }
     if (kindOf(pin) === 'notfor') refused.push(pin);
+    if (kindOf(pin) === 'wish' && pin.purchaseRefusals) refused.push(...pin.purchaseRefusals);
     for (const g of pin.rolls || []) if (Number(g) >= from && Number(g) <= to) rolls.add(Number(g));  // the hold's (holdOf)
     for (const g of pin.debts || []) if (Number(g) >= from && Number(g) <= to) debts.add(Number(g));  // the hold's (holdOf)
     if (!isRoll(pin)) for (const [g, n] of Object.entries(pin.caps || {})) if (Number(g) >= from && Number(g) <= to) caps[Number(g)] = Number(n);

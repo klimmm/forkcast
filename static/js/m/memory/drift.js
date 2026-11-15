@@ -3,7 +3,7 @@
 import * as E from '../../plan/engine.js';
 import { COPY, planFromRoad, compare as compareIn, OUT, statusText } from '../calls.js';
 import { chipName, fmt, statusInfo } from '../../ui.js';
-import { EPS, clone, composePins, frozenWeeks, ids, num, pinRoad, splitItems, squadKey, thawPin, weekAt } from './pins.js';
+import { EPS, clone, composePins, frozenWeeks, ids, num, pinRoad, refusedMoves, splitItems, squadKey, thawPin, weekAt } from './pins.js';
 import { idleRules, ruleText, rulesBroken } from './values.js';
 import { solveGap } from '../api.js';
 
@@ -303,6 +303,16 @@ export function normalizeAccepted(acc, { A, end, roadOf = () => null, hitCap = n
   // a week's Auto-plan hits limit is no rule now (the hits Forkcast may take are one setting, accepted.hits_max; owner,
   // 2026-10-12). A Roll stays (Your rules lists it with its ×)
   items = items.filter((p) => p.kind !== 'hits');
+  // Older purchase previews saved their skips as standalone week rules. Reattach
+  // them to the requested purchase, or discard them if it has already been undone.
+  const purchaseSkips = items.filter(p => p.kind === 'notfor' && /^Skip .+ → .+ in GW\d+$/.test(p.label));
+  if (purchaseSkips.length) {
+    items = items.filter(p => !purchaseSkips.includes(p)).map(p => {
+      if (p.kind !== 'wish') return p;
+      const skips = purchaseSkips.filter(q => q.gw === p.gw && refusedMoves(q).some(m => m.in === p.player));
+      return skips.length ? { ...p, purchaseRefusals: [...(p.purchaseRefusals ?? []), ...skips] } : p;
+    });
+  }
   // a plan's frozen weeks are thawed (owner, 2026-10-12), the road pin the call's again (after splitItems: a rule an
   // older lock held inside it is a rule of its own first)
   items = splitItems(items, A, end);

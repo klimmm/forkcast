@@ -12,7 +12,7 @@ export const decisionReason = (t) => ({
   'solver-plan': 'Independent moves and minimal feasible groups from the week plan are compared with the best single transfer by projected gain.',
 }[t?.reason] ?? 'No decision trace is available for this card.');
 export function showDiagnostics(ctx, P, w, data) {
-  views.set(ctx, { P, w, data, trace: decisionOf(P, w.gw) });
+  views.set(ctx, { P, w, data, trace: data.playerChoice ? null : decisionOf(P, w.gw) });
   listeners.get(ctx)?.();
 }
 export function mountDiagnostics(ctx) {

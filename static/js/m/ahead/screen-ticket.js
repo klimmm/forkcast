@@ -6,22 +6,22 @@ import { h, fill, fmt, plural, reduceMotion, xpGain, xpNum } from '../../ui.js';
 import { CHIPS_OFF, COPY } from '../calls.js';
 import { MINUS, memOf, pairAsPlaced, plan, viewOfRoadWeek, weekOf } from './core.js';
 import { forkRead } from './plans/forks.js';
-import { cardGain, extraWeek, owedAt, owedRoad, presolveSwap, refusalRoads, removeWeek, showSuggestion, showTransfer, showingAt, swapWeek, manualSales, tappedSuggestion, tookOf, tookSaid, sameWindow, windowRounds } from './presolve.js';
-import { choosing, placedAt, placedDone, stopChoosing } from './buys.js';
+import { cardGain, forecastGain, swapForecast, extraWeek, owedAt, owedRoad, presolveSwap, refusalRoads, removeWeek, showSuggestion, showTransfer, showingAt, manualSales, tappedSuggestion, tookOf, tookSaid, sameWindow, windowRounds } from './presolve.js';
+import { choosing, previousPurchase, purchaseOffer, suggestPurchase, placedAt, placedDone, stopChoosing } from './buys.js';
 import { cardUndo, removeRule, takingBack, tickWas, veto } from './edits.js';
 import { MOVE_KINDS, fitNum } from './screen.js';
 
 /** The card's line: words at its left, `right` at its right edge (design_1109a slip). */
 const lineRow = (words, right = null, data = null) => h('p.ah-tkline', { dataset: data }, h('span.ah-tkl', null, words), right ? [' ', h('span.ah-tkr.m-num', null, right)] : null);
-/** …for a move: one number, the solver's count `gain` (the saved transfer's own worth counted, what orders the cards),
- *  over its window (owner, 2026-11-09, design_1109a slip: "+1.2 xP vs saving, −1.1 xP counting the free transfer" and
- *  "Worse than saving" said one thing three ways). `forced`, a move the plan would not make, rides as data alone: its
- *  number below 0 says it. */
-/** `vs`: what the number counts against, said as it is (card audit 2026-11-10): saving a free transfer only where one is
- *  left to save, your plan where the week is short or has none left, no transfers on your own transfer's card. */
-function moveLine(gain, forced, rounds, vs) {
+/** Forecast change over the stated weeks, with its comparison plan named beside it. */
+function moveLine(gain, forced, rounds, vs, decision = false, points = null) {
   // (a loss in the muted ink, never the gain's blue: books review 2026-11-08; "−0.0" and "0.0" are no loss)
-  return lineRow(COPY.vsNext(rounds, vs), xpGain(gain, `span.ah-tkcount${fmt.signed(gain).startsWith(MINUS) ? '.neg' : ''}`), forced ? { forced: '' } : null);
+  const signed = fmt.signed(gain), cls = `span.ah-tkcount${signed.startsWith(MINUS) ? '.neg' : ''}`;
+  if (decision) return h('p.ah-tkline.ah-tkone', { dataset: { ...(forced ? { forced: '' } : {}), score: gain } }, [
+    `${rounds === 1 ? 'Next week' : `Next ${rounds} weeks`} vs ${vs}`, ' · ', points == null ? null : h('span.ah-tkpoints', null, xpGain(points)),
+    points == null ? null : ' · ', h('span.ah-adjusted', null, ['Overall ', h(cls, null, signed)]),
+  ]);
+  return lineRow(COPY.vsNext(rounds, vs), xpGain(gain, cls), forced ? { forced: '' } : null);
 }
 
 /** The card's body under its title: its line row and its link row (the opening card's Show suggestion, a transfer's
@@ -192,7 +192,10 @@ export function ticketPart(V) {
     const showing = !swaps && !refused && showingAt(P, g) && !none && (!best || !!best.move?.pl?.forced), shown = showing && !last;
     // (…and with an older edit's Undo waiting on the week, its Previous beside that Undo: the Undo took Previous's place and
     // the card had no way back to the plan's; owner, 2026-11-09, "why not reset displayed", "fix")
-    const prev = showing && last ? h('button.ah-rsbtn.undo.back', { type: 'button', disabled: off, dataset: { row: `tk:prev:${g}` }, onClick: () => { showTransfer(P, g, false); V.schedule(); } }, COPY.previous) : null;
+    const backButton = (row, run, words = COPY.previous, back = true) => h('button.ah-rsbtn.undo', {
+      type: 'button', disabled: off, class: { back }, dataset: { row }, onClick: run,
+    }, words);
+    const prev = showing && last ? backButton(`tk:prev:${g}`, () => { showTransfer(P, g, false); V.schedule(); }) : null;
     // (the week's transfers take back their own: "Undo swap" ran a newer edit's Undo where one of the same week stood, a
     // captain's or a lineup's, under the transfer's words; card audit 2026-11-10)
     // (…but a Show another on top of them, a refusal newer than the week's transfers of yours: its Previous first, one
@@ -205,7 +208,7 @@ export function ticketPart(V) {
     // of a refusal or of Show another stands; owner, 2026-11-09, "why no undo button"; beside an edit's Undo, as `prev`:
     // the armband you moved after the tap had no Undo, qa-tk137 pitch-drag)
     const toChoice = !swaps && !refused && !prev && !(undo && undoWords === COPY.previous) && tappedSuggestion(P, g)
-      ? h('button.ah-rsbtn.undo.back', { type: 'button', disabled: off, dataset: { row: `tk:choice:${g}` }, onClick: () => { showSuggestion(P, g, false); showTransfer(P, g, false); V.schedule(); } }, COPY.previous) : null;
+      ? backButton(`tk:choice:${g}`, () => { showSuggestion(P, g, false); showTransfer(P, g, false); V.schedule(); }) : null;
     let title, line = null, left = null, right = null, noBring = false, diagnosticComparison = null;
     // The card is one of a few states, each drawn one way on every team and week (owner, 2026-11-10, "make sure that
     // transfer cards have a few unified states"; design_1109b review.md):
@@ -215,7 +218,7 @@ export function ticketPart(V) {
     //   save      asked, the solver saves the week: "Save your free transfer"; – | On to GW<next>
     //   made      a transfer of yours, nothing asked: your green line, its number; Show suggestion | – where the solver
     //             has a move on top or the week is short, else – | On to GW<next>
-    //   choosing  Bring in a player's second step: "Name → ?"; Cancel | –
+    //   choosing  Bring in a player: choose a sale on the pitch or request a preview with the buy fixed
     // plus a chip's week and a week under way. Two button places on every card, the green one at the right, an empty
     // place kept (the card one height); Compare players under the line where the card has one out and one in; the
     // take-backs, Reset all weeks and Bring in a player in the links row; nothing of the week bar inside the card (the
@@ -232,7 +235,7 @@ export function ticketPart(V) {
     const withCompare = (row, one = null) => h('div', null, row == null ? null : row instanceof Node ? row : lineRow(row), h('div.ah-tksug', null, one
       ? h('button.ah-rsbtn', { type: 'button', dataset: { row: `tk:vs:${g}` }, onClick: () => ctx.openSheet('player', Number(one.out), { gw: g, vs: one.in }) }, COPY.comparePlayers)
       : h('button.ah-rsbtn', { type: 'button', dataset: { row: `tk:compare:${g}` }, onClick: () => comparePick(ctx, P, g) }, COPY.comparePlayers)));
-    const askLeft = () => btn('alt', COPY.showSuggestion, `tok:suggest:${g}`, () => { showSuggestion(P, g); V.schedule(); });
+    const askLeft = (row = `tok:suggest:${g}`, ask = () => { showSuggestion(P, g); V.schedule(); }) => btn('alt', COPY.showSuggestion, row, ask);
     // (a week your transfers leave short of money, owedAt; and the solver's next move on top of yours: one transfer, none
     // of yours taken back, no chip; owner, 2026-11-09)
     const short = !M?.sq && !placed && owedAt(P, w), asked = tappedSuggestion(P, g);
@@ -275,27 +278,22 @@ export function ticketPart(V) {
       line = withCompare(null);
       left = askLeft();
     };
-    // (your week's transfers, one number on every card of the week that has them, made or answered with a save: the
-    // week against rolling it, the later weeks the same on both sides (weekRollOf: the Week sheet's and the week line's),
-    // over the solver's window where both plans count the same weeks (GW13's GW13-16), else over the plan's weeks; till
-    // the roll is in, the tabs against the plan with none of your transfers, where no later week has any of yours
-    // (owner, 2026-11-09, "fix bug with +1.1 points"; 2026-11-11, "they are one state": GW13 "Next 2 weeks +14.4",
-    // GW11's save with four of yours no number)
-    // (a transfer you took from its card: that card's own line while the take stands (tookSaid), its number, window and
-    // what it counts against, never a second count of it; GW13 read "+1.1 · Next 4 weeks vs saving a free transfer"
-    // before the tap, "+2.6 · Next 2 weeks vs no transfers" after; owner, 2026-11-12, "why 'next 2 weeks' if window is 4
-    // weeks - fix bug", "fix bug")
+    // Keep an accepted offer's displayed decision value stable. Older in-memory takes only have `before`, so retain
+    // their forecast-difference fallback until the page is reloaded.
     const yoursLine = () => {
       if (placed) return null;
       const took = tookOf(P, w), from = P.gws.filter((x) => x >= g), r = V.weekRoll(P, w);
-      if (took?.said) return moveLine(took.said.pts, !!took.forced || fmt.signed(took.said.pts).startsWith(MINUS), took.said.rounds, took.said.vs);
+      if (took?.said) {
+        const pts = took.said.pts ?? forecastGain(from, took.said.before, P.weeks);
+        const rounds = took.said.rounds ?? from.length;
+        return pts == null ? null : moveLine(pts, !!took.forced, rounds, took.said.vs, !!took.said.decision, took.said.forecastPts);
+      }
+      const tabs = !from.some(x => x > g && weekOf(P, x)?.moves.length) && P.bare
+        ? forecastGain(from, [...P.bare.values()], P.weeks) : null;
+      if (tabs != null) return moveLine(tabs, !!took?.forced, from.length, COPY.planVs(false));
       const win = r?.shown != null && r.counted ? sameWindow(...r.counted, g) : 0;
-      if (r) return moveLine(win ? r.shown : (r.pts?.delta ?? r.delta), !!took?.forced, win || from.length, COPY.planVsRoll);
-      // (the plan without your transfers rolls every week: a week with no transfer counted over itself alone, so never
-      // its window against your plan's; owner, 2026-11-11, "what is this crap", +160.5 for three transfers)
-      const tabs = from.some((x) => x > g && weekOf(P, x)?.moves.length) || !from.every((x) => P.bare?.has(x)) ? null
-        : from.reduce((t, x) => t + weekOf(P, x).points - P.bare.get(x).points, 0);
-      return tabs == null ? null : moveLine(tabs, !!took?.forced, from.length, COPY.planVs(false));
+      const pts = win ? r.shown : r?.pts?.delta;
+      return pts == null ? null : moveLine(pts, !!took?.forced, win || from.length, COPY.planVsRoll);
     };
     const made = () => {
       title = withMine('');
@@ -312,55 +310,56 @@ export function ticketPart(V) {
       line = withCompare(mine ?? ans.querySelector('.ah-tw')?.textContent ?? null, mine && yours.length === 1 ? yours[0] : null);
       right = onward;
     };
-    const offer = () => {
+    const constrained = purchaseOffer(ctx, P, who);
+    let currentOffer = null;
+    const offer = (result) => {
+      currentOffer = result;
+      const { candidate: { e, pl }, pts, rounds, vs, fallback, notice, another, take, exhausted } = result;
+      const moves = e.adds, own = pl.road?.weeks?.find(x => Number(x.gw) === g);
+      after = result.preview ?? (own ? viewOfRoadWeek(own, P.L) : null) ?? (moves.length ? inPlaces(w, moves) : null);
+      title = withMine(moves.length ? movesTitle(ctx, P, g, pairAsPlaced(w, after, P.L.pos, moves)) : fallback);
+      diagnosticComparison = { gain: pts, rounds, vs };
+      const gain = pts == null ? lineRow(COPY.vsNext(rounds, vs), '…') : moveLine(pts, pl.forced || fmt.signed(pts).startsWith(MINUS), rounds, vs, !!result.decision, result.forecastPts);
+      if (notice) gain.querySelector('.ah-tkl').append(' ', notice);
+      line = withCompare(gain, moves.length === 1 ? moves[0] : null);
+      left = another ? btn('alt', COPY.showAnother, `tok:not:${g}`, another) : null;
+      if (left && exhausted) left.disabled = true;
+      right = btn('go', COPY.swap, `tok:best:${g}`, take);
+    };
+    const weekOffer = () => {
       const { e, pl } = best.move;
-      const own = pl.road?.weeks?.find((x) => Number(x.gw) === g);
-      after = swapWeek(ctx, P, g, pl) ?? (own ? viewOfRoadWeek(own, P.L) : null) ?? (e.adds.length ? inPlaces(w, e.adds) : null);
       clearTimeout(S.swapAsk);
       // (asked the moment the card is drawn, never after the week's other solves: the refusal walk's asks ahead spent your
       // tap's 6 first and the card had no number; its move is the lit one, which the week settled on; design_1109b)
       S.swapAsk = setTimeout(() => presolveSwap(ctx, P, g, pl));
-      // (its number the solver's own count (cardGain) over the window it decided GW g on, the number it orders its moves
-      // by, so Show another's next always reads lower; points alone read 41's GW11 Hall → Vuskovic +2.1, Hall → Hill +1.2,
-      // Konsa → Vuskovic +1.7, counted 1.09, 1.04, 0.74; owner, 2026-11-11, "every next suggestion it offers show less
-      // points then previous". Never a guess: till its row is in, the wait card)
+      const { preview, pts: forecastPts } = swapForecast(ctx, P, g, pl);
       const pts = cardGain(ctx, P, g, pl), rounds = windowRounds(pl.road, g) || P.gws.filter((x) => x >= g).length;
-      if (pts == null) return wait();
-      const ms = e.adds;
-      title = withMine(ms.length ? movesTitle(ctx, P, g, pairAsPlaced(w, after, P.L.pos, ms)) : best.querySelector('.ah-tl').textContent);
-      const one = ms.length === 1 ? ms[0] : null;
-      // (saving a free transfer the alternative only where one is left and the week is not short: a pay-back's number is
-      // against your plan, short as it stands; card audit 2026-11-10)
-      const vs = !short && !extraWeek(P, g) && (w.ft ?? 1) > 0 ? COPY.vsSaving : COPY.planVs(true);
-      // (a move the solver's count puts below saving the small state, a transfer the plan would not make, whoever
-      // offers it; owner, 2026-11-11, "the card should show number which will not mislead or confuse users")
-      diagnosticComparison = { gain: pts, rounds, vs };
-      line = withCompare(moveLine(pts, !!pl.forced || fmt.signed(pts).startsWith(MINUS), rounds, vs), one);
+      const ms = e.adds, vs = COPY.planVs(true);
       const not = best.dataset.notIn ? { gw: g, moves: ms, out: Number(best.dataset.notOut), in: Number(best.dataset.notIn) } : null;
-      // (refuse and see another, on every suggestion, a pay-back's too; your swaps' take-back among the links; owner,
-      // 2026-11-05, "either i transfer, or refuse and see another suggestion"; review 2)
-      // (…where the suggestion has one out and one in to refuse: with none it opened the Week sheet; card audit 2026-11-10)
-      left = not ? btn('alt', COPY.showAnother, `tok:not:${g}`, () => { showTransfer(P, g); veto(ctx, not, { scope: 'pair' }); }) : null;
-      // (Solve ahead off: the transfer made answers your ask, the made card's own Show suggestion asks the next; owner,
-      // 2026-11-11, "turn off every solve-ahead case when it is off": the next suggestion on top was solved unasked)
-      const answeredAsk = () => { if (!ctx.presolveOn?.()) { showSuggestion(P, g, false); showTransfer(P, g, false); } };
-      right = btn('go', COPY.swap, `tok:best:${g}`, (ev) => {
-        answeredAsk();
-        const r = best.querySelector('.ah-tgo') ? best.take(ev) : best.click();
-        tookSaid(g, { pts, rounds, vs });
-        return r;
-      });
+      return {
+        candidate: best.move, preview, pts, forecastPts, rounds, vs, decision: true, fallback: best.querySelector('.ah-tl').textContent,
+        another: not && (() => { showTransfer(P, g); veto(ctx, not, { scope: 'pair' }); }),
+        take: (ev) => {
+          if (!ctx.presolveOn?.()) { showSuggestion(P, g, false); showTransfer(P, g, false); }
+          const result = best.querySelector('.ah-tgo') ? best.take(ev) : best.click();
+          tookSaid(g, { pts, forecastPts, rounds, vs, decision: true });
+          return result;
+        },
+      };
     };
 
     if (who?.kind === 'sub') {
       title = COPY.subWho(P.L.name(who.id), w.bench.includes(who.id));
       line = lineRow(COPY.subTap);
       left = btn('alt', COPY.bringCancel, 'tk:cancel', () => stopChoosing(ctx));
-    } else if (who) {
+    } else if (who?.pending) {
+      wait();
+    } else if (who && !constrained) {
       const pr = P.L.price(who.id);
       title = COPY.bringWho(P.L.name(who.id));
-      line = lineRow(COPY.bringTap, pr == null ? null : fmt.money(pr));
-      left = btn('alt', COPY.bringCancel, 'tk:cancel', () => stopChoosing(ctx));
+      line = h('div', null, who.error ? lineRow(who.error) : lineRow(COPY.bringTap, pr == null ? null : fmt.money(pr)),
+        h('div.ah-tksug', null, h('button.ah-rsbtn', { type: 'button', dataset: { row: 'tk:cancel' }, onClick: () => stopChoosing(ctx) }, COPY.bringCancel)));
+      left = askLeft('tk:buy-suggest', () => suggestPurchase(ctx, who));
     } else if (M?.sq && w.moves.length) {
       // (a Free Hit or Wildcard: the chip, not its whole squad; the Week sheet lists them and takes the chip back)
       title = S.status?.one ?? '';
@@ -370,8 +369,8 @@ export function ticketPart(V) {
     } else if (M?.live) {
       title = M.liveText;
       right = next ? onward : null;
-    } else if (offerable) {
-      offer();
+    } else if (constrained || offerable) {
+      offer(constrained ?? weekOffer());
     } else if (placed) {
       // (a bring-in tapped on the pitch, its solve out: the wait card with its green line, never the made card on the bank
       // before it; review 1, 12)
@@ -398,13 +397,13 @@ export function ticketPart(V) {
       title = S.status?.one ?? '';
       right = next ? onward : null;
     }
-    showDiagnostics(ctx, P, w, { asked, wanted, offerable, solving, failed, short: !!short, freeLeft, refused,
-      comparison: diagnosticComparison, candidate: best?.move, candidates: (M?.plans ?? []).filter(pl => pl.solver && !pl.refRow).map(pl => ({ pl, moves: pl.choice.moves.filter(m => !w.moves.some(y => y.out === m.out && y.in === m.in)) })),
-      status: who ? 'Choosing a player' : M?.live ? 'Live week' : offerable ? 'Suggestion' : solving ? 'Calculating' : yours.length ? 'Your transfers' : wanted && ans ? 'Save transfers' : 'Suggestion not requested' });
+    showDiagnostics(ctx, P, w, { asked, wanted, offerable: !!currentOffer, solving: who ? !!who.pending : solving, failed, short: !!short, freeLeft, refused,
+      comparison: diagnosticComparison, candidate: currentOffer?.candidate, playerChoice: !!who, candidates: constrained ? [{ pl: constrained.candidate.pl, moves: constrained.candidate.e.adds }] : (M?.plans ?? []).filter(pl => pl.solver && !pl.refRow).map(pl => ({ pl, moves: pl.choice.moves.filter(m => !w.moves.some(y => y.out === m.out && y.in === m.in)) })),
+      status: currentOffer ? 'Suggestion' : who?.pending ? 'Calculating' : who ? 'Choosing a player' : M?.live ? 'Live week' : solving ? 'Calculating' : yours.length ? 'Your transfers' : wanted && ans ? 'Save transfers' : 'Suggestion not requested' });
     // (the same two buttons from paint to paint of a week: a paint between a finger's down and up took its tap, a solve
     // landing as you tap "bring in a player")
     if (S.doors?.g !== g || S.doors.editable !== P.editable) S.doors = { g, editable: P.editable, of: [bringDoor(P, g), chipsDoor(P, g)] };
-    const chips = who || inkAt(ctx, P, g) ? null : S.doors.of;
+    const chips = (who && !currentOffer) || inkAt(ctx, P, g) ? null : S.doors.of;
     if (chips) { chips[0].textContent = COPY.bringInPlayer; chips[1].textContent = COPY.playAChip; }
     // the week's points with no transfers of yours, struck before its own, as on its tab (renderRail)
     const was = P.bare?.has(g) ? tickWas(w, P.bare.get(g)) : null;
@@ -444,12 +443,14 @@ export function ticketPart(V) {
     // every card they stand on (the made card, the wait after it, a suggestion or a save on top of them); the Previous on
     // top of them only took the ask off, to a made card never shown (dynamics D4), with Undo transfer beside it the row
     // ran to two lines and the card grew; owner 2026-11-10)
-    fill(block.querySelector(':scope > .ah-tklinks'), who ? null : h('span.ah-tkback', null, toChoice, undo && (!toChoice || last) && !prev ? h('button.ah-rsbtn.undo', { type: 'button', disabled: off, class: { back: !!onTop || (!swaps && (!!refused || shown)) }, dataset: { row: `tk:undo:${g}` }, onClick: undo }, undoWords) : null, prev, rsBtn),
+    fill(block.querySelector(':scope > .ah-tklinks'), h('span.ah-tkback', null, who
+      ? who.previous && backButton(`tk:prev:${g}`, () => previousPurchase(ctx, who))
+      : [toChoice, undo && (!toChoice || last) && !prev ? backButton(`tk:undo:${g}`, undo, undoWords, !!onTop || (!swaps && (!!refused || shown))) : null, prev], rsBtn),
       // (chips off, calls.js CHIPS_OFF: no Play a chip at all, never a link a tap does nothing on; owner, 2026-11-09, "why play
       // a chip not respond")
       chips ? h('span.ah-tkor', null, noBring || bringBy ? null : chips[0], CHIPS_OFF ? null : chips[1]) : null);
     if (held) rsBtn.focus({ preventScroll: true });
-    V.paintBoard(P, w, who ? null : after);
+    V.paintBoard(P, w, after);
     playStack(g);
     // (the pitch fitted again to the card as now drawn (fitPitch: keyed by its height, nothing when it is the same): a card
     // that grew with no render after it, a wait card, ran 35 px past the screen; owner, 2026-11-11, "why not fit the screen")

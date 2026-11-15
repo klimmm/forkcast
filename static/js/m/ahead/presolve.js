@@ -5,7 +5,7 @@ import { solveGap } from '../api.js';
 import { fmt, chipName } from '../../ui.js';
 import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
 import { SOLVES, SWAPS, attach, pinSell, pinHits, pinRefusal, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
-import { MINUS, WHY_SHEET, addMove, asYours, sum, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
+import { MINUS, WHY_SHEET, addMove, asYours, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
 import { saidNow, sayAgain, asksOf, autoRuleName, barred, refusedAt, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
 import { recordDecision } from './diagnostics.js';
 import { refusedRoad } from '../memory/pins.js';
@@ -105,9 +105,7 @@ export function tookOf(P, w) {
   return movesKey(w.moves) === t.sig ? t : null;
 }
 export const tookCmp = (P, w) => tookOf(P, w)?.cmp ?? null;
-/** The card's own line as its Transfer was tapped on GW g ({pts, rounds, vs}: screen-ticket.js offer), kept on the take:
- *  the made card says the same while the take stands (tookOf), never another count of it (owner, 2026-11-12, "+1.1 vs
- *  saving a free transfer" before the tap, "+2.6 over 2 weeks vs no transfers" after: "fix bug"). */
+/** Keep the pre-transfer forecasts as the reference for the accepted offer. */
 export function tookSaid(g, said) {
   if (AHEAD.took?.g === g) AHEAD.took.said = said;
 }
@@ -203,7 +201,12 @@ export function presolveSwap(ctx, P, g, pl) {
   if (P.healing || leftBehind(ctx, P) || inkAt(ctx, P, g)) return;
   const [take] = weekTaps(ctx, P, g, [pl]).takes;
   if (!take) return;
-  swapKept(ctx, P, g, pl, take);
+  const a = swapAsk(ctx, P, g, take);
+  if (a && !memOf(ctx).solved(a.values) && !forkRead(a.key) && ctx.api?.solve && ctx.store.get('conn')?.state !== 'offline') {
+    // A restored suggestion may have no bundled swap. Its displayed forecast is an on-screen request.
+    forkPump(ctx, P, { key: a.key, values: a.values, gw: g, card: true, side: true, said: 'Transfer forecast' });
+    return;
+  }
   presolve(ctx, P, 'week', [take], { gw: g, sig: take.id, owner: take.id });
 }
 /** The card's Transfer as the solve that suggested it brought it back (memory SWAPS: its weeks, then GW g's squad rolled,
@@ -213,10 +216,9 @@ export function presolveSwap(ctx, P, g, pl) {
  *  re-keyed). Only where the tap rolls every week after g (its values' no_buys_gw; an earlier week of no transfers too,
  *  as the suggesting solve kept it; the window's last week has none after it), the one plan the rolled road is: with a
  *  transfer of yours in a later week the tap asks as before. */
-function swapKept(ctx, P, g, pl, take) {
+function swapKept(ctx, P, g, pl, a) {
   const from = pl.road?.from ?? pl.road?.key, got = SWAPS.get(from), road = got?.weeks?.[g]?.road, mem = memOf(ctx);
   if (!road || DRY) return;
-  const a = askOf(ctx, P, { ...take, bare: true }, 'week');
   const after = P.gws.filter((x) => x > g), rolled = new Set(String(a?.values.no_buys_gw ?? '').split(',').map(Number));
   if (!a || !after.every((x) => rolled.has(x)) || mem.solved(a.values)) return;
   mem.offer({ ...road, from, key: a.key, values: a.values }, { values: a.values, version: got.version });
@@ -258,15 +260,21 @@ function presolveNext(ctx, P, g, road, refusals, d0) {
  *  brings less the plan on screen, both yours with no later transfers; owner, 2026-11-05: the card counted against a roll
  *  that makes later transfers, "+2.7" for tabs that moved +10.9). → number | null till its solve is in */
 export function swapGain(ctx, P, g, pl) {
-  const road = swapRoad(ctx, P, g, pl);
-  return road ? sum(asYours(ctx, road).weeks.map((w) => w.points)) - P.total : null;
+  return swapForecast(ctx, P, g, pl).pts;
 }
-/** The card's number for choice pl of GW g: the solver's whole count over the window it commits GW g from (counted's
- *  `delta`: every week put on GW g's own scale, the free transfer it spends or keeps counted), the number the solver
- *  orders its moves by, so the card's first move always reads the highest (owner, 2026-11-08: "why konsa van hecke
- *  higher if dewsbury hall optimal fix bug": points with no later transfer read Tavernier → Dewsbury-Hall +2.6, Konsa →
- *  Van Hecke +3.3; each week on its own scale read Konsa → Van Hecke −0.05, a move the solver makes). → number | null
- *  till its row is in */
+
+/** Difference between the week-header forecasts over exactly the requested weeks. */
+export function forecastGain(gws, before, after) {
+  if (!gws.length) return null;
+  let gain = 0;
+  for (const g of gws) {
+    const points = weeks => weeks.find(w => Number(w.gw) === g)?.points;
+    const a = points(before), b = points(after);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    gain += b - a;
+  }
+  return gain;
+}
 /** The rounds the card's numbers count for GW g: the window the solver committed it from (road.windows[g], every term's
  *  rounds), never the weeks left in the header's span: GW14 said "over the next week" counting GW14-17 (books review,
  *  2026-11-08). 0 where the road has none. */
@@ -298,16 +306,26 @@ export function swapComing(ctx, P, g, pl) {
   return true;
 }
 /** The plan Make the swap brings, as yours. → {weeks} | null till its solve is in */
+const swapAsk = (ctx, P, g, take) => askOf(ctx, P, { ...take, bare: true }, 'week');
 const swapRoad = (ctx, P, g, pl) => {
   const [take] = weekTaps(ctx, P, g, [pl]).takes;
-  const a = take ? askOf(ctx, P, take, 'week') : null;
-  return a ? memOf(ctx).solvedRoad(a.values) : null;
+  if (!take) return null;
+  const a = swapAsk(ctx, P, g, take);
+  if (!a) return null;
+  const mem = memOf(ctx);
+  if (!mem.solved(a.values)) {
+    swapKept(ctx, P, g, pl, a);
+    const forecast = forkRead(a.key);
+    if (!mem.solved(a.values) && forecast?.weeks?.length) mem.offer(forecast, { values: a.values, version: P.b.version });
+  }
+  return mem.solvedRoad(a.values);
 };
-/** GW g's team as Make the swap would leave it: what the pitch shows before the tap. → the week's view | null till its
- *  solve is in */
-export function swapWeek(ctx, P, g, pl) {
+/** The preview and its gain come from the same accepted-transfer simulation. */
+export function swapForecast(ctx, P, g, pl) {
   const road = swapRoad(ctx, P, g, pl);
-  return road ? asYours(ctx, road).weeks.find((w) => Number(w.gw) === g) ?? null : null;
+  const weeks = road ? asYours(ctx, road).weeks : [];
+  const gws = P.gws.filter(x => x >= g);
+  return { preview: weeks.find(w => Number(w.gw) === g), pts: forecastGain(gws, P.weeks, weeks), rounds: gws.length };
 }
 
 /** An open sheet's taps, asked ahead while it is open (presolve 'sheet'): each {kind, gw, run} (or a function making

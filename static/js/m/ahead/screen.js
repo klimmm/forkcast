@@ -9,7 +9,7 @@ import { EDGE_PX, FLASH, GRIP_MS, LEARN_KEY, LONG_MS, MINUS, NIGHT_KEY, SPENT_PX
 import { aboutRules, asksOf, benchedBuys, captain, clashLine, clashParts, edit, keep, pendingAgain, pendingTick, removeRule, rescope, resetLineup, ruleOf, sayCheer, scopeLabels, sub, subChoices, tickWas, toastOf, totalShift, useChip, veto, vice, vsPrev } from './edits.js';
 import { PLACE_SLOTS, SQUAD_CHIPS, approxAt, asTaken, askPlace, byGain, choiceVs, countedAfter, decksOf, failedWords, forkKey, lineMoves, lineNotices, listedOf, litOf, litShown, mineAny, multiMove, noteOf, placeBuys, placeFirst, placeOrder, placePages, placeSplit, planBack, planBaseline, planWeeks, plansOf, rollOnly, settleDue, singleMove, slotsBeside, squadChanges, takesBack, weekKey, weekRollOf, weekSettled, weekWait, yoursAt } from './plans.js';
 import { AHEAD, addPlan, fundingOf, moveTo, movesInOrder, pairOf, pinOfMove, planTake, presolveTaps, removeMove, rollingAt, rowGains, takenKeep, weekTaps, whenOf, whenOnBase, whyFacts } from './presolve.js';
-import { choosing, deadlineInfo, fplOf, fplSets, freedBy, gwMode, initials, inkAt, isLive, liftsLive, planHasYours, resetPlan, rowName, watchOf, watchView } from './buys.js';
+import { pitchChoice, deadlineInfo, fplOf, fplSets, freedBy, gwMode, initials, inkAt, isLive, liftsLive, planHasYours, resetPlan, rowName, watchOf, watchView } from './buys.js';
 import { chipBack, chipWeekGain, chipsAvail, clearGain, emptyHead, factsWords, itbWords, plPays, rollFt, shirtOf, squadWeek, weekFacts, xpShown } from './pieces.js';
 import { headPart } from './screen-head.js';
 import { linePart } from './screen-line.js';
@@ -602,7 +602,7 @@ export function mount(el, ctx) {
       }
       return;
     }
-    if (pl && P?.editable && !choosing(ctx, P)) st.timer = setTimeout(() => liftShirt(st, e), LONG_MS);
+    if (pl && P?.editable && !pitchChoice(ctx, P)) st.timer = setTimeout(() => liftShirt(st, e), LONG_MS);
     // the bench held where no shirt is (its labels, its edges): the Bench Boost there, or off (owner, 2026-10-13); its
     // progress fills at the finger (holdFill)
     else if (bare && P?.editable && !CHIPS_OFF) {
