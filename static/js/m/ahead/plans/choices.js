@@ -763,6 +763,11 @@ export function chipNumber(ctx, P, g, c, pre = null) {
   const shown = chipShown(ctx, P, g, c);
   if (shown || !P.mem?.hold || !SQUAD_CHIPS.has(c) || !P.gws.includes(g)) return shown;
   if (pre?.state === 'solving') return { wait: true };
+  // A Free Hit preparation and the current plan already carry the two solver windows needed for its counted value.
+  // Reuse them instead of asking plansOf for another FH road merely to reconstruct the same comparison.
+  if (c === 'fh' && pre?.state === 'ready' && P.comparable && P.road) {
+    return { cmp: ownCount(ctx, pre.cmp, pre.road, P.road, g), vs: COPY.planVsRoll };
+  }
   return pre?.state === 'ready' ? plansListed(ctx, P, g).chipOf?.(c, pre.road) ?? null : null;
 }
 /** GW g of plan view P is the week of the edit the full plan is still checking, the plan before it drawn (the edited

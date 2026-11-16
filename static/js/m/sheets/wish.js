@@ -109,7 +109,7 @@ export function open(ctx, preId = null, { gw = null, pos = null, out = null, com
         // (opened from a player's place, st.lock: of his position, found or not)
         const at = (r) => (!q || found(r, q)) && ((q && !st.lock) || st.pos === 'all' || P.L.pos(Number(r.id)) === st.pos);
         const ok = (r) => mine(r) || r.buyable;
-        return ctx.data.rows.filter((r) => at(r) && ok(r)).sort(orderOf(sortOf(), st.flip, P, g)).map((r) => ({ row: r, mine: mine(r) }));
+        return ctx.data.rows.filter((r) => Number(r.id) !== Number(compare?.exclude) && at(r) && ok(r)).sort(orderOf(sortOf(), st.flip, P, g)).map((r) => ({ row: r, mine: mine(r) }));
       }
 
       let drawn = 0;  // draws made: a later one's rows never land in an earlier one's list

@@ -3571,6 +3571,12 @@ bench never grey out only pitch", "the top panel must also grey out"; .ah-pitch.
 .m-screen.ah .ah-pitch .pm > .ah-pdbtn::before { inset: 0 0 -20px -6px; }
 .m-screen.ah .ah-pitch .pm > .ah-pdbtn:active { background: var(--tk-night); }
 .m-screen.ah .ah-pitch .pm .pm-bench { background: none !important; border: 0; box-shadow: none; border-radius: 0; margin: 0; padding: 0; }
+/* Bench Boost must remain visible in the compact pitch: the generic bench reset above previously erased its ring. */
+.m-screen.ah .ah-pitch .pm[data-chip="bb"] .pm-bench { position: relative; z-index: 1; box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 5px var(--boost); }
+.m-screen.ah .ah-pitch .pm[data-chip="bb"] .pm-bench::before {
+  content: "BB"; position: absolute; z-index: 3; left: 6px; top: 6px; padding: 2px 5px; border-radius: 3px;
+  background: var(--boost); color: var(--tk-ink); font: 700 var(--tk4)/1 var(--f-text);
+}
 .m-screen.ah .ah-pitch .pm .pm-bs, .m-screen.ah .ah-pitch .pm .pm-pl { outline: 0; box-shadow: none !important; background: none; border: 0; }
 .m-screen.ah .ah-pitch .pm .pm-card.ah-sold::before, .m-screen.ah .ah-pitch .pm .pm-card.ah-sold::after { content: none; }
 /* the stack: one list top to bottom, GW13 to GW10: later weeks above the ticket, earlier ones under it, the nearest widest
@@ -3652,16 +3658,13 @@ back the next card rises over it */
 .m-screen.ah :is(.ah-tkline, .ah-tkpad.l) { display: flex; align-items: baseline; gap: 8px; margin: 0; font: 500 var(--tk3)/1.33 var(--f-text); color: var(--tk-mute); }
 .m-screen.ah .ah-tkline .ah-tkl { flex: 1 1 auto; min-width: 0; }
 .m-screen.ah .ah-tkline .ah-tkr { flex: none; white-space: nowrap; color: var(--tk-ink); }
-.m-screen.ah .ah-tkline.ah-tkone { display: block; overflow: hidden; margin-right: -12px; white-space: nowrap; font-size: var(--tk3); letter-spacing: -.02em; color: var(--tk-ink); }
-.m-screen.ah .ah-scoreinfo { position: relative; display: inline-grid; place-items: center; width: 14px; height: 14px; margin: 0; padding: 0; border: 1.25px solid currentColor; border-radius: 50%; background: none; color: var(--tk-ink); font: 700 11px/1 var(--f-text); vertical-align: 1px; }
+.m-screen.ah .ah-tkline.ah-tkone { display: flex; align-items: center; gap: 5px; overflow: hidden; margin-right: 0; padding-right: 3px; white-space: nowrap; font-size: var(--tk3); letter-spacing: -.02em; color: var(--tk-ink); }
+.m-screen.ah .ah-tkcompare { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.m-screen.ah .ah-tkpoints { flex: none; margin-left: auto; }
+.m-screen.ah .ah-scoreinfo { position: relative; flex: none; display: inline-grid; place-items: center; width: 14px; height: 14px; margin: 0; padding: 0; border: 1.25px solid currentColor; border-radius: 50%; background: #fff; color: var(--tk-ink); font: 700 11px/1 var(--f-text); }
 .m-screen.ah .ah-scoreinfo::before { content: ""; position: absolute; inset: -14px 0 -14px -29px; }
-.m-screen.ah .ah-scoreinfo::after { content: "i"; }
 .ah-scorehelp { padding: 0 16px 24px; color: var(--ink); }
 .ah-scorehelp > p { margin: 12px 0 0; font: 400 var(--t-body)/1.45 var(--f-text); }
-.ah-scorehelp .ah-scorepart { margin-top: 18px; }
-.ah-scorehelp .ah-scorepart h3 { margin: 0; font: 600 var(--t-body)/1.3 var(--f-text); }
-.ah-scorehelp .ah-scorepart p { margin: 5px 0 0; font: 400 var(--t-body)/1.45 var(--f-text); color: var(--ink-2); }
-.ah-scorehelp .ah-scoregap { padding-top: 12px; border-top: 1px solid var(--hair); }
 .m-screen.ah .ah-tkline .xp, .m-screen.ah .ah-tkline .xp-u, .m-screen.ah .ah-tkline .xp-g { color: var(--tk-xp); font-weight: 600; }
 /* (a loss in the muted ink at the line's weight, never the gain's blue; books review 2026-11-08) */
 .m-screen.ah .ah-tkline .xp-g.neg, .m-screen.ah .ah-tkline .xp-g.neg + .xp-u { color: var(--tk-mute); font-weight: 500; }
@@ -3681,7 +3684,7 @@ back the next card rises over it */
 /* (each sign says its one meaning: back a step, or take a swap back; Reset all weeks wears none, its words and red say it) */
 .m-screen.ah .ah-rsbtn.undo::before { content: "\21A9\FE0E" / ""; margin-right: 3px; font-weight: 400; text-decoration: none; display: inline-block; }
 .m-screen.ah .ah-rsbtn.undo.back::before { content: "\2190" / ""; }
-.m-screen.ah :is(.ah-tkor, .ah-tksug) .ah-door { position: relative; z-index: 1; display: inline; height: auto; min-height: 0; padding: 12px 0 10px; margin: -12px 0 -10px; border: 0; background: none; color: var(--tk-ink); font: 500 var(--tk3)/20px var(--f-text); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
+.m-screen.ah :is(.ah-tkor, .ah-tksug) .ah-door { position: relative; z-index: 1; display: inline; height: auto; min-height: 0; padding: 13px 0 10px; margin: -13px 0 -10px; border: 0; background: none; color: var(--tk-ink); font: 500 var(--tk3)/20px var(--f-text); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; text-decoration-color: rgb(20 23 26 / .35); }
 .m-screen.ah :is(.ah-tkor, .ah-tksug) .ah-door::before, .m-screen.ah :is(.ah-tkor, .ah-tksug) .ah-door::after { content: none; }
 .m-screen.ah :is(.ah-tkor, .ah-tksug) .ah-door:disabled { color: var(--tk-mute); text-decoration: none; opacity: 1; }
 .m-screen.ah .ah-tkacts { position: relative; display: flex; gap: 8px; margin-top: auto; padding: 18px 14px 0; border-top: 0; }
@@ -3884,8 +3887,8 @@ one in the selected look's tint and green ring, 600, with its arrow (a second ta
 .m-banner.offline .m-banner-ic { opacity: .6; }
 
 </style>
-<meta name="forkcast-release" content="forkcast-v1.3.235">
-<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=b3caa5f3e1","/js/app.js":"/js/app.js?v=d7871c4487","/js/m/ahead.js":"/js/m/ahead.js?v=78886e2b4f","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=f0abb7557d","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=67657271e8","/js/m/ahead/diagnostics.js":"/js/m/ahead/diagnostics.js?v=600572bd02","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=c4a8d8abb7","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=80a6be1bc2","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=be4c00fcfa","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=97940d5b11","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=e7eb6b278f","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=98e62c8795","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=2bd3a8ed73","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=546c5f1048","/js/m/ahead/plans/groups.js":"/js/m/ahead/plans/groups.js?v=8b506e21c5","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=b1bb3a68a3","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=bd6a2e9b77","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=2bbc8162c1","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=cbdc5c496f","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=bb93f7b39f","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=9aa5c5689b","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=d431b493da","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=4acbd15e4c","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=1981b7833d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=9d1319139b","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=f975ff538c","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=a816c0e84e","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=2b39159e7b","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=cfce24e093","/js/m/api.js":"/js/m/api.js?v=f07595d7b0","/js/m/app.js":"/js/m/app.js?v=3d461fb349","/js/m/calls.js":"/js/m/calls.js?v=0d74fc97a2","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=52d88d569b","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=ff53661cb7","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=552b00cbf2","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=3cf482dd6a","/js/m/memory.js":"/js/m/memory.js?v=0d6ca06e1b","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=478c277335","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=1227a951f5","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=0af9ca007a","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=bfdebe4cdf","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=18e75f603f","/js/m/memory/live.js":"/js/m/memory/live.js?v=30e4830cd1","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=88de0d5d40","/js/m/memory/values.js":"/js/m/memory/values.js?v=e74874bcf6","/js/m/picker.js":"/js/m/picker.js?v=3da5f950bd","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=67f7e9687a","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=9576783de3","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=43737bdc0a","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=7d12b58491","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=bc24c27906","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=9f2ef4f880","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=5f01937458","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=51004a1e4f","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=293132900c","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=b3455c19f2","/js/m/shell/store.js":"/js/m/shell/store.js?v=d57be956cc","/js/marks.js":"/js/marks.js?v=c34a920720","/js/plan/engine.js":"/js/plan/engine.js?v=ed5912a0d1","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=3fc37880a6","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=1200f7b422","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=1ecbec2ebb","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=2fd30e083a","/js/plan/kits.js":"/js/plan/kits.js?v=cda7d0ceb5","/js/plan/pitch.js":"/js/plan/pitch.js?v=080c4beb8e","/js/studio/flags.js":"/js/studio/flags.js?v=a8cd3ecd9b","/js/studio/kit.js":"/js/studio/kit.js?v=20c9937b9e","/js/studio/tables.js":"/js/studio/tables.js?v=65f8b07c32","/js/ui.js":"/js/ui.js?v=95b40ba139","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=9f0f364620","/js/views/compare.js":"/js/views/compare.js?v=6ad8f349d3","/js/views/dashboard.js":"/js/views/dashboard.js?v=8a1f0c98d1","/js/views/data.js":"/js/views/data.js?v=90e9f05369","/js/views/docs.js":"/js/views/docs.js?v=f696c42510","/js/views/fixtures.js":"/js/views/fixtures.js?v=319a00ca42","/js/views/planner.js":"/js/views/planner.js?v=c4c601da19","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=7fde223c58","/js/views/planner/model.js":"/js/views/planner/model.js?v=71f793cc1d","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=d4151c7331","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=14bd7e2b61","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=f72f49fd45","/js/views/players.js":"/js/views/players.js?v=358b613d94","/js/views/preview.js":"/js/views/preview.js?v=8c7c4bcf84","/js/views/runs.js":"/js/views/runs.js?v=c11f23245f"}}</script>
+<meta name="forkcast-release" content="v1.3.264">
+<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=b3caa5f3e1","/js/app.js":"/js/app.js?v=d7871c4487","/js/m/ahead.js":"/js/m/ahead.js?v=78886e2b4f","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=f0abb7557d","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=67657271e8","/js/m/ahead/diagnostics.js":"/js/m/ahead/diagnostics.js?v=600572bd02","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=c4a8d8abb7","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=f9395228ad","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=be4c00fcfa","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=97940d5b11","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=e7eb6b278f","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=98e62c8795","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=14624ec860","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=546c5f1048","/js/m/ahead/plans/groups.js":"/js/m/ahead/plans/groups.js?v=8b506e21c5","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=b1bb3a68a3","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=bd6a2e9b77","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=2bbc8162c1","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=cbdc5c496f","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=bb93f7b39f","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=9aa5c5689b","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=d431b493da","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=4acbd15e4c","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=1981b7833d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=3a5f36762b","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=f975ff538c","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=a816c0e84e","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=2b39159e7b","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=cfce24e093","/js/m/api.js":"/js/m/api.js?v=f07595d7b0","/js/m/app.js":"/js/m/app.js?v=3d461fb349","/js/m/calls.js":"/js/m/calls.js?v=76438bc35d","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=afba46f39b","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=ff53661cb7","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=552b00cbf2","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=3cf482dd6a","/js/m/memory.js":"/js/m/memory.js?v=0d6ca06e1b","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=478c277335","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=1227a951f5","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=0af9ca007a","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=bfdebe4cdf","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=18e75f603f","/js/m/memory/live.js":"/js/m/memory/live.js?v=30e4830cd1","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=88de0d5d40","/js/m/memory/values.js":"/js/m/memory/values.js?v=e74874bcf6","/js/m/picker.js":"/js/m/picker.js?v=3da5f950bd","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=67f7e9687a","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=9576783de3","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=43737bdc0a","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=d73775ce03","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=bc24c27906","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=9f2ef4f880","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=5f01937458","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=594122817a","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=293132900c","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=b3455c19f2","/js/m/shell/store.js":"/js/m/shell/store.js?v=d57be956cc","/js/marks.js":"/js/marks.js?v=c34a920720","/js/plan/engine.js":"/js/plan/engine.js?v=ed5912a0d1","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=3fc37880a6","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=1200f7b422","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=1ecbec2ebb","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=2fd30e083a","/js/plan/kits.js":"/js/plan/kits.js?v=cda7d0ceb5","/js/plan/pitch.js":"/js/plan/pitch.js?v=080c4beb8e","/js/studio/flags.js":"/js/studio/flags.js?v=a8cd3ecd9b","/js/studio/kit.js":"/js/studio/kit.js?v=20c9937b9e","/js/studio/tables.js":"/js/studio/tables.js?v=65f8b07c32","/js/ui.js":"/js/ui.js?v=95b40ba139","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=9f0f364620","/js/views/compare.js":"/js/views/compare.js?v=6ad8f349d3","/js/views/dashboard.js":"/js/views/dashboard.js?v=8a1f0c98d1","/js/views/data.js":"/js/views/data.js?v=90e9f05369","/js/views/docs.js":"/js/views/docs.js?v=f696c42510","/js/views/fixtures.js":"/js/views/fixtures.js?v=319a00ca42","/js/views/planner.js":"/js/views/planner.js?v=c4c601da19","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=7fde223c58","/js/views/planner/model.js":"/js/views/planner/model.js?v=71f793cc1d","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=d4151c7331","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=14bd7e2b61","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=f72f49fd45","/js/views/players.js":"/js/views/players.js?v=358b613d94","/js/views/preview.js":"/js/views/preview.js?v=8c7c4bcf84","/js/views/runs.js":"/js/views/runs.js?v=c11f23245f"}}</script>
 </head>
 <body>
 <div class="m-app" id="app">
@@ -4782,15 +4785,15 @@ function unpackCards(c) {
   };
   const players = {}, sent = /* @__PURE__ */ new Map();
   for (const [id, [pos, pos_avg, club, played, ...more]] of Object.entries(c.players)) {
-    const me = { pos, pos_avg, club, last_matches: matches(played, false), cups: matches(played, true) };
+    const me2 = { pos, pos_avg, club, last_matches: matches(played, false), cups: matches(played, true) };
     if (more.length) {
       const [rows, kinds, views2] = more, ks = c.keys[pos];
-      me.rows = [...c.lists[rows]];
-      me.kinds = [...c.lists[kinds]];
-      me.stats = {};
+      me2.rows = [...c.lists[rows]];
+      me2.kinds = [...c.lists[kinds]];
+      me2.stats = {};
       for (const [v, a] of Object.entries(views2)) {
         const hd = c.head[v];
-        me.stats[v] = {
+        me2.stats[v] = {
           n: hd.n[pos],
           min: a[0],
           peer_min: hd.peer_min,
@@ -4801,7 +4804,7 @@ function unpackCards(c) {
         if (a.length > 1 + ks.length) sent.set(`${id}|${v}`, a.slice(1 + ks.length));
       }
     }
-    players[id] = me;
+    players[id] = me2;
   }
   const ALL = "ALL";
   const by = {};
@@ -4836,11 +4839,11 @@ function unpackCards(c) {
     if (xs == null || value == null) return -1;
     return 1 + (fewer.has(k) ? cut2(xs, value, false) : xs.length - cut2(xs, value, true));
   };
-  for (const [id, me] of Object.entries(players)) {
-    for (const [v, st] of Object.entries(me.stats ?? {})) {
+  for (const [id, me2] of Object.entries(players)) {
+    for (const [v, st] of Object.entries(me2.stats ?? {})) {
       const peer = st.min >= st.peer_min, got = sent.get(`${id}|${v}`);
       Object.entries(st.rows).forEach(([k, r], i) => {
-        [r[1], r[2]] = got ? got.slice(2 * i, 2 * i + 2) : [rank(v, me.pos, k, r[0], peer), rank(v, ALL, k, r[0], peer)];
+        [r[1], r[2]] = got ? got.slice(2 * i, 2 * i + 2) : [rank(v, me2.pos, k, r[0], peer), rank(v, ALL, k, r[0], peer)];
       });
     }
   }
@@ -7381,13 +7384,13 @@ var init_copy = __esm({
       swap: "Transfer",
       showAnother: "Show another",
       noOtherPurchase: "No other transfer fits.",
+      noTransferSuggested: (n) => n ? "Make no more transfers this week" : "Make no transfers this week",
       showATransfer: "Show a transfer",
       /** The card's take-backs, each saying what it takes back (owner, 2026-11-05, "fix undo / reset buttions signs and theier
        *  meaning and wording"): this week's transfers, or the card before your Show another. */
       undoSwaps: (n) => n === 1 ? "Undo transfer" : `Undo ${n} transfers`,
       previous: "Previous",
       undoLast: "Undo",
-      seeChanges: "See the changes",
       onToWeek: (g) => `On to GW${g}`,
       showSuggestion: "Show suggestion",
       /** The card's one number's words, at its left (owner, 2026-11-09, design_1109a slip): the move's points over the weeks
@@ -7596,7 +7599,7 @@ var init_calls = __esm({
     init_measure();
     init_prices();
     HELP_OFF = true;
-    CHIPS_OFF = true;
+    CHIPS_OFF = false;
   }
 });
 
@@ -13086,6 +13089,9 @@ function chipNumber(ctx2, P, g, c, pre = null) {
   const shown2 = chipShown(ctx2, P, g, c);
   if (shown2 || !P.mem?.hold || !SQUAD_CHIPS.has(c) || !P.gws.includes(g)) return shown2;
   if (pre?.state === "solving") return { wait: true };
+  if (c === "fh" && pre?.state === "ready" && P.comparable && P.road) {
+    return { cmp: ownCount(ctx2, pre.cmp, pre.road, P.road, g), vs: COPY.planVsRoll };
+  }
   return pre?.state === "ready" ? plansListed(ctx2, P, g).chipOf?.(c, pre.road) ?? null : null;
 }
 function weekRollOf(ctx2, P, w, listed = (g) => plansOf(ctx2, P, g)) {
@@ -16775,37 +16781,26 @@ var init_screen_touch = __esm({
 });
 
 // js/m/ahead/screen-ticket.js
-function comparisonInfo(ctx2, rounds, vs, points, overall) {
-  const span5 = rounds === 1 ? "next week" : `next ${rounds} weeks`;
-  const number = (label, value) => h(
-    "section.m-sec.ah-scorepart",
-    null,
-    h("h3", null, `${label} ${fmt.signed(value)}`),
-    h("p", null, label === "xP" ? `The change in projected FPL points over the ${span5}. It adds up how the weekly forecasts change if you make this swap.` : "The number Forkcast uses to compare and order transfer options. It includes projected points plus the effects of the starting XI, captain and vice-captain, bench cover, substitutions, hits, and using or keeping free transfers.")
-  );
+function comparisonInfo(ctx2, rounds, vs, points) {
+  const period = rounds === 1 ? "next week" : `next ${rounds} weeks`;
+  const signed = fmt.signed(points);
+  const baseline2 = vs === "your plan" ? "keeping your selected transfers" : vs === "no transfers" ? "making no transfers" : vs === "rolling" ? "making no more transfers" : vs;
   ctx2.sheets.open({
-    title: "What these numbers mean",
-    sub: `This option compared with ${vs}`,
+    title: `${signed} projected points`,
     detent: "medium",
     build: (body) => body.append(h(
       "div.ah-scorehelp",
       null,
-      h("p", null, `Both numbers compare the same two plans over the ${span5}. A positive number favours this option; a negative number favours ${vs}.`),
-      number("xP", points),
-      number("Overall", overall),
-      h("p.ah-scoregap", null, `They can differ because xP shows the forecast-points change only, while Overall also counts the planning effects listed above. Here the forecast change is ${fmt.signed(points)} xP and the all-factors comparison is ${fmt.signed(overall)}.`)
+      h("p", null, `This is the difference over the ${period} between making this transfer and ${baseline2}. Transfer costs are included.`)
     ))
   });
 }
 function moveLine(ctx2, gain, forced, rounds, vs, decision = false, points = null) {
   const signed = fmt.signed(gain), cls = `span.ah-tkcount${signed.startsWith(MINUS4) ? ".neg" : ""}`;
   if (decision) return h("p.ah-tkline.ah-tkone", { dataset: { ...forced ? { forced: "" } : {}, score: gain } }, [
-    `${rounds === 1 ? "Next week" : `Next ${rounds} weeks`} vs ${vs}`,
-    " \xB7 ",
-    points == null ? null : h("span.ah-tkpoints", null, xpGain(points)),
-    points == null ? null : " \xB7 ",
-    h("span.ah-adjusted", null, ["Overall ", h(cls, null, signed)]),
-    points == null ? null : h("button.ah-scoreinfo", { type: "button", "aria-label": "What xP and Overall mean", "aria-haspopup": "dialog", onClick: () => comparisonInfo(ctx2, rounds, vs, points, gain) })
+    h("span.ah-tkcompare", null, `${rounds === 1 ? "Next week" : `Next ${rounds} weeks`} vs ${vs}`),
+    points == null ? null : h("span.ah-tkpoints", null, [" \xB7 ", xpGain(points)]),
+    points == null ? null : h("button.ah-scoreinfo", { type: "button", "aria-label": "Explain xP", "aria-haspopup": "dialog", onClick: () => comparisonInfo(ctx2, rounds, vs, points) }, "i")
   ]);
   return lineRow(COPY.vsNext(rounds, vs), xpGain(gain, cls), forced ? { forced: "" } : null);
 }
@@ -16947,7 +16942,10 @@ function ticketPart(V) {
       b.onclick = onClick ?? null;
       return b;
     };
-    const onward = next ? btn("go", COPY.onToWeek(next), "tk:next", () => setGw(next)) : null;
+    const onward = next ? btn("go", COPY.onToWeek(next), "tk:next", () => {
+      showSuggestion(P, next);
+      setGw(next);
+    }) : null;
     const who2 = choosing(ctx2, P, g);
     let after = null;
     const refused = P.pins.filter((p) => p.kind === "notfor" && Number(p.gw) === g).at(-1);
@@ -17021,39 +17019,39 @@ function ticketPart(V) {
       if (took?.said) {
         const pts3 = took.said.pts ?? forecastGain(from, took.said.before, P.weeks);
         const rounds = took.said.rounds ?? from.length;
-        return pts3 == null ? null : moveLine(ctx2, pts3, !!took.forced, rounds, took.said.vs, !!took.said.decision, took.said.forecastPts);
+        return pts3 == null ? null : moveLine(ctx2, pts3, !!took.forced, rounds, took.said.vs, true, took.said.displayPts ?? pts3);
       }
       const tabs3 = !from.some((x) => x > g && weekOf(P, x)?.moves.length) && P.bare ? forecastGain(from, [...P.bare.values()], P.weeks) : null;
-      if (tabs3 != null) return moveLine(ctx2, tabs3, !!took?.forced, from.length, COPY.planVs(false));
+      if (tabs3 != null) return moveLine(ctx2, tabs3, !!took?.forced, from.length, COPY.planVs(false), true, tabs3);
       const win = r?.shown != null && r.counted ? sameWindow(...r.counted, g) : 0;
       const pts2 = win ? r.shown : r?.pts?.delta;
-      return pts2 == null ? null : moveLine(ctx2, pts2, !!took?.forced, win || from.length, COPY.planVsRoll);
+      return pts2 == null ? null : moveLine(ctx2, pts2, !!took?.forced, win || from.length, COPY.planVsRoll, true, pts2);
+    };
+    const noTransferAnswer = () => {
+      title = withMine(COPY.noTransferSuggested(yours.length));
+      const mine = yours.length ? yoursLine() : null;
+      line = withCompare(mine ?? ans?.querySelector(".ah-tw")?.textContent ?? null, mine && yours.length === 1 ? yours[0] : null);
+      right = onward;
     };
     const made = () => {
-      const manual = manualSales(P, g).length > 0;
-      const canAsk = (manual || short || moreAvail || freeLeft) && !asked && P.editable;
-      title = withMine(!failed2 && !canAsk ? ans?.querySelector(".ah-tl")?.textContent ?? COPY.answerDone : "");
-      line = withCompare(yoursLine(), yours.length === 1 ? yours[0] : null);
-      if (canAsk) left = askLeft();
-      else right = onward;
+      if (asked) noTransferAnswer();
+      else {
+        title = withMine("");
+        line = withCompare(yoursLine(), yours.length === 1 ? yours[0] : null);
+        if (P.editable) left = askLeft();
+      }
       if (placed) after = inPlaces(w, [placed]);
-    };
-    const save = () => {
-      title = withMine(ans.querySelector(".ah-tl").textContent);
-      const mine = yours.length ? yoursLine() : null;
-      line = withCompare(mine ?? ans.querySelector(".ah-tw")?.textContent ?? null, mine && yours.length === 1 ? yours[0] : null);
-      right = onward;
     };
     const constrained = purchaseOffer(ctx2, P, who2);
     let currentOffer = null;
     const offer = (result) => {
       currentOffer = result;
-      const { candidate: { e, pl }, pts: pts2, rounds, vs, fallback, notice, another, take, exhausted } = result;
+      const { candidate: { e, pl }, pts: pts2, displayPts, rounds, vs, fallback, notice, another, take, exhausted } = result;
       const moves = e.adds, own = pl.road?.weeks?.find((x) => Number(x.gw) === g);
       after = result.preview ?? (own ? viewOfRoadWeek(own, P.L) : null) ?? (moves.length ? inPlaces(w, moves) : null);
       title = withMine(moves.length ? movesTitle(ctx2, P, g, pairAsPlaced(w, after, P.L.pos, moves)) : fallback);
       diagnosticComparison = { gain: pts2, rounds, vs };
-      const gain = pts2 == null ? lineRow(COPY.vsNext(rounds, vs), "\u2026") : moveLine(ctx2, pts2, pl.forced || fmt.signed(pts2).startsWith(MINUS4), rounds, vs, !!result.decision, result.forecastPts);
+      const gain = pts2 == null ? lineRow(COPY.vsNext(rounds, vs), "\u2026") : moveLine(ctx2, pts2, pl.forced || fmt.signed(pts2).startsWith(MINUS4), rounds, vs, !!result.decision, displayPts);
       if (notice) gain.querySelector(".ah-tkl").append(" ", notice);
       line = withCompare(gain, moves.length === 1 ? moves[0] : null);
       left = another ? btn("alt", COPY.showAnother, `tok:not:${g}`, another) : null;
@@ -17064,15 +17062,16 @@ function ticketPart(V) {
       const { e, pl } = best.move;
       clearTimeout(S.swapAsk);
       S.swapAsk = setTimeout(() => presolveSwap(ctx2, P, g, pl));
-      const { preview, pts: forecastPts } = swapForecast(ctx2, P, g, pl);
+      const { preview } = swapForecast(ctx2, P, g, pl);
       const pts2 = cardGain(ctx2, P, g, pl), rounds = windowRounds(pl.road, g) || P.gws.filter((x) => x >= g).length;
+      const displayPts = shownDelta(pl.cmp);
       const ms = e.adds, vs = COPY.planVs(true);
       const not = best.dataset.notIn ? { gw: g, moves: ms, out: Number(best.dataset.notOut), in: Number(best.dataset.notIn) } : null;
       return {
         candidate: best.move,
         preview,
         pts: pts2,
-        forecastPts,
+        displayPts,
         rounds,
         vs,
         decision: true,
@@ -17082,12 +17081,10 @@ function ticketPart(V) {
           veto(ctx2, not, { scope: "pair" });
         }),
         take: (ev) => {
-          if (!ctx2.presolveOn?.()) {
-            showSuggestion(P, g, false);
-            showTransfer(P, g, false);
-          }
+          showSuggestion(P, g, false);
+          showTransfer(P, g, false);
           const result = best.querySelector(".ah-tgo") ? best.take(ev) : best.click();
-          tookSaid(g, { pts: pts2, forecastPts, rounds, vs, decision: true });
+          tookSaid(g, { pts: pts2, displayPts, rounds, vs, decision: true });
           return result;
         }
       };
@@ -17108,10 +17105,11 @@ function ticketPart(V) {
         h("div.ah-tksug", null, h("button.ah-rsbtn", { type: "button", dataset: { row: "tk:cancel" }, onClick: () => stopChoosing(ctx2) }, COPY.bringCancel))
       );
       left = askLeft("tk:buy-suggest", () => suggestPurchase(ctx2, who2));
-    } else if (M2?.sq && w.moves.length) {
-      title = S.status?.one ?? "";
-      line = plural(w.moves.length, "change");
-      left = btn("alt", COPY.seeChanges, `tk:week:${g}`, (ev) => openWeek(ev, g));
+    } else if (w.chip && (M2?.sq ? w.moves.length : true)) {
+      const cmp = chipGain(ctx2, P, g);
+      const rounds = cmp?.counted ? sameWindow(...cmp.counted, g) : 0;
+      title = withMine(chipName(w.chip));
+      line = withCompare(cmp ? moveLine(ctx2, cmp.delta, false, rounds || P.gws.filter((x) => x >= g).length, COPY.planVs(true), true, shownDelta(cmp)) : M2?.sq ? plural(w.moves.length, "change") : COPY.waitShort);
       right = onward;
     } else if (M2?.live) {
       title = M2.liveText;
@@ -17131,13 +17129,13 @@ function ticketPart(V) {
         right = onward;
       }
     } else if (freeLeft && asked && ans && !short && !solving) {
-      save();
+      noTransferAnswer();
     } else if (yours.length && !(wanted && solving)) {
       made();
     } else if (wanted && solving || P.healing && !yours.length && !short) {
       wait2();
     } else if (wanted && ans) {
-      save();
+      noTransferAnswer();
     } else if (!yours.length && !short) {
       opening();
     } else {
@@ -17236,6 +17234,7 @@ var init_screen_ticket = __esm({
     init_presolve();
     init_buys();
     init_edits();
+    init_pieces();
     init_screen();
     lineRow = (words, right = null, data = null) => h("p.ah-tkline", { dataset: data }, h("span.ah-tkl", null, words), right ? [" ", h("span.ah-tkr.m-num", null, right)] : null);
     movesWords = (P, ms) => `${ms.map((m) => P.L.name(m.out)).join(", ")} \u2192 ${ms.map((m) => P.L.name(m.in)).join(", ")}`;
@@ -17259,6 +17258,7 @@ var init_screen_ticket = __esm({
         title: COPY.compareWith(P.L.name(a)),
         back: () => {
         },
+        exclude: Number(a),
         pick: (b) => ctx2.openSheet("player", Number(a), { gw: g, vs: b })
       } })
     } });
@@ -19888,10 +19888,10 @@ function chipPlan(ctx2, g, chip, road = null, { less = null } = {}) {
     from: g,
     what,
     taken,
-    text: row ? () => COPY.chipToast(what, gap) : (Q, prev) => {
+    text: (Q, prev) => {
       const c = compare2(ctx2, { weeks: Q.weeks }, { weeks: prev.weeks });
-      if (was == null && !swap && SQUAD_CHIPS.has(chip)) chipTold(Q, g, c);
-      return COPY.chipToast(what, swap ? null : less);
+      if (was == null && !swap) chipTold(Q, g, c);
+      return COPY.chipToast(what, row ? gap : swap ? null : less);
     }
   });
 }
@@ -22004,9 +22004,9 @@ function cardOf(ctx2, id, vs = null, alive = () => true) {
   return it.p;
 }
 function fromBundle(cards, id, vs) {
-  const me = cards?.players?.[id], other2 = vs == null ? null : cards?.players?.[vs];
-  if (!me || vs != null && !other2) return null;
-  const p0 = (k) => !!me.stats?.[k];
+  const me2 = cards?.players?.[id], other2 = vs == null ? null : cards?.players?.[vs];
+  if (!me2 || vs != null && !other2) return null;
+  const p0 = (k) => !!me2.stats?.[k];
   const strip = (p, view, all = false) => {
     const st = p.stats?.[view];
     return st ? {
@@ -22015,31 +22015,32 @@ function fromBundle(cards, id, vs) {
       min: st.min,
       peer_min: st.peer_min,
       matches: st.matches,
-      rows: Object.fromEntries(me.rows.map((k) => [k, { value: st.rows[k]?.[0] ?? null, rank: st.rows[k]?.[all ? 2 : 1] ?? null }])),
-      dist: Object.fromEntries(me.rows.map((k) => [k, cards.dist?.[view]?.[all ? "ALL" : p.pos]?.[k] ?? []]))
+      rows: Object.fromEntries(me2.rows.map((k) => [k, { value: st.rows[k]?.[0] ?? null, rank: st.rows[k]?.[all ? 2 : 1] ?? null }])),
+      dist: Object.fromEntries(me2.rows.map((k) => [k, cards.dist?.[view]?.[all ? "ALL" : p.pos]?.[k] ?? []]))
     } : null;
   };
   const KEYS2 = ["match", "p90", ...["match", "p90"].map((v) => `${v}${RECENT_SUFFIX}`).filter((k) => p0(k))];
   const views2 = (p) => ({ ...Object.fromEntries(KEYS2.map((k) => [k, strip(p, k)])), all: Object.fromEntries(KEYS2.map((k) => [k, strip(p, k, true)])) });
-  const stats = me.rows ? {
-    ...views2(me),
-    kinds: me.kinds,
-    ...other2?.stats && other2.pos === me.pos ? { vs: views2(other2) } : {}
+  const stats = me2.rows ? {
+    ...views2(me2),
+    kinds: me2.kinds,
+    ...other2?.stats && other2.pos === me2.pos ? { vs: views2(other2) } : {}
   } : null;
   return {
     peers: cards.peers,
     season: cards.season,
     season_rounds: cards.season_rounds,
-    pos: me.pos,
-    pos_avg: me.pos_avg,
-    last_matches: me.last_matches,
-    cups: me.cups,
-    cup_next: cards.cup_next?.[me.club] ?? [],
+    pos: me2.pos,
+    pos_avg: me2.pos_avg,
+    last_matches: me2.last_matches,
+    cups: me2.cups,
+    cup_next: cards.cup_next?.[me2.club] ?? [],
     stats
   };
 }
 function open3(ctx2, rawId, { gw, place = null, vs = null } = {}) {
   const id = Number(rawId);
+  vs = vs == null || Number(vs) === id ? null : Number(vs);
   const d = ctx2.data;
   const row = d?.byId.get(id);
   const P0 = plan(ctx2);
@@ -22062,6 +22063,7 @@ function open3(ctx2, rawId, { gw, place = null, vs = null } = {}) {
   const pick = (pid, to) => h("button.ps-pick", { type: "button", "aria-haspopup": "dialog", "aria-label": COPY.comparePick(P0.L.name(pid)), onClick: () => {
     ctx2.openSheet("wish", null, { gw: g, pos: P0.L.pos(pid), compare: {
       title: COPY.comparePick(P0.L.name(pid)),
+      exclude: Number(me ? vs : id),
       pick: (x) => {
         const [a, b] = to(Number(x));
         ctx2.openSheet("player", a, { gw: g, vs: b });
@@ -22069,14 +22071,14 @@ function open3(ctx2, rawId, { gw, place = null, vs = null } = {}) {
       back: () => ctx2.openSheet("player", id, { gw: g, vs })
     } });
   } }, h("span.ps-pick-name", { title: P0.L.name(pid) }, P0.L.name(pid)), h("i.ps-chev", { "aria-hidden": "true" }));
-  const side = (pid, r, sub2, me) => h(
-    `span.ps-side${me ? "" : ".vs"}`,
+  const side = (pid, r, sub2, me2) => h(
+    `span.ps-side${me2 ? "" : ".vs"}`,
     null,
     h("span.ps-kit", { "aria-hidden": "true" }, shirtOf(P0.L, pid, 40)),
     h(
       "span",
       null,
-      h("span.ps-nm", null, h(`span.${me ? "ps-memark" : "ps-vsmark"}`, { "aria-hidden": "true" }), pick(pid, (x) => me ? [x, vs] : [id, x])),
+      h("span.ps-nm", null, h(`span.${me2 ? "ps-memark" : "ps-vsmark"}`, { "aria-hidden": "true" }), pick(pid, (x) => me2 ? [x, vs] : [id, x])),
       sub2,
       statusLines(r, P0, { available: false, lineup: false })
     )
@@ -22914,14 +22916,14 @@ function open4(ctx2, rawOut, rawGw) {
     cache.set(g, out0);
     return out0;
   }
-  let me = null;
+  let me2 = null;
   return ctx2.sheets.open({
     title: titleOf(st.g),
     detent: "large",
     cls: "rs",
-    onClose: () => presolveTaps(ctx2, null, { owner: me }),
+    onClose: () => presolveTaps(ctx2, null, { owner: me2 }),
     build(body, sheet) {
-      me = sheet;
+      me2 = sheet;
       const subEl = h("p.rs-sub");
       const pills = h("div.ah-pills", { role: "group", "aria-label": "From gameweek" });
       const input = h("input", { type: "search", placeholder: `Search ${word}s by surname`, "aria-label": `Search ${word}s by surname`, autocomplete: "off", spellcheck: "false", enterkeyhint: "search" });
@@ -23077,7 +23079,7 @@ function open5(ctx2, spec = {}) {
   const P = inputs2 ? plan(ctx2) : null;
   if (!P || !spec.a || !spec.b) return null;
   const why = { a: spec.a, b: spec.b, cmp: compare(inputs2, spec.a.road, spec.b.road), noise: num5(inputs2.noise) ?? 0, A: inputs2.A };
-  let me = null;
+  let me2 = null;
   return ctx2.sheets.open({
     title: spec.title,
     sub: spec.sub,
@@ -23086,9 +23088,9 @@ function open5(ctx2, spec = {}) {
     cls: "wy-sheet",
     // its taps (spec.presolve: Take it, Remove, Keep, Not, Move to GWn) solved ahead while it is open (owner,
     // 2026-10-26)
-    onClose: () => presolveTaps(ctx2, null, { owner: me }),
+    onClose: () => presolveTaps(ctx2, null, { owner: me2 }),
     build(body, sheet) {
-      me = sheet;
+      me2 = sheet;
       if (spec.presolve?.length) presolveTaps(ctx2, spec.presolve, { gw: spec.gw ?? null, owner: sheet });
       if (spec.reason) body.append(h("p.wy-reason", null, spec.reason));
       if (spec.acts?.length) {
@@ -23514,7 +23516,7 @@ function open6(ctx2, preId = null, { gw = null, pos = null, out = null, compare:
         const mine = (r) => squad.has(Number(r.id));
         const at2 = (r) => (!q || found(r, q)) && (q && !st.lock || st.pos === "all" || P.L.pos(Number(r.id)) === st.pos);
         const ok = (r) => mine(r) || r.buyable;
-        return ctx2.data.rows.filter((r) => at2(r) && ok(r)).sort(orderOf(sortOf(), st.flip, P, g)).map((r) => ({ row: r, mine: mine(r) }));
+        return ctx2.data.rows.filter((r) => Number(r.id) !== Number(compare3?.exclude) && at2(r) && ok(r)).sort(orderOf(sortOf(), st.flip, P, g)).map((r) => ({ row: r, mine: mine(r) }));
       }
       let drawn = 0;
       function draw() {

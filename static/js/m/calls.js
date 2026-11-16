@@ -43,12 +43,8 @@
  *  2026-11-05: "disable help and about forkcast", "why still displayed"; QA's why scenario asked alone, hints without
  *  them). false brings them back. */
 export const HELP_OFF = true;
-/** "play a chip" switched off, the card's link, the pitch's holds and their hint, no note beside the link (owner, 2026-11-08: "remove '(off for now)'"), its QA scenarios
- *  `asked` alone (owner, 2026-11-05: "disable 'play a chip' button and leave a note there and skip chips tests"). Back on
- *  2026-11-06 ("why play a chip is not underlined and why off for now displayed in card fix bug"), off again: the 11-05
- *  order stands (owner, 2026-11-08: "i asked chips to be disabled for all previously fix bug"). false brings it back. */
-// (2026-11-09: the card's link gone while off, not drawn inert: "why play a chip not respond")
-export const CHIPS_OFF = true;
+/** Emergency switch for every chip control and chip suggestion. Keep false during normal operation. */
+export const CHIPS_OFF = false;
 
 export {
   gwFlags, OUT, newsReason, statusText, hitCap, horizonFeature, planWeeks

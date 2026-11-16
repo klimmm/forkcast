@@ -2,33 +2,31 @@
 // and see another suggestion"; "stop wasting space on useless crap"; design_1105f prototype/ticket.html)
 
 import { showDiagnostics } from './diagnostics.js';
-import { h, fill, fmt, plural, reduceMotion, xpGain, xpNum } from '../../ui.js';
-import { CHIPS_OFF, COPY } from '../calls.js';
+import { h, fill, fmt, plural, reduceMotion, chipName, xpGain, xpNum } from '../../ui.js';
+import { CHIPS_OFF, COPY, shownDelta } from '../calls.js';
 import { MINUS, memOf, pairAsPlaced, plan, viewOfRoadWeek, weekOf } from './core.js';
 import { forkRead } from './plans/forks.js';
-import { cardGain, forecastGain, swapForecast, extraWeek, owedAt, owedRoad, presolveSwap, refusalRoads, removeWeek, showSuggestion, showTransfer, showingAt, manualSales, tappedSuggestion, tookOf, tookSaid, sameWindow, windowRounds } from './presolve.js';
+import { cardGain, forecastGain, swapForecast, extraWeek, owedAt, owedRoad, presolveSwap, refusalRoads, removeWeek, showSuggestion, showTransfer, showingAt, tappedSuggestion, tookOf, tookSaid, sameWindow, windowRounds } from './presolve.js';
 import { choosing, previousPurchase, purchaseOffer, suggestPurchase, placedAt, placedDone, stopChoosing } from './buys.js';
 import { cardUndo, removeRule, takingBack, tickWas, veto } from './edits.js';
+import { chipGain } from './pieces.js';
 import { MOVE_KINDS, fitNum } from './screen.js';
 
 /** The card's line: words at its left, `right` at its right edge (design_1109a slip). */
 const lineRow = (words, right = null, data = null) => h('p.ah-tkline', { dataset: data }, h('span.ah-tkl', null, words), right ? [' ', h('span.ah-tkr.m-num', null, right)] : null);
 /** The combined comparison line's explanation, kept in a sheet so the ticket itself remains one line. */
-function comparisonInfo(ctx, rounds, vs, points, overall) {
-  const span = rounds === 1 ? 'next week' : `next ${rounds} weeks`;
-  const number = (label, value) => h('section.m-sec.ah-scorepart', null,
-    h('h3', null, `${label} ${fmt.signed(value)}`),
-    h('p', null, label === 'xP'
-      ? `The change in projected FPL points over the ${span}. It adds up how the weekly forecasts change if you make this swap.`
-      : 'The number Forkcast uses to compare and order transfer options. It includes projected points plus the effects of the starting XI, captain and vice-captain, bench cover, substitutions, hits, and using or keeping free transfers.'));
+function comparisonInfo(ctx, rounds, vs, points) {
+  const period = rounds === 1 ? 'next week' : `next ${rounds} weeks`;
+  const signed = fmt.signed(points);
+  const baseline = vs === 'your plan' ? 'keeping your selected transfers'
+    : vs === 'no transfers' ? 'making no transfers'
+      : vs === 'rolling' ? 'making no more transfers'
+        : vs;
   ctx.sheets.open({
-    title: 'What these numbers mean',
-    sub: `This option compared with ${vs}`,
+    title: `${signed} projected points`,
     detent: 'medium',
     build: (body) => body.append(h('div.ah-scorehelp', null,
-      h('p', null, `Both numbers compare the same two plans over the ${span}. A positive number favours this option; a negative number favours ${vs}.`),
-      number('xP', points), number('Overall', overall),
-      h('p.ah-scoregap', null, `They can differ because xP shows the forecast-points change only, while Overall also counts the planning effects listed above. Here the forecast change is ${fmt.signed(points)} xP and the all-factors comparison is ${fmt.signed(overall)}.`)))
+      h('p', null, `This is the difference over the ${period} between making this transfer and ${baseline}. Transfer costs are included.`)))
   });
 }
 
@@ -37,9 +35,9 @@ function moveLine(ctx, gain, forced, rounds, vs, decision = false, points = null
   // (a loss in the muted ink, never the gain's blue: books review 2026-11-08; "−0.0" and "0.0" are no loss)
   const signed = fmt.signed(gain), cls = `span.ah-tkcount${signed.startsWith(MINUS) ? '.neg' : ''}`;
   if (decision) return h('p.ah-tkline.ah-tkone', { dataset: { ...(forced ? { forced: '' } : {}), score: gain } }, [
-    `${rounds === 1 ? 'Next week' : `Next ${rounds} weeks`} vs ${vs}`, ' · ', points == null ? null : h('span.ah-tkpoints', null, xpGain(points)),
-    points == null ? null : ' · ', h('span.ah-adjusted', null, ['Overall ', h(cls, null, signed)]),
-    points == null ? null : h('button.ah-scoreinfo', { type: 'button', 'aria-label': 'What xP and Overall mean', 'aria-haspopup': 'dialog', onClick: () => comparisonInfo(ctx, rounds, vs, points, gain) }),
+    h('span.ah-tkcompare', null, `${rounds === 1 ? 'Next week' : `Next ${rounds} weeks`} vs ${vs}`),
+    points == null ? null : h('span.ah-tkpoints', null, [' · ', xpGain(points)]),
+    points == null ? null : h('button.ah-scoreinfo', { type: 'button', 'aria-label': 'Explain xP', 'aria-haspopup': 'dialog', onClick: () => comparisonInfo(ctx, rounds, vs, points) }, 'i'),
   ]);
   return lineRow(COPY.vsNext(rounds, vs), xpGain(gain, cls), forced ? { forced: '' } : null);
 }
@@ -80,6 +78,7 @@ const comparePick = (ctx, P, g) => ctx.openSheet('wish', null, { gw: g, compare:
   title: COPY.comparePlayers, back: () => {},
   pick: (a) => ctx.openSheet('wish', null, { gw: g, pos: P.L.pos(a), compare: {
     title: COPY.compareWith(P.L.name(a)), back: () => {},
+    exclude: Number(a),
     pick: (b) => ctx.openSheet('player', Number(a), { gw: g, vs: b }),
   } }),
 } });
@@ -193,7 +192,11 @@ export function ticketPart(V) {
     // (its handler a property, so a repaint drawing the same button keeps the one on screen with the new handler: keptActs)
     const btn = (kind, text, row, onClick) => { const b = h(`button.ah-${kind}`, { type: 'button', disabled: off, dataset: { row } }, text); b.onclick = onClick ?? null; return b; };
     // (the last week none: its Set in FPL opened GW A's Week sheet, the header flag's own tap; card audit 2026-11-10)
-    const onward = next ? btn('go', COPY.onToWeek(next), 'tk:next', () => setGw(next)) : null;
+    // Going on means continuing the recommendation flow, not merely opening another empty week card.
+    const onward = next ? btn('go', COPY.onToWeek(next), 'tk:next', () => {
+      showSuggestion(P, next);
+      setGw(next);
+    }) : null;
     // the card's take-back, whatever it offers: this week's swaps all back ("Undo 2 swaps"), your last Show another
     // ("Previous"), else your last edit of any kind, a chip, a lineup, Hits ("Undo"), each exactly as the black tab's Undo
     // did; the left button where the card has nothing else there, a word beside Reset all weeks where it does (owner,
@@ -235,9 +238,9 @@ export function ticketPart(V) {
     //   opening   nothing of yours, not asked: "No transfer made"; Show suggestion | –
     //   wait      asked, its answer not in: your green line, "planning…"; no buttons (their places kept)
     //   offer     asked, the solver's one transfer with its number: your green line, "Out → In"; Show another | Transfer
-    //   save      asked, the solver saves the week: "Save your free transfer"; – | On to GW<next>
-    //   made      a transfer of yours, nothing asked: your green line, its number; Show suggestion | – where the solver
-    //             has a move on top or the week is short, else – | On to GW<next>
+    //   no move   asked, the solver adds no transfer: one shared "No [additional] transfer suggested" card
+    //   made      a transfer of yours, nothing asked: your green line, its number; Show suggestion first, then
+    //             On to GW<next> once that request finds no additional transfer
     //   choosing  Bring in a player: choose a sale on the pitch or request a preview with the buy fixed
     // plus a chip's week and a week under way. Two button places on every card, the green one at the right, an empty
     // place kept (the card one height); Compare players under the line where the card has one out and one in; the
@@ -306,43 +309,40 @@ export function ticketPart(V) {
       if (took?.said) {
         const pts = took.said.pts ?? forecastGain(from, took.said.before, P.weeks);
         const rounds = took.said.rounds ?? from.length;
-        return pts == null ? null : moveLine(ctx, pts, !!took.forced, rounds, took.said.vs, !!took.said.decision, took.said.forecastPts);
+        return pts == null ? null : moveLine(ctx, pts, !!took.forced, rounds, took.said.vs, true, took.said.displayPts ?? pts);
       }
       const tabs = !from.some(x => x > g && weekOf(P, x)?.moves.length) && P.bare
         ? forecastGain(from, [...P.bare.values()], P.weeks) : null;
-      if (tabs != null) return moveLine(ctx, tabs, !!took?.forced, from.length, COPY.planVs(false));
+      if (tabs != null) return moveLine(ctx, tabs, !!took?.forced, from.length, COPY.planVs(false), true, tabs);
       const win = r?.shown != null && r.counted ? sameWindow(...r.counted, g) : 0;
       const pts = win ? r.shown : r?.pts?.delta;
-      return pts == null ? null : moveLine(ctx, pts, !!took?.forced, win || from.length, COPY.planVsRoll);
+      return pts == null ? null : moveLine(ctx, pts, !!took?.forced, win || from.length, COPY.planVsRoll, true, pts);
+    };
+    const noTransferAnswer = () => {
+      title = withMine(COPY.noTransferSuggested(yours.length));
+      const mine = yours.length ? yoursLine() : null;
+      line = withCompare(mine ?? ans?.querySelector('.ah-tw')?.textContent ?? null, mine && yours.length === 1 ? yours[0] : null);
+      right = onward;
     };
     const made = () => {
-      const manual = manualSales(P, g).length > 0;
-      const canAsk = (manual || short || moreAvail || freeLeft) && !asked && P.editable;
-      // When there is no further suggestion to request, say why the only action is moving on. The answer strip already
-      // has this verdict, but the made card used to discard it and show a blank title above "On to GW<n>".
-      title = withMine(!failed && !canAsk ? ans?.querySelector('.ah-tl')?.textContent ?? COPY.answerDone : '');
-      line = withCompare(yoursLine(), yours.length === 1 ? yours[0] : null);
-      if (canAsk) left = askLeft();
-      else right = onward;
+      if (asked) noTransferAnswer();
+      else {
+        title = withMine('');
+        line = withCompare(yoursLine(), yours.length === 1 ? yours[0] : null);
+        if (P.editable) left = askLeft();
+      }
       if (placed) after = inPlaces(w, [placed]);
-    };
-    const save = () => {
-      title = withMine(ans.querySelector('.ah-tl').textContent);
-      // (on top of your transfers, their number, as on the made card: one state; owner, 2026-11-11)
-      const mine = yours.length ? yoursLine() : null;
-      line = withCompare(mine ?? ans.querySelector('.ah-tw')?.textContent ?? null, mine && yours.length === 1 ? yours[0] : null);
-      right = onward;
     };
     const constrained = purchaseOffer(ctx, P, who);
     let currentOffer = null;
     const offer = (result) => {
       currentOffer = result;
-      const { candidate: { e, pl }, pts, rounds, vs, fallback, notice, another, take, exhausted } = result;
+      const { candidate: { e, pl }, pts, displayPts, rounds, vs, fallback, notice, another, take, exhausted } = result;
       const moves = e.adds, own = pl.road?.weeks?.find(x => Number(x.gw) === g);
       after = result.preview ?? (own ? viewOfRoadWeek(own, P.L) : null) ?? (moves.length ? inPlaces(w, moves) : null);
       title = withMine(moves.length ? movesTitle(ctx, P, g, pairAsPlaced(w, after, P.L.pos, moves)) : fallback);
       diagnosticComparison = { gain: pts, rounds, vs };
-      const gain = pts == null ? lineRow(COPY.vsNext(rounds, vs), '…') : moveLine(ctx, pts, pl.forced || fmt.signed(pts).startsWith(MINUS), rounds, vs, !!result.decision, result.forecastPts);
+      const gain = pts == null ? lineRow(COPY.vsNext(rounds, vs), '…') : moveLine(ctx, pts, pl.forced || fmt.signed(pts).startsWith(MINUS), rounds, vs, !!result.decision, displayPts);
       if (notice) gain.querySelector('.ah-tkl').append(' ', notice);
       line = withCompare(gain, moves.length === 1 ? moves[0] : null);
       left = another ? btn('alt', COPY.showAnother, `tok:not:${g}`, another) : null;
@@ -355,17 +355,21 @@ export function ticketPart(V) {
       // (asked the moment the card is drawn, never after the week's other solves: the refusal walk's asks ahead spent your
       // tap's 6 first and the card had no number; its move is the lit one, which the week settled on; design_1109b)
       S.swapAsk = setTimeout(() => presolveSwap(ctx, P, g, pl));
-      const { preview, pts: forecastPts } = swapForecast(ctx, P, g, pl);
+      const { preview } = swapForecast(ctx, P, g, pl);
       const pts = cardGain(ctx, P, g, pl), rounds = windowRounds(pl.road, g) || P.gws.filter((x) => x >= g).length;
+      const displayPts = shownDelta(pl.cmp);
       const ms = e.adds, vs = COPY.planVs(true);
       const not = best.dataset.notIn ? { gw: g, moves: ms, out: Number(best.dataset.notOut), in: Number(best.dataset.notIn) } : null;
       return {
-        candidate: best.move, preview, pts, forecastPts, rounds, vs, decision: true, fallback: best.querySelector('.ah-tl').textContent,
+        candidate: best.move, preview, pts, displayPts, rounds, vs, decision: true, fallback: best.querySelector('.ah-tl').textContent,
         another: not && (() => { showTransfer(P, g); veto(ctx, not, { scope: 'pair' }); }),
         take: (ev) => {
-          if (!ctx.presolveOn?.()) { showSuggestion(P, g, false); showTransfer(P, g, false); }
+          // The accepted answer is complete. The made card starts a fresh choice so Show suggestion asks what to do
+          // next in this GW instead of inheriting the request that produced this transfer.
+          showSuggestion(P, g, false);
+          showTransfer(P, g, false);
           const result = best.querySelector('.ah-tgo') ? best.take(ev) : best.click();
-          tookSaid(g, { pts, forecastPts, rounds, vs, decision: true });
+          tookSaid(g, { pts, displayPts, rounds, vs, decision: true });
           return result;
         },
       };
@@ -383,11 +387,15 @@ export function ticketPart(V) {
       line = h('div', null, who.error ? lineRow(who.error) : lineRow(COPY.bringTap, pr == null ? null : fmt.money(pr)),
         h('div.ah-tksug', null, h('button.ah-rsbtn', { type: 'button', dataset: { row: 'tk:cancel' }, onClick: () => stopChoosing(ctx) }, COPY.bringCancel)));
       left = askLeft('tk:buy-suggest', () => suggestPurchase(ctx, who));
-    } else if (M?.sq && w.moves.length) {
-      // (a Free Hit or Wildcard: the chip, not its whole squad; the Week sheet lists them and takes the chip back)
-      title = S.status?.one ?? '';
-      line = plural(w.moves.length, 'change');
-      left = btn('alt', COPY.seeChanges, `tk:week:${g}`, (ev) => openWeek(ev, g));
+    } else if (w.chip && (M?.sq ? w.moves.length : true)) {
+      // A played chip is the week's decision even when it makes no transfer (Bench Boost / Triple Captain). Keep any
+      // ordinary transfers above the chip name; a Free Hit or Wildcard's squad changes stay in the Week sheet.
+      const cmp = chipGain(ctx, P, g);
+      const rounds = cmp?.counted ? sameWindow(...cmp.counted, g) : 0;
+      title = withMine(chipName(w.chip));
+      line = withCompare(cmp
+        ? moveLine(ctx, cmp.delta, false, rounds || P.gws.filter((x) => x >= g).length, COPY.planVs(true), true, shownDelta(cmp))
+        : M?.sq ? plural(w.moves.length, 'change') : COPY.waitShort);
       right = onward;
     } else if (M?.live) {
       title = M.liveText;
@@ -405,7 +413,7 @@ export function ticketPart(V) {
       else { title = withMine(inf ? COPY.noPlan(g) : ''); line = inf ? COPY.unchanged : COPY.unfinished; right = onward; }
     } else if (freeLeft && asked && ans && !short && !solving) {
       // (asked on top of yours, the solver adding none: the save of the free transfers left)
-      save();
+      noTransferAnswer();
     } else if (yours.length && !(wanted && solving)) {
       made();
     } else if ((wanted && solving) || (P.healing && !yours.length && !short)) {
@@ -413,7 +421,7 @@ export function ticketPart(V) {
       // till the swap landed; qa-tk137 j-card-swap)
       wait();
     } else if (wanted && ans) {
-      save();
+      noTransferAnswer();
     } else if (!yours.length && !short) {
       opening();
     } else {

@@ -144,8 +144,8 @@ const transferPinsAt = (P, g) => (squadWeek(weekOf(P, g)) ? [] : goneIds(P, your
 /** A chip made the plan (chipEdit). road: the solve of exactly these pins (a prepared chip, or the bake's pre-solve):
  *  the plan at once (memory.offer / findRoad); else the plan heals. Verdict: the chip's gap against not playing it (or
  *  the week it was planned in); `less`: what this week gives up against the chip's honest best week ("3.9 less than
- *  GW9", useChip). A Wildcard or Free Hit is measured vs rolling (owner, 2026-10-22): its Chips… row's number
- *  (chipStates: chipNumber). */
+ *  GW9", useChip). The Chips sheet keeps its Wildcard or Free Hit number vs rolling (chipStates: chipNumber); the
+ *  accepted card keeps the edit's before/after comparison through chipTold, as every accepted action does. */
 export function chipPlan(ctx, g, chip, road = null, { less = null } = {}) {
   const P = plan(ctx);
   const { pins, drop } = chipEdit(P, g, chip);
@@ -159,10 +159,10 @@ export function chipPlan(ctx, g, chip, road = null, { less = null } = {}) {
   // than" the best week
   return edit(ctx, {
     pins, drop, road, from: g, what, taken,
-    text: row ? () => COPY.chipToast(what, gap) : (Q, prev) => {
+    text: (Q, prev) => {
       const c = compare(ctx, { weeks: Q.weeks }, { weeks: prev.weeks });
-      if (was == null && !swap && SQUAD_CHIPS.has(chip)) chipTold(Q, g, c);
-      return COPY.chipToast(what, swap ? null : less);
+      if (was == null && !swap) chipTold(Q, g, c);
+      return COPY.chipToast(what, row ? gap : swap ? null : less);
     },
   });
 }

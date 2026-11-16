@@ -766,13 +766,13 @@ export const COPY = Object.freeze({
   swap: 'Transfer',
   showAnother: 'Show another',
   noOtherPurchase: 'No other transfer fits.',
+  noTransferSuggested: (n) => (n ? 'Make no more transfers this week' : 'Make no transfers this week'),
   showATransfer: 'Show a transfer',
   /** The card's take-backs, each saying what it takes back (owner, 2026-11-05, "fix undo / reset buttions signs and theier
    *  meaning and wording"): this week's transfers, or the card before your Show another. */
   undoSwaps: (n) => (n === 1 ? 'Undo transfer' : `Undo ${n} transfers`),
   previous: 'Previous',
   undoLast: 'Undo',
-  seeChanges: 'See the changes',
   onToWeek: (g) => `On to GW${g}`,
   showSuggestion: 'Show suggestion',
   /** The card's one number's words, at its left (owner, 2026-11-09, design_1109a slip): the move's points over the weeks

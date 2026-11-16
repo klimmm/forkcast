@@ -144,6 +144,9 @@ function fromBundle(cards, id, vs) {
 
 export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
   const id = Number(rawId);
+  // A comparison needs two different players. Normalise stale/direct requests as well as excluding the first player
+  // from the picker, so no entry path can render a player against himself.
+  vs = vs == null || Number(vs) === id ? null : Number(vs);
   const d = ctx.data;
   const row = d?.byId.get(id);
   const P0 = plan(ctx);
@@ -170,6 +173,7 @@ export function open(ctx, rawId, { gw, place = null, vs = null } = {}) {
   const pick = (pid, to) => h('button.ps-pick', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.comparePick(P0.L.name(pid)), onClick: () => {
     ctx.openSheet('wish', null, { gw: g, pos: P0.L.pos(pid), compare: {
       title: COPY.comparePick(P0.L.name(pid)),
+      exclude: Number(me ? vs : id),
       pick: (x) => { const [a, b] = to(Number(x)); ctx.openSheet('player', a, { gw: g, vs: b }); },
       back: () => ctx.openSheet('player', id, { gw: g, vs }),
     } });
