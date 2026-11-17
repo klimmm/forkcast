@@ -1,5 +1,5 @@
 // Forkcast's You sheet (IPHONE_DESIGN §5.10): your team, rank and the points-to-places rate; the plan's status
-// (forecast runs, when it was solved, the connection); Help (opened only when asked; Why Forkcast behind its last row:
+// (forecast, connection and version); Help (opened only when asked; Why Forkcast behind its last row:
 // sheets/about.js); Switch team; Sign out of the team on this device; Refresh; Reset plan (ahead.resetPlan: this GW's
 // plan as a new team's, toast with Undo). A Dev mode section (Open Studio; Open on iPhone) only on a local page
 // (api.access). Settings, from Ahead's header gear (owner, 2026-10-29): Plan, the hits Forkcast may take a week
@@ -21,16 +21,6 @@ function when(epoch, { fullDate = false } = {}) {
   if (fullDate) return new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(d);
   return d.toDateString() === new Date().toDateString() ? t : `${new Intl.DateTimeFormat('en-GB', { weekday: 'short' }).format(d)} ${t}`;
 }
-/**
- * When the model's plan was solved: its job's start plus its run time (job ids start with the server's local
- * submission time, "%Y%m%d-%H%M%S", so a queued wait is not counted).
- */
-function solvedAt(road) {
-  const m = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})/.exec(road?.job || '');
-  return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() / 1000 + (Number(road.elapsed) || 0) : null;
-}
-
-const offNote = HELP_OFF ? ` ${COPY.offForNow}` : null;
 /** The You sheet; `what` 'help': Help alone; 'settings': the Settings sheet (Ahead's header gear). */
 export function open(ctx, what = null) {
   if (what === 'help') return helpSheet(ctx);
@@ -79,26 +69,17 @@ export function open(ctx, what = null) {
         const b = ctx.bundle;
         const conn = ctx.store.get('conn') || {};
         const f = b?.meta?.forecast || {};
-        const model = b?.entry ? inputsOf(ctx)?.model ?? null : null;
-        const baked = when(solvedAt(model));
-        // plain facts only: the model's internals (runs, pool, noise, scale, solve counts) are Dev mode's
-        let plan;
-        if (conn.state === 'updating') plan = 'waiting: the forecast is updating';
-        else if (b?.entry && !model) plan = COPY.waitShort;
-        else plan = baked ? `ready since ${baked}` : '—';
         // while requests fail, said plainly (and the time of the data on screen)
         const link = conn.state === 'offline' ? `Forkcast server unreachable · data from ${when((conn.at || 0) / 1000) ?? '—'}` : 'online';
         fill(engine, h('h3', null, 'Status'),
           h('div.m-kv', null, h('span', null, 'Forecast'), h('span', null, when(f.updated_epoch) ? `updated ${when(f.updated_epoch)}` : '—')),
-          h('div.m-kv', null, h('span', null, 'Plan'), h('span', null, plan)),
           h('div.m-kv', null, h('span', null, 'Connection'), h('span', { class: conn.state === 'offline' ? 'g-loss' : '' }, link)),
           // the front end's release (api.access), "dev" for the tree's own; none until the server has said
-          // (…and when it was released, as Forecast and Plan show theirs; owner, 2026-11-09, "why time of version not displayed")
           acc ? h('div.m-kv', null, h('span', null, 'Version'), h('span.m-num', null, [acc.release ?? 'dev', when(acc.released_at, { fullDate: true })].filter(Boolean).join(' · '))) : null,
-          // (rows to their sheets, green with ›, not buttons: design 1028d K2)
-          h('button.m-nav', { type: 'button', disabled: HELP_OFF, onClick: () => helpSheet(ctx) }, COPY.helpShort, offNote),
-          // the app's pitch, from inside it too (owner, 2026-10-14)
-          h('button.m-nav', { type: 'button', disabled: HELP_OFF, onClick: () => ctx.openSheet('about') }, COPY.whyTitle, offNote));
+          HELP_OFF ? null : [
+            h('button.m-nav', { type: 'button', onClick: () => helpSheet(ctx) }, COPY.helpShort),
+            h('button.m-nav', { type: 'button', onClick: () => ctx.openSheet('about') }, COPY.whyTitle),
+          ]);
         paintDev();
       }
 

@@ -39,9 +39,7 @@
 // liveCheck(published, week, L) → GW A's live line: FPL's published squad against the plan's GW A (squad only)
 // sentence(text) → text ending in one full stop; COPY (the phone's strings)
 
-/** Help and About Forkcast switched off: the You sheet's rows say so, the start page has no About under its form (owner,
- *  2026-11-05: "disable help and about forkcast", "why still displayed"; QA's why scenario asked alone, hints without
- *  them). false brings them back. */
+/** Hide Help and About Forkcast on the start page and in the You sheet. */
 export const HELP_OFF = true;
 /** Emergency switch for every chip control and chip suggestion. Keep false during normal operation. */
 export const CHIPS_OFF = false;

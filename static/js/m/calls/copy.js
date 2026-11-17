@@ -782,7 +782,6 @@ export const COPY = Object.freeze({
   vsSaving: 'saving a free transfer',
   /** The week card's Bring in: one of its two buttons, or its links row's door where both are taken (screen-ticket.js). */
   bringInPlayer: 'Bring in a player',
-  offForNow: '(off for now)',
   /** The card while the pitch asks who he replaces (design_1109a slip): "B.Fernandes → ?", the ask under it. */
   bringWho: (name) => `${name} → ?`,
   subWho: (name, benched) => benched ? `Swap ${name} with ?` : `${name} off for ?`,
