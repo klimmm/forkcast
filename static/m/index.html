@@ -1387,7 +1387,7 @@ ink, the plate's. */
   --bench-glass: light-dark(rgb(255 255 255 / .38), rgb(255 255 255 / .08));
   --bench-tile:  light-dark(rgb(0 0 0 / .16), rgb(0 0 0 / .28));
   --bench-ink:   light-dark(#0E3B22, #CDEBD9);
-  --boost:       #6EECFC;  /* FPL's Bench Boost ring (sampled from its Pick Team) */
+  --boost:       #05f0ff;  /* FPL's Bench Boost ring: --ism-color-brand-blue */
   --plate:       light-dark(#FFFFFF, #F1F3F2);
   --plate-ink:   #17191A;
   --plate-2:     light-dark(#F2F4F3, #D9DEDB);
@@ -3571,12 +3571,18 @@ bench never grey out only pitch", "the top panel must also grey out"; .ah-pitch.
 .m-screen.ah .ah-pitch .pm > .ah-pdbtn::before { inset: 0 0 -20px -6px; }
 .m-screen.ah .ah-pitch .pm > .ah-pdbtn:active { background: var(--tk-night); }
 .m-screen.ah .ah-pitch .pm .pm-bench { background: none !important; border: 0; box-shadow: none; border-radius: 0; margin: 0; padding: 0; }
-/* Bench Boost must remain visible in the compact pitch: the generic bench reset above previously erased its ring. */
-.m-screen.ah .ah-pitch .pm[data-chip="bb"] .pm-bench { position: relative; z-index: 1; box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 5px var(--boost); }
-.m-screen.ah .ah-pitch .pm[data-chip="bb"] .pm-bench::before {
-  content: "BB"; position: absolute; z-index: 3; left: 6px; top: 6px; padding: 2px 5px; border-radius: 3px;
-  background: var(--boost); color: var(--tk-ink); font: 700 var(--tk4)/1 var(--f-text);
+/* FPL's translucent panel and rounded white/cyan BB frame (team/Subs, fantasy.premierleague.com).
+   Paint behind the existing row: no added label, border or padding to change the bench or player geometry. */
+.m-screen.ah .ah-pitch .pm[data-chip="bb"] .pm-benchzone {
+  position: relative; background: linear-gradient(var(--turf-1), var(--tk-night)) !important;
 }
+.m-screen.ah.ah-wait .ah-pitch .pm[data-chip="bb"] .pm-benchzone { background: var(--tk-wait) !important; }
+.m-screen.ah .ah-pitch .pm[data-chip="bb"] .pm-benchzone::before {
+  content: ""; position: absolute; inset: -1px 8px; border-radius: 12px 12px 0 0; pointer-events: none;
+  background: linear-gradient(to top, transparent, rgb(255 255 255 / .35) 87.91%);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--boost);
+}
+.m-screen.ah .ah-pitch .pm[data-chip="bb"] .pm-bench { position: relative; }
 .m-screen.ah .ah-pitch .pm .pm-bs, .m-screen.ah .ah-pitch .pm .pm-pl { outline: 0; box-shadow: none !important; background: none; border: 0; }
 .m-screen.ah .ah-pitch .pm .pm-card.ah-sold::before, .m-screen.ah .ah-pitch .pm .pm-card.ah-sold::after { content: none; }
 /* the stack: one list top to bottom, GW13 to GW10: later weeks above the ticket, earlier ones under it, the nearest widest
@@ -3887,8 +3893,8 @@ one in the selected look's tint and green ring, 600, with its arrow (a second ta
 .m-banner.offline .m-banner-ic { opacity: .6; }
 
 </style>
-<meta name="forkcast-release" content="v1.3.265">
-<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=b3caa5f3e1","/js/app.js":"/js/app.js?v=d7871c4487","/js/m/ahead.js":"/js/m/ahead.js?v=78886e2b4f","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=f0abb7557d","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=67657271e8","/js/m/ahead/diagnostics.js":"/js/m/ahead/diagnostics.js?v=600572bd02","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=c4a8d8abb7","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=f9395228ad","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=be4c00fcfa","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=97940d5b11","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=e7eb6b278f","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=98e62c8795","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=14624ec860","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=546c5f1048","/js/m/ahead/plans/groups.js":"/js/m/ahead/plans/groups.js?v=8b506e21c5","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=b1bb3a68a3","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=bd6a2e9b77","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=2bbc8162c1","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=cbdc5c496f","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=bb93f7b39f","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=9aa5c5689b","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=d431b493da","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=4acbd15e4c","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=1981b7833d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=3a5f36762b","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=f975ff538c","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=a816c0e84e","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=2b39159e7b","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=cfce24e093","/js/m/api.js":"/js/m/api.js?v=f07595d7b0","/js/m/app.js":"/js/m/app.js?v=3d461fb349","/js/m/calls.js":"/js/m/calls.js?v=40f2636aaf","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=4c1f734464","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=ff53661cb7","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=552b00cbf2","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=3cf482dd6a","/js/m/memory.js":"/js/m/memory.js?v=0d6ca06e1b","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=478c277335","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=1227a951f5","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=0af9ca007a","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=bfdebe4cdf","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=18e75f603f","/js/m/memory/live.js":"/js/m/memory/live.js?v=30e4830cd1","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=88de0d5d40","/js/m/memory/values.js":"/js/m/memory/values.js?v=e74874bcf6","/js/m/picker.js":"/js/m/picker.js?v=3da5f950bd","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=67f7e9687a","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=9576783de3","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=43737bdc0a","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=d73775ce03","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=bc24c27906","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=9f2ef4f880","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=5f01937458","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=594122817a","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=62d8f68dcf","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=b3455c19f2","/js/m/shell/store.js":"/js/m/shell/store.js?v=d57be956cc","/js/marks.js":"/js/marks.js?v=c34a920720","/js/plan/engine.js":"/js/plan/engine.js?v=ed5912a0d1","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=3fc37880a6","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=1200f7b422","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=1ecbec2ebb","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=2fd30e083a","/js/plan/kits.js":"/js/plan/kits.js?v=cda7d0ceb5","/js/plan/pitch.js":"/js/plan/pitch.js?v=080c4beb8e","/js/studio/flags.js":"/js/studio/flags.js?v=a8cd3ecd9b","/js/studio/kit.js":"/js/studio/kit.js?v=20c9937b9e","/js/studio/tables.js":"/js/studio/tables.js?v=65f8b07c32","/js/ui.js":"/js/ui.js?v=95b40ba139","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=9f0f364620","/js/views/compare.js":"/js/views/compare.js?v=6ad8f349d3","/js/views/dashboard.js":"/js/views/dashboard.js?v=8a1f0c98d1","/js/views/data.js":"/js/views/data.js?v=90e9f05369","/js/views/docs.js":"/js/views/docs.js?v=f696c42510","/js/views/fixtures.js":"/js/views/fixtures.js?v=319a00ca42","/js/views/planner.js":"/js/views/planner.js?v=c4c601da19","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=7fde223c58","/js/views/planner/model.js":"/js/views/planner/model.js?v=71f793cc1d","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=d4151c7331","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=14bd7e2b61","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=f72f49fd45","/js/views/players.js":"/js/views/players.js?v=358b613d94","/js/views/preview.js":"/js/views/preview.js?v=8c7c4bcf84","/js/views/runs.js":"/js/views/runs.js?v=c11f23245f"}}</script>
+<meta name="forkcast-release" content="v1.3.266">
+<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=b3caa5f3e1","/js/app.js":"/js/app.js?v=d7871c4487","/js/m/ahead.js":"/js/m/ahead.js?v=78886e2b4f","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=f0abb7557d","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=67657271e8","/js/m/ahead/diagnostics.js":"/js/m/ahead/diagnostics.js?v=600572bd02","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=c4a8d8abb7","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=f9395228ad","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=be4c00fcfa","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=97940d5b11","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=0c359b7eb4","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=98e62c8795","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=bd1c340bfd","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=b0cda6c5ef","/js/m/ahead/plans/groups.js":"/js/m/ahead/plans/groups.js?v=8b506e21c5","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=b1bb3a68a3","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=bd6a2e9b77","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=2bbc8162c1","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=cbdc5c496f","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=bb93f7b39f","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=9aa5c5689b","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=d431b493da","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=4acbd15e4c","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=1981b7833d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=b692db524d","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=f975ff538c","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=a816c0e84e","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=2b39159e7b","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=87cf82cea1","/js/m/api.js":"/js/m/api.js?v=f07595d7b0","/js/m/app.js":"/js/m/app.js?v=3d461fb349","/js/m/calls.js":"/js/m/calls.js?v=40f2636aaf","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=51281c2803","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=ff53661cb7","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=552b00cbf2","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=3cf482dd6a","/js/m/memory.js":"/js/m/memory.js?v=0d6ca06e1b","/js/m/memory/chip-cache.js":"/js/m/memory/chip-cache.js?v=8ef87f4230","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=478c277335","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=1227a951f5","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=0af9ca007a","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=bfdebe4cdf","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=18e75f603f","/js/m/memory/live.js":"/js/m/memory/live.js?v=30e4830cd1","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=88de0d5d40","/js/m/memory/values.js":"/js/m/memory/values.js?v=e74874bcf6","/js/m/picker.js":"/js/m/picker.js?v=3da5f950bd","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=67f7e9687a","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=9576783de3","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=b7b174fcd2","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=d73775ce03","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=bc24c27906","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=9f2ef4f880","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=5f01937458","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=594122817a","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=62d8f68dcf","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=b3455c19f2","/js/m/shell/store.js":"/js/m/shell/store.js?v=d57be956cc","/js/marks.js":"/js/marks.js?v=c34a920720","/js/plan/engine.js":"/js/plan/engine.js?v=ed5912a0d1","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=3fc37880a6","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=1200f7b422","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=1ecbec2ebb","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=2fd30e083a","/js/plan/kits.js":"/js/plan/kits.js?v=cda7d0ceb5","/js/plan/pitch.js":"/js/plan/pitch.js?v=080c4beb8e","/js/studio/flags.js":"/js/studio/flags.js?v=a8cd3ecd9b","/js/studio/kit.js":"/js/studio/kit.js?v=20c9937b9e","/js/studio/tables.js":"/js/studio/tables.js?v=65f8b07c32","/js/ui.js":"/js/ui.js?v=95b40ba139","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=9f0f364620","/js/views/compare.js":"/js/views/compare.js?v=6ad8f349d3","/js/views/dashboard.js":"/js/views/dashboard.js?v=8a1f0c98d1","/js/views/data.js":"/js/views/data.js?v=90e9f05369","/js/views/docs.js":"/js/views/docs.js?v=f696c42510","/js/views/fixtures.js":"/js/views/fixtures.js?v=319a00ca42","/js/views/planner.js":"/js/views/planner.js?v=c4c601da19","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=7fde223c58","/js/views/planner/model.js":"/js/views/planner/model.js?v=71f793cc1d","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=d4151c7331","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=14bd7e2b61","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=f72f49fd45","/js/views/players.js":"/js/views/players.js?v=358b613d94","/js/views/preview.js":"/js/views/preview.js?v=8c7c4bcf84","/js/views/runs.js":"/js/views/runs.js?v=c11f23245f"}}</script>
 </head>
 <body>
 <div class="m-app" id="app">
@@ -6856,8 +6862,8 @@ var init_copy = __esm({
           "Bench Boost: hold the bench where no shirt is.",
           `The same hold again, or ${COPY.chipTakeOff} in ${COPY.chipsDoor}, takes it off.`,
           "Best week: of the GWs your plan covers in its half of the season, where it gains most against not playing it.",
-          // one baseline per chip (owner, 2026-10-22; ahead.chipNumber), each row naming its own
-          "A Wildcard or Free Hit's number is vs rolling that GW, as a plan's. Bench Boost and Triple Captain: vs not playing it.",
+          "Every chip is compared with the same plan with no chip played that week, over the displayed gameweeks.",
+          "These numbers do not compare using a chip now with saving it for a later week.",
           `${COPY.chipNoBestName}: no GW beats the next best by enough to act on. GWs past your plan aren't planned.`,
           `A chip's numbers can take minutes; its row says ${COPY.waitShort} until then.`
         ], "chips"],
@@ -7081,28 +7087,23 @@ var init_copy = __esm({
       bringInShort: "Bring in",
       /* its "…" a "›" (m-ahead.css .ah-door::after; "…" only a cut word) */
       /** The week line's Chips… door and sheet (ahead.chipsDoor, sheets/chips.js): title, spoken label, the line under the
-       *  title (each number's span; the baseline is each row's own: chipNoChip), and each row's name and one fact
+       *  title (the shared no-chip baseline and each number's span), and each row's name and one fact
        *  (chipStates). */
       chipsDoor: "Chips",
       /* as Bring in's: "›" drawn, FPL's own word */
       chipsIn: (gw) => `Chips in GW${gw}`,
       chipsSaid: (gw, chip = null) => chip ? `Chips in GW${gw}, ${chipName(chip)} planned` : `Chips in GW${gw}`,
       chipsSub: (gws) => `Points over ${span(gws)}`,
-      /** A Chips… row's baseline, in its fact (owner, 2026-10-22: "vs rolling everywhere"): a Wildcard's or Free Hit's its
-       *  own (`vs`: rolling), a Bench Boost's or Triple Captain's not playing it (they change no transfer: vs rolling would
-       *  fold the week's transfers into it), a swap row's the chip it replaces ("vs it"). */
-      chipNoChip: "not playing it",
-      // a row whose chip replaces the week's: its number is against that chip
+      /** All chip comparisons share the no-chip plan for the selected week. */
+      chipNoChip: "no chip",
       chipOn: (c) => `${chipName(c)} \u2713`,
       chipByForkcast: "By Forkcast \xB7 Take it off",
       chipMoveHere: (gw) => `In GW${gw} \xB7 Move it here`,
       chipInstead: (c) => `Instead of ${chipName(c)}`,
       chipVsIt: "it",
       chipBestHere: "Its best week",
-      /** …another week's: its number where known (for a Wildcard or Free Hit the pitch's choice that week, `vs` its
-       *  baseline), none while that choice is checked. */
-      chipBestAt: (gw, delta = null, vs = null) => `Best week: GW${gw}${delta != null ? `\xA0${fmt.signed(delta)}${vs ? ` ${COPY.chipVs(vs)}` : ""}` : ""}`,
-      /** A row's baseline in its fact: "vs rolling", "vs not playing it" (chipNoChip), "vs it" (chipVsIt). */
+      /** Another week's gain uses the same no-chip baseline as this week's. */
+      chipBestAt: (gw, delta = null) => `Best week: GW${gw}${delta != null ? `\xA0${fmt.signed(delta)}` : ""}`,
       chipVs: (vs) => `vs ${vs}`,
       /** The weeks of its half after the plan's last, never looked at, said with a clear best week too (owner, 2026-10-22). */
       chipAfter: (after) => `weeks after GW${after} aren't planned`,
@@ -7111,9 +7112,8 @@ var init_copy = __esm({
       /** A Wildcard or Free Hit choice's Why sheet: the chip it spends and when the next one comes (the second half's first
        *  GW: ahead.halfEnd); "Uses your last Free Hit" in the second half. */
       chipUses: (chip, next = null) => next != null ? `Uses your ${chip}; next one GW${next}` : `Uses your last ${chip}`,
-      /** …while its weeks are checked (ahead.chipWait): Add a player's count (planningWeek), its clock after it; no "Best
-       *  week" while a week of the span was never asked (`part`; owner, 2026-10-28). */
-      chipBestPlanning: (gw, i, n, part = false) => part ? COPY.planningWeek(gw, i, n) : `Best week \xB7 ${COPY.planningWeek(gw, i, n)}`,
+      /** Name the gameweek being checked, without an ambiguous '3 of 3 weeks' counter. */
+      chipBestPlanning: (gw) => `Checking GW${gw}\u2026`,
       /** …when the best week doesn't beat the runner-up (`next`, its gain `runner`; none in: not playing it) by more than a
        *  toss-up (engine.verdictLabel's 'coin'), and the weeks of its half after the plan's last (`after`) never looked at.
        *  The noise itself is Dev mode's: the words say the toss-up, never its points. */
@@ -11575,6 +11575,29 @@ var init_diagnostics = __esm({
   }
 });
 
+// js/m/memory/chip-cache.js
+function chipRoads(local2, entry) {
+  const saved = local2?.json(CHIP_ROADS(entry));
+  return saved?.schema === 1 && Array.isArray(saved.roads) ? saved.roads.filter((x) => typeof x?.key === "string" && Array.isArray(x.road?.weeks) && x.road.weeks.length).slice(0, MAX_ROADS) : [];
+}
+function keepChipRoad(local2, entry, key, road) {
+  if (!local2 || !road?.weeks?.length) return;
+  const roads = [{ key, road }, ...chipRoads(local2, entry).filter((x) => x.key !== key)].slice(0, MAX_ROADS);
+  while (roads.length) {
+    const saved = JSON.stringify({ schema: 1, roads });
+    if (saved.length <= MAX_CHARS && local2.set(CHIP_ROADS(entry), saved)) return;
+    roads.pop();
+  }
+}
+var CHIP_ROADS, MAX_ROADS, MAX_CHARS;
+var init_chip_cache = __esm({
+  "js/m/memory/chip-cache.js"() {
+    CHIP_ROADS = (entry) => `fc:mem:chips:${entry}`;
+    MAX_ROADS = 96;
+    MAX_CHARS = 5e5;
+  }
+});
+
 // js/m/ahead/buys.js
 function buyPlan(ctx2, id, g, { out = null } = {}) {
   const P = plan(ctx2);
@@ -12535,6 +12558,9 @@ function forkPump(ctx2, P, ask) {
   } }, forkSaid(ctx2, P, ask, prep));
   flight.cancel = () => p.cancel?.();
   p.then((res) => {
+    if (res.road && res.version != null && res.version === P.b.version && prepItems(ctx2, P).some((x) => x.key === ask.key)) {
+      keepChipRoad(ctx2.api?.local, P.entry, ask.key, res.road);
+    }
     if (ask.ahead && (res.road || res.state === "error")) {
       AHEAD.landed.set(ask.key, res.version ?? null);
       if (res.version != null) memOf(ctx2).offer(res.road, { values: ask.values, error: res.error, version: res.version });
@@ -12593,6 +12619,7 @@ var init_forks = __esm({
     init_calls();
     init_memory();
     init_values();
+    init_chip_cache();
     init_pins();
     init_core();
     init_edits();
@@ -13089,7 +13116,7 @@ function chipNumber(ctx2, P, g, c, pre = null) {
   if (shown2 || !P.mem?.hold || !SQUAD_CHIPS.has(c) || !P.gws.includes(g)) return shown2;
   if (pre?.state === "solving") return { wait: true };
   if (c === "fh" && pre?.state === "ready" && P.comparable && P.road) {
-    return { cmp: ownCount(ctx2, pre.cmp, pre.road, P.road, g), vs: COPY.planVsRoll };
+    return { cmp: sameWindow(pre.road, P.road, g) ? ownCount(ctx2, pre.cmp, pre.road, P.road, g) : pre.cmp, vs: COPY.planVsRoll };
   }
   return pre?.state === "ready" ? plansListed(ctx2, P, g).chipOf?.(c, pre.road) ?? null : null;
 }
@@ -16262,10 +16289,7 @@ function mountSolveLog(ctx2) {
     paint();
     const e = ctx2.store.get("entry");
     if (e != null) ctx2.api.clearSolves(e).then(() => {
-      try {
-        localStorage.removeItem(ROADS(String(e)));
-      } catch {
-      }
+      for (const key of [ROADS(e), CHIP_ROADS(e)]) ctx2.api.local.set(key, null);
       location.reload();
     }, () => {
     });
@@ -16331,6 +16355,7 @@ var init_solvelog = __esm({
   "js/m/ahead/solvelog.js"() {
     init_values();
     init_live();
+    init_chip_cache();
     init_core();
     HIDDEN_FLAG = /^--(entry|poll-max-age)=/;
     PLAYER_FLAG = /^--(must-have|exclude|not-for-gw|for-gw|[a-z-]*(keep|sell|buy|captain|vice|bench)[a-z-]*)=/;
@@ -16928,7 +16953,7 @@ function ticketPart(V) {
     );
   }
   function paintTicket(P, w, M2, tk = []) {
-    const { S, ctx: ctx2, dlEl, bringDoor, chipsDoor, inkAt: inkAt2, openWeek, rsBtn, setGw, stack, strip } = V;
+    const { S, ctx: ctx2, dlEl, bringDoor, inkAt: inkAt2, openWeek, rsBtn, setGw, stack, strip } = V;
     const block = strip.querySelector(":scope > .ah-ticket"), waited = S.cardWait;
     S.cardWait = null;
     if (!block || !w) {
@@ -17108,7 +17133,7 @@ function ticketPart(V) {
       const cmp = chipGain(ctx2, P, g);
       const rounds = cmp?.counted ? sameWindow(...cmp.counted, g) : 0;
       title = withMine(chipName(w.chip));
-      line = withCompare(cmp ? moveLine(ctx2, cmp.delta, false, rounds || P.gws.filter((x) => x >= g).length, COPY.planVs(true), true, shownDelta(cmp)) : M2?.sq ? plural(w.moves.length, "change") : COPY.waitShort);
+      line = withCompare(cmp ? moveLine(ctx2, cmp.delta, false, rounds || P.gws.filter((x) => x >= g).length, COPY.planVs(true), true, shownDelta(cmp)) : M2?.sq ? plural(w.moves.length, "change") : null);
       right = onward;
     } else if (M2?.live) {
       title = M2.liveText;
@@ -17156,12 +17181,9 @@ function ticketPart(V) {
       candidates: constrained ? [{ pl: constrained.candidate.pl, moves: constrained.candidate.e.adds }] : (M2?.plans ?? []).filter((pl) => pl.solver && !pl.refRow).map((pl) => ({ pl, moves: pl.choice.moves.filter((m) => !w.moves.some((y) => y.out === m.out && y.in === m.in)) })),
       status: currentOffer ? "Suggestion" : who2?.pending ? "Calculating" : who2 ? "Choosing a player" : M2?.live ? "Live week" : solving ? "Calculating" : yours.length ? "Your transfers" : wanted && ans ? "Save transfers" : "Suggestion not requested"
     });
-    if (S.doors?.g !== g || S.doors.editable !== P.editable) S.doors = { g, editable: P.editable, of: [bringDoor(P, g), chipsDoor(P, g)] };
-    const chips = who2 && !currentOffer || inkAt2(ctx2, P, g) ? null : S.doors.of;
-    if (chips) {
-      chips[0].textContent = COPY.bringInPlayer;
-      chips[1].textContent = COPY.playAChip;
-    }
+    if (S.bringDoor?.g !== g || S.bringDoor.editable !== P.editable) S.bringDoor = { g, editable: P.editable, node: bringDoor(P, g) };
+    const bring = who2 && !currentOffer || inkAt2(ctx2, P, g) ? null : S.bringDoor.node;
+    if (bring) bring.textContent = COPY.bringInPlayer;
     const was = P.bare?.has(g) ? tickWas(w, P.bare.get(g)) : null;
     const held2 = rsBtn === document.activeElement;
     const sheetHas = w.moves.length > 1 || !!M2?.sq || !!M2?.live || !!M2?.notices?.length || !!M2?.plans?.some((pl) => !pl.refRow) || !!V.asksHost?.firstChild;
@@ -17184,7 +17206,7 @@ function ticketPart(V) {
     );
     fitRows(block);
     const sug = block.querySelector(":scope > .ah-tkbody .ah-tksug");
-    const bringBy = chips && !noBring && sug ? chips[0] : null;
+    const bringBy = bring && !noBring && sug ? bring : null;
     if (bringBy) sug.append(bringBy);
     const both = [left, right].filter(Boolean);
     const acts = block.querySelector(":scope > .ah-tkacts"), kids = keptActs(g, both.length ? both : [h("span.ah-tkpad", { "aria-hidden": "true" })]);
@@ -17194,9 +17216,7 @@ function ticketPart(V) {
     fill(
       block.querySelector(":scope > .ah-tklinks"),
       h("span.ah-tkback", null, who2 ? who2.previous && backButton(`tk:prev:${g}`, () => previousPurchase(ctx2, who2)) : [toChoice, undo && (!toChoice || last) && !prev ? backButton(`tk:undo:${g}`, undo, undoWords, !!onTop || !swaps && (!!refused || shown2)) : null, prev], rsBtn),
-      // (chips off, calls.js CHIPS_OFF: no Play a chip at all, never a link a tap does nothing on; owner, 2026-11-09, "why play
-      // a chip not respond")
-      chips ? h("span.ah-tkor", null, noBring || bringBy ? null : chips[0], CHIPS_OFF ? null : chips[1]) : null
+      bring && !noBring && !bringBy ? h("span.ah-tkor", null, bring) : null
     );
     if (held2) rsBtn.focus({ preventScroll: true });
     V.paintBoard(P, w, after);
@@ -18255,13 +18275,31 @@ function chipBests(at2, gws, noise = 0) {
   }
   return best;
 }
+function withoutScoringChip(P, g) {
+  return { weeks: P.weeks.map((w) => {
+    if (w.gw !== g || !["bb", "tc"].includes(w.chip)) return w;
+    const without = { ...w, chip: null };
+    return { ...without, points: weekPoints(without, P.L.xp) };
+  }) };
+}
+function chipCompare(ctx2, P, g, candidate, reference) {
+  const gws = P.gws.filter((x) => x >= g);
+  if (![candidate, reference].every((r) => gws.every((x) => r?.weeks?.some((w) => w.gw === x)))) return null;
+  const window = (r) => ({ weeks: r.weeks.filter((w) => gws.includes(w.gw)) });
+  return compare2(ctx2, window(candidate), window(reference));
+}
 function chipGain(ctx2, P, g) {
   let by = CHIP_GAINS.get(P);
   if (!by) CHIP_GAINS.set(P, by = /* @__PURE__ */ new Map());
   if (!by.has(g)) {
-    const id = `chip:${g}`;
-    const ref = P.pins.some((p) => p.id === id) ? baked(ctx2, [], [id], P) : baked(ctx2, [pinChip(g, null)], [], P);
-    by.set(g, ref?.weeks ? compare2(ctx2, { weeks: P.weeks }, asYours(ctx2, ref)) : null);
+    const w = weekOf(P, g);
+    if (w?.chip === "bb" || w?.chip === "tc") {
+      by.set(g, chipCompare(ctx2, P, g, P, withoutScoringChip(P, g)));
+    } else {
+      const id = `chip:${g}`;
+      const ref = P.pins.some((p) => p.id === id) ? baked(ctx2, [], [id], P) : baked(ctx2, [pinChip(g, null)], [], P);
+      by.set(g, ref?.weeks ? compare2(ctx2, { weeks: P.weeks }, asYours(ctx2, ref)) : null);
+    }
   }
   return by.get(g) ?? (P.mem && typeof P.mem === "object" ? toldOf(P, g) : null) ?? null;
 }
@@ -18273,16 +18311,21 @@ function chipWeekGain(ctx2, P, g, listed = (x) => plansOf(ctx2, P, x)) {
 function chipStates(ctx2, P, g, src = null) {
   const w = weekOf(P, g), half = halfEnd(P), avail = chipsAvail(P, g);
   const used = P.b.entry?.chips_used || [];
-  const { here, best: bests } = halfBests(P, src, g);
-  const last = here[here.length - 1];
-  const after = last < (g <= half ? half : LAST_ROUND) ? last : null;
+  const { here, best } = halfBests(P, src, g);
+  const last = here[here.length - 1], after = last < (g <= half ? half : LAST_ROUND) ? last : null;
   return CHIP_ROW.map((c) => {
     if (w?.chip === c) {
       const mine = chipPins(P).some((x) => x.chip === c && x.gw === g);
       if ((P.mark ?? P.approx).has(g)) return { chip: c, state: "on", mine, solving: true };
       if (!SQUAD_CHIPS.has(c)) return { chip: c, state: "on", mine, cmp: chipGain(ctx2, P, g) };
-      const v = chipWeekGain(ctx2, P, g, (x) => plansListed(ctx2, P, x));
-      return { chip: c, state: "on", mine, cmp: v.cmp, solving: v.wait, ...v.vs ? { vs: v.vs } : {} };
+      const base = src?.baseline?.(g);
+      return {
+        chip: c,
+        state: "on",
+        mine,
+        cmp: base?.state === "ready" ? chipCompare(ctx2, P, g, P, base.plan) : null,
+        solving: base?.state === "solving"
+      };
     }
     if (!avail.includes(c)) {
       const u = used.find((x) => x.chip === c && x.gw <= half === g <= half);
@@ -18290,26 +18333,15 @@ function chipStates(ctx2, P, g, src = null) {
     }
     const at2 = plannedAt(P, c, g);
     if (at2 != null) return { chip: c, state: "moved", at: at2 };
-    const squad = !!src && SQUAD_CHIPS.has(c);
-    const rolled = squad && !!P.mem?.hold;
-    const pre = src ? src.at(c, g) : null;
-    const sb = squad ? halfBests(P, src, g).best : bests;
-    const wk = squad ? chipWeekOf(P, src, c, g) : null;
-    const pick = squad ? here.includes(wk?.gw) ? wk : null : sb ? honestBest({ best: sb }, c) : null;
-    const numAt = (x) => rolled ? chipNumber(ctx2, P, x, c, src.at(c, x)) : chipShown(ctx2, P, x, c);
-    const far = squad && pick && pick.gw !== g ? numAt(pick.gw) : null;
-    const near = squad && (rolled || !w?.chip) ? numAt(g) : null;
-    const own = near?.cmp ? near : null;
+    const pre = src?.at(c, g);
     return {
       chip: c,
       state: w?.chip ? "swap" : "free",
       instead: w?.chip ?? null,
-      cmp: own?.cmp ?? (near?.wait || rolled ? null : pre?.state === "ready" ? pre.cmp : null),
-      solving: !!near?.wait || !own && !rolled && pre?.state === "solving",
-      ...rolled ? { vs: COPY.planVsRoll } : {},
-      ...own ? { pays: own.pays, vs: own.vs } : {},
-      best: pick && squad ? { ...pick, delta: far?.cmp?.delta ?? (pick.gw === g ? own?.cmp.delta ?? null : null), vs: far?.vs ?? own?.vs ?? null } : pick,
-      top: sb?.[c] ?? null,
+      cmp: pre?.state === "ready" ? pre.cmp : null,
+      solving: pre?.state === "solving",
+      best: best ? honestBest({ best }, c) : null,
+      top: best?.[c] ?? null,
       final: !!src && here.every((x) => chipSettled(src.at(c, x))) && here.some((x) => src.at(c, x).state === "ready"),
       wait: src ? chipWait(src, c, here) : null,
       after
@@ -18360,17 +18392,25 @@ function prepSlots(ctx2, P) {
   if (m.slots) return m.slots;
   if (!P.editable || !ctx2.api?.solve) return m.slots = [];
   const taken = new Set(P.weeks.filter((w) => w.chip).map((w) => w.gw));
-  return m.slots = P.gws.filter((g) => !isFrozen(P, g)).flatMap((g) => CHIP_ROW.filter((c) => plannedAt(P, c) == null && chipCheck(ctx2, P, c, g).ok).map((c) => ({ chip: c, gw: g, taken: taken.has(g) })));
+  return m.slots = P.gws.filter((g) => !isFrozen(P, g)).flatMap((g) => [
+    ...squadWeek(weekOf(P, g)) ? [{ chip: null, gw: g, reference: true }] : [],
+    ...CHIP_ROW.filter((c) => plannedAt(P, c) == null && chipCheck(ctx2, P, c, g).ok).map((c) => ({ chip: c, gw: g, taken: taken.has(g) }))
+  ]);
 }
 function prepItems(ctx2, P) {
   const m = prepMemo(ctx2, P);
   if (m.items) return m.items;
   try {
     m.items = prepSlots(ctx2, P).map((x) => {
-      const e = chipEdit(P, x.gw, x.chip);
+      const e = x.reference ? chipOffParts(P, x.gw) : chipEdit(P, x.gw, x.chip);
+      if (x.reference) e.pins = [...e.pins, pinChip(x.gw, null)];
       const values = valuesFor(ctx2, e.pins, e.drop);
       return { ...x, edit: e, values, key: valuesKey(P, values) };
     });
+    const keys = new Set(m.items.map((x) => x.key));
+    for (const { key, road } of chipRoads(ctx2.api?.local, P.entry)) {
+      if (keys.has(key) && !PREPS.has(key)) prepKeep(key, road);
+    }
   } catch (e) {
     console.error("Forkcast: chip preparations", e);
     m.items = [];
@@ -18385,17 +18425,27 @@ function chipPreps(ctx2, P = plan(ctx2)) {
     const items = prepItems(ctx2, P);
     const by = new Map(items.map((x) => [`${x.chip}@${x.gw}`, x]));
     const asked = (c, g) => PREP_ASKED.get(by.get(`${c}@${g}`)?.key) ?? null;
+    const bases = /* @__PURE__ */ new Map();
+    const baseline2 = (g) => {
+      if (!bases.has(g)) {
+        const it = by.get(`null@${g}`), got = it ? PREPS.get(it.key) : null;
+        bases.set(g, !squadWeek(weekOf(P, g)) ? { state: "ready", plan: withoutScoringChip(P, g) } : got?.weeks ? { state: "ready", plan: asYours(ctx2, got) } : got ? { state: "none", error: got } : { state: "solving" });
+      }
+      return bases.get(g);
+    };
     const memo3 = /* @__PURE__ */ new Map();
     const at2 = (c, g) => {
       const k = `${c}@${g}`;
       if (!memo3.has(k)) {
         const asked2 = chipsAsked2(ctx2).includes(g), it = asked2 ? by.get(k) : null;
         const got = it ? PREPS.get(it.key) : null;
-        memo3.set(k, !it ? { state: "none", ...!asked2 && by.has(k) ? { unasked: true } : {} } : got?.weeks ? { state: "ready", road: got, cmp: compare2(ctx2, asYours(ctx2, got), { weeks: P.weeks }) } : got ? { state: "none", error: got } : { state: "solving" });
+        const base = baseline2(g);
+        const cmp = got?.weeks && base.state === "ready" ? chipCompare(ctx2, P, g, asYours(ctx2, got), base.plan) : null;
+        memo3.set(k, !it ? { state: "none", ...!asked2 && by.has(k) ? { unasked: true } : {} } : P.healing ? { state: "solving" } : cmp ? { state: "ready", road: got, cmp } : got && !got.weeks || base.error ? { state: "none", error: base.error ?? got } : got?.weeks && base.state === "ready" ? { state: "none", error: "Incomplete chip comparison" } : { state: "solving" });
       }
       return memo3.get(k);
     };
-    PREP_VIEW.set(P, r = { at: at2, asked, best: chipBests(at2, P.gws, P.noise), items, gen: PREP.gen, ak });
+    PREP_VIEW.set(P, r = { at: at2, asked, baseline: baseline2, best: chipBests(at2, P.gws, P.noise), items, gen: PREP.gen, ak });
   }
   pumpPreps(ctx2, P, r.items);
   return r;
@@ -18404,7 +18454,7 @@ function pumpPreps(ctx2, P, items) {
   if (PREP.mem !== memOf(ctx2)) Object.assign(PREP, { mem: memOf(ctx2), flight: null, until: 0 });
   if (PREP.flight || leftBehind(ctx2, P)) return;
   const viewed = Number(ctx2.store.get("gw"));
-  const order = (x) => (x.taken ? 2 : 0) + (x.gw === viewed ? 0 : 1);
+  const order = (x) => (x.gw === viewed ? 0 : 4) + (x.reference ? 0 : x.taken ? 2 : 1);
   const asked = chipsAsked2(ctx2);
   const next = items.filter((x) => asked.includes(x.gw) && !PREPS.has(x.key)).sort((a, b) => order(a) - order(b) || a.gw - b.gw)[0];
   if (!next) return;
@@ -18418,8 +18468,10 @@ function pumpPreps(ctx2, P, items) {
   if (!PREP_ASKED.has(next.key)) PREP_ASKED.set(next.key, Date.now());
   while (PREP_ASKED.size > PREPS_MAX) PREP_ASKED.delete(PREP_ASKED.keys().next().value);
   solveKept(ctx2.api, { entry: Number(P.entry), purpose: "chipprep", values: next.values }).then((res) => {
-    if (res.road || res.state === "error") prepKeep(next.key, res.road ?? "error");
-    else if (ours()) PREP.until = Date.now() + PREP_TIMING.again;
+    if (res.road || res.state === "error") {
+      prepKeep(next.key, res.road ?? "error");
+      if (res.road && res.version != null && res.version === P.b.version) keepChipRoad(ctx2.api?.local, P.entry, next.key, res.road);
+    } else if (ours()) PREP.until = Date.now() + PREP_TIMING.again;
   }, () => {
     if (ours()) PREP.until = Date.now() + PREP_TIMING.hold;
   }).finally(() => {
@@ -18443,6 +18495,7 @@ var init_pieces = __esm({
     init_kits();
     init_calls();
     init_memory();
+    init_chip_cache();
     init_core();
     init_edits();
     init_plans();
@@ -21726,22 +21779,14 @@ function open2(ctx2, { gw } = {}) {
       let step = { done: -1, at: opened, max: 0 };
       body.append(sub2, wbox, list, foot);
       let drawn = null;
-      const vsOf = (r) => r.vs ?? (r.state === "swap" ? COPY.chipVsIt : COPY.chipNoChip);
-      const factOf = (r, P) => {
-        const vs = r.cmp || r.state === "swap" && !r.vs ? COPY.chipVs(vsOf(r)) : null;
-        if (r.state === "on") return COPY.chipFact(r.mine ? COPY.chipTakeOff : COPY.chipByForkcast, vs);
+      const factOf = (r) => {
+        if (r.state === "on") return r.mine ? COPY.chipTakeOff : COPY.chipByForkcast;
         if (r.state === "off") return COPY.chipPlayed(r.at, r.back);
         if (r.state === "moved") return COPY.chipMoveHere(r.at);
-        if (r.state === "swap") return COPY.chipFact(COPY.chipInstead(r.instead), vs);
-        if (r.best) {
-          return COPY.chipFact(
-            r.best.gw === g ? COPY.chipBestHere : COPY.chipBestAt(r.best.gw, r.best.delta, vs && r.best.vs === r.vs ? null : r.best.vs ?? (r.best.delta != null ? COPY.chipNoChip : null)),
-            vs,
-            r.after != null ? COPY.chipAfter(r.after) : null
-          );
-        }
-        if (!r.final) return COPY.chipFact(r.wait ? COPY.chipBestPlanning(r.wait.g, r.wait.i, r.wait.n, r.wait.part) : null, vs) || null;
-        return COPY.chipFact(r.top && !r.top.clear ? COPY.chipNoBest(r.top, r.after, (r.chip === "fh" || r.chip === "wc") && !!P?.mem?.hold) : COPY.chipNoGain, vs);
+        if (r.state === "swap") return COPY.chipInstead(r.instead);
+        if (r.best) return r.best.gw === g ? COPY.chipBestHere : COPY.chipBestAt(r.best.gw, r.best.delta);
+        if (!r.final) return r.wait ? COPY.chipBestPlanning(r.wait.g) : null;
+        return r.top && !r.top.clear ? COPY.chipNoBestName : COPY.chipNoGain;
       };
       const t0Of = (r) => r.state === "free" && !r.best && !r.final ? r.wait?.t0 ?? null : null;
       const clockOf = () => null;
@@ -21756,13 +21801,13 @@ function open2(ctx2, { gw } = {}) {
         const n = seen.size, done = n - waiting.length, t0 = Math.min(...waiting.map((r) => t0Of(r) ?? opened));
         if (step.done !== done) step = { done, at: now, max: step.max };
         const p = step.max = Math.max(step.max, stepShare(done, n, reduceMotion() ? 0 : now - step.at, done ? (step.at - t0) / done : 4e3));
-        paintWaitView(wv, { key: "chips", word: COPY.waitWord, scope: "chips", long: `GW${g}'s chips`, prog: `${done + 1} of ${n}`, so: (now - t0) / 1e3, p });
+        paintWaitView(wv, { key: "chips", word: "Checking", scope: "chips", long: `GW${g}'s chips`, prog: `${done + 1} of ${n}`, so: (now - t0) / 1e3, p });
       };
       const clocksOf = (rows) => rows.map(t0Of).join("|");
       const numberOf = (r) => r.cmp ? [xpGain(shownDelta(r.cmp))] : r.solving ? h("small", null, COPY.waitShort) : null;
       const saidOf = (r, fact) => {
         const n = chipName(r.chip);
-        const pts2 = r.cmp ? `: ${fmt.signed(shownDelta(r.cmp))} points over ${COPY.span(P0.gws.filter((x) => x >= g))} vs ${r.vs ?? (r.state === "swap" ? chipName(r.instead) : COPY.chipNoChip)}` : "";
+        const pts2 = r.cmp ? `: ${fmt.signed(shownDelta(r.cmp))} points over ${COPY.span(P0.gws.filter((x) => x >= g))} ${COPY.chipVs(COPY.chipNoChip)}` : "";
         if (r.state === "on") return `${n} planned for GW${g}${r.mine ? "" : " by Forkcast"}${pts2}. Takes it off.`;
         if (r.state === "off") return `${n}: ${fact.toLowerCase()}.`;
         if (r.state === "moved") return `Move ${n} from GW${r.at} to GW${g}.`;
@@ -21778,7 +21823,7 @@ function open2(ctx2, { gw } = {}) {
         const can = P.editable && !inkAt(ctx2, P, g);
         const focused = globalThis.document?.activeElement?.closest?.(".cs [data-chip]")?.dataset.chip ?? null;
         fill(list, rows.map((r) => {
-          const fact = factOf(r, P);
+          const fact = factOf(r);
           return h(
             "button.ah-lrow",
             {

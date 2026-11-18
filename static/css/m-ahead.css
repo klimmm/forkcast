@@ -1447,12 +1447,18 @@ bench never grey out only pitch", "the top panel must also grey out"; .ah-pitch.
 .m-screen.ah .ah-pitch .pm > .ah-pdbtn::before { inset: 0 0 -20px -6px; }
 .m-screen.ah .ah-pitch .pm > .ah-pdbtn:active { background: var(--tk-night); }
 .m-screen.ah .ah-pitch .pm .pm-bench { background: none !important; border: 0; box-shadow: none; border-radius: 0; margin: 0; padding: 0; }
-/* Bench Boost must remain visible in the compact pitch: the generic bench reset above previously erased its ring. */
-.m-screen.ah .ah-pitch .pm[data-chip="bb"] .pm-bench { position: relative; z-index: 1; box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 5px var(--boost); }
-.m-screen.ah .ah-pitch .pm[data-chip="bb"] .pm-bench::before {
-  content: "BB"; position: absolute; z-index: 3; left: 6px; top: 6px; padding: 2px 5px; border-radius: 3px;
-  background: var(--boost); color: var(--tk-ink); font: 700 var(--tk4)/1 var(--f-text);
+/* FPL's translucent panel and rounded white/cyan BB frame (team/Subs, fantasy.premierleague.com).
+   Paint behind the existing row: no added label, border or padding to change the bench or player geometry. */
+.m-screen.ah .ah-pitch .pm[data-chip="bb"] .pm-benchzone {
+  position: relative; background: linear-gradient(var(--turf-1), var(--tk-night)) !important;
 }
+.m-screen.ah.ah-wait .ah-pitch .pm[data-chip="bb"] .pm-benchzone { background: var(--tk-wait) !important; }
+.m-screen.ah .ah-pitch .pm[data-chip="bb"] .pm-benchzone::before {
+  content: ""; position: absolute; inset: -1px 8px; border-radius: 12px 12px 0 0; pointer-events: none;
+  background: linear-gradient(to top, transparent, rgb(255 255 255 / .35) 87.91%);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--boost);
+}
+.m-screen.ah .ah-pitch .pm[data-chip="bb"] .pm-bench { position: relative; }
 .m-screen.ah .ah-pitch .pm .pm-bs, .m-screen.ah .ah-pitch .pm .pm-pl { outline: 0; box-shadow: none !important; background: none; border: 0; }
 .m-screen.ah .ah-pitch .pm .pm-card.ah-sold::before, .m-screen.ah .ah-pitch .pm .pm-card.ah-sold::after { content: none; }
 /* the stack: one list top to bottom, GW13 to GW10: later weeks above the ticket, earlier ones under it, the nearest widest

@@ -3,7 +3,7 @@
 
 import { showDiagnostics } from './diagnostics.js';
 import { h, fill, fmt, plural, reduceMotion, chipName, xpGain, xpNum } from '../../ui.js';
-import { CHIPS_OFF, COPY, shownDelta } from '../calls.js';
+import { COPY, shownDelta } from '../calls.js';
 import { MINUS, memOf, pairAsPlaced, plan, viewOfRoadWeek, weekOf } from './core.js';
 import { forkRead } from './plans/forks.js';
 import { cardGain, forecastGain, swapForecast, extraWeek, owedAt, owedRoad, presolveSwap, refusalRoads, removeWeek, showSuggestion, showTransfer, showingAt, tappedSuggestion, tookOf, tookSaid, sameWindow, windowRounds } from './presolve.js';
@@ -184,7 +184,7 @@ export function ticketPart(V) {
       h('div.ah-tkbody', null, h('div.ah-tkrow', null, h('span.ah-tkg', null, `GW${g}`), dlEl, h('span.ah-tkx.m-num', null, h('span.m-skel'))), h('div.ah-tktitle', null, h('h2.ah-tkhead', null, title))),
       barNode({ cls: '.ah-pbake' }), rest, h('div.ah-tkacts', null, action), h('div.ah-tklinks'));
   }
-  function paintTicket(P, w, M, tk = []) { const { S, ctx, dlEl, bringDoor, chipsDoor, inkAt, openWeek, rsBtn, setGw, stack, strip } = V;
+  function paintTicket(P, w, M, tk = []) { const { S, ctx, dlEl, bringDoor, inkAt, openWeek, rsBtn, setGw, stack, strip } = V;
     const block = strip.querySelector(':scope > .ah-ticket'), waited = S.cardWait;
     S.cardWait = null;
     if (!block || !w) { if (waited != null) V.paintWait(); return; }
@@ -395,7 +395,7 @@ export function ticketPart(V) {
       title = withMine(chipName(w.chip));
       line = withCompare(cmp
         ? moveLine(ctx, cmp.delta, false, rounds || P.gws.filter((x) => x >= g).length, COPY.planVs(true), true, shownDelta(cmp))
-        : M?.sq ? plural(w.moves.length, 'change') : COPY.waitShort);
+        : M?.sq ? plural(w.moves.length, 'change') : null);
       right = onward;
     } else if (M?.live) {
       title = M.liveText;
@@ -431,11 +431,10 @@ export function ticketPart(V) {
     showDiagnostics(ctx, P, w, { asked, wanted, offerable: !!currentOffer, solving: who ? !!who.pending : solving, failed, short: !!short, freeLeft, refused,
       comparison: diagnosticComparison, candidate: currentOffer?.candidate, playerChoice: !!who, candidates: constrained ? [{ pl: constrained.candidate.pl, moves: constrained.candidate.e.adds }] : (M?.plans ?? []).filter(pl => pl.solver && !pl.refRow).map(pl => ({ pl, moves: pl.choice.moves.filter(m => !w.moves.some(y => y.out === m.out && y.in === m.in)) })),
       status: currentOffer ? 'Suggestion' : who?.pending ? 'Calculating' : who ? 'Choosing a player' : M?.live ? 'Live week' : solving ? 'Calculating' : yours.length ? 'Your transfers' : wanted && ans ? 'Save transfers' : 'Suggestion not requested' });
-    // (the same two buttons from paint to paint of a week: a paint between a finger's down and up took its tap, a solve
-    // landing as you tap "bring in a player")
-    if (S.doors?.g !== g || S.doors.editable !== P.editable) S.doors = { g, editable: P.editable, of: [bringDoor(P, g), chipsDoor(P, g)] };
-    const chips = (who && !currentOffer) || inkAt(ctx, P, g) ? null : S.doors.of;
-    if (chips) { chips[0].textContent = COPY.bringInPlayer; chips[1].textContent = COPY.playAChip; }
+    // Keep Bring in a player's button through repaints so a solve landing cannot take its tap.
+    if (S.bringDoor?.g !== g || S.bringDoor.editable !== P.editable) S.bringDoor = { g, editable: P.editable, node: bringDoor(P, g) };
+    const bring = (who && !currentOffer) || inkAt(ctx, P, g) ? null : S.bringDoor.node;
+    if (bring) bring.textContent = COPY.bringInPlayer;
     // the week's points with no transfers of yours, struck before its own, as on its tab (renderRail)
     const was = P.bare?.has(g) ? tickWas(w, P.bare.get(g)) : null;
     const held = rsBtn === document.activeElement;
@@ -454,7 +453,7 @@ export function ticketPart(V) {
     // in the row under the buttons; owner, 2026-11-11, "move 'bring in a player' next to 'compare players'")
     fitRows(block);
     const sug = block.querySelector(':scope > .ah-tkbody .ah-tksug');
-    const bringBy = chips && !noBring && sug ? chips[0] : null;
+    const bringBy = bring && !noBring && sug ? bring : null;
     if (bringBy) sug.append(bringBy);
     // (…that row under the buttons on every card, the buttons up in its place; owner, 2026-11-11, "raise the button to
     // where compare players was and compare players to the button's place")
@@ -467,7 +466,7 @@ export function ticketPart(V) {
     for (const old of block.querySelectorAll(':scope > .ah-tksug')) if (old !== sug) old.remove();
     if (sug) acts.after(sug);
     // every other thing the card does, one row under its two buttons (design_1109a slip): the take-back, Reset all weeks,
-    // Bring in a player, Play a chip
+    // Bring in a player
     // (one take-back: a Previous where the card has one, the older edit's Undo then on the card it goes back to; owner,
     // 2026-11-09, "fix bug with multiple buttons of 'previous / undo / reset'")
     // (one take-back, first in the row: where transfers of yours stand on the card, theirs, "Undo transfer", in one tap on
@@ -477,9 +476,7 @@ export function ticketPart(V) {
     fill(block.querySelector(':scope > .ah-tklinks'), h('span.ah-tkback', null, who
       ? who.previous && backButton(`tk:prev:${g}`, () => previousPurchase(ctx, who))
       : [toChoice, undo && (!toChoice || last) && !prev ? backButton(`tk:undo:${g}`, undo, undoWords, !!onTop || (!swaps && (!!refused || shown))) : null, prev], rsBtn),
-      // (chips off, calls.js CHIPS_OFF: no Play a chip at all, never a link a tap does nothing on; owner, 2026-11-09, "why play
-      // a chip not respond")
-      chips ? h('span.ah-tkor', null, noBring || bringBy ? null : chips[0], CHIPS_OFF ? null : chips[1]) : null);
+      bring && !noBring && !bringBy ? h('span.ah-tkor', null, bring) : null);
     if (held) rsBtn.focus({ preventScroll: true });
     V.paintBoard(P, w, after);
     playStack(g);

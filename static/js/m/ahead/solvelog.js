@@ -6,6 +6,7 @@
 
 import { ANSWERED } from '../memory/values.js';
 import { ROADS } from '../memory/live.js';
+import { CHIP_ROADS } from '../memory/chip-cache.js';
 import { info } from './core.js';
 
 /** A player-carrying solver flag (--must-have=71824@6-6, --not-for-gw=12:301440:439533, …): each player id in it by his
@@ -59,7 +60,10 @@ export function mountSolveLog(ctx) {
     const e = ctx.store.get('entry');
     // (…and the plan this device keeps (memory/live.js ROADS: the solver's best, read at once on a reload), so the reload
     // asks it too; owner, 2026-11-09, "remove any 'server plans' so all solves requested and cached by page")
-    if (e != null) ctx.api.clearSolves(e).then(() => { try { localStorage.removeItem(ROADS(String(e))); } catch { /* no storage */ } location.reload(); }, () => {});
+    if (e != null) ctx.api.clearSolves(e).then(() => {
+      for (const key of [ROADS(e), CHIP_ROADS(e)]) ctx.api.local.set(key, null);
+      location.reload();
+    }, () => {});
   });
   // (the lines redrawn every half second in a list of their own, the buttons never: a tap spanning a redraw kept)
   const list = document.createElement('div');

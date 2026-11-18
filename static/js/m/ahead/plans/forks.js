@@ -5,11 +5,12 @@ import { solveGap } from '../../api.js';
 import { hitCap } from '../../calls.js';
 import { attach, makePin, pinSell, pinHits, pinRoll, isRoll, solveKept, solvedLineup } from '../../memory.js';
 import { noteAnswer } from '../../memory/values.js';
+import { keepChipRoad } from '../../memory/chip-cache.js';
 import { range } from '../../memory/pins.js';
 import { baseOf, compare, draftOf, flatMoves, info, inputs, leftBehind, memOf, num, plan, problemOf, roadDraft, sameMove, valuesFor, valuesKey, weekOf, withMoves } from '../core.js';
 import { chainOf, chipBackOf, chipEdit, chipOffParts, derivedPin } from '../edits.js';
 import { AHEAD, PAIR, PAIR_AGAIN_MS, PAIR_HOLD_MS, PAIR_TAKES, PREP_BESIDE, aheadAsks, aheadWaited, clearRoots, madeEarlier, noHitsFrom, pairChanged, pinOfMove, pumpAhead, repicks, mayAnswer, rootStill, ownLeft, tapSpent } from '../presolve.js';
-import { prepsWaiting, squadWeek } from '../pieces.js';
+import { prepItems, prepsWaiting, squadWeek } from '../pieces.js';
 import { SQUAD_CHIPS, ownAfter } from './suggest.js';
 import { keepNewest } from './choices.js';
 
@@ -391,6 +392,10 @@ export function forkPump(ctx, P, ask) {
   const p = solveKept(ctx.api, { entry: Number(P.entry), purpose, values: ask.values, ...(lane ? { lane } : {}), swap: true }, { ...(lane ? { slot: `fork${lane}` } : {}), onUpdate: (s) => { if (s?.key) flight.sk = s.key; } }, forkSaid(ctx, P, ask, prep));
   flight.cancel = () => p.cancel?.();
   p.then((res) => {
+      // A chip prepared by the suggestion lane is the same saved option as one prepared by Chips… itself.
+      if (res.road && res.version != null && res.version === P.b.version && prepItems(ctx, P).some((x) => x.key === ask.key)) {
+        keepChipRoad(ctx.api?.local, P.entry, ask.key, res.road);
+      }
       // a tap's solve asked ahead: its answer memory's for exactly those values (presolve); one that failed for another
       // reason than your rules is never asked again on this page (no cost: the tap heals as before)
       if (ask.ahead && (res.road || res.state === 'error')) {

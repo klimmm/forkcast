@@ -233,8 +233,8 @@ export const COPY = Object.freeze({
       'Bench Boost: hold the bench where no shirt is.',
       `The same hold again, or ${COPY.chipTakeOff} in ${COPY.chipsDoor}, takes it off.`,
       'Best week: of the GWs your plan covers in its half of the season, where it gains most against not playing it.',
-      // one baseline per chip (owner, 2026-10-22; ahead.chipNumber), each row naming its own
-      'A Wildcard or Free Hit\'s number is vs rolling that GW, as a plan\'s. Bench Boost and Triple Captain: vs not playing it.',
+      'Every chip is compared with the same plan with no chip played that week, over the displayed gameweeks.',
+      'These numbers do not compare using a chip now with saving it for a later week.',
       `${COPY.chipNoBestName}: no GW beats the next best by enough to act on. GWs past your plan aren't planned.`,
       `A chip's numbers can take minutes; its row says ${COPY.waitShort} until then.`,
     ], 'chips'],
@@ -459,27 +459,22 @@ export const COPY = Object.freeze({
   /** Its door at the week line's right end (ahead.js bringDoor). */
   bringInShort: 'Bring in',  /* its "…" a "›" (m-ahead.css .ah-door::after; "…" only a cut word) */
   /** The week line's Chips… door and sheet (ahead.chipsDoor, sheets/chips.js): title, spoken label, the line under the
-   *  title (each number's span; the baseline is each row's own: chipNoChip), and each row's name and one fact
+   *  title (the shared no-chip baseline and each number's span), and each row's name and one fact
    *  (chipStates). */
   chipsDoor: 'Chips',  /* as Bring in's: "›" drawn, FPL's own word */
   chipsIn: (gw) => `Chips in GW${gw}`,
   chipsSaid: (gw, chip = null) => (chip ? `Chips in GW${gw}, ${chipName(chip)} planned` : `Chips in GW${gw}`),
   chipsSub: (gws) => `Points over ${span(gws)}`,
-  /** A Chips… row's baseline, in its fact (owner, 2026-10-22: "vs rolling everywhere"): a Wildcard's or Free Hit's its
-   *  own (`vs`: rolling), a Bench Boost's or Triple Captain's not playing it (they change no transfer: vs rolling would
-   *  fold the week's transfers into it), a swap row's the chip it replaces ("vs it"). */
-  chipNoChip: 'not playing it',
-  // a row whose chip replaces the week's: its number is against that chip
+  /** All chip comparisons share the no-chip plan for the selected week. */
+  chipNoChip: 'no chip',
   chipOn: (c) => `${chipName(c)} ✓`,
   chipByForkcast: 'By Forkcast · Take it off',
   chipMoveHere: (gw) => `In GW${gw} · Move it here`,
   chipInstead: (c) => `Instead of ${chipName(c)}`,
   chipVsIt: 'it',
   chipBestHere: 'Its best week',
-  /** …another week's: its number where known (for a Wildcard or Free Hit the pitch's choice that week, `vs` its
-   *  baseline), none while that choice is checked. */
-  chipBestAt: (gw, delta = null, vs = null) => `Best week: GW${gw}${delta != null ? `\u00a0${fmt.signed(delta)}${vs ? ` ${COPY.chipVs(vs)}` : ''}` : ''}`,
-  /** A row's baseline in its fact: "vs rolling", "vs not playing it" (chipNoChip), "vs it" (chipVsIt). */
+  /** Another week's gain uses the same no-chip baseline as this week's. */
+  chipBestAt: (gw, delta = null) => `Best week: GW${gw}${delta != null ? `\u00a0${fmt.signed(delta)}` : ''}`,
   chipVs: (vs) => `vs ${vs}`,
   /** The weeks of its half after the plan's last, never looked at, said with a clear best week too (owner, 2026-10-22). */
   chipAfter: (after) => `weeks after GW${after} aren't planned`,
@@ -488,9 +483,8 @@ export const COPY = Object.freeze({
   /** A Wildcard or Free Hit choice's Why sheet: the chip it spends and when the next one comes (the second half's first
    *  GW: ahead.halfEnd); "Uses your last Free Hit" in the second half. */
   chipUses: (chip, next = null) => (next != null ? `Uses your ${chip}; next one GW${next}` : `Uses your last ${chip}`),
-  /** …while its weeks are checked (ahead.chipWait): Add a player's count (planningWeek), its clock after it; no "Best
-   *  week" while a week of the span was never asked (`part`; owner, 2026-10-28). */
-  chipBestPlanning: (gw, i, n, part = false) => (part ? COPY.planningWeek(gw, i, n) : `Best week · ${COPY.planningWeek(gw, i, n)}`),
+  /** Name the gameweek being checked, without an ambiguous '3 of 3 weeks' counter. */
+  chipBestPlanning: (gw) => `Checking GW${gw}…`,
   /** …when the best week doesn't beat the runner-up (`next`, its gain `runner`; none in: not playing it) by more than a
    *  toss-up (engine.verdictLabel's 'coin'), and the weeks of its half after the plan's last (`after`) never looked at.
    *  The noise itself is Dev mode's: the words say the toss-up, never its points. */

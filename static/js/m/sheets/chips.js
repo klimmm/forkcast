@@ -1,11 +1,5 @@
-// Forkcast · the Chips sheet (owner, 2026-10-13). Opened by the week line's Chips… door for the viewed GW
-// (ahead.chipsDoor): one row per chip (ahead.chipStates, CHIP_ROW's order, so no row moves as solves land) in the
-// Replace sheet's row look: code, name over one fact (played here, by Forkcast, planned in another week, instead of the
-// week's chip, its best week, played this half), its number on the right (ahead.chipNumber, numberOf) and its baseline
-// in the fact (none before that solve is in, "planning…" while it or the week's roll plan runs). A tap plays the chip,
-// moves it here, swaps it in or takes it off (ahead.useChip, toast with Undo; a refusal says why in its toast, the
-// sheet stays open). The first draw has no numbers and asks for no solve; the next, after one paint, reads the
-// preparations (ahead.chipPreps) and redraws as they land.
+// Chips in the viewed week: one shared no-chip baseline, one status per row, forecast gain on the right.
+// Prepared comparisons survive reload; the first paint requests no solves.
 // Sheet contract: static/js/m/app.js (open(ctx, {gw}) → sheet, ctx.openSheet('chips', …)).
 
 import { h, fill, fmt, chipName, xpGain, reduceMotion } from '../../ui.js';
@@ -34,29 +28,14 @@ export function open(ctx, { gw } = {}) {
       body.append(sub, wbox, list, foot);
       let drawn = null;  // [plan view, source, its rows' clocks (clocksOf)] last drawn with numbers
 
-      /** A row's baseline, each row naming its own (owner, 2026-10-22): a Wildcard's or Free Hit's its number's (`vs`:
-       *  chipNumber), a swap row's the chip it replaces, else not playing it. */
-      const vsOf = (r) => r.vs ?? (r.state === 'swap' ? COPY.chipVsIt : COPY.chipNoChip);
-      /** A row's one fact (chipStates' state in words): while its weeks are checked, which and how many (chipWait);
-       *  then its baseline where it has a number (a swap row's always, "vs it"). */
-      const factOf = (r, P) => {
-        const vs = r.cmp || (r.state === 'swap' && !r.vs) ? COPY.chipVs(vsOf(r)) : null;
-        if (r.state === 'on') return COPY.chipFact(r.mine ? COPY.chipTakeOff : COPY.chipByForkcast, vs);
+      const factOf = (r) => {
+        if (r.state === 'on') return r.mine ? COPY.chipTakeOff : COPY.chipByForkcast;
         if (r.state === 'off') return COPY.chipPlayed(r.at, r.back);
         if (r.state === 'moved') return COPY.chipMoveHere(r.at);
-        if (r.state === 'swap') return COPY.chipFact(COPY.chipInstead(r.instead), vs);
-        // (weeks of its half past the plan's are said with a clear best week too (owner, 2026-10-22); the best week's
-        // number gets its baseline beside it where the row has none)
-        if (r.best) {
-          return COPY.chipFact(r.best.gw === g ? COPY.chipBestHere : COPY.chipBestAt(r.best.gw, r.best.delta, vs && r.best.vs === r.vs ? null : r.best.vs ?? (r.best.delta != null ? COPY.chipNoChip : null)),
-            vs, r.after != null ? COPY.chipAfter(r.after) : null);
-        }
-        if (!r.final) return COPY.chipFact(r.wait ? COPY.chipBestPlanning(r.wait.g, r.wait.i, r.wait.n, r.wait.part) : null, vs) || null;
-        // (a best week clear of the next whose own gain is inside the noise gains nothing to act on: not "too close to
-        // call", which says two weeks tie)
-        // (a Wildcard's or Free Hit's against rolling names its weeks bare)
-        // (against your plan in a week of yours: rolled either way, under the hold)
-        return COPY.chipFact(r.top && !r.top.clear ? COPY.chipNoBest(r.top, r.after, (r.chip === 'fh' || r.chip === 'wc') && !!P?.mem?.hold) : COPY.chipNoGain, vs);
+        if (r.state === 'swap') return COPY.chipInstead(r.instead);
+        if (r.best) return r.best.gw === g ? COPY.chipBestHere : COPY.chipBestAt(r.best.gw, r.best.delta);
+        if (!r.final) return r.wait ? COPY.chipBestPlanning(r.wait.g) : null;
+        return r.top && !r.top.clear ? COPY.chipNoBestName : COPY.chipNoGain;
       };
       /** the checks' clock after the fact (ahead.waitedText), set each second by the sheet's tick, never a whole draw;
        *  not read out (the row's label has the fact). */
@@ -73,19 +52,19 @@ export function open(ctx, { gw } = {}) {
         const n = seen.size, done = n - waiting.length, t0 = Math.min(...waiting.map((r) => t0Of(r) ?? opened));
         if (step.done !== done) step = { done, at: now, max: step.max };
         const p = step.max = Math.max(step.max, AH.stepShare(done, n, reduceMotion() ? 0 : now - step.at, done ? (step.at - t0) / done : 4000));
-        AH.paintWaitView(wv, { key: 'chips', word: COPY.waitWord, scope: 'chips', long: `GW${g}'s chips`, prog: `${done + 1} of ${n}`, so: (now - t0) / 1000, p });
+        AH.paintWaitView(wv, { key: 'chips', word: 'Checking', scope: 'chips', long: `GW${g}'s chips`, prog: `${done + 1} of ${n}`, so: (now - t0) / 1000, p });
       };
       /** Which rows run a clock from when: a check asked by a timer (ahead prepAgain) changes neither the plan view nor
        *  the source, and its row had no clock until that check landed. */
       const clocksOf = (rows) => rows.map(t0Of).join('|');
       /** Its number: the gap once known, forecast points blue with "xP" (ui.js xpGain; owner, 2026-10-22: no green or
-       *  red), its sign its direction; a Wildcard's or Free Hit's the pitch's number; "planning…" while its solve runs,
+       *  red), its sign its direction; "planning…" while its solve runs,
        *  else nothing. */
       const numberOf = (r) => (r.cmp ? [xpGain(shownDelta(r.cmp))]
         : r.solving ? h('small', null, COPY.waitShort) : null);
       const saidOf = (r, fact) => {
         const n = chipName(r.chip);
-        const pts = r.cmp ? `: ${fmt.signed(shownDelta(r.cmp))} points over ${COPY.span(P0.gws.filter((x) => x >= g))} vs ${r.vs ?? (r.state === 'swap' ? chipName(r.instead) : COPY.chipNoChip)}` : '';
+        const pts = r.cmp ? `: ${fmt.signed(shownDelta(r.cmp))} points over ${COPY.span(P0.gws.filter((x) => x >= g))} ${COPY.chipVs(COPY.chipNoChip)}` : '';
         if (r.state === 'on') return `${n} planned for GW${g}${r.mine ? '' : ' by Forkcast'}${pts}. Takes it off.`;
         if (r.state === 'off') return `${n}: ${fact.toLowerCase()}.`;
         if (r.state === 'moved') return `Move ${n} from GW${r.at} to GW${g}.`;
@@ -102,7 +81,7 @@ export function open(ctx, { gw } = {}) {
         const can = P.editable && !AH.inkAt(ctx, P, g);
         const focused = globalThis.document?.activeElement?.closest?.('.cs [data-chip]')?.dataset.chip ?? null;
         fill(list, rows.map((r) => {
-          const fact = factOf(r, P);
+          const fact = factOf(r);
           return h('button.ah-lrow', {
             type: 'button', dataset: { chip: r.chip }, disabled: !can || r.state === 'off', 'aria-pressed': r.state === 'on' ? 'true' : null,
             'aria-label': saidOf(r, fact),
@@ -130,7 +109,7 @@ export function open(ctx, { gw } = {}) {
       draw(false);
       AH.afterPaint(() => draw(true));
       offs.push(ctx.store.on('memory', () => queueMicrotask(() => draw(true))));
-      // a choice's solve landed (ahead pairChanged): a Wildcard's or Free Hit's number is the pitch's (chipShown)
+      // a choice's solve can also supply a cached chip preparation (ahead pairChanged)
       offs.push(ctx.store.on('aheadPair', () => queueMicrotask(() => draw(true))));
       // the preparations land in the background: redraw when the plan view, the chips' source or a row's clock changes;
       // else the checks' clocks move on (clockOf)

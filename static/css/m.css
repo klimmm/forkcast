@@ -107,7 +107,7 @@
   --bench-glass: light-dark(rgb(255 255 255 / .38), rgb(255 255 255 / .08));
   --bench-tile:  light-dark(rgb(0 0 0 / .16), rgb(0 0 0 / .28));
   --bench-ink:   light-dark(#0E3B22, #CDEBD9);
-  --boost:       #6EECFC;  /* FPL's Bench Boost ring (sampled from its Pick Team) */
+  --boost:       #05f0ff;  /* FPL's Bench Boost ring: --ism-color-brand-blue */
   --plate:       light-dark(#FFFFFF, #F1F3F2);
   --plate-ink:   #17191A;
   --plate-2:     light-dark(#F2F4F3, #D9DEDB);

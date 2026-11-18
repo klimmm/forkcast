@@ -7,7 +7,7 @@ import { CHIPS_OFF, COPY } from '../../calls.js';
 import { MINUS, compare, draftOf, flatMoves, isFrozen, memOf, ownCount, removedAt, sameView, valuesFor, valuesKey, viewOfState, weekOf } from '../core.js';
 import { refusedMoves, matchesRefusedMoves } from '../../memory/pins.js';
 import { barred, chainOf, chipEdit, keptCells, keptFrom } from '../edits.js';
-import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, rootStill, showingAt, tappedSuggestion, tapSpent, weekOnto } from '../presolve.js';
+import { AHEAD, DRY, PAIR, tookCmp, PAIR_HOLD_MS, addYours, aheadAsks, extraWeek, owedAt, owedRoad, ownAltsOf, refusalRoads, pinOfMove, planTakeDraft, rootStill, sameWindow, showingAt, tappedSuggestion, tapSpent, weekOnto } from '../presolve.js';
 import { inkAt } from '../buys.js';
 import { PREP, PREPS, chipPreps, chipWeekGain, chipWeekOf, chipsAsked, chipsAvail, clearGain, keptBest, plPays, plannedAt, prepItems, prepKeep, squadWeek } from '../pieces.js';
 import { FORK_MAX, PLACE_ALTS, PLANS, SQUAD_CHIPS, earlyOf, movesSig, placesAsked, suggestionsOf } from './suggest.js';
@@ -763,10 +763,10 @@ export function chipNumber(ctx, P, g, c, pre = null) {
   const shown = chipShown(ctx, P, g, c);
   if (shown || !P.mem?.hold || !SQUAD_CHIPS.has(c) || !P.gws.includes(g)) return shown;
   if (pre?.state === 'solving') return { wait: true };
-  // A Free Hit preparation and the current plan already carry the two solver windows needed for its counted value.
-  // Reuse them instead of asking plansOf for another FH road merely to reconstruct the same comparison.
+  // Reuse the Free Hit preparation. A no-transfer plan can have a one-week solver window while FH has four:
+  // subtract those only when their windows match, otherwise keep the comparison over their shared plan weeks.
   if (c === 'fh' && pre?.state === 'ready' && P.comparable && P.road) {
-    return { cmp: ownCount(ctx, pre.cmp, pre.road, P.road, g), vs: COPY.planVsRoll };
+    return { cmp: sameWindow(pre.road, P.road, g) ? ownCount(ctx, pre.cmp, pre.road, P.road, g) : pre.cmp, vs: COPY.planVsRoll };
   }
   return pre?.state === 'ready' ? plansListed(ctx, P, g).chipOf?.(c, pre.road) ?? null : null;
 }
