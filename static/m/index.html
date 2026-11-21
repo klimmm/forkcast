@@ -1777,7 +1777,9 @@ code or a value 600 */
 /* the Chips sheet (sheets/chips.js: .cs) has the Replace row's mark: its chip's code, filled where the week plays it */
 .cs .rs-automk { display: grid; place-items: center; border-radius: var(--r-sm); background: var(--track); color: var(--ink-2); font: 600 var(--t-cap)/1.3 var(--f-text); }
 .cs .rs-automk.on { background: var(--token); color: var(--token-ink); }
+.cs .ah-lrow > * { pointer-events: none; }  /* the chip button owns the tap while its comparison updates */
 .cs .ah-lrow .nm span { white-space: normal; }  /* its fact whole ("Best week: GW10 +5.1" wraps, never cut) */
+.cs .ah-lrow .nm span[hidden] { display: none; }
 .cs .ah-lrow:disabled { opacity: 1; }  /* played this half: legible, its name grey */
 .cs .ah-lrow:disabled .nm b { color: var(--muted); }
 .ws .ws-item { border-bottom: 1px solid var(--hair); }
@@ -3893,8 +3895,8 @@ one in the selected look's tint and green ring, 600, with its arrow (a second ta
 .m-banner.offline .m-banner-ic { opacity: .6; }
 
 </style>
-<meta name="forkcast-release" content="v1.3.266">
-<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=b3caa5f3e1","/js/app.js":"/js/app.js?v=d7871c4487","/js/m/ahead.js":"/js/m/ahead.js?v=78886e2b4f","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=f0abb7557d","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=67657271e8","/js/m/ahead/diagnostics.js":"/js/m/ahead/diagnostics.js?v=600572bd02","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=c4a8d8abb7","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=f9395228ad","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=be4c00fcfa","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=97940d5b11","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=0c359b7eb4","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=98e62c8795","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=bd1c340bfd","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=b0cda6c5ef","/js/m/ahead/plans/groups.js":"/js/m/ahead/plans/groups.js?v=8b506e21c5","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=b1bb3a68a3","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=bd6a2e9b77","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=2bbc8162c1","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=cbdc5c496f","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=bb93f7b39f","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=9aa5c5689b","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=d431b493da","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=4acbd15e4c","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=1981b7833d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=b692db524d","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=f975ff538c","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=a816c0e84e","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=2b39159e7b","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=87cf82cea1","/js/m/api.js":"/js/m/api.js?v=f07595d7b0","/js/m/app.js":"/js/m/app.js?v=3d461fb349","/js/m/calls.js":"/js/m/calls.js?v=40f2636aaf","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=51281c2803","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=ff53661cb7","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=552b00cbf2","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=3cf482dd6a","/js/m/memory.js":"/js/m/memory.js?v=0d6ca06e1b","/js/m/memory/chip-cache.js":"/js/m/memory/chip-cache.js?v=8ef87f4230","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=478c277335","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=1227a951f5","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=0af9ca007a","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=bfdebe4cdf","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=18e75f603f","/js/m/memory/live.js":"/js/m/memory/live.js?v=30e4830cd1","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=88de0d5d40","/js/m/memory/values.js":"/js/m/memory/values.js?v=e74874bcf6","/js/m/picker.js":"/js/m/picker.js?v=3da5f950bd","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=67f7e9687a","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=9576783de3","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=b7b174fcd2","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=d73775ce03","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=bc24c27906","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=9f2ef4f880","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=5f01937458","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=594122817a","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=62d8f68dcf","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=b3455c19f2","/js/m/shell/store.js":"/js/m/shell/store.js?v=d57be956cc","/js/marks.js":"/js/marks.js?v=c34a920720","/js/plan/engine.js":"/js/plan/engine.js?v=ed5912a0d1","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=3fc37880a6","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=1200f7b422","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=1ecbec2ebb","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=2fd30e083a","/js/plan/kits.js":"/js/plan/kits.js?v=cda7d0ceb5","/js/plan/pitch.js":"/js/plan/pitch.js?v=080c4beb8e","/js/studio/flags.js":"/js/studio/flags.js?v=a8cd3ecd9b","/js/studio/kit.js":"/js/studio/kit.js?v=20c9937b9e","/js/studio/tables.js":"/js/studio/tables.js?v=65f8b07c32","/js/ui.js":"/js/ui.js?v=95b40ba139","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=9f0f364620","/js/views/compare.js":"/js/views/compare.js?v=6ad8f349d3","/js/views/dashboard.js":"/js/views/dashboard.js?v=8a1f0c98d1","/js/views/data.js":"/js/views/data.js?v=90e9f05369","/js/views/docs.js":"/js/views/docs.js?v=f696c42510","/js/views/fixtures.js":"/js/views/fixtures.js?v=319a00ca42","/js/views/planner.js":"/js/views/planner.js?v=c4c601da19","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=7fde223c58","/js/views/planner/model.js":"/js/views/planner/model.js?v=71f793cc1d","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=d4151c7331","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=14bd7e2b61","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=f72f49fd45","/js/views/players.js":"/js/views/players.js?v=358b613d94","/js/views/preview.js":"/js/views/preview.js?v=8c7c4bcf84","/js/views/runs.js":"/js/views/runs.js?v=c11f23245f"}}</script>
+<meta name="forkcast-release" content="v1.3.268">
+<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=b3caa5f3e1","/js/app.js":"/js/app.js?v=d7871c4487","/js/m/ahead.js":"/js/m/ahead.js?v=78886e2b4f","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=f0abb7557d","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=67657271e8","/js/m/ahead/diagnostics.js":"/js/m/ahead/diagnostics.js?v=600572bd02","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=c4a8d8abb7","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=f9395228ad","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=be4c00fcfa","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=97940d5b11","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=0c359b7eb4","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=98e62c8795","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=bd1c340bfd","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=b0cda6c5ef","/js/m/ahead/plans/groups.js":"/js/m/ahead/plans/groups.js?v=8b506e21c5","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=b1bb3a68a3","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=bd6a2e9b77","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=f17948b909","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=cbdc5c496f","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=bb93f7b39f","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=9aa5c5689b","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=d431b493da","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=4acbd15e4c","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=1981b7833d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=284b59139c","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=f975ff538c","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=a816c0e84e","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=2b39159e7b","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=87cf82cea1","/js/m/api.js":"/js/m/api.js?v=f07595d7b0","/js/m/app.js":"/js/m/app.js?v=3d461fb349","/js/m/calls.js":"/js/m/calls.js?v=40f2636aaf","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=51281c2803","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=ff53661cb7","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=552b00cbf2","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=3cf482dd6a","/js/m/memory.js":"/js/m/memory.js?v=0d6ca06e1b","/js/m/memory/chip-cache.js":"/js/m/memory/chip-cache.js?v=8ef87f4230","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=478c277335","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=1227a951f5","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=0af9ca007a","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=bfdebe4cdf","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=18e75f603f","/js/m/memory/live.js":"/js/m/memory/live.js?v=30e4830cd1","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=88de0d5d40","/js/m/memory/values.js":"/js/m/memory/values.js?v=e74874bcf6","/js/m/picker.js":"/js/m/picker.js?v=3da5f950bd","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=67f7e9687a","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=9576783de3","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=9ad1de980e","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=d73775ce03","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=b3300072d4","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=9f2ef4f880","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=5f01937458","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=594122817a","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=62d8f68dcf","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=b3455c19f2","/js/m/shell/store.js":"/js/m/shell/store.js?v=d57be956cc","/js/marks.js":"/js/marks.js?v=c34a920720","/js/plan/engine.js":"/js/plan/engine.js?v=ed5912a0d1","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=3fc37880a6","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=1200f7b422","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=1ecbec2ebb","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=2fd30e083a","/js/plan/kits.js":"/js/plan/kits.js?v=cda7d0ceb5","/js/plan/pitch.js":"/js/plan/pitch.js?v=080c4beb8e","/js/studio/flags.js":"/js/studio/flags.js?v=a8cd3ecd9b","/js/studio/kit.js":"/js/studio/kit.js?v=20c9937b9e","/js/studio/tables.js":"/js/studio/tables.js?v=65f8b07c32","/js/ui.js":"/js/ui.js?v=95b40ba139","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=9f0f364620","/js/views/compare.js":"/js/views/compare.js?v=6ad8f349d3","/js/views/dashboard.js":"/js/views/dashboard.js?v=8a1f0c98d1","/js/views/data.js":"/js/views/data.js?v=90e9f05369","/js/views/docs.js":"/js/views/docs.js?v=f696c42510","/js/views/fixtures.js":"/js/views/fixtures.js?v=319a00ca42","/js/views/planner.js":"/js/views/planner.js?v=c4c601da19","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=7fde223c58","/js/views/planner/model.js":"/js/views/planner/model.js?v=71f793cc1d","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=d4151c7331","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=14bd7e2b61","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=f72f49fd45","/js/views/players.js":"/js/views/players.js?v=358b613d94","/js/views/preview.js":"/js/views/preview.js?v=8c7c4bcf84","/js/views/runs.js":"/js/views/runs.js?v=c11f23245f"}}</script>
 </head>
 <body>
 <div class="m-app" id="app">
@@ -16953,7 +16955,7 @@ function ticketPart(V) {
     );
   }
   function paintTicket(P, w, M2, tk = []) {
-    const { S, ctx: ctx2, dlEl, bringDoor, inkAt: inkAt2, openWeek, rsBtn, setGw, stack, strip } = V;
+    const { S, ctx: ctx2, dlEl, bringDoor, chipsDoor, inkAt: inkAt2, openWeek, rsBtn, setGw, stack, strip } = V;
     const block = strip.querySelector(":scope > .ah-ticket"), waited = S.cardWait;
     S.cardWait = null;
     if (!block || !w) {
@@ -17003,6 +17005,7 @@ function ticketPart(V) {
     const placed = P.healing && !w.moves.length ? placedAt(g) : null;
     if (!placed) placedDone();
     const yours = M2?.sq ? [] : placed ? [placed] : w.moves;
+    const chipSquad = squadWeek(w);
     const withMine = (t) => yours.length ? [h("span.ah-tkmine", null, yours.map((m) => `${P.L.name(m.out)} \u2192 ${P.L.name(m.in)}`).join(", ")), t] : t;
     const withCompare = (row, one = null) => h("div", null, row == null ? null : row instanceof Node ? row : lineRow(row), h("div.ah-tksug", null, one ? h("button.ah-rsbtn", { type: "button", dataset: { row: `tk:vs:${g}` }, onClick: () => ctx2.openSheet("player", Number(one.out), { gw: g, vs: one.in }) }, COPY.comparePlayers) : h("button.ah-rsbtn", { type: "button", dataset: { row: `tk:compare:${g}` }, onClick: () => comparePick(ctx2, P, g) }, COPY.comparePlayers)));
     const askLeft = (row = `tok:suggest:${g}`, ask = () => {
@@ -17129,11 +17132,12 @@ function ticketPart(V) {
         h("div.ah-tksug", null, h("button.ah-rsbtn", { type: "button", dataset: { row: "tk:cancel" }, onClick: () => stopChoosing(ctx2) }, COPY.bringCancel))
       );
       left = askLeft("tk:buy-suggest", () => suggestPurchase(ctx2, who2));
-    } else if (w.chip && (M2?.sq ? w.moves.length : true)) {
+    } else if (w.chip && (chipSquad ? w.moves.length : !asked && !showing && !constrained)) {
       const cmp = chipGain(ctx2, P, g);
       const rounds = cmp?.counted ? sameWindow(...cmp.counted, g) : 0;
       title = withMine(chipName(w.chip));
       line = withCompare(cmp ? moveLine(ctx2, cmp.delta, false, rounds || P.gws.filter((x) => x >= g).length, COPY.planVs(true), true, shownDelta(cmp)) : M2?.sq ? plural(w.moves.length, "change") : null);
+      if (!chipSquad && P.editable && !inkAt2(ctx2, P, g)) left = askLeft();
       right = onward;
     } else if (M2?.live) {
       title = M2.liveText;
@@ -17181,9 +17185,15 @@ function ticketPart(V) {
       candidates: constrained ? [{ pl: constrained.candidate.pl, moves: constrained.candidate.e.adds }] : (M2?.plans ?? []).filter((pl) => pl.solver && !pl.refRow).map((pl) => ({ pl, moves: pl.choice.moves.filter((m) => !w.moves.some((y) => y.out === m.out && y.in === m.in)) })),
       status: currentOffer ? "Suggestion" : who2?.pending ? "Calculating" : who2 ? "Choosing a player" : M2?.live ? "Live week" : solving ? "Calculating" : yours.length ? "Your transfers" : wanted && ans ? "Save transfers" : "Suggestion not requested"
     });
-    if (S.bringDoor?.g !== g || S.bringDoor.editable !== P.editable) S.bringDoor = { g, editable: P.editable, node: bringDoor(P, g) };
-    const bring = who2 && !currentOffer || inkAt2(ctx2, P, g) ? null : S.bringDoor.node;
-    if (bring) bring.textContent = COPY.bringInPlayer;
+    if (S.doors?.g !== g || S.doors.editable !== P.editable) {
+      const bring2 = bringDoor(P, g), chips2 = CHIPS_OFF ? null : chipsDoor(P, g);
+      bring2.textContent = COPY.bringInPlayer;
+      if (chips2) chips2.textContent = COPY.playAChip;
+      S.doors = { g, editable: P.editable, bring: bring2, chips: chips2 };
+    }
+    const doors = who2 && !currentOffer || inkAt2(ctx2, P, g) ? null : S.doors;
+    const bring = doors?.bring ?? null, chips = doors?.chips ?? null;
+    if (chips) chips.setAttribute("aria-label", COPY.chipsSaid(g, w.chip ?? null));
     const was = P.bare?.has(g) ? tickWas(w, P.bare.get(g)) : null;
     const held2 = rsBtn === document.activeElement;
     const sheetHas = w.moves.length > 1 || !!M2?.sq || !!M2?.live || !!M2?.notices?.length || !!M2?.plans?.some((pl) => !pl.refRow) || !!V.asksHost?.firstChild;
@@ -17213,10 +17223,11 @@ function ticketPart(V) {
     if (kids.length !== acts.children.length || kids.some((k, i) => k !== acts.children[i])) fill(acts, ...kids);
     for (const old of block.querySelectorAll(":scope > .ah-tksug")) if (old !== sug) old.remove();
     if (sug) acts.after(sug);
+    const bringLink = !noBring && !bringBy ? bring : null;
     fill(
       block.querySelector(":scope > .ah-tklinks"),
       h("span.ah-tkback", null, who2 ? who2.previous && backButton(`tk:prev:${g}`, () => previousPurchase(ctx2, who2)) : [toChoice, undo && (!toChoice || last) && !prev ? backButton(`tk:undo:${g}`, undo, undoWords, !!onTop || !swaps && (!!refused || shown2)) : null, prev], rsBtn),
-      bring && !noBring && !bringBy ? h("span.ah-tkor", null, bring) : null
+      bringLink || chips ? h("span.ah-tkor", null, bringLink, chips) : null
     );
     if (held2) rsBtn.focus({ preventScroll: true });
     V.paintBoard(P, w, after);
@@ -19702,7 +19713,7 @@ var init_presolve = __esm({
       document.addEventListener("keydown", tapNow, opt);
     }
     manualSales = (P, g) => (P.pins ?? []).filter((p) => p.kind === "sell" && p.in != null && Number(p.gw) === g && (p.manual || p.must?.some(([, , end]) => end > g)));
-    suggestionKey = (P, g) => JSON.stringify([P.entry, g, manualSales(P, g).map((p) => [p.player, p.in, p.at])]);
+    suggestionKey = (P, g) => JSON.stringify([P.entry, g, weekOf(P, g)?.chip ?? null, manualSales(P, g).map((p) => [p.player, p.in, p.at])]);
     showTransfer = (P, g, on = true) => {
       AHEAD.showing[on ? "add" : "delete"](suggestionKey(P, g));
       PAIR.rev++;
@@ -21774,6 +21785,7 @@ function open2(ctx2, { gw } = {}) {
     build(body, sheet) {
       const sub2 = h("p.rs-sub", null, COPY.chipsSub(P0.gws.filter((x) => x >= g)));
       const list = h("div.ah-list", { role: "group", "aria-label": COPY.chipsIn(g) });
+      const buttons = /* @__PURE__ */ new Map();
       const foot = h("p.m-foot", { hidden: true });
       const wv = waitView(), wbox = h("div.m-wait", { hidden: true }, wv.t, wv.bar), opened = Date.now(), seen = /* @__PURE__ */ new Set();
       let step = { done: -1, at: opened, max: 0 };
@@ -21789,7 +21801,6 @@ function open2(ctx2, { gw } = {}) {
         return r.top && !r.top.clear ? COPY.chipNoBestName : COPY.chipNoGain;
       };
       const t0Of = (r) => r.state === "free" && !r.best && !r.final ? r.wait?.t0 ?? null : null;
-      const clockOf = () => null;
       const paintWait = (rows) => {
         const waiting = rows.filter((r) => r.solving || t0Of(r) != null), now = Date.now();
         for (const r of waiting) seen.add(r.chip);
@@ -21821,27 +21832,33 @@ function open2(ctx2, { gw } = {}) {
         const rows = chipStates(ctx2, P, g, src);
         if (numbers) drawn = [P, src, clocksOf(rows)];
         const can = P.editable && !inkAt(ctx2, P, g);
-        const focused = globalThis.document?.activeElement?.closest?.(".cs [data-chip]")?.dataset.chip ?? null;
-        fill(list, rows.map((r) => {
+        for (const r of rows) {
           const fact = factOf(r);
-          return h(
-            "button.ah-lrow",
-            {
+          const chip = r.chip, on = r.state === "on";
+          if (!buttons.has(chip)) {
+            const mark2 = h("span.mk.rs-automk", { "aria-hidden": "true" }, chip.toUpperCase());
+            const name2 = h("b"), note2 = h("span"), number2 = h("span.rt.m-num");
+            const button2 = h("button.ah-lrow", {
               type: "button",
-              dataset: { chip: r.chip },
-              disabled: !can || r.state === "off",
-              "aria-pressed": r.state === "on" ? "true" : null,
-              "aria-label": saidOf(r, fact),
+              dataset: { chip },
               onClick: () => {
-                if (act(r.chip)) sheet.close();
+                if (act(chip)) sheet.close();
               }
-            },
-            h("span.mk.rs-automk", { class: { on: r.state === "on" }, "aria-hidden": "true" }, r.chip.toUpperCase()),
-            h("span.nm", null, h("b", null, r.state === "on" ? COPY.chipOn(r.chip) : chipName(r.chip)), fact ? h("span", null, fact, clockOf(r)) : null),
-            h("span.rt.m-num", null, numberOf(r))
-          );
-        }));
-        if (focused) list.querySelector(`[data-chip="${focused}"]`)?.focus();
+            }, mark2, h("span.nm", null, name2, note2), number2);
+            buttons.set(chip, { button: button2, mark: mark2, name: name2, note: note2, number: number2 });
+            list.append(button2);
+          }
+          const { button, mark, name, note, number } = buttons.get(chip);
+          button.disabled = !can || r.state === "off";
+          button.setAttribute("aria-label", saidOf(r, fact));
+          if (on) button.setAttribute("aria-pressed", "true");
+          else button.removeAttribute("aria-pressed");
+          mark.classList.toggle("on", on);
+          name.textContent = on ? COPY.chipOn(chip) : chipName(chip);
+          note.textContent = fact ?? "";
+          note.hidden = !fact;
+          fill(number, numberOf(r));
+        }
         paintWait(rows);
         if (can && src) {
           const chips = rows.filter((r) => r.state !== "off" && (r.state === "on" || src.at(r.chip, g)?.state !== "ready")).map((r) => r.chip);
@@ -22970,11 +22987,12 @@ function open4(ctx2, rawOut, rawGw) {
       me2 = sheet;
       const subEl = h("p.rs-sub");
       const pills = h("div.ah-pills", { role: "group", "aria-label": "From gameweek" });
+      const auto = h("button.m-secondary.rs-auto", { type: "button", "aria-description": COPY.autoBuy, onClick: () => sell(null) }, "Let Forkcast choose");
       const input = h("input", { type: "search", placeholder: `Search ${word}s by surname`, "aria-label": `Search ${word}s by surname`, autocomplete: "off", spellcheck: "false", enterkeyhint: "search" });
       const sortEl = h("div.ws-sorts", { role: "radiogroup", "aria-label": "Sort by" });
       const list = h("div.ah-list", { role: "list" });
       const hitNote = h("p.rs-hitnote", { hidden: true });
-      body.append(subEl, pills, h("label.ah-search", null, icon("search", { size: 16 }), input), sortEl, hitNote, list);
+      body.append(subEl, pills, auto, h("label.ah-search", null, icon("search", { size: 16 }), input), sortEl, hitNote, list);
       input.addEventListener("input", () => {
         st.q = input.value;
         draw();
@@ -22984,6 +23002,7 @@ function open4(ctx2, rawOut, rawGw) {
         const { list: all, ev0, P } = score(st.g);
         const L2 = P.L;
         if (title) title.textContent = titleOf(st.g);
+        auto.disabled = !P.editable;
         const prev = ev0.gws.find((s) => s.gw === st.g - 1);
         const sellM = prev ? prev.sell[out] : L2.sellT(out) / 10;
         const wk = ev0.gws.find((s) => s.gw === st.g);
@@ -23037,7 +23056,7 @@ function open4(ctx2, rawOut, rawGw) {
         const g = st.g;
         if (P.editable) {
           presolveTaps(ctx2, [
-            ...shown2.filter((o) => !o.blocked).map((o) => ({ kind: "sell", gw: g, run: () => sellOut(ctx2, g, out, o.id) })),
+            ...[null, ...shown2.filter((o) => !o.blocked).map((o) => o.id)].map((inn) => ({ kind: "sell", gw: g, run: () => sellOut(ctx2, g, out, inn) })),
             ...shown2.filter((o) => o.code === "budget").map((o) => ({ kind: "bring", gw: g, run: () => {
               const bp = saleBuy(ctx2, o.id, g, out);
               return bp.kind === "one" && bringIn(ctx2, o.id, g, bp);
@@ -23083,7 +23102,7 @@ function open4(ctx2, rawOut, rawGw) {
         }
         sell(o.id);
       }
-      async function sell(inn) {
+      function sell(inn) {
         if (st.busy) return;
         st.busy = true;
         const g = st.g;

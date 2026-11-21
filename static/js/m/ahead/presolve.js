@@ -67,10 +67,10 @@ if (typeof document !== 'undefined' && document.addEventListener) {
   document.addEventListener('click', () => { if (Date.now() - pressedAt > 1000) tapNow(); }, opt);
   document.addEventListener('keydown', tapNow, opt);
 }
-// A manual purchase changes the squad the user can ask about. Undo restores the previous squad's choice.
+// A manual purchase or chip changes the plan the user can ask about. Undo restores its previous choice.
 export const manualSales = (P, g) => (P.pins ?? []).filter((p) => p.kind === 'sell' && p.in != null && Number(p.gw) === g &&
   (p.manual || p.must?.some(([, , end]) => end > g)));
-const suggestionKey = (P, g) => JSON.stringify([P.entry, g, manualSales(P, g).map((p) => [p.player, p.in, p.at])]);
+const suggestionKey = (P, g) => JSON.stringify([P.entry, g, weekOf(P, g)?.chip ?? null, manualSales(P, g).map((p) => [p.player, p.in, p.at])]);
 /** The weeks whose card shows a transfer though the plan rolls them (their Show a transfer, AHEAD.showing; owner, 2026-11-06:
  *  shown as any other transfer, not a list, and there when you come back), till its Previous or Reset all weeks. */
 export const showTransfer = (P, g, on = true) => { AHEAD.showing[on ? 'add' : 'delete'](suggestionKey(P, g)); PAIR.rev++; };

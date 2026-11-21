@@ -20,6 +20,7 @@ export function open(ctx, { gw } = {}) {
     build(body, sheet) {
       const sub = h('p.rs-sub', null, COPY.chipsSub(P0.gws.filter((x) => x >= g)));
       const list = h('div.ah-list', { role: 'group', 'aria-label': COPY.chipsIn(g) });
+      const buttons = new Map();
       const foot = h('p.m-foot', { hidden: true });
       // the sheet's checks told once over its rows in the wait line's look (AH.waitView): "Planning chips · 2 of 3 ·
       // 0:04", its bar by the count
@@ -40,8 +41,6 @@ export function open(ctx, { gw } = {}) {
       /** the checks' clock after the fact (ahead.waitedText), set each second by the sheet's tick, never a whole draw;
        *  not read out (the row's label has the fact). */
       const t0Of = (r) => (r.state === 'free' && !r.best && !r.final ? r.wait?.t0 ?? null : null);
-      // (the clock is the sheet's wait line's now, one for the group)
-      const clockOf = () => null;
       /** The wait line over the rows while any row checks (its solve, or its weeks: t0Of), counted over the rows that
        *  checked since the sheet opened, on the earliest row's clock. */
       const paintWait = (rows) => {
@@ -79,19 +78,30 @@ export function open(ctx, { gw } = {}) {
         const rows = AH.chipStates(ctx, P, g, src);
         if (numbers) drawn = [P, src, clocksOf(rows)];
         const can = P.editable && !AH.inkAt(ctx, P, g);
-        const focused = globalThis.document?.activeElement?.closest?.('.cs [data-chip]')?.dataset.chip ?? null;
-        fill(list, rows.map((r) => {
+        for (const r of rows) {
           const fact = factOf(r);
-          return h('button.ah-lrow', {
-            type: 'button', dataset: { chip: r.chip }, disabled: !can || r.state === 'off', 'aria-pressed': r.state === 'on' ? 'true' : null,
-            'aria-label': saidOf(r, fact),
-            onClick: () => { if (act(r.chip)) sheet.close(); },
-          },
-          h('span.mk.rs-automk', { class: { on: r.state === 'on' }, 'aria-hidden': 'true' }, r.chip.toUpperCase()),
-          h('span.nm', null, h('b', null, r.state === 'on' ? COPY.chipOn(r.chip) : chipName(r.chip)), fact ? h('span', null, fact, clockOf(r)) : null),
-          h('span.rt.m-num', null, numberOf(r)));
-        }));
-        if (focused) list.querySelector(`[data-chip="${focused}"]`)?.focus();
+          const chip = r.chip, on = r.state === 'on';
+          if (!buttons.has(chip)) {
+            const mark = h('span.mk.rs-automk', { 'aria-hidden': 'true' }, chip.toUpperCase());
+            const name = h('b'), note = h('span'), number = h('span.rt.m-num');
+            const button = h('button.ah-lrow', { type: 'button', dataset: { chip },
+              onClick: () => { if (act(chip)) sheet.close(); },
+            }, mark, h('span.nm', null, name, note), number);
+            buttons.set(chip, { button, mark, name, note, number });
+            list.append(button);
+          }
+          // Update the existing row so a comparison landing cannot interrupt a tap.
+          const { button, mark, name, note, number } = buttons.get(chip);
+          button.disabled = !can || r.state === 'off';
+          button.setAttribute('aria-label', saidOf(r, fact));
+          if (on) button.setAttribute('aria-pressed', 'true');
+          else button.removeAttribute('aria-pressed');
+          mark.classList.toggle('on', on);
+          name.textContent = on ? COPY.chipOn(chip) : chipName(chip);
+          note.textContent = fact ?? '';
+          note.hidden = !fact;
+          fill(number, numberOf(r));
+        }
         paintWait(rows);
         // its rows' taps solved ahead (AH.presolveTaps; owner, 2026-10-26): a chip taken off, and one to play whose
         // preparation isn't in (one that is lands at once: useChip)
@@ -112,7 +122,7 @@ export function open(ctx, { gw } = {}) {
       // a choice's solve can also supply a cached chip preparation (ahead pairChanged)
       offs.push(ctx.store.on('aheadPair', () => queueMicrotask(() => draw(true))));
       // the preparations land in the background: redraw when the plan view, the chips' source or a row's clock changes;
-      // else the checks' clocks move on (clockOf)
+      // else just update the wait line
       tick = setInterval(() => {
         const P = AH.plan(ctx);
         const src = P ? AH.chipPreps(ctx, P) : null;

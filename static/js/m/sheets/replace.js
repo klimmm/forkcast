@@ -2,7 +2,7 @@
 // GW…: open(ctx, outId, gw). Every row is scored on the phone at once (the swap from GW g on, best XI each week but a
 // lineup you saved: ahead.takenBy); one tap makes a row the plan (the shirt changes on Ahead, the heal solve confirms
 // it, the verdict toast has Undo); under the hold the week keeps the rest of its squad and takes that one buy only
-// (memory.holdOf). ("Let Forkcast choose", the sale alone, gone: owner, 2026-11-11, "remove it".) Selling a
+// (memory.holdOf). "Let Forkcast choose" saves the sale and leaves the replacement to the planner. Selling a
 // player you asked to keep, or in a GW you roll, goes at once, the verdict naming the Keep or Roll it takes back
 // (ahead.sellOut). A row needing a −4 says so, or, when GW g has other suggested moves, that the full plan may drop one
 // instead; a player your rules keep out (a veto, Never) is blocked as "your rule". A row he can't afford is made as it
@@ -69,12 +69,13 @@ export function open(ctx, rawOut, rawGw) {
       me = sheet;
       const subEl = h('p.rs-sub');
       const pills = h('div.ah-pills', { role: 'group', 'aria-label': 'From gameweek' });
+      const auto = h('button.m-secondary.rs-auto', { type: 'button', 'aria-description': COPY.autoBuy, onClick: () => sell(null) }, 'Let Forkcast choose');
       // the names FPL writes are mostly surnames (a first name finds no one)
       const input = h('input', { type: 'search', placeholder: `Search ${word}s by surname`, 'aria-label': `Search ${word}s by surname`, autocomplete: 'off', spellcheck: 'false', enterkeyhint: 'search' });
       const sortEl = h('div.ws-sorts', { role: 'radiogroup', 'aria-label': 'Sort by' });
       const list = h('div.ah-list', { role: 'list' });
       const hitNote = h('p.rs-hitnote', { hidden: true });
-      body.append(subEl, pills, h('label.ah-search', null, icon('search', { size: 16 }), input), sortEl, hitNote, list);
+      body.append(subEl, pills, auto, h('label.ah-search', null, icon('search', { size: 16 }), input), sortEl, hitNote, list);
       input.addEventListener('input', () => { st.q = input.value; draw(); });
       const title = sheet.el.querySelector('.m-sh h2');
 
@@ -82,6 +83,7 @@ export function open(ctx, rawOut, rawGw) {
         const { list: all, ev0, P } = score(st.g);
         const L = P.L;
         if (title) title.textContent = titleOf(st.g);
+        auto.disabled = !P.editable;
         // what he sells for going into GW g, and the bank then (the plan's own accounting, engine.evaluate)
         const prev = ev0.gws.find((s) => s.gw === st.g - 1);
         const sellM = prev ? prev.sell[out] : L.sellT(out) / 10;
@@ -139,12 +141,11 @@ export function open(ctx, rawOut, rawGw) {
           h('span.rt.m-num', null, o.blocked && o.code !== 'budget' ? h('small', null, o.blocked) : xpNum(fmt.num(xpOf.val(P, o.row, st.g)))));
           return rowEl;
         }) : h('p.ah-empty', null, COPY.noneCalled(word, st.q.trim())));
-        // its taps solved ahead while open (presolveTaps; owner, 2026-10-26): the rows the list ranks first that can be
-        // made
+        // Presolve the automatic replacement first, then the highest-ranked selectable rows.
         const g = st.g;
         if (P.editable) {
           presolveTaps(ctx, [
-            ...shown.filter((o) => !o.blocked).map((o) => ({ kind: 'sell', gw: g, run: () => sellOut(ctx, g, out, o.id) })),
+            ...[null, ...shown.filter((o) => !o.blocked).map((o) => o.id)].map((inn) => ({ kind: 'sell', gw: g, run: () => sellOut(ctx, g, out, inn) })),
             ...shown.filter((o) => o.code === 'budget').map((o) => ({ kind: 'bring', gw: g, run: () => { const bp = saleBuy(ctx, o.id, g, out); return bp.kind === 'one' && bringIn(ctx, o.id, g, bp); } })),
           ], { gw: g, sig: `${g}|${st.sort}|${st.flip}|${q}`, owner: sheet });
         }
@@ -182,9 +183,8 @@ export function open(ctx, rawOut, rawGw) {
         sell(o.id);
       }
 
-      /** A tapped row is the plan at once (ahead.sellOut: a rule of yours it takes back goes too, named; toast with
-       *  Undo): him sold from GW g for `inn`, or (null) for the buy the full plan picks. */
-      async function sell(inn) {
+      /** Sell from the selected gameweek for `inn`, or pass null to let the planner pick. */
+      function sell(inn) {
         if (st.busy) return;
         st.busy = true;
         const g = st.g;
