@@ -215,12 +215,22 @@ export function presolveSwap(ctx, P, g, pl) {
  *  request and in both ahead and no ahead modes"), found by the solve the card's plan came from (`from`, where it was
  *  re-keyed). Only where the tap rolls every week after g (its values' no_buys_gw; an earlier week of no transfers too,
  *  as the suggesting solve kept it; the window's last week has none after it), the one plan the rolled road is: with a
- *  transfer of yours in a later week the tap asks as before. */
+ *  transfer of yours in a later week the tap asks as before. The bundled road has no chips (lineups.then_rolled),
+ *  so a plan with a scheduled chip also needs its own solve. */
 function swapKept(ctx, P, g, pl, a) {
-  const from = pl.road?.from ?? pl.road?.key, got = SWAPS.get(from), road = got?.weeks?.[g]?.road, mem = memOf(ctx);
-  if (!road || DRY) return;
-  const after = P.gws.filter((x) => x > g), rolled = new Set(String(a?.values.no_buys_gw ?? '').split(',').map(Number));
-  if (!a || !after.every((x) => rolled.has(x)) || mem.solved(a.values)) return;
+  const from = pl.road?.from ?? pl.road?.key,
+    got = SWAPS.get(from),
+    road = got?.weeks?.[g]?.road,
+    mem = memOf(ctx);
+  if (!road || !a || DRY) return;
+  if (E.CHIPS.some((chip) => a.values[chip]?.some((gw) => Number(gw) > 0))) return;
+  const after = P.gws.filter((x) => x > g),
+    rolled = new Set(
+      String(a.values.no_buys_gw ?? '')
+        .split(',')
+        .map(Number),
+    );
+  if (!after.every((x) => rolled.has(x)) || mem.solved(a.values)) return;
   mem.offer({ ...road, from, key: a.key, values: a.values }, { values: a.values, version: got.version });
 }
 /** Make the swap of Show another's next card, solved ahead (refusalRoads, once that card's own road `road` is in): its
