@@ -5,19 +5,19 @@ import { pairMoves } from './solver.js';
 
 // ---------------------------------------------------------------- the solver's rules
 
-export const FT_WEEKLY = 1;      // rules.py:24 ft_weekly
-export const FT_CAP = 5;         // rules.py:26 ft_cap
-export const LAST_ROUND = 38;    // rules.py:28 last_round
-export const HIT_COST = 4;       // rules.py:49 hit_cost_actual: what a hit REALLY costs in points (team.py:256: FPL's −4);
-                                 // never sent to the solver, which prices a hit itself (F17: the bundle's meta.hit_cost)
-export const MAX_PER_CLUB = 3;   // rules.py:93 max_per_team
-export const HALF = 19;          // chips.py:48: chips refill after GW19
-export const CHIPS = ['wc', 'fh', 'bb', 'tc'];  // chips.py:47 (that tuple's order is wc, bb, fh, tc)
-export const MAX_HORIZON = 5;    // api/data.py:38 HORIZON: the pools forecast h0..h4
-const SEASON_LONG = { 2024: ['fh', 'bb', 'tc'] };  // chips.py:50 _SEASON_LONG
+export const FT_WEEKLY = 1; // rules.py:24 ft_weekly
+export const FT_CAP = 5; // rules.py:26 ft_cap
+export const LAST_ROUND = 38; // rules.py:28 last_round
+export const HIT_COST = 4; // rules.py:49 hit_cost_actual: what a hit REALLY costs in points (team.py:256: FPL's −4);
+// never sent to the solver, which prices a hit itself (F17: the bundle's meta.hit_cost)
+export const MAX_PER_CLUB = 3; // rules.py:93 max_per_team
+export const HALF = 19; // chips.py:48: chips refill after GW19
+export const CHIPS = ['wc', 'fh', 'bb', 'tc']; // chips.py:47 (that tuple's order is wc, bb, fh, tc)
+export const MAX_HORIZON = 5; // api/data.py:38 HORIZON: the pools forecast h0..h4
+const SEASON_LONG = { 2024: ['fh', 'bb', 'tc'] }; // chips.py:50 _SEASON_LONG
 /** {pos: [squad count, XI min, XI max]}: rules.py:103-108 pos_limits. */
 export const POS_LIMITS = { GK: [2, 1, 1], DEF: [5, 3, 5], MID: [5, 2, 5], FWD: [3, 1, 3] };
-const XI_SIZE = 11;              // rules.py:96 starter_size
+const XI_SIZE = 11; // rules.py:96 starter_size
 
 /** FTs granted into GW gw: 5 at 2025's GW16 (rules.py:148-149), else the weekly one. */
 export const ftGrant = (season, gw) => (Number(season) === 2025 && Number(gw) === 16 ? 5 : FT_WEEKLY);
@@ -30,16 +30,25 @@ export const seasonLong = (season, chip) => (SEASON_LONG[Number(season)] || []).
 // ---------------------------------------------------------------- small helpers
 
 const EMPTY = Object.freeze({});
-export const num = (v) => (v === null || v === undefined || v === '' || typeof v === 'boolean' || !Number.isFinite(Number(v)) ? null : Number(v));
+export const num = (v) =>
+  v === null || v === undefined || v === '' || typeof v === 'boolean' || !Number.isFinite(Number(v)) ? null : Number(v);
 export const T = (m) => (num(m) === null ? null : Math.round(Number(m) * 10));
 export const M = (t) => (t === null || t === undefined ? null : Math.round(t) / 10);
 export const money = (t) => `£${(Math.abs(t) / 10).toFixed(1)}m`;
 export const sum = (xs) => xs.reduce((s, x) => s + x, 0);
 export const ids = (xs) => (Array.isArray(xs) ? xs.map(Number).filter(Number.isFinite) : []);
-export const sortedGws = (o) => Object.keys(o || {}).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
-export const posRank = (pos) => { const i = POS.indexOf(pos); return i < 0 ? 9 : i; };
+export const sortedGws = (o) =>
+  Object.keys(o || {})
+    .map(Number)
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+export const posRank = (pos) => {
+  const i = POS.indexOf(pos);
+  return i < 0 ? 9 : i;
+};
 let idSeq = 0;
-export const newId = () => `d${Date.now().toString(36)}${(++idSeq).toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+export const newId = () =>
+  `d${Date.now().toString(36)}${(++idSeq).toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 // ---------------------------------------------------------------- players
 
@@ -85,8 +94,17 @@ function buildLookup(base, players) {
     const rec = record(r, gws);
     const had = by.get(rec.id);
     // the players payload wins; a base row fills what it lacks
-    if (had && !rec.xp.length) { rec.xp = had.xp; rec.xpGws = had.xpGws; }
-    if (had) { rec.pos ??= had.pos; rec.club ??= had.club; rec.clubId ??= had.clubId; rec.price ??= had.price; rec.priceT ??= had.priceT; }
+    if (had && !rec.xp.length) {
+      rec.xp = had.xp;
+      rec.xpGws = had.xpGws;
+    }
+    if (had) {
+      rec.pos ??= had.pos;
+      rec.club ??= had.club;
+      rec.clubId ??= had.clubId;
+      rec.price ??= had.price;
+      rec.priceT ??= had.priceT;
+    }
     by.set(rec.id, rec);
   }
   const get = (id) => by.get(Number(id));
@@ -116,14 +134,20 @@ const LOOKUPS = new WeakMap();
 const isLookup = (x) => x && typeof x.get === 'function' && typeof x.pos === 'function' && typeof x.xp === 'function';
 
 /** Player facts by id over base.squad and the players payload, memoised per (players, base). */
-export function playerLookup({ base, players } = {}) {
+export function playerLookup({ base, players } = /** @type {{base?: object, players?: object}} */ ({})) {
   if (isLookup(players)) return players;
   const kp = players && typeof players === 'object' ? players : EMPTY;
   const kb = base && typeof base === 'object' ? base : EMPTY;
   let inner = LOOKUPS.get(kp);
-  if (!inner) LOOKUPS.set(kp, (inner = new WeakMap()));
+  if (!inner) {
+    inner = new WeakMap();
+    LOOKUPS.set(kp, inner);
+  }
   let L = inner.get(kb);
-  if (!L) inner.set(kb, (L = buildLookup(base, players)));
+  if (!L) {
+    L = buildLookup(base, players);
+    inner.set(kb, L);
+  }
   return L;
 }
 
@@ -146,9 +170,10 @@ export function validFormation(xi, posOf) {
 
 /** XI by (position, xp desc) as team.py:179 orders starters; bench GK first, then xp desc (team.py:180). */
 const orderXi = (xi, xpOf, posOf) => [...xi].sort((a, b) => posRank(posOf(a)) - posRank(posOf(b)) || xpOf(b) - xpOf(a));
-const orderBench = (bench, xpOf, posOf) => [...bench].sort((a, b) => (posOf(a) !== 'GK') - (posOf(b) !== 'GK') || xpOf(b) - xpOf(a));
+const orderBench = (bench, xpOf, posOf) =>
+  [...bench].sort((a, b) => Number(posOf(a) !== 'GK') - Number(posOf(b) !== 'GK') || xpOf(b) - xpOf(a));
 /** GK to the first bench slot, the outfield order kept (solve.py:319 open_slots; api/entry.py:520-521). */
-const gkFirst = (bench, posOf) => [...bench].sort((a, b) => (posOf(a) !== 'GK') - (posOf(b) !== 'GK'));
+const gkFirst = (bench, posOf) => [...bench].sort((a, b) => Number(posOf(a) !== 'GK') - Number(posOf(b) !== 'GK'));
 
 /**
  * The highest-xp legal XI of a squad: team.py:99-127 best_xi. Each position sorted by xp, every count from its XI
@@ -183,7 +208,11 @@ export function bestXI(squad, xpOf, posOf) {
   const inXi = new Set(best.xi);
   return {
     xi: orderXi(best.xi, xp, pos),
-    bench: orderBench(ids(squad).filter((p) => !inXi.has(p)), xp, pos),
+    bench: orderBench(
+      ids(squad).filter((p) => !inXi.has(p)),
+      xp,
+      pos,
+    ),
     total: best.total,
   };
 }
@@ -198,19 +227,30 @@ function repairLineup(xi, bench, squad, replacedBy, pos) {
   const follow = (p) => {
     let q = p;
     const seen = new Set();
-    while (!inSquad.has(q) && replacedBy.has(q) && !seen.has(q)) { seen.add(q); q = replacedBy.get(q); }
+    while (!inSquad.has(q) && replacedBy.has(q) && !seen.has(q)) {
+      seen.add(q);
+      q = replacedBy.get(q);
+    }
     return inSquad.has(q) && !used.has(q) ? q : null;
   };
-  const place = (list) => list.map((p) => { const q = follow(p); if (q !== null) used.add(q); return q; });
-  const xi0 = ids(xi), bench0 = ids(bench);
-  const xi1 = place(xi0), bench1 = place(bench0);
-  const fill = (orig, got) => got.map((q, i) => {
-    if (q !== null) return q;
-    const want = pos(orig[i]);
-    const r = squad.find((p) => !used.has(p) && (want === null || pos(p) === want));
-    if (r !== undefined) used.add(r);
-    return r ?? null;
-  });
+  const place = (list) =>
+    list.map((p) => {
+      const q = follow(p);
+      if (q !== null) used.add(q);
+      return q;
+    });
+  const xi0 = ids(xi),
+    bench0 = ids(bench);
+  const xi1 = place(xi0),
+    bench1 = place(bench0);
+  const fill = (orig, got) =>
+    got.map((q, i) => {
+      if (q !== null) return q;
+      const want = pos(orig[i]);
+      const r = squad.find((p) => !used.has(p) && (want === null || pos(p) === want));
+      if (r !== undefined) used.add(r);
+      return r ?? null;
+    });
   const xi2 = fill(xi0, xi1);
   if (xi2.includes(null)) return null;
   const bench2 = bench0.length ? fill(bench0, bench1).filter((p) => p !== null) : [];
@@ -222,11 +262,12 @@ function repairLineup(xi, bench, squad, replacedBy, pos) {
 export function lineupFor(L, gw, squad, saved, replacedBy, warnings, pick = L.xp) {
   const xpOf = (p) => num(pick(p, gw)) ?? 0;
   const pos = L.pos;
-  let xi = null, bench = null;
+  let xi = null,
+    bench = null;
   if (saved && Array.isArray(saved.xi) && saved.xi.length) {
     const fixed = repairLineup(saved.xi, saved.bench, squad, replacedBy, pos);
     if (fixed && validFormation(fixed.xi, pos) && fixed.xi.length + fixed.bench.length === squad.length) {
-      xi = [...fixed.xi].sort((a, b) => posRank(pos(a)) - posRank(pos(b)));  // rows by position, order kept within
+      xi = [...fixed.xi].sort((a, b) => posRank(pos(a)) - posRank(pos(b))); // rows by position, order kept within
       bench = fixed.ordered ? gkFirst(fixed.bench, pos) : orderBench(fixed.bench, xpOf, pos);
     } else {
       warnings.push('the saved lineup no longer fits this squad: best XI used');
@@ -234,11 +275,14 @@ export function lineupFor(L, gw, squad, saved, replacedBy, warnings, pick = L.xp
   }
   if (!xi) ({ xi, bench } = bestXI(squad, xpOf, pos));
   if (xi.length !== XI_SIZE) warnings.push('the squad cannot field a legal XI');
-  const byXp = [...xi].sort((a, b) => xpOf(b) - xpOf(a));  // stable: ties keep XI order
-  const savedCap = num(saved?.captain), savedVice = num(saved?.vice);
+  const byXp = [...xi].sort((a, b) => xpOf(b) - xpOf(a)); // stable: ties keep XI order
+  const savedCap = num(saved?.captain),
+    savedVice = num(saved?.vice);
   const captain = savedCap !== null && xi.includes(savedCap) ? savedCap : (byXp[0] ?? null);
-  const vice = savedVice !== null && xi.includes(savedVice) && savedVice !== captain
-    ? savedVice : (byXp.find((p) => p !== captain) ?? null);
+  const vice =
+    savedVice !== null && xi.includes(savedVice) && savedVice !== captain
+      ? savedVice
+      : (byXp.find((p) => p !== captain) ?? null);
   return { xi, bench, captain, vice };
 }
 
@@ -251,12 +295,23 @@ export function applyLineup(week, saved, players) {
   const L = playerLookup({ players });
   const own = { xi: ids(week?.xi), bench: ids(week?.bench), captain: num(week?.captain), vice: num(week?.vice) };
   const squad = [...own.xi, ...own.bench];
-  const moves = Array.isArray(week?.moves) ? week.moves.filter((m) => m.ok !== false) : pairMoves(week?.out, week?.in, L);
-  const replacedBy = new Map(moves.filter((m) => m.out != null && m.in != null).map((m) => [Number(m.out), Number(m.in)]));
+  const moves = Array.isArray(week?.moves)
+    ? week.moves.filter((m) => m.ok !== false)
+    : pairMoves(week?.out, week?.in, L);
+  const replacedBy = new Map(
+    moves.filter((m) => m.out != null && m.in != null).map((m) => [Number(m.out), Number(m.in)]),
+  );
   const arm = { captain: num(saved?.captain) ?? own.captain, vice: num(saved?.vice) ?? own.vice };
   if (ids(saved?.xi).length && ids(saved?.bench).length) {
     const warnings = [];
-    const lu = lineupFor(L, week.gw, squad, { xi: ids(saved.xi), bench: ids(saved.bench), ...arm }, replacedBy, warnings);
+    const lu = lineupFor(
+      L,
+      week.gw,
+      squad,
+      { xi: ids(saved.xi), bench: ids(saved.bench), ...arm },
+      replacedBy,
+      warnings,
+    );
     if (!warnings.length) return lu;
   }
   return lineupFor(L, week?.gw, squad, { ...own, ...arm }, replacedBy, []);
@@ -265,15 +320,25 @@ export function applyLineup(week, saved, players) {
 /** XI ↔ bench (or two outfield bench players) swapped, or null if that breaks the formation. */
 export function swapLineup(state, aId, bId, posOf) {
   const pos = posFn(posOf);
-  const a = Number(aId), b = Number(bId);
-  const xi = ids(state?.xi), bench = ids(state?.bench);
+  const a = Number(aId),
+    b = Number(bId);
+  const xi = ids(state?.xi),
+    bench = ids(state?.bench);
   if (a === b) return null;
-  const ia = xi.indexOf(a), ib = xi.indexOf(b), ja = bench.indexOf(a), jb = bench.indexOf(b);
-  if (ia >= 0 && jb >= 0) { xi[ia] = b; bench[jb] = a; }
-  else if (ib >= 0 && ja >= 0) { xi[ib] = a; bench[ja] = b; }
-  else if (ja >= 0 && jb >= 0) {
+  const ia = xi.indexOf(a),
+    ib = xi.indexOf(b),
+    ja = bench.indexOf(a),
+    jb = bench.indexOf(b);
+  if (ia >= 0 && jb >= 0) {
+    xi[ia] = b;
+    bench[jb] = a;
+  } else if (ib >= 0 && ja >= 0) {
+    xi[ib] = a;
+    bench[ja] = b;
+  } else if (ja >= 0 && jb >= 0) {
     if (pos(a) === 'GK' || pos(b) === 'GK') return null;
-    bench[ja] = b; bench[jb] = a;
+    bench[ja] = b;
+    bench[jb] = a;
   } else return null;
   if (!validFormation(xi, pos)) return null;
   return { xi, bench: gkFirst(bench, pos) };

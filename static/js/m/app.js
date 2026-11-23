@@ -72,7 +72,8 @@ import { createStore, derive, horizonOf, reachOf } from './shell/store.js';
 import { $, createSheets } from './shell/sheets.js';
 
 const wait = (ms) => new Promise((res) => setTimeout(res, ms));
-const hhmm = (ms) => (Number.isFinite(ms) ? new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—');
+const hhmm = (ms) =>
+  Number.isFinite(ms) ? new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
 const SCREEN = 'ahead';
 
 // ================================================================ store
@@ -98,8 +99,15 @@ const PRESOLVE_KEY = 'fc:presolve';
 // but GW11's own transfers changed in 6/24 at 0.1% and 0.2%, 9/24 at 0.5%: one --gap relaxes the whole MIP, GW A
 // included (main.py gapRel), and a speed-up never changes this week's buys; so exact)
 const GAP_DEFAULT = Object.freeze({ now: 0, later: 0 });
-const gapOf = () => { try { return { ...GAP_DEFAULT, ...JSON.parse(api.local.get(GAP_KEY) || '{}') }; } catch { return { ...GAP_DEFAULT }; } };
-const weeksOf = (entry, b = store.get('bundle')) => calls.planWeeks(api.local.get(HORIZON_KEY(entry)), b?.meta?.locked, b?.meta ? reachOf(b.meta).length : null);
+const gapOf = () => {
+  try {
+    return { ...GAP_DEFAULT, ...JSON.parse(api.local.get(GAP_KEY) || '{}') };
+  } catch {
+    return { ...GAP_DEFAULT };
+  }
+};
+const weeksOf = (entry, b = store.get('bundle')) =>
+  calls.planWeeks(api.local.get(HORIZON_KEY(entry)), b?.meta?.locked, b?.meta ? reachOf(b.meta).length : null);
 
 /** Plan progress in one line: "Planning GW6–9", "Planning…" before the GWs are known. */
 const planning = (gws) => (gws?.length ? `${calls.COPY.waitWord} ${calls.COPY.span(gws)}` : `${calls.COPY.waitWord}…`);
@@ -126,12 +134,15 @@ const modules = new Map();
 function optionalModule(rel) {
   if (!MODULES[rel]) return Promise.resolve(null);
   if (!modules.has(rel)) {
-    modules.set(rel, MODULES[rel]().catch((e) => {
-      // (a fetch that failed, the server gone, says nothing: it's asked again; anything else is a bug in the module)
-      if (!(e instanceof TypeError)) console.error(`Forkcast: ${rel} failed to load`, e);
-      modules.delete(rel);
-      return null;
-    }));
+    modules.set(
+      rel,
+      MODULES[rel]().catch((e) => {
+        // (a fetch that failed, the server gone, says nothing: it's asked again; anything else is a bug in the module)
+        if (!(e instanceof TypeError)) console.error(`Forkcast: ${rel} failed to load`, e);
+        modules.delete(rel);
+        return null;
+      }),
+    );
   }
   return modules.get(rel);
 }
@@ -143,7 +154,13 @@ let preloaded = false;
 function preloadModules() {
   if (preloaded) return;
   preloaded = true;
-  setTimeout(() => LAZY.forEach((rel) => optionalModule(rel)), 400);
+  setTimeout(
+    () =>
+      LAZY.forEach((rel) => {
+        optionalModule(rel);
+      }),
+    400,
+  );
 }
 
 function linkCss(href) {
@@ -166,14 +183,31 @@ const gate = $('#m-gate');
 let revealOnce = false;
 
 const ctx = {
-  get bundle() { return store.get('bundle'); },
-  get data() { return store.get('data'); },
-  get reveal() { return revealOnce; },
-  store, api, sheets, engine, calls, kits, pitch, ui,
+  get bundle() {
+    return store.get('bundle');
+  },
+  get data() {
+    return store.get('data');
+  },
+  get reveal() {
+    return revealOnce;
+  },
+  store,
+  api,
+  sheets,
+  engine,
+  calls,
+  kits,
+  pitch,
+  ui,
   navigate,
   openSheet: (name, ...args) => openSheet(name, ...args),
   // the bundle only when the refresh worked, else null (a toast or the off-line banner says why)
-  refresh: (o) => loader.load({ refresh: !!o?.hard, manual: true }).then((b) => (loader.ok ? b : null)).catch(() => null),
+  refresh: (o) =>
+    loader
+      .load({ refresh: !!o?.hard, manual: true })
+      .then((b) => (loader.ok ? b : null))
+      .catch(() => null),
   connect: (entry) => firstLoad(String(entry)),
   factPanel,
   signOut: () => signOut(),
@@ -189,16 +223,26 @@ const ctx = {
   localRuns: () => localRuns(),
   weeks: () => weeksOf(store.get('entry')),
   // the weeks picked: kept, and the bundle asked for that plan now
-  setWeeks: (n) => { api.local.set(HORIZON_KEY(store.get('entry')), String(n)); return ctx.refresh(); },
+  setWeeks: (n) => {
+    api.local.set(HORIZON_KEY(store.get('entry')), String(n));
+    return ctx.refresh();
+  },
   gap: () => gapOf(),
   // (the plan's data anew with it: every solve's values from it, so each is asked again under the new gap)
-  setGap: (g) => { api.local.set(GAP_KEY, JSON.stringify({ ...gapOf(), ...g })); const d = store.get('data'); if (d) store.set('data', { ...d, gap: gapOf() }); },
+  setGap: (g) => {
+    api.local.set(GAP_KEY, JSON.stringify({ ...gapOf(), ...g }));
+    const d = store.get('data');
+    if (d) store.set('data', { ...d, gap: gapOf() });
+  },
   presolveOn: () => api.local.get(PRESOLVE_KEY) === '1',
-  setPresolve: (on) => { api.local.set(PRESOLVE_KEY, on ? '1' : null); },
+  setPresolve: (on) => {
+    api.local.set(PRESOLVE_KEY, on ? '1' : null);
+  },
   // Chips… opened on GW g: its chips are solved now (ahead.chipPreps); none before, none of a GW never opened (owner,
   // 2026-10-28); kept for the team until sign-out
   askChips: (g) => {
-    const entry = String(store.get('entry')), was = store.get('chipsAt');
+    const entry = String(store.get('entry')),
+      was = store.get('chipsAt');
     const gws = String(was?.entry) === entry ? was.gws : [];
     if (gws.includes(Number(g))) return;
     store.set('chipsAt', { entry, gws: [...gws, Number(g)] });
@@ -223,6 +267,7 @@ function applyTheme() {
 
 // ================================================================ router (#/ahead?gw=8, #/player/<id>; #/week, #/ and #/ahead → #/ahead?gw=A)
 
+/** @returns {{name: string, params: Record<string, string | number>}} */
 function parseHash(hash = location.hash) {
   const [path, q = ''] = hash.replace(/^#\/?/, '').split('?');
   const [name, id] = path.split('/').filter(Boolean);
@@ -238,7 +283,10 @@ let wantA = false;
 const gwA = () => store.get('data')?.gw ?? null;
 
 const hashOf = (name, params = {}) => {
-  if (name === 'player') { const { id, ...rest } = params; return `#/player/${id}${qs(rest)}`; }
+  if (name === 'player') {
+    const { id, ...rest } = params;
+    return `#/player/${id}${qs(rest)}`;
+  }
   return `#/${name}${qs(params)}`;
 };
 
@@ -251,7 +299,10 @@ function navigate(name, params = {}, { replace = false, top = !replace } = {}) {
     // where a low tap had scrolled it (replaces the address)
     if (name === SCREEN && top) screen.el?.scrollTo({ top: 0 });
     if (hash === location.hash) return route();
-    if (replace) { history.replaceState(history.state, '', hash); route(); } else location.hash = hash;
+    if (replace) {
+      history.replaceState(history.state, '', hash);
+      route();
+    } else location.hash = hash;
   });
 }
 
@@ -260,17 +311,29 @@ function route() {
   const r = parseHash();
   if (r.name === 'player') {
     sheets.routed();
-    openSheet('player', r.params.id).finally(() => sheets.routed(false)).then((sh) => {
-      routeSheet = sh || null;
-      if (sh) {
-        const prev = sh.onClose;
-        sh.onClose = () => { prev?.(); if (routeSheet === sh) { routeSheet = null; if (parseHash().name === 'player') navigate(SCREEN, screenParams(), { replace: true }); } };
-      }
-    });
+    openSheet('player', r.params.id)
+      .finally(() => sheets.routed(false))
+      .then((sh) => {
+        routeSheet = sh || null;
+        if (sh) {
+          const prev = sh.onClose;
+          sh.onClose = () => {
+            prev?.();
+            if (routeSheet === sh) {
+              routeSheet = null;
+              if (parseHash().name === 'player') navigate(SCREEN, screenParams(), { replace: true });
+            }
+          };
+        }
+      });
     return;
   }
-  if (routeSheet) { const sh = routeSheet; routeSheet = null; sh.close(); }
-  if (/^\d+$/.test(r.params.gw || '')) {
+  if (routeSheet) {
+    const sh = routeSheet;
+    routeSheet = null;
+    sh.close();
+  }
+  if (/^\d+$/.test(String(r.params.gw || ''))) {
     wantA = false;
     store.set('gw', Number(r.params.gw));
   } else if (Number.isFinite(gwA())) {
@@ -284,7 +347,9 @@ function route() {
 }
 const screenParams = () => (Number.isFinite(store.get('gw')) ? { gw: store.get('gw') } : {});
 /** The screen's canonical address (#/ahead?gw=8), or null on another route (#/player/<id>). */
-function canonical() { return parseHash().name === SCREEN ? hashOf(SCREEN, screenParams()) : null; }
+function canonical() {
+  return parseHash().name === SCREEN ? hashOf(SCREEN, screenParams()) : null;
+}
 store.on('gw', () => {
   const canon = canonical();
   if (canon && location.hash !== canon) history.replaceState(history.state, '', canon);
@@ -299,7 +364,11 @@ function carry(to) {
   skipHash = location.href;
   history.replaceState(history.state, '', to);
 }
-addEventListener('hashchange', (e) => { const skip = e.newURL === skipHash; skipHash = null; if (!skip) route(); });
+addEventListener('hashchange', (e) => {
+  const skip = e.newURL === skipHash;
+  skipHash = null;
+  if (!skip) route();
+});
 
 // ================================================================ the screen
 
@@ -326,24 +395,41 @@ async function ensureMounted() {
       revealOnce = pendingReveal;
       try {
         s.handle = s.mod.mount(s.el, ctx) || {};
-        s.fresh = true;  // mounted: show() once laid out (showScreen, or accept for a cold start)
+        s.fresh = true; // mounted: show() once laid out (showScreen, or accept for a cold start)
       } catch (e) {
         console.error(`Forkcast: ${SCREEN}.js mount failed`, e);
         s.handle = {};
-        fill(s.el, h('div.m-card', { style: { marginTop: '24px' } }, h('p.m-para', null, "Something went wrong showing this screen. Your plan is unchanged. Reload the page to try again.")));
+        fill(
+          s.el,
+          h(
+            'div.m-card',
+            { style: { marginTop: '24px' } },
+            h(
+              'p.m-para',
+              null,
+              'Something went wrong showing this screen. Your plan is unchanged. Reload the page to try again.',
+            ),
+          ),
+        );
       } finally {
         pendingReveal = false;
         revealOnce = false;
       }
       placeBanner();
-    })().finally(() => { s.mounting = null; });
+    })().finally(() => {
+      s.mounting = null;
+    });
   }
   return s.mounting;
 }
 
 function drop() {
   const s = screen;
-  try { s.handle?.unmount?.(); } catch (e) { console.error(`Forkcast: ${SCREEN}.js unmount failed`, e); }
+  try {
+    s.handle?.unmount?.();
+  } catch (e) {
+    console.error(`Forkcast: ${SCREEN}.js unmount failed`, e);
+  }
   s.handle = null;
   s.el.replaceChildren();
 }
@@ -352,7 +438,11 @@ function drop() {
 function notify(why) {
   const s = screen;
   if (s.handle?.update) {
-    try { s.handle.update(why); } catch (e) { console.error(`Forkcast: ${SCREEN}.js update failed`, e); }
+    try {
+      s.handle.update(why);
+    } catch (e) {
+      console.error(`Forkcast: ${SCREEN}.js update failed`, e);
+    }
   } else if (s.handle && why === 'bundle') {
     drop();
     ensureMounted();
@@ -365,7 +455,9 @@ function notify(why) {
 function renderBanner() {
   const c = store.get('conn') || {};
   const at = hhmm(c.at);
-  let kind = null, text = '', extra = null;
+  let kind = null,
+    text = '',
+    extra = null;
   if (c.state === 'offline') {
     kind = 'offline';
     text = store.get('bundle') ? calls.COPY.offline(at) : api.plain(c.error);
@@ -383,9 +475,14 @@ function placeBanner() {
   const el = screen.el;
   if (!el) return;
   const slot = $('[data-banner-slot]', el);
-  if (slot) { if (banner.parentNode !== slot) slot.append(banner); } else if (banner.parentNode !== el || el.firstChild !== banner) el.prepend(banner);
+  if (slot) {
+    if (banner.parentNode !== slot) slot.append(banner);
+  } else if (banner.parentNode !== el || el.firstChild !== banner) el.prepend(banner);
 }
-store.on('conn', () => { renderBanner(); notify('conn'); });
+store.on('conn', () => {
+  renderBanner();
+  notify('conn');
+});
 
 // ================================================================ bundle loader
 
@@ -401,9 +498,17 @@ const BACKOFF_MS = [5000, 10000, 20000, 30000];
 async function fetchBundle(entry, { refresh = false, prev = null } = {}) {
   const same = String(prev?.entry?.id) === String(entry);
   const have = prev?.version && same ? prev.version : null;
-  const hl = same ? prev.live_v ?? null : null;
+  const hl = same ? (prev.live_v ?? null) : null;
   // a bundle held from before (snapshot, loader) brings its cards: their stamp is asked again, not the cards
-  if (same && prev.cards && String(held.entry) !== String(entry)) Object.assign(held, { entry: String(entry), cards: prev.cards, v: prev.cards_v ?? null, version: prev.version ?? null, key: null, at: 0 });
+  if (same && prev.cards && String(held.entry) !== String(entry))
+    Object.assign(held, {
+      entry: String(entry),
+      cards: prev.cards,
+      v: prev.cards_v ?? null,
+      version: prev.version ?? null,
+      key: null,
+      at: 0,
+    });
   const w = weeksOf(entry, prev ?? undefined);
   let b = await api.getBundle(entry, { refresh, have, hl, w, cl: true, fa: true });
   // the release this page runs, from the first bundle's reply: no HEAD of the page at boot (owner, 2026-11-12)
@@ -419,18 +524,25 @@ async function fetchBundle(entry, { refresh = false, prev = null } = {}) {
   // tunnel): from this browser's cache or the Render forwarder, joined with this team's others; a stamp the server no
   // longer holds (404, a restart): the bundle again with them all. No runs with fa (ctx.localRuns)
   if (b.forecast_all && !kept) {
-    const all = await api.getAllForecast(b.forecast_all).catch((e) => { if (e?.status === 404) return null; throw e; });
-    b = all ? { ...b, ...api.joinForecast(all, b), joined: b.forecast_all } : await api.getBundle(entry, { refresh, hl, w, cl: true });
+    const all = await api.getAllForecast(b.forecast_all).catch((e) => {
+      if (e?.status === 404) return null;
+      throw e;
+    });
+    b = all
+      ? { ...b, ...api.joinForecast(all, b), joined: b.forecast_all }
+      : await api.getBundle(entry, { refresh, hl, w, cl: true });
   }
   askCards(entry, b, w);
   // only cards asked after a bundle of this data version (else the GW before's cards); none meanwhile, and a card
   // opened asks GET /api/m/player
   const mine = String(held.entry) === String(entry) && held.version === b.version ? held : { cards: null, v: null };
-  return { ...(kept ? { ...b, players: prev.players, seeds: prev.seeds, joined: prev.joined } : b),
+  return {
+    ...(kept ? { ...b, players: prev.players, seeds: prev.seeds, joined: prev.joined } : b),
     // (the block held, hl: kept whether or not the rows are, the shared rows carrying none of its fields)
     ...(b.live == null && hl && b.live_v === hl ? { live: prev.live ?? null } : {}),
     // a server that sent cards anyway (pre-cl) is read as before
-    ...(b.cards ? {} : { cards: mine.cards, cards_v: mine.v }) };
+    ...(b.cards ? {} : { cards: mine.cards, cards_v: mine.v }),
+  };
 }
 
 // ================================================================ the cards (api/card.py), apart from the bundle
@@ -444,29 +556,48 @@ const held = { entry: null, cards: null, v: null, version: null, key: null, at: 
  *  version they were asked after, `w` its weeks. */
 const CARDS_AGAIN_MS = 120000;
 function askCards(entry, b, w) {
-  if (!b?.entry || b.state === 'updating' || held.asking && String(held.entry) === String(entry)) return;
-  if (String(held.entry) !== String(entry)) Object.assign(held, { entry: String(entry), cards: null, v: null, version: null, key: null, at: 0 });
+  if (!b?.entry || b.state === 'updating' || (held.asking && String(held.entry) === String(entry))) return;
+  if (String(held.entry) !== String(entry))
+    Object.assign(held, { entry: String(entry), cards: null, v: null, version: null, key: null, at: 0 });
   const key = [b.version, b.state].join('|');
   if (held.key === key && Date.now() - held.at < CARDS_AGAIN_MS) return;
   // every player's cards by their stamp (cards_all; owner, 2026-11-12, "fix bug"): held at it, nothing to ask; else
   // asked from this browser's cache or the Render forwarder, kept a year. A bundle without it (an older server): the
   // team's cards, GET /api/m/cards
   const all = b.cards_all ?? null;
-  if (all && held.cards && held.v === all) { Object.assign(held, { version: b.version, key, at: Date.now() }); landCards(entry); return; }
+  if (all && held.cards && held.v === all) {
+    Object.assign(held, { version: b.version, key, at: Date.now() });
+    landCards(entry);
+    return;
+  }
   const hc = held.cards ? held.v : null;
   held.asking = true;
-  (all ? api.getAllCards(all) : api.getCards({ entry, hc, w })).then((c) => {
-    if (String(held.entry) !== String(entry)) return;
-    const got = c.cards ?? (hc && c.cards_v === hc ? held.cards : null);
-    Object.assign(held, { cards: got, v: got ? c.cards_v : null, version: b.version, key, at: Date.now() });
-    landCards(entry);
-  }, () => {}).finally(() => { if (String(held.entry) === String(entry)) held.asking = false; });  // failed: asked with the next bundle
+  (all ? api.getAllCards(all) : api.getCards({ entry, hc, w }))
+    .then(
+      (c) => {
+        if (String(held.entry) !== String(entry)) return;
+        const got = c.cards ?? (hc && c.cards_v === hc ? held.cards : null);
+        Object.assign(held, { cards: got, v: got ? c.cards_v : null, version: b.version, key, at: Date.now() });
+        landCards(entry);
+      },
+      () => {},
+    )
+    .finally(() => {
+      if (String(held.entry) === String(entry)) held.asking = false;
+    }); // failed: asked with the next bundle
 }
 /** Cards landed: into the bundle on screen quietly and in place (no reader draws from them until a card opens; its
  *  identity kept, which ahead.js inputsOf and the plan's memos key on), loader.last, and the offline snapshot. */
 function landCards(entry) {
   const b = store.get('bundle');
-  if (!b || String(store.get('entry')) !== String(entry) || String(b.entry?.id) !== String(entry) || b.version !== held.version || b.cards === held.cards) return;
+  if (
+    !b ||
+    String(store.get('entry')) !== String(entry) ||
+    String(b.entry?.id) !== String(entry) ||
+    b.version !== held.version ||
+    b.cards === held.cards
+  )
+    return;
   const was = loader.last === JSON.stringify(b);
   Object.assign(b, { cards: held.cards, cards_v: held.v });
   if (was) loader.last = JSON.stringify(b);
@@ -474,8 +605,16 @@ function landCards(entry) {
 }
 
 const loader = {
-  timer: null, seq: 0, misses: 0, last: '', plan: { v: undefined, at: NaN }, ok: false,
-  schedule(ms) { clearTimeout(this.timer); this.timer = ms ? setTimeout(() => this.load().catch(() => {}), ms) : null; },
+  timer: null,
+  seq: 0,
+  misses: 0,
+  last: '',
+  plan: { v: undefined, at: NaN },
+  ok: false,
+  schedule(ms) {
+    clearTimeout(this.timer);
+    this.timer = ms ? setTimeout(() => this.load().catch(() => {}), ms) : null;
+  },
   /** → the bundle for the connected entry (throws when there is nothing to show). */
   async load({ refresh = false, manual = false } = {}) {
     const entry = store.get('entry');
@@ -543,16 +682,19 @@ function accept(entry, b, { at = Date.now(), offline = false, snapshot = false }
   if (changed) notify('bundle');
   if (store.get('bundle')) {
     // a cold start mounts the screen here (showScreen ran without a bundle): show it too
-    ensureMounted().then(() => { if (screen.fresh) shown(); });
+    ensureMounted().then(() => {
+      if (screen.fresh) shown();
+    });
     if (!offline) preloadModules();
   }
 }
 
 document.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState !== 'visible' || await reloadIfReleased()) return;
+  if (document.visibilityState !== 'visible' || (await reloadIfReleased())) return;
   if (!store.get('entry') || !gate.hidden) return;
   const at = store.get('conn')?.at;
-  if (!Number.isFinite(at) || Date.now() - at > 30000 || store.get('conn')?.state !== 'ok') loader.load().catch(() => {});
+  if (!Number.isFinite(at) || Date.now() - at > 30000 || store.get('conn')?.state !== 'ok')
+    loader.load().catch(() => {});
 });
 
 // ================================================================ pull to refresh (§6)
@@ -561,34 +703,51 @@ const ptr = h('div.m-ptr', { 'aria-hidden': 'true' }, h('i'));
 app.append(ptr);
 {
   const el = screen.el;
-  let y0 = null, x0 = 0, dy = 0, pulling = false;
+  let y0 = null,
+    x0 = 0,
+    dy = 0,
+    pulling = false;
   const paint = () => {
     const d = Math.min(dy * 0.5, 80);
     ptr.style.opacity = String(Math.min(1, d / 50));
     ptr.style.transform = `translateY(${d - 40}px) rotate(${d * 4}deg)`;
     ptr.classList.toggle('ready', d >= 60);
   };
-  el.addEventListener('touchstart', (e) => {
-    y0 = el.scrollTop <= 0 && e.touches.length === 1 && !e.target.closest('[data-nopull]') && !sheets.depth() ? e.touches[0].clientY : null;
-    x0 = e.touches[0].clientX;
-    dy = 0;
-    pulling = false;
-  }, { passive: true });
-  el.addEventListener('touchmove', (e) => {
-    if (y0 == null || e.defaultPrevented) return;
-    dy = e.touches[0].clientY - y0;
-    // engage only on a clear downward pull from the top (not a sideways drag or a gesture below)
-    if (!pulling && (dy < 10 || Math.abs(e.touches[0].clientX - x0) > dy || el.scrollTop > 0)) {
-      if (dy < 0 || Math.abs(e.touches[0].clientX - x0) > 10) y0 = null;
+  el.addEventListener(
+    'touchstart',
+    (e) => {
+      y0 =
+        el.scrollTop <= 0 && e.touches.length === 1 && !e.target.closest('[data-nopull]') && !sheets.depth()
+          ? e.touches[0].clientY
+          : null;
+      x0 = e.touches[0].clientX;
       dy = 0;
+      pulling = false;
+    },
+    { passive: true },
+  );
+  el.addEventListener(
+    'touchmove',
+    (e) => {
+      if (y0 == null || e.defaultPrevented) return;
+      dy = e.touches[0].clientY - y0;
+      // engage only on a clear downward pull from the top (not a sideways drag or a gesture below)
+      if (!pulling && (dy < 10 || Math.abs(e.touches[0].clientX - x0) > dy || el.scrollTop > 0)) {
+        if (dy < 0 || Math.abs(e.touches[0].clientX - x0) > 10) y0 = null;
+        dy = 0;
+        return;
+      }
+      pulling = true;
+      ui.holdTouch(e);
+      paint();
+    },
+    { passive: false },
+  );
+  const end = async () => {
+    if (y0 == null || !pulling) {
+      y0 = null;
       return;
     }
-    pulling = true;
-    ui.holdTouch(e);
-    paint();
-  }, { passive: false });
-  const end = async () => {
-    if (y0 == null || !pulling) { y0 = null; return; }
     y0 = null;
     pulling = false;
     if (Math.min(dy * 0.5, 80) >= 60) {
@@ -600,7 +759,9 @@ app.append(ptr);
     dy = 0;
     ptr.style.transition = 'opacity .3s, transform .3s';
     paint();
-    setTimeout(() => { ptr.style.transition = ''; }, 320);
+    setTimeout(() => {
+      ptr.style.transition = '';
+    }, 320);
   };
   el.addEventListener('touchend', end);
   el.addEventListener('touchcancel', end);
@@ -621,11 +782,28 @@ function playerFallback(id) {
   const d = store.get('data');
   const p = d?.byId.get(Number(id));
   return sheets.open({
-    title: p?.name ?? `Player ${id}`, sub: p ? `${p.club} · ${ui.posCode(p.pos)} · ${fmt.money(p.price)}` : '', detent: 'medium',
+    title: p?.name ?? `Player ${id}`,
+    sub: p ? `${p.club} · ${ui.posCode(p.pos)} · ${fmt.money(p.price)}` : '',
+    detent: 'medium',
     build(body) {
-      if (!p) { body.append(h('p.m-para', null, 'Not in this forecast.')); return; }
-      body.append(h('div.m-well', null, d.xpGws.map((g, i) => h('div.m-kv', null, h('span', null, `GW${g}${g > d.horizon[d.horizon.length - 1] ? ' · forecast only' : ''}`),
-        h('span.m-num', null, ui.xpNum(fmt.pts(p.xp?.[i])))))));
+      if (!p) {
+        body.append(h('p.m-para', null, 'Not in this forecast.'));
+        return;
+      }
+      body.append(
+        h(
+          'div.m-well',
+          null,
+          d.xpGws.map((g, i) =>
+            h(
+              'div.m-kv',
+              null,
+              h('span', null, `GW${g}${g > d.horizon[d.horizon.length - 1] ? ' · forecast only' : ''}`),
+              h('span.m-num', null, ui.xpNum(fmt.pts(p.xp?.[i]))),
+            ),
+          ),
+        ),
+      );
     },
   });
 }
@@ -659,11 +837,14 @@ vv?.addEventListener('scroll', kbSync);
 /** "Where do I find my ID?": the FPL address with the ID marked. */
 function whereSheet(example) {
   sheets.open({
-    title: PICK.where, detent: 'small',
+    title: PICK.where,
+    detent: 'small',
     build(body) {
-      body.append(h('p.m-para', null, 'On the FPL site open ', h('b', null, 'Points'), ' and look at the address:'),
+      body.append(
+        h('p.m-para', null, 'On the FPL site open ', h('b', null, 'Points'), ' and look at the address:'),
         h('p.m-idurl.m-num', null, 'fantasy.premierleague.com/entry/', h('b', null, example || '1234567'), '/event/…'),
-        h('p.m-foot.m-idnote', null, 'You can paste the whole address into the field.'));
+        h('p.m-foot.m-idnote', null, 'You can paste the whole address into the field.'),
+      );
     },
   });
 }
@@ -673,17 +854,31 @@ function whereSheet(example) {
  *  About Forkcast, the not-affiliated line. The first load keeps the form (dimmed) with one progress line (.m-prog). */
 function showConnect({ error = '', tone = '', retry = null, value = '' } = {}) {
   clearTimeout(loader.timer);
-  const err = h('div.m-err', { class: tone, role: 'alert' }, error, retry ? h('button', { type: 'button', onClick: retry }, 'Retry') : null);
+  const err = h(
+    'div.m-err',
+    { class: tone, role: 'alert' },
+    error,
+    retry ? h('button', { type: 'button', onClick: retry }, 'Retry') : null,
+  );
   const picker = teamPicker(ctx, { value, onPick: (id) => firstLoad(id), onWhere: (id) => whereSheet(id), recent: 3 });
   // an error about what was typed clears as you type again
   picker.field.addEventListener('input', () => err.replaceChildren(), { once: true });
   const go = h('button.m-primary.lg', { type: 'button', onClick: () => picker.submit() }, 'Find my team');
-  const where = h('button.m-where', { type: 'button', onClick: () => whereSheet(readId(picker.field.value)) }, PICK.where);
+  const where = h(
+    'button.m-where',
+    { type: 'button', onClick: () => whereSheet(readId(picker.field.value)) },
+    PICK.where,
+  );
   // About Forkcast under it all (sheets/about.js landing; owner, 2026-10-14); its own Find my team at its foot brings
   // you back to the field
   const land = calls.HELP_OFF ? null : h('div.m-land');
-  const start = () => { gate.scrollTo({ top: 0 }); if (picker.field.value.trim()) picker.submit(); else picker.focus(); };
-  if (land) import('./sheets/about.js').then((m) => land.replaceWith(m.landing(ctx, { start }))).catch(() => land.remove());
+  const start = () => {
+    gate.scrollTo({ top: 0 });
+    if (picker.field.value.trim()) picker.submit();
+    else picker.focus();
+  };
+  if (land)
+    import('./sheets/about.js').then((m) => land.replaceWith(m.landing(ctx, { start }))).catch(() => land.remove());
   showGate(
     h('div.m-wordmark', null, h('h1', null, 'Forkcast')),
     // an error sits right under its field
@@ -691,8 +886,11 @@ function showConnect({ error = '', tone = '', retry = null, value = '' } = {}) {
     h('div.m-prog', { 'aria-live': 'polite' }),
     picker.recent,
     ...(land ? [land] : []),
-    h('p.m-legal', null, calls.COPY.whyLegal));
-  setTimeout(() => { if (!gate.classList.contains('loading')) picker.focus(); }, 350);
+    h('p.m-legal', null, calls.COPY.whyLegal),
+  );
+  setTimeout(() => {
+    if (!gate.classList.contains('loading')) picker.focus();
+  }, 350);
 }
 
 /**
@@ -702,22 +900,29 @@ function showConnect({ error = '', tone = '', retry = null, value = '' } = {}) {
 function signOut() {
   const entry = store.get('entry');
   if (!entry) return null;
-  const name = store.get('bundle')?.entry?.team_name || api.recent.list().find((r) => String(r.entry_id) === String(entry))?.team_name || `Team ${entry}`;
-  releaseMemory(api, entry);  // started before leaving the team: a sign-in before it lands still starts fresh
-  const keys = [...new Set([
-    ...(api.loadSnapshot(entry) ? ['fc:snapshot'] : []),
-    ...[`fc:ahead:sugg:${entry}`, HORIZON_KEY(entry)],  // its fc:mem mirror: memory forget's
-    ...api.local.keys(`fc:ahead:lu:${entry}:`),
-  ])];
-  keys.forEach((k) => api.local.set(k, null));
+  const name =
+    store.get('bundle')?.entry?.team_name ||
+    api.recent.list().find((r) => String(r.entry_id) === String(entry))?.team_name ||
+    `Team ${entry}`;
+  releaseMemory(api, entry); // started before leaving the team: a sign-in before it lands still starts fresh
+  const keys = [
+    ...new Set([
+      ...(api.loadSnapshot(entry) ? ['fc:snapshot'] : []),
+      ...[`fc:ahead:sugg:${entry}`, HORIZON_KEY(entry)], // its fc:mem mirror: memory forget's
+      ...api.local.keys(`fc:ahead:lu:${entry}:`),
+    ]),
+  ];
+  keys.forEach((k) => {
+    api.local.set(k, null);
+  });
   clearTimeout(loader.timer);
-  loader.seq++;  // a load in flight lands nowhere
+  loader.seq++; // a load in flight lands nowhere
   loading++;
   drop();
   store.set({ entry: null, bundle: null, data: null, memory: null });
   Object.assign(held, { entry: null, cards: null, v: null, version: null, key: null, at: 0, asking: false });
   loader.last = '';
-  history.replaceState(history.state, '', `#/${SCREEN}`);  // a sheet's entry keeps its marker
+  history.replaceState(history.state, '', `#/${SCREEN}`); // a sheet's entry keeps its marker
   showConnect();
   return { name };
 }
@@ -734,26 +939,47 @@ function localRuns() {
   if (ctx.data?.seeds) return Promise.resolve(ctx.data.seeds);
   if (runsHeld?.version !== b.version) {
     const entry = String(b.entry.id);
-    const p = api.access().then((a) => (a.local ? api.getBundle(entry, { cl: true, w: weeksOf(entry) }) : null))
+    const p = api
+      .access()
+      .then((a) => (a.local ? api.getBundle(entry, { cl: true, w: weeksOf(entry) }) : null))
       .then((x) => engine.decodeSeeds(x?.seeds ?? null))
-      .catch(() => { if (runsHeld?.p === p) runsHeld = null; return null; });
+      .catch(() => {
+        if (runsHeld?.p === p) runsHeld = null;
+        return null;
+      });
     runsHeld = { version: b.version, p };
   }
   return runsHeld.p;
 }
 
-let ownRelease = null, heard = false, hear;
-const served = new Promise((ok) => { hear = ok; });
+let ownRelease = null,
+  heard = false,
+  hear;
+const served = new Promise((ok) => {
+  hear = ok;
+});
 async function reloadIfReleased(ask = api.servedRelease()) {
   const now = await ask;
-  if (now !== undefined && !heard) { heard = true; hear(now); }
+  if (now !== undefined && !heard) {
+    heard = true;
+    hear(now);
+  }
   // (a stamped page names its own: an old page from any cache is seen at its first look; tools/stamp_static.py)
   ownRelease ??= $('meta[name="forkcast-release"]')?.content ?? now;
   if (!now || now === ownRelease) return false;
   // (once per release: a page still old after it stays up rather than reloads for ever)
-  const key = 'fc:reloaded', tried = (() => { try { return sessionStorage.getItem(key); } catch { return null; } })();
+  const key = 'fc:reloaded',
+    tried = (() => {
+      try {
+        return sessionStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    })();
   if (tried === now) return false;
-  try { sessionStorage.setItem(key, now); } catch {}
+  try {
+    sessionStorage.setItem(key, now);
+  } catch {}
   location.reload();
   return true;
 }
@@ -761,7 +987,7 @@ async function reloadIfReleased(ask = api.servedRelease()) {
 let pendingReveal = false;
 let loading = 0;
 const SLOW_MS = 12000;
-const FIRST_RETRY_MS = 3000;  // a first load's server error is asked again once after this (fetchFirst)
+const FIRST_RETRY_MS = 3000; // a first load's server error is asked again once after this (fetchFirst)
 const SLOW_COPY = 'Still loading: a slow connection can take a minute or two.';
 
 /** A wait's lines (calls.waitFacts) in `el` (.m-facts: Connect's under its bar, Ahead's cheer slot for the whole wait),
@@ -770,13 +996,21 @@ const SLOW_COPY = 'Still loading: a slow connection can take a minute or two.';
 function factPanel(el, lines, one = lines?.at(-1)) {
   el.hidden = !lines?.length;
   if (!lines?.length) return false;
-  const para = (ls) => h('p', null, ls.flatMap(([pre, num, post], i) => [i ? ' ' : '', pre, h('b', null, num), post]));
-  const was = el.textContent, key = `${lines.map((l) => l.join('')).join(' ')}|${one?.join('')}|${el.clientWidth}`;
+  const para = (ls) =>
+    h(
+      'p',
+      null,
+      ls.flatMap(([pre, num, post], i) => [i ? ' ' : '', pre, h('b', null, num), post]),
+    );
+  const was = el.textContent,
+    key = `${lines.map((l) => l.join('')).join(' ')}|${one?.join('')}|${el.clientWidth}`;
   if (el._facts !== key) {
     el._facts = key;
     fill(el, para(lines));
-    if (lines.length > 1 && one && el.firstChild.getBoundingClientRect().height > el.clientHeight + 0.5) fill(el, para([one]));
-    if (el.textContent !== was && !ui.reduceMotion()) el.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease-out' });
+    if (lines.length > 1 && one && el.firstChild.getBoundingClientRect().height > el.clientHeight + 0.5)
+      fill(el, para([one]));
+    if (el.textContent !== was && !ui.reduceMotion())
+      el.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease-out' });
   }
   return true;
 }
@@ -791,18 +1025,25 @@ async function firstLoad(entry) {
   // may work next time)
   const was = gate.hidden && store.get('bundle') ? store.get('entry') : null;
   if (gate.hidden) showConnect({ value: entry });
-  document.activeElement?.blur?.();
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   gate.classList.add('loading');
   const go = $('.m-go .m-primary', gate);
-  if (go) { go.disabled = true; go.textContent = 'Finding…'; }
+  if (go) {
+    go.disabled = true;
+    go.textContent = 'Finding…';
+  }
   const prog = $('.m-prog', gate);
   // the wait's line under the bar (factPanel), its room kept from the tap on (m.css): nothing under moves
   const facts = h('div.m-facts');
   /** Line and bar for bundle b (none yet: "Finding team 3604308…"; then "Planning GW6–9"), then b's wait line. */
   const show = (b) => {
-    fill(prog, h('p.m-prog-t.m-num', null, b ? planning(b?.meta ? horizonOf(b.meta) : null) : `Finding team ${entry}…`),
+    fill(
+      prog,
+      h('p.m-prog-t.m-num', null, b ? planning(b?.meta ? horizonOf(b.meta) : null) : `Finding team ${entry}…`),
       h('div.m-bar', { 'aria-hidden': 'true' }, h('i.m-eta.sweep')),
-      b?.state === 'updating' ? h('p.m-prog-t.warn', null, calls.COPY.updating) : null, facts);
+      b?.state === 'updating' ? h('p.m-prog-t.warn', null, calls.COPY.updating) : null,
+      facts,
+    );
     factPanel(facts, calls.waitFacts(b), calls.waitFact(b));
   };
   const back = (e) => {
@@ -818,11 +1059,15 @@ async function firstLoad(entry) {
   };
   show(null);
   // a slow tunnel's first bundle (api.FIRST_BUNDLE_TIMEOUT_MS) is on its way: said under the line after SLOW_MS
-  const slow = setTimeout(() => { if (my === loading && $('.m-prog-t', prog)) prog.append(h('p.m-prog-t.m-prog-slow', null, SLOW_COPY)); }, SLOW_MS);
+  const slow = setTimeout(() => {
+    if (my === loading && $('.m-prog-t', prog)) prog.append(h('p.m-prog-t.m-prog-slow', null, SLOW_COPY));
+  }, SLOW_MS);
   // a server error or the service away is asked once more, FIRST_RETRY_MS on, before Connect says so with its Retry
   // (owner, 2026-10-28: "Retry first load once"); null where another load took over
   const fetchFirst = async (opts) => {
-    try { return await fetchBundle(entry, opts); } catch (e) {
+    try {
+      return await fetchBundle(entry, opts);
+    } catch (e) {
       if (!(api.isDown(e) || e.status >= 500)) throw e;
       await wait(FIRST_RETRY_MS);
       return my === loading ? fetchBundle(entry, opts) : null;
@@ -831,15 +1076,23 @@ async function firstLoad(entry) {
   let b;
   try {
     b = await fetchFirst();
-  } catch (e) { return back(e); } finally { clearTimeout(slow); }
+  } catch (e) {
+    return back(e);
+  } finally {
+    clearTimeout(slow);
+  }
   if (my !== loading) return;
-  if (b.state === 'offline-data' || !b.entry) return enter(entry, b);  // no next GW: nothing to plan
+  if (b.state === 'offline-data' || !b.entry) return enter(entry, b); // no next GW: nothing to plan
   // in at once (Ahead asks the plan and says how far); with the forecast still updating, wait for it
   while (b.state === 'updating') {
     show(b);
     await wait(POLL_MS.updating);
     if (my !== loading) return;
-    try { b = await fetchFirst({ prev: b }); } catch (err) { return back(err); }
+    try {
+      b = await fetchFirst({ prev: b });
+    } catch (err) {
+      return back(err);
+    }
     if (my !== loading) return;
   }
   return enter(entry, b, { reveal: true });
@@ -868,7 +1121,8 @@ async function enter(entry, b, { reveal = false } = {}) {
 
 /** Old Studio links (#/lab, #/runs?job=…, #/docs?flag=…) land here: on this computer they go on to /studio/ (elsewhere
  *  the Studio isn't served, so they stay Forkcast's). */
-const STUDIO_ROUTES = /^#\/(lab|planner|plan|dashboard|players|compare|fixtures|runs|backtests|preview|data|docs)(?:[/?]|$)/;
+const STUDIO_ROUTES =
+  /^#\/(lab|planner|plan|dashboard|players|compare|fixtures|runs|backtests|preview|data|docs)(?:[/?]|$)/;
 function studioLink() {
   if (!STUDIO_ROUTES.test(location.hash) || !api.LOOPBACK.has(location.hostname)) return false;
   location.replace(`/studio/${location.hash}`);
@@ -877,7 +1131,7 @@ function studioLink() {
 
 async function boot() {
   if (studioLink()) return;
-  ui.setToastsOff();  // no toasts on the phone (owner, 2026-11-12, "remove all pop up plates from above")
+  ui.setToastsOff(); // no toasts on the phone (owner, 2026-11-12, "remove all pop up plates from above")
   applyTheme();
   // iOS Safari shows :active only under a touchstart listener: the toasts hang off <body>, outside the screen's own
   document.addEventListener('touchstart', () => {}, { passive: true });
@@ -886,7 +1140,14 @@ async function boot() {
   // than the served release, and reloadIfReleased would take the served one as its own: a reload asks again by ETag
   // (304 where unchanged). Never twice: after it the navigation is a reload. Any other load asked the server for the
   // page (no-cache), so it is the served release: the first bundle's reply names it (fetchBundle), no HEAD here
-  if (globalThis.performance?.getEntriesByType?.('navigation')[0]?.type === 'back_forward') { location.reload(); return; }
+  if (
+    globalThis.performance
+      ?.getEntriesByType?.('navigation')
+      .some((entry) => entry instanceof PerformanceNavigationTiming && entry.type === 'back_forward')
+  ) {
+    location.reload();
+    return;
+  }
   const entry = store.get('entry');
   if (!entry) return showConnect();
   // warm start: the last snapshot draws at once, the server refreshes it behind (no GW in the address: GW A)

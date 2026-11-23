@@ -9,30 +9,46 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 // ================================================================ sheets (§4: never more than 2 deep, swipe down to dismiss)
 
 const SHEET_PX = { small: 320, medium: 470 };
-const FIT_ROOM = 12;   // px under a fit sheet's content
-const DISMISS_PX = 130;  // px below the smallest detent at which a drag's end (with ui.flick) closes a sheet
+const FIT_ROOM = 12; // px under a fit sheet's content
+const DISMISS_PX = 130; // px below the smallest detent at which a drag's end (with ui.flick) closes a sheet
 
 /** landed(to): a pop of sheets' history entries landed (the router's carry). */
-export function createSheets(app, { landed = () => {} } = {}) {
+export function createSheets(app, { landed = (_address) => {} } = {}) {
   const stack = [];
   const sync = () => {
-    app.classList.toggle('sheet-large', stack.some((s) => s.detent === 'large'));
-    document.documentElement.classList.toggle('m-sheeted', stack.length > 0);  // toasts are placed on the sheet (placeToasts)
-    stack.forEach((s, i) => s.el.classList.toggle('back', i < stack.length - 1));
+    app.classList.toggle(
+      'sheet-large',
+      stack.some((s) => s.detent === 'large'),
+    );
+    document.documentElement.classList.toggle('m-sheeted', stack.length > 0); // toasts are placed on the sheet (placeToasts)
+    stack.forEach((s, i) => {
+      s.el.classList.toggle('back', i < stack.length - 1);
+    });
     // while a sheet is up the page and the sheets under it take no tap, focus or reading; #toasts hangs off <body>, so
     // its Undo stays in reach
     const modal = stack.length > 0;
-    stack.forEach((s, i) => { const off = modal && i < stack.length - 1; if (s.el.inert !== off) s.el.inert = off; });
+    stack.forEach((s, i) => {
+      const off = modal && i < stack.length - 1;
+      if (s.el.inert !== off) s.el.inert = off;
+    });
     // the page wakes the frame after its last sheet goes, once none came instead: a sheet closed for another (Replace…,
     // Bring him in…, a comparison's pick) left it inert throughout, where waking it between restyled the whole screen
     // twice (owner, 2026-11-12, "compare players ... must be instant": ~60 ms of a load test phone's tap)
-    if (modal) { cancelAnimationFrame(waking); waking = 0; woken = null; pageInert(true); }
-    else waking ||= requestAnimationFrame(() => {
+    if (modal) {
+      cancelAnimationFrame(waking);
       waking = 0;
-      const then = woken;
       woken = null;
-      if (!stack.length) { pageInert(false); then?.(); }
-    });
+      pageInert(true);
+    } else
+      waking ||= requestAnimationFrame(() => {
+        waking = 0;
+        const then = woken;
+        woken = null;
+        if (!stack.length) {
+          pageInert(false);
+          then?.();
+        }
+      });
   };
   /** The page (every child but the sheets) inert while a sheet is up, `on`; the screen too while Connect is (showGate). */
   const pageInert = (on) => {
@@ -42,12 +58,16 @@ export function createSheets(app, { landed = () => {} } = {}) {
       if (!c.matches('.m-sheet, .m-scrim') && c.inert !== off) c.inert = off;
     }
   };
-  let waking = 0, woken = null;  // the frame the page wakes in (sync), what then (dismiss's focus)
+  let waking = 0,
+    woken = null; // the frame the page wakes in (sync), what then (dismiss's focus)
   /** Its height at detent d (its own by default). */
   const heightOf = (sheet, d = sheet.detent) => {
     const H = sheet.el.offsetHeight;
     if (d === 'large') return H;
-    const at = Math.min(H, d === 'small' ? SHEET_PX.small : Math.min(SHEET_PX.medium, Math.round(app.clientHeight * 0.58)));
+    const at = Math.min(
+      H,
+      d === 'small' ? SHEET_PX.small : Math.min(SHEET_PX.medium, Math.round(app.clientHeight * 0.58)),
+    );
     // fit: short content rests at its own height, never taller than the detent
     return sheet.fit ? Math.min(at, contentOf(sheet)) : at;
   };
@@ -76,20 +96,42 @@ export function createSheets(app, { landed = () => {} } = {}) {
   // The #/player sheet has its hash entry instead (routed). Any other close (✕, swipe, scrim, Escape, close
   // / closeAll) pops its entry, a whole close in one history.go; history writes meanwhile (sheet push, navigate) wait
   // for that pop (afterPop)
-  let owed = 0, popping = 0, from = null, bare = false;  // history.go calls not landed yet
+  let owed = 0,
+    popping = 0,
+    from = null,
+    bare = false; // history.go calls not landed yet
   const later = [];
   const entries = () => stack.filter((s) => s.entry).length;
-  const flush = () => { if (!owed) return; const n = owed; owed = 0; popping++; from = location.hash; history.go(-n); };
-  const afterPop = (fn) => { if (owed || popping) later.push(fn); else fn(); };
-  const push = (sheet) => afterPop(() => { if (!stack.includes(sheet)) return; sheet.entry = true; history.pushState({ sheet: entries() }, ''); });
-  if (history.state?.sheet) history.replaceState(null, '');  // a reload: no sheet is up
+  const flush = () => {
+    if (!owed) return;
+    const n = owed;
+    owed = 0;
+    popping++;
+    from = location.hash;
+    history.go(-n);
+  };
+  const afterPop = (fn) => {
+    if (owed || popping) later.push(fn);
+    else fn();
+  };
+  const push = (sheet) =>
+    afterPop(() => {
+      if (!stack.includes(sheet)) return;
+      sheet.entry = true;
+      history.pushState({ sheet: entries() }, '');
+    });
+  if (history.state?.sheet) history.replaceState(null, ''); // a reload: no sheet is up
   addEventListener('popstate', () => {
-    const ours = popping > 0, want = history.state?.sheet ?? 0;
+    const ours = popping > 0,
+      want = history.state?.sheet ?? 0;
     if (ours) popping--;
     let closed = false;
     // Back: the sheets above the entry it landed on close, as Escape closes them
     for (let s = stack.findLast((x) => x.entry); s && entries() > want; s = stack.findLast((x) => x.entry)) {
-      if (!s.dismissible) { history.pushState({ sheet: entries() }, ''); break; }
+      if (!s.dismissible) {
+        history.pushState({ sheet: entries() }, '');
+        break;
+      }
       dismiss(s, { popped: true });
       closed = true;
     }
@@ -109,18 +151,26 @@ export function createSheets(app, { landed = () => {} } = {}) {
     else sheet.el.style.transform = 'translateY(100%)';
     sheet.scrim.classList.remove('on');
     sync();
-    setTimeout(() => { sheet.el.remove(); sheet.scrim.remove(); }, instant ? 0 : 450);
+    setTimeout(
+      () => {
+        sheet.el.remove();
+        sheet.scrim.remove();
+      },
+      instant ? 0 : 450,
+    );
     // focus to the opener, or its replacement if redrawn (ui.focusKey), else the page's focus home (Ahead's week line);
     // under another sheet: its opener or replacement, else that sheet
     // (the last sheet: once the page wakes, sync)
     if (i === stack.length) {
       const under = stack[stack.length - 1];
       const back = () => {
-        if (sheet.opener?.isConnected && !sheet.opener.closest('[inert]')) sheet.opener.focus?.({ preventScroll: true });
+        if (sheet.opener?.isConnected && !sheet.opener.closest('[inert]'))
+          sheet.opener.focus?.({ preventScroll: true });
         else if (under) ui.refocus(under.el, sheet.key, under.el);
         else ui.refocus(app, sheet.key, $('[data-focus-home]', app));
       };
-      if (under) back(); else woken = back;
+      if (under) back();
+      else woken = back;
     }
     sheet.onClose?.();
   }
@@ -137,13 +187,17 @@ export function createSheets(app, { landed = () => {} } = {}) {
 
   function wireDrag(sheet) {
     const { el } = sheet;
-    let y0 = null, base = 0, last = 0, fl = null;
+    let y0 = null,
+      base = 0,
+      last = 0,
+      fl = null;
     // while it drags the body runs to the sheet's bottom (below the screen), so dragging up shows content. Starts where
     // the sheet is now, caught mid-slide too (transition dropped: .dragging), never from its resting place; a closing
     // sheet isn't caught
     const start = (y, t) => {
       if (!stack.includes(sheet)) return;
-      y0 = y; last = y;
+      y0 = y;
+      last = y;
       base = new DOMMatrix(getComputedStyle(el).transform).m42;
       fl = ui.flick().add(y, t);
       el.classList.add('dragging');
@@ -169,13 +223,20 @@ export function createSheets(app, { landed = () => {} } = {}) {
       el.classList.remove('dragging');
       const order = orderOf(sheet);
       if (sheet.dismissible && to > Math.max(base, offset(sheet, order[0])) + DISMISS_PX) return dismiss(sheet);
-      setDetent(sheet, order.reduce((a, d) => (Math.abs(offset(sheet, d) - to) < Math.abs(offset(sheet, a) - to) ? d : a)));
+      setDetent(
+        sheet,
+        order.reduce((a, d) => (Math.abs(offset(sheet, d) - to) < Math.abs(offset(sheet, a) - to) ? d : a)),
+      );
     };
     // grabber and header drag with a pointer (mouse or touch)
     const down = (e) => {
       if (e.target.closest('button, input, a, select, textarea')) return;
       start(e.clientY, e.timeStamp);
-      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* synthetic pointer */ }
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        /* synthetic pointer */
+      }
     };
     for (const t of [$('.m-grab', el), ...$$('.m-sh', el)]) {
       t.addEventListener('pointerdown', down);
@@ -186,29 +247,74 @@ export function createSheets(app, { landed = () => {} } = {}) {
     // the body drags down only from its top; a swipe up below the largest detent expands before scrolling (as iOS
     // sheets); else it scrolls
     const body = sheet.body;
-    let ty = null, tt = 0;
-    body.addEventListener('touchstart', (e) => {
-      ty = (body.scrollTop <= 0 || !atTop(sheet)) && !e.target.closest('[data-nodrag], input, textarea') ? e.touches[0].clientY : null;
-      tt = e.timeStamp;
-    }, { passive: true });
-    body.addEventListener('touchmove', (e) => {
-      if (ty == null) return;
-      // a gesture inside owns the finger (Ahead's lifted move row): never a sheet drag
-      if (e.defaultPrevented && y0 == null) { ty = null; return; }
-      const y = e.touches[0].clientY;
-      if (y0 == null) {
-        if (y - ty > 6) { if (body.scrollTop > 0) { ty = null; return; } start(ty, tt); }
-        else if (ty - y > 6) { if (atTop(sheet)) { ty = null; return; } start(ty, tt); }
-        else return;
-      }
-      ui.holdTouch(e);
-      move(y, e.timeStamp);
-    }, { passive: false });
-    body.addEventListener('touchend', (e) => { ty = null; end(e.changedTouches[0]?.clientY, e.timeStamp); });
-    body.addEventListener('touchcancel', () => { ty = null; end(); });
+    let ty = null,
+      tt = 0;
+    body.addEventListener(
+      'touchstart',
+      (e) => {
+        ty =
+          (body.scrollTop <= 0 || !atTop(sheet)) && !e.target.closest('[data-nodrag], input, textarea')
+            ? e.touches[0].clientY
+            : null;
+        tt = e.timeStamp;
+      },
+      { passive: true },
+    );
+    body.addEventListener(
+      'touchmove',
+      (e) => {
+        if (ty == null) return;
+        // a gesture inside owns the finger (Ahead's lifted move row): never a sheet drag
+        if (e.defaultPrevented && y0 == null) {
+          ty = null;
+          return;
+        }
+        const y = e.touches[0].clientY;
+        if (y0 == null) {
+          if (y - ty > 6) {
+            if (body.scrollTop > 0) {
+              ty = null;
+              return;
+            }
+            start(ty, tt);
+          } else if (ty - y > 6) {
+            if (atTop(sheet)) {
+              ty = null;
+              return;
+            }
+            start(ty, tt);
+          } else return;
+        }
+        ui.holdTouch(e);
+        move(y, e.timeStamp);
+      },
+      { passive: false },
+    );
+    body.addEventListener('touchend', (e) => {
+      ty = null;
+      end(e.changedTouches[0]?.clientY, e.timeStamp);
+    });
+    body.addEventListener('touchcancel', () => {
+      ty = null;
+      end();
+    });
   }
 
-  function open({ title, sub, detent = 'medium', detents, build, onClose, label, cls, close = true, dismissible = true, fit = false } = {}) {
+  function open(
+    {
+      title,
+      sub,
+      detent = 'medium',
+      detents,
+      build,
+      onClose,
+      label,
+      cls,
+      close = true,
+      dismissible = true,
+      fit = false,
+    } = /** @type {{title?: unknown, sub?: unknown, detent?: string, detents?: string[], build?: (body: HTMLElement, sheet) => void, onClose?: () => void, label?: string, cls?: string, close?: boolean, dismissible?: boolean, fit?: boolean}} */ ({}),
+  ) {
     // the replaced sheet gives it its history entry (a pop then a push would land the push first)
     const gone = stack.length >= 2 ? stack[stack.length - 1] : null;
     if (gone) dismiss(gone, { instant: true, keep: true });
@@ -218,35 +324,65 @@ export function createSheets(app, { landed = () => {} } = {}) {
     const scrim = h('div.m-scrim', { style: { zIndex: z } });
     const body = h('div.m-sbody');
     // never aria-modal (the page under is inert instead: sync): the toasts' Undo stays in reach
-    const el = h('div.m-sheet', {
-      class: cls, role: 'dialog', 'aria-modal': 'false', tabindex: '-1',
-      'aria-label': label || (typeof title === 'string' ? title : null), style: { zIndex: z + 10 },
-    }, h('div.m-grab', { 'aria-hidden': 'true' }, h('span')), body);
+    const el = h(
+      'div.m-sheet',
+      {
+        class: cls,
+        role: 'dialog',
+        'aria-modal': 'false',
+        tabindex: '-1',
+        'aria-label': label || (typeof title === 'string' ? title : null),
+        style: { zIndex: z + 10 },
+      },
+      h('div.m-grab', { 'aria-hidden': 'true' }, h('span')),
+      body,
+    );
     const sheet = {
-      el, body, scrim, detent, dismissible, onClose, fit, entry: !!gone?.entry,
+      el,
+      body,
+      scrim,
+      detent,
+      dismissible,
+      onClose,
+      fit,
+      entry: !!gone?.entry,
       detents: detents || (detent === 'large' ? ['large'] : [detent, 'large']),
-      opener: document.activeElement, key: ui.focusKey(document.activeElement), refresh: null,
+      opener: document.activeElement,
+      key: ui.focusKey(document.activeElement),
+      refresh: null,
       close: () => dismiss(sheet),
       setDetent: (d) => setDetent(sheet, d),
     };
     if (title) {
-      body.append(h('div.m-sh', null,
-        h('div', null, h('h2', null, title), sub ? h('p.m-sub', null, sub) : null),
-        close ? h('button.m-xbtn', { type: 'button', 'aria-label': 'Close', onClick: () => dismiss(sheet) }, '✕') : null));
+      body.append(
+        h(
+          'div.m-sh',
+          null,
+          h('div', null, h('h2', null, title), sub ? h('p.m-sub', null, sub) : null),
+          close
+            ? h('button.m-xbtn', { type: 'button', 'aria-label': 'Close', onClick: () => dismiss(sheet) }, '✕')
+            : null,
+        ),
+      );
     }
     app.append(scrim, el);
     stack.push(sheet);
     if (!sheet.entry && !routed) push(sheet);
     build?.(body, sheet);
     wireDrag(sheet);
-    scrim.addEventListener('click', () => { if (sheet.dismissible) dismiss(sheet); });
+    scrim.addEventListener('click', () => {
+      if (sheet.dismissible) dismiss(sheet);
+    });
     // Reduce Motion: placed at once, fades in (m.css: the transition is opacity alone)
     const still = ui.reduceMotion();
     if (still) el.classList.add('m-fade');
-    void el.offsetHeight;  // commit the off-screen start so placing slides it up
+    void el.offsetHeight; // commit the off-screen start so placing slides it up
     scrim.classList.add('on');
     place(sheet);
-    if (still) requestAnimationFrame(() => { if (stack.includes(sheet)) el.classList.remove('m-fade'); });
+    if (still)
+      requestAnimationFrame(() => {
+        if (stack.includes(sheet)) el.classList.remove('m-fade');
+      });
     el.focus({ preventScroll: true });
     return sheet;
   }
@@ -257,11 +393,16 @@ export function createSheets(app, { landed = () => {} } = {}) {
   addEventListener('resize', () => stack.forEach(place));
   return {
     open,
-    closeAll: () => [...stack].reverse().forEach((s) => dismiss(s)),
+    closeAll: () =>
+      [...stack].reverse().forEach((s) => {
+        dismiss(s);
+      }),
     depth: () => stack.length,
     afterPop,
     /** The next sheet opened is the #/player route's: its hash entry is its history entry (false: cancel). */
-    routed: (on = true) => { bare = on; },
+    routed: (on = true) => {
+      bare = on;
+    },
     /** The top sheet: {el, top, bottom}, its viewport edges once resting at its detent; bottom is where its body's room
      *  ends (screen bottom at any detent: place); null with no sheet. */
     top: () => {

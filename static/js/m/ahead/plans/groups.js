@@ -10,16 +10,16 @@ export function transferGroups(moves, fits) {
       }
       return;
     }
-    const needs = indices.filter(i => !supports[i].some(set => set.every(j => indices.includes(j))));
+    const needs = indices.filter((i) => !supports[i].some((set) => set.every((j) => indices.includes(j))));
     if (!needs.length) return;
-    const group = indices.map(i => moves[i]);
+    const group = indices.map((i) => moves[i]);
     if (!fits(group)) return;
     groups.push(group);
     for (const i of needs) supports[i].push(indices);
   };
   for (let size = 1; size <= moves.length; size++) {
     visit(0, size, []);
-    if (supports.every(sets => sets.some(set => set.length === 1))) break;
+    if (supports.every((sets) => sets.some((set) => set.length === 1))) break;
   }
   return groups;
 }

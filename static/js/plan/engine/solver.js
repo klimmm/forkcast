@@ -1,7 +1,20 @@
 // engine.js: solver results and constraints
 
 import { posName } from '../../ui.js';
-import { CHIPS, FT_WEEKLY, HALF, LAST_ROUND, M, T, ids, num, playerLookup, posRank, seasonLong, sortedGws } from './squad.js';
+import {
+  CHIPS,
+  FT_WEEKLY,
+  HALF,
+  LAST_ROUND,
+  M,
+  T,
+  ids,
+  num,
+  playerLookup,
+  posRank,
+  seasonLong,
+  sortedGws,
+} from './squad.js';
 import { chipAt, createDraft, movesAt, planGws } from './evaluate.js';
 
 // ---------------------------------------------------------------- solver results
@@ -11,11 +24,14 @@ import { chipAt, createDraft, movesAt, planGws } from './evaluate.js';
  *  given wherever both are there (a phone plan's own transfers). */
 export function pairMoves(outIds, inIds, players, keep = []) {
   const L = playerLookup({ players });
-  const order = (xs) => ids(xs).sort((a, b) => posRank(L.pos(a)) - posRank(L.pos(b)) || (L.price(b) ?? 0) - (L.price(a) ?? 0) || a - b);
-  const outs = order(outIds), ins = order(inIds);
+  const order = (xs) =>
+    ids(xs).sort((a, b) => posRank(L.pos(a)) - posRank(L.pos(b)) || (L.price(b) ?? 0) - (L.price(a) ?? 0) || a - b);
+  const outs = order(outIds),
+    ins = order(inIds);
   const made = new Map();
   for (const m of keep) {
-    const o = outs.indexOf(Number(m.out)), i = ins.indexOf(Number(m.in));
+    const o = outs.indexOf(Number(m.out)),
+      i = ins.indexOf(Number(m.in));
     if (o >= 0 && i >= 0 && L.pos(outs[o]) === L.pos(ins[i])) made.set(outs.splice(o, 1)[0], ins.splice(i, 1)[0]);
   }
   const pairs = order([...made.keys(), ...outs]).map((o) => {
@@ -50,7 +66,9 @@ export function playersFromSolverResult(result) {
     const xg = ids(t.xp_gws);
     for (const [id, p] of Object.entries(t.players || {})) {
       const r = by.get(Number(id)) || { ...p, id: Number(id), xpBy: new Map() };
-      xg.forEach((g, i) => { if (!r.xpBy.has(g) || g === gw) r.xpBy.set(g, p.xp?.[i] ?? null); });
+      xg.forEach((g, i) => {
+        if (!r.xpBy.has(g) || g === gw) r.xpBy.set(g, p.xp?.[i] ?? null);
+      });
       if (num(p.pred) !== null) r.xpBy.set(gw, Number(p.pred));
       by.set(Number(id), r);
     }
@@ -86,7 +104,8 @@ export function baseFromSolverResult(result) {
     .map((g) => ({ chip: result.committed[g].team.chip, gw: g }));
   const squadNow = ids([...(t.xi || []), ...(t.bench || [])]);
   const fresh = isBuild(t);
-  let squad = squadNow, bankT = T(t.bank) ?? 0;
+  let squad = squadNow,
+    bankT = T(t.bank) ?? 0;
   if (!fresh) {
     // undo the first GW's moves: in-players back to the players they replaced, in their slots
     const pairs = pairMoves(t.out, t.in, { players: Object.values(P) });
@@ -113,7 +132,7 @@ export function baseFromSolverResult(result) {
         ...r,
         id: p,
         pos: posName(r.pos),
-        sell_price: fresh ? price : num(r.sell_price) ?? price,
+        sell_price: fresh ? price : (num(r.sell_price) ?? price),
         purchase_price: num(t.purchase_prices?.[p]) ?? price,
         xp_gws: xpGws,
       };
@@ -131,7 +150,15 @@ const hhmm = (sec) => {
  * squad is diffed but not carried: team.py:161, 175; solve_tap.py _net_moves), its chips and lineups. draft.solver
  * keeps per-GW pred and hits, first GW, argv, warnings.
  */
-export function draftFromSolverResult(result, base, { name, players, keep = [] } = {}) {
+export function draftFromSolverResult(
+  result,
+  base,
+  {
+    name,
+    players,
+    keep = [],
+  } = /** @type {{players?: object, name?: string, keep?: {out: number, in: number}[]}} */ ({}),
+) {
   const b = base || baseFromSolverResult(result);
   const rows = solverRows(result);
   const meta = result?.meta || {};
@@ -143,17 +170,26 @@ export function draftFromSolverResult(result, base, { name, players, keep = [] }
   }
   const draft = { ...createDraft({ name: name ?? `Solver plan ${hhmm(meta.finished_at)}`, source: 'solver' }) };
   let prev = new Set(ids((b?.squad || []).map((r) => r.id)));
-  const pred = {}, hits = {};
+  /** @type {Record<number, number|null>} */
+  const pred = {};
+  /** @type {Record<number, number|null>} */
+  const hits = {};
   for (const { gw, t } of rows) {
     const sq = ids([...(t.xi || []), ...(t.bench || [])]);
     const now = new Set(sq);
-    const pairs = pairMoves([...prev].filter((p) => !now.has(p)), sq.filter((p) => !prev.has(p)), L, keep);
+    const pairs = pairMoves(
+      [...prev].filter((p) => !now.has(p)),
+      sq.filter((p) => !prev.has(p)),
+      L,
+      keep,
+    );
     const whole = pairs.filter((m) => m.out !== null && m.in !== null);
     if (whole.length !== pairs.length) warnings.push(`GW${gw}: the squad change does not pair by position`);
     if (whole.length) draft.moves[gw] = whole;
     if (CHIPS.includes(t.chip)) draft.chips[gw] = t.chip;
     draft.lineups[gw] = {
-      xi: ids(t.xi), bench: ids(t.bench),
+      xi: ids(t.xi),
+      bench: ids(t.bench),
       ...(num(t.captain) !== null ? { captain: Number(t.captain) } : {}),
       ...(num(t.vice) !== null ? { vice: Number(t.vice) } : {}),
     };
@@ -162,8 +198,14 @@ export function draftFromSolverResult(result, base, { name, players, keep = [] }
     if (t.chip !== 'fh') prev = now;
   }
   draft.solver = {
-    from: rows[0]?.gw ?? null, w: num(meta.w), pool: meta.pool ?? null, argv: meta.argv || result?.argv || [],
-    finishedAt: num(meta.finished_at), pred, hits, warnings,
+    from: rows[0]?.gw ?? null,
+    w: num(meta.w),
+    pool: meta.pool ?? null,
+    argv: meta.argv || result?.argv || [],
+    finishedAt: num(meta.finished_at),
+    pred,
+    hits,
+    warnings,
   };
   return draft;
 }
@@ -178,12 +220,22 @@ export function draftFromSolverResult(result, base, { name, players, keep = [] }
  * hit. A move overrides a Keep / Avoid on the same player for its GWs (warned): windows must not overlap
  * (player_data.py:772-781).
  */
-export function constraintsFromDraft(draft, { keep = [], avoid = [], horizonEnd, fromGw = 1, keepMoves = true, players } = {}) {
+export function constraintsFromDraft(
+  draft,
+  {
+    keep = [],
+    avoid = [],
+    horizonEnd,
+    fromGw = 1,
+    keepMoves = true,
+    players,
+  } = /** @type {{keep?: (number|{id: number, from?: number, to?: number})[], avoid?: (number|{id: number, from?: number, to?: number})[], horizonEnd?: number, fromGw?: number, keepMoves?: boolean, players?: object}} */ ({}),
+) {
   const end = num(horizonEnd) ?? LAST_ROUND;
   const from = num(fromGw) ?? 1;
   const name = players ? playerLookup({ players }).name : (id) => `#${id}`;
-  const req = new Map();  // id → Map(gw → {want: 'in'|'out', why})
-  const dropped = new Map();  // "why|kept|id" → GWs where a move overrides a Keep / Avoid
+  const req = new Map(); // id → Map(gw → {want: 'in'|'out', why})
+  const dropped = new Map(); // "why|kept|id" → GWs where a move overrides a Keep / Avoid
   const set = (id, g, want, why) => {
     if (!req.has(id)) req.set(id, new Map());
     const cur = req.get(id).get(g);
@@ -203,7 +255,8 @@ export function constraintsFromDraft(draft, { keep = [], avoid = [], horizonEnd,
     for (const g of gws) {
       const fh = chipAt(draft, g) === 'fh';
       for (const m of movesAt(draft, g)) {
-        const o = Number(m.out), n = Number(m.in);
+        const o = Number(m.out),
+          n = Number(m.in);
         const sellsIn = later(g, (x) => Number(x.out) === n);
         const buysOut = later(g, (x) => Number(x.in) === o);
         for (const x of span(g, fh ? g : (sellsIn ?? end + 1) - 1)) set(n, x, 'in', `your GW${g} move`);
@@ -211,7 +264,8 @@ export function constraintsFromDraft(draft, { keep = [], avoid = [], horizonEnd,
       }
     }
   }
-  const must = [], excl = [];
+  const must = [],
+    excl = [];
   for (const id of [...req.keys()].sort((a, b) => a - b)) {
     const byGw = req.get(id);
     const gws = [...byGw.keys()].sort((a, b) => a - b);
@@ -242,10 +296,33 @@ export function constraintsFromDraft(draft, { keep = [], avoid = [], horizonEnd,
  * (meta.chip_defaults, main.py:691-696) that the draft doesn't play is set to '0' (main.py:758). A base without
  * entry_id (a fresh build) sends no --entry.
  */
-export function solveValues({ base, draft, horizon = 4, maxHits = null, maxHitsGw = null, hitCap = null, keepMoves = false, keep = [], avoid = [], pool, chipDefaults, players } = {}) {
+export function solveValues(
+  {
+    base,
+    draft,
+    horizon = 4,
+    maxHits = null,
+    maxHitsGw = null,
+    hitCap = null,
+    keepMoves = false,
+    keep = [],
+    avoid = [],
+    pool,
+    chipDefaults,
+    players,
+  } = /** @type {{base?: {season?: number, entry_id?: number, gw?: number, next_gw?: number, horizon?: number[]}, draft?: import("./evaluate.js").Draft, horizon?: number|number[], maxHits?: number, maxHitsGw?: Record<number, number>|string, hitCap?: number, keepMoves?: boolean, keep?: Parameters<typeof constraintsFromDraft>[1]["keep"], avoid?: Parameters<typeof constraintsFromDraft>[1]["avoid"], pool?: string, chipDefaults?: object, players?: object}} */ ({}),
+) {
   const gws = planGws(base, horizon);
-  const from = gws[0], end = gws.at(-1);
-  const c = constraintsFromDraft(draft, { keep, avoid, horizonEnd: end, fromGw: from, keepMoves, players: playerLookup({ base, players }) });
+  const from = gws[0],
+    end = gws.at(-1);
+  const c = constraintsFromDraft(draft, {
+    keep,
+    avoid,
+    horizonEnd: end,
+    fromGw: from,
+    keepMoves,
+    players: playerLookup({ base, players }),
+  });
   const values = { season: num(base?.season), from_r: from, w: gws.length };
   // F17: no --max-hits unless it restricts (main.py resolves its own default cap, hitCap)
   const dflt = num(hitCap);

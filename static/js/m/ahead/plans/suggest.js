@@ -1,6 +1,16 @@
 // ahead/plans.js: a week's suggested moves: the bake's roads' moves that week, a place's asked buys
 
-import { baseline, compare, draftOf, estimate, movedFrom, pairedMoves, removedAt, squadBefore, weekOf } from '../core.js';
+import {
+  baseline,
+  compare,
+  draftOf,
+  estimate,
+  movedFrom,
+  pairedMoves,
+  removedAt,
+  squadBefore,
+  weekOf,
+} from '../core.js';
 import { barred, refusedAt, buyCandidates, keptFrom } from '../edits.js';
 import { addYours, extraWeek, owedAt, pairChanged, pinOfMove, wishWeeks } from '../presolve.js';
 import { inkAt } from '../buys.js';
@@ -21,16 +31,23 @@ import { squadWeek } from '../pieces.js';
  * transfer ({gw, out, in}), `hit` (its number is after the hit). Once per plan view and GW.
  */
 const SUGGESTIONS = new WeakMap();
-const SUGGEST_TRIES = 3;   // a sale's buys measured for a place you opened (bestOf: buyCandidates' order)
+const SUGGEST_TRIES = 3; // a sale's buys measured for a place you opened (bestOf: buyCandidates' order)
 export function suggestionsOf(ctx, P, g) {
   if (inkAt(ctx, P, g) || !weekOf(P, g)) return [];
   let by = SUGGESTIONS.get(P);
-  if (!by) SUGGESTIONS.set(P, (by = new Map()));
+  if (!by) {
+    by = new Map();
+    SUGGESTIONS.set(P, by);
+  }
   // (the places you opened are part of it: a player's × asks his sale, below)
-  const asked = placesAsked(P, g), at = `${g}|${asked.join(',')}`;
+  const asked = placesAsked(P, g),
+    at = `${g}|${asked.join(',')}`;
   if (by.has(at)) return by.get(at);
-  const w = weekOf(P, g), squad = w.squad, into = squadBefore(P, g);
-  const no = barred(P, g), refused = refusedAt(P, g);
+  const w = weekOf(P, g),
+    squad = w.squad,
+    into = squadBefore(P, g);
+  const no = barred(P, g),
+    refused = refusedAt(P, g);
   const mine = movedFrom(P, g, true);
   const kept = keptFrom(P, g);
   const d0 = draftOf(ctx);
@@ -38,7 +55,15 @@ export function suggestionsOf(ctx, P, g) {
   const hitsAt = (ev) => ev.gws.find((x) => x.gw === g)?.hits ?? 0;
   // a move you took off this session is still offered, as yours (`removed`)
   const gone = removedAt(P, g);
-  const fits = (m) => into.includes(m.out) && squad.includes(m.out) && !squad.includes(m.in) && !mine.has(m.out) && !mine.has(m.in) && !no.has(m.in) && !refused.has(`${m.out}>${m.in}`) && !kept.has(m.out);
+  const fits = (m) =>
+    into.includes(m.out) &&
+    squad.includes(m.out) &&
+    !squad.includes(m.in) &&
+    !mine.has(m.out) &&
+    !mine.has(m.in) &&
+    !no.has(m.in) &&
+    !refused.has(`${m.out}>${m.in}`) &&
+    !kept.has(m.out);
   // (null where the week can't make it)
   const measured = (m) => {
     const r = addYours(ctx, P, g, m.out, m.in, d0);
@@ -49,7 +74,13 @@ export function suggestionsOf(ctx, P, g) {
     const removed = gone.has(`${m.out}>${m.in}`);
     // (barred, keptFrom hold from GW g on, so next week too)
     const early = earlyOf(ctx, P, g, [m], r.ev, before, d0);
-    out.push({ ...m, instead: r.instead, hit: hitsAt(r.ev) > hitsAt(before), ...(early ? { early } : {}), ...(removed ? { removed: true } : {}) });
+    out.push({
+      ...m,
+      instead: r.instead,
+      hit: hitsAt(r.ev) > hitsAt(before),
+      ...(early ? { early } : {}),
+      ...(removed ? { removed: true } : {}),
+    });
   };
   for (const m of modelMoves(P, g, { now: true }).values()) {
     const x = fits(m) ? measured(m) : null;
@@ -57,17 +88,27 @@ export function suggestionsOf(ctx, P, g) {
   }
   // sale o's best buy of the few his money pays for (buyCandidates' order, as Replace's ownAltsOf), measured → [x] | []
   // (no engine top-up of the week's own moves since owner, 2026-11-02: the solver's, refusal by refusal, refusalRoads)
-  const pool = new Map(), bank = w.bank ?? 0;
+  const pool = new Map(),
+    bank = w.bank ?? 0;
   const buysOf = (pos) => pool.get(pos) ?? pool.set(pos, buyCandidates(P, { pos, from: g, limit: 80 })).get(pos);
   const bestOf = (o) => {
     const room = bank + (P.L.price(o) ?? 0) + 1e-6;
-    const tries = buysOf(P.L.pos(o)).filter((id) => (P.L.price(id) ?? Infinity) <= room).slice(0, SUGGEST_TRIES).map((id) => ({ out: o, in: id, model: false }));
-    return tries.filter(fits).map(measured).filter(Boolean).sort((a, b) => b.cmp.delta - a.cmp.delta).slice(0, 1);
+    const tries = buysOf(P.L.pos(o))
+      .filter((id) => (P.L.price(id) ?? Infinity) <= room)
+      .slice(0, SUGGEST_TRIES)
+      .map((id) => ({ out: o, in: id, model: false }));
+    return tries
+      .filter(fits)
+      .map(measured)
+      .filter(Boolean)
+      .sort((a, b) => b.cmp.delta - a.cmp.delta)
+      .slice(0, 1);
   };
   // a player whose × you tapped (askPlace) and no move here sells: his best sale (`asked`), his place's alone, never
   // a suggestion of the week (plansOf: its card and its other buys; owner, 2026-11-02: every card's × opens his place)
-  for (const o of asked.filter((a) => !out.some((x) => x.out === a))) for (const x of bestOf(o)) push({ ...x, asked: true });
-  out.sort((a, b) => !!a.early - !!b.early || b.cmp.delta - a.cmp.delta || b.model - a.model);
+  for (const o of asked.filter((a) => !out.some((x) => x.out === a)))
+    for (const x of bestOf(o)) push({ ...x, asked: true });
+  out.sort((a, b) => Number(!!a.early) - Number(!!b.early) || b.cmp.delta - a.cmp.delta || b.model - a.model);
   by.set(at, out);
   return out;
 }
@@ -183,14 +224,21 @@ export const PLACE_ALTS = 3;
 /** The choices listed on the pitch and in the Week sheet: ten at most, plus the other buys of places you opened
  *  (plansOf's `placed`). Pure. plans (in order) → those listed */
 const MORE_SUGGESTIONS = 10;
-export const listedOf = (plans) => { let n = 0; return plans.filter((x) => x.placed || n++ < MORE_SUGGESTIONS); };
+export const listedOf = (plans) => {
+  let n = 0;
+  return plans.filter((x) => x.placed || n++ < MORE_SUGGESTIONS);
+};
 const PLACES = { sig: null, at: new Set() };
 const rulesSig = (P) => P.pins.map((p) => p.id).join(',');
-export const placesAsked = (P, g) => (PLACES.sig === rulesSig(P) ? [...PLACES.at].filter((k) => k.startsWith(`${g}:`)).map((k) => Number(k.slice(k.indexOf(':') + 1))) : []);
+export const placesAsked = (P, g) =>
+  PLACES.sig === rulesSig(P)
+    ? [...PLACES.at].filter((k) => k.startsWith(`${g}:`)).map((k) => Number(k.slice(k.indexOf(':') + 1)))
+    : [];
 /** Card `a`'s place opened in GW g: his other buys asked (plansOf), the week's choices redrawn if it is new → whether
  *  it is. */
 export function askPlace(ctx, P, g, a) {
-  const sig = rulesSig(P), k = `${g}:${a}`;
+  const sig = rulesSig(P),
+    k = `${g}:${a}`;
   if (PLACES.sig !== sig) Object.assign(PLACES, { sig, at: new Set() });
   if (PLACES.at.has(k)) return false;
   PLACES.at.add(k);
@@ -200,6 +248,12 @@ export function askPlace(ctx, P, g, a) {
 export const SQUAD_CHIPS = new Set(['wc', 'fh']);
 /** Your transfers (each made by a rule of yours: pinOfMove) in the weeks after GW g that aren't a Wildcard's or Free
  *  Hit's squad; every plan from GW g keeps them. → [{gw, out, in}] */
-export const ownAfter = (P, g) => P.weeks.filter((w) => w.gw > g && !squadWeek(w))
-  .flatMap((w) => w.moves.filter((m) => pinOfMove(P, m)).map((m) => ({ gw: w.gw, out: m.out, in: m.in })));
-export const movesSig = (ms) => ms.map((m) => `${m.gw}:${m.out}>${m.in}`).sort().join(',');
+export const ownAfter = (P, g) =>
+  P.weeks
+    .filter((w) => w.gw > g && !squadWeek(w))
+    .flatMap((w) => w.moves.filter((m) => pinOfMove(P, m)).map((m) => ({ gw: w.gw, out: m.out, in: m.in })));
+export const movesSig = (ms) =>
+  ms
+    .map((m) => `${m.gw}:${m.out}>${m.in}`)
+    .sort()
+    .join(',');

@@ -1,12 +1,16 @@
 // Completed chip preparations on this device. Keys include the forecast/solver version and exact solve inputs.
 // Store roads, not displayed gains: the comparison is recomputed against the current plan and lineup.
 export const CHIP_ROADS = (entry) => `fc:mem:chips:${entry}`;
-const MAX_ROADS = 96, MAX_CHARS = 500000;
+const MAX_ROADS = 96,
+  MAX_CHARS = 500000;
 
 export function chipRoads(local, entry) {
   const saved = local?.json(CHIP_ROADS(entry));
   return saved?.schema === 1 && Array.isArray(saved.roads)
-    ? saved.roads.filter((x) => typeof x?.key === 'string' && Array.isArray(x.road?.weeks) && x.road.weeks.length).slice(0, MAX_ROADS) : [];
+    ? saved.roads
+        .filter((x) => typeof x?.key === 'string' && Array.isArray(x.road?.weeks) && x.road.weeks.length)
+        .slice(0, MAX_ROADS)
+    : [];
 }
 
 export function keepChipRoad(local, entry, key, road) {

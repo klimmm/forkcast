@@ -75,16 +75,58 @@
 // roadFromResult(result, {key, job, values}) → Road; roadToDraft(road, base, {players, name, keep}) → draft
 
 export {
-  FT_WEEKLY, FT_CAP, LAST_ROUND, HIT_COST, MAX_PER_CLUB, HALF, CHIPS, MAX_HORIZON, POS_LIMITS, ftGrant, nextFt,
-  chipHalf, playerLookup, validFormation, bestXI, applyLineup, swapLineup, swapCandidates
+  FT_WEEKLY,
+  FT_CAP,
+  LAST_ROUND,
+  HIT_COST,
+  MAX_PER_CLUB,
+  HALF,
+  CHIPS,
+  MAX_HORIZON,
+  POS_LIMITS,
+  ftGrant,
+  nextFt,
+  chipHalf,
+  playerLookup,
+  validFormation,
+  bestXI,
+  applyLineup,
+  swapLineup,
+  swapCandidates,
 } from './engine/squad.js';
 export {
-  createDraft, applyMove, setChip, setLineup, canUseChip, planGws, weekPoints, evaluate, planBanks
+  createDraft,
+  applyMove,
+  setChip,
+  setLineup,
+  canUseChip,
+  planGws,
+  weekPoints,
+  evaluate,
+  planBanks,
 } from './engine/evaluate.js';
 export {
-  pairMoves, playersFromSolverResult, baseFromSolverResult, draftFromSolverResult, constraintsFromDraft, solveValues
+  pairMoves,
+  playersFromSolverResult,
+  baseFromSolverResult,
+  draftFromSolverResult,
+  constraintsFromDraft,
+  solveValues,
 } from './engine/solver.js';
 export {
-  VERDICT, noiseFloor, decodeSeeds, runXp, bankCredit, planPoints, runTotals, anchorRef, verdictLabel, payback,
-  compareRoads, objectiveOf, roadAnchor, roadFromResult, roadToDraft
+  VERDICT,
+  noiseFloor,
+  decodeSeeds,
+  runXp,
+  bankCredit,
+  planPoints,
+  runTotals,
+  anchorRef,
+  verdictLabel,
+  payback,
+  compareRoads,
+  objectiveOf,
+  roadAnchor,
+  roadFromResult,
+  roadToDraft,
 } from './engine/phone.js';

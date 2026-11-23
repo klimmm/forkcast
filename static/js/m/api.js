@@ -17,25 +17,45 @@ import { ApiError, qs, enc, sleep } from '../api.js';
 const KEYS = { client: 'fc:client', recent: 'fc:recent', snapshot: 'fc:snapshot' };
 
 export const local = {
-  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  get(k) {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  },
   set(k, v) {
     try {
       if (v == null) localStorage.removeItem(k);
       else localStorage.setItem(k, v);
       return true;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   },
-  json(k) { try { return JSON.parse(local.get(k)); } catch { return null; } },
+  json(k) {
+    try {
+      return JSON.parse(local.get(k));
+    } catch {
+      return null;
+    }
+  },
   /** Keys starting with `prefix` (app.js signOut clears one team's). */
   keys(prefix = '') {
-    try { return Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).filter((k) => k?.startsWith(prefix)); } catch { return []; }
+    try {
+      return Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).filter((k) =>
+        k?.startsWith(prefix),
+      );
+    } catch {
+      return [];
+    }
   },
 };
 
 // ---------------------------------------------------------------- who is asking
 
 const CLIENT_ID = /^[0-9a-f]{32}$/;
-let clientMemo = null;  // without storage the id lasts as long as the page
+let clientMemo = null; // without storage the id lasts as long as the page
 
 /** This browser's anonymous id: 128 random bits as hex, kept in localStorage (fc:client). */
 export function clientId() {
@@ -43,7 +63,7 @@ export function clientId() {
   if (kept && CLIENT_ID.test(kept)) return kept;
   if (!clientMemo) {
     const bytes = new Uint8Array(16);
-    globalThis.crypto.getRandomValues(bytes);  // works outside a secure context (plain-HTTP LAN), unlike randomUUID
+    globalThis.crypto.getRandomValues(bytes); // works outside a secure context (plain-HTTP LAN), unlike randomUUID
     clientMemo = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
   }
   local.set(KEYS.client, clientMemo);
@@ -61,7 +81,11 @@ export const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]', '::1']);
 export async function access() {
   const fallback = { local: LOOPBACK.has(globalThis.location?.hostname ?? ''), share: [] };
   let meta;
-  try { meta = await getMeta(); } catch { return fallback; }
+  try {
+    meta = await getMeta();
+  } catch {
+    return fallback;
+  }
   return readAccess(meta, fallback);
 }
 
@@ -76,7 +100,11 @@ export async function servedRelease() {
   try {
     const r = await fetch('/m/', { method: 'HEAD', cache: 'no-store', signal: stop.signal });
     return releaseName(r.headers.get('X-Forkcast-Release'));
-  } catch { return undefined; } finally { clearTimeout(timer); }
+  } catch {
+    return undefined;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 const RELEASE_TIMEOUT_MS = 3000;
 
@@ -100,8 +128,15 @@ export function readAccess(meta, fallback = { local: false, share: [] }) {
   const mode = typeof a.mode === 'string' ? a.mode : null;
   const urls = [a.urls].flat().filter((u) => typeof u === 'string' && /^https?:\/\//.test(u));
   // (released_at: the release's tag time, epoch s, only where the server tells it; owner, 2026-11-09)
-  const at = Number(a.released_at), released = releaseName(a.release) && Number.isFinite(at) && at > 0 ? { released_at: at } : {};
-  return { local: isLocal, mode, share: isLocal && (mode === 'lan' || mode === 'public') ? [...new Set(urls)] : [], release: releaseName(a.release), ...released };
+  const at = Number(a.released_at),
+    released = releaseName(a.release) && Number.isFinite(at) && at > 0 ? { released_at: at } : {};
+  return {
+    local: isLocal,
+    mode,
+    share: isLocal && (mode === 'lan' || mode === 'public') ? [...new Set(urls)] : [],
+    release: releaseName(a.release),
+    ...released,
+  };
 }
 
 // ---------------------------------------------------------------- recent team IDs (this browser only)
@@ -121,14 +156,17 @@ export const recent = {
     const id = String(entry);
     const pts = total != null && Number.isFinite(Number(total)) ? Number(total) : null;
     const row = { entry_id: id, team_name: team_name || null, manager: manager || null, total: pts };
-    local.set(KEYS.recent, JSON.stringify([row, ...recent.list().filter((r) => String(r.entry_id) !== id)].slice(0, RECENT_MAX)));
+    local.set(
+      KEYS.recent,
+      JSON.stringify([row, ...recent.list().filter((r) => String(r.entry_id) !== id)].slice(0, RECENT_MAX)),
+    );
   },
 };
 
 // ---------------------------------------------------------------- transport
 
 export const TIMEOUT_MS = 10000;
-export const BUNDLE_TIMEOUT_MS = 30000;  // a cold bundle can wait on the entry fetch and the seed matrix
+export const BUNDLE_TIMEOUT_MS = 30000; // a cold bundle can wait on the entry fetch and the seed matrix
 // The first bundle (no `have`: a new team, a new browser) through the public tunnel (owner, 2026-10-26, "Busy right
 // now"): its forwarder reads an answer whole before any of it reaches the phone, so the wait is the server's answer
 // plus the whole transfer. Without the cards (cl=1) a bundle is ~205 KB gzipped; after a server's own first answer (~15
@@ -139,16 +177,26 @@ export const FIRST_BUNDLE_TIMEOUT_MS = 120000;
 export const CARDS_TIMEOUT_MS = 180000;
 
 function fail(code, message, { status = 0, detail = '', path = '', retryAfter = null } = {}) {
-  const e = new ApiError(message, { status, detail, path, retryAfter });
-  e.code = code;
-  return e;
+  return Object.assign(new ApiError(message, { status, detail, path, retryAfter }), { code });
 }
 
 /** One /api call → its unwrapped `data`. query drops null/''/false (qs); body is sent as JSON. cache: the browser's
  *  (fetch's own), 'no-store' unless the reply is one kept for ever (getAllCards). hear: its
  *  release noted (heardRelease). */
-export async function request(method, path, { query, body, timeout = TIMEOUT_MS, signal, cache = 'no-store', hear = false } = {}) {
+export async function request(
+  method,
+  path,
+  {
+    query,
+    body,
+    timeout = TIMEOUT_MS,
+    signal,
+    cache = 'no-store',
+    hear = false,
+  } = /** @type {{query?: Record<string, unknown>, body?: unknown, timeout?: number, signal?: AbortSignal, cache?: RequestCache, hear?: boolean}} */ ({}),
+) {
   const headers = { Accept: 'application/json', 'X-Forkcast-Client': clientId() };
+  /** @type {RequestInit} */
   const init = { method, headers, cache };
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
@@ -156,7 +204,10 @@ export async function request(method, path, { query, body, timeout = TIMEOUT_MS,
   }
   const ctrl = new AbortController();
   let timedOut = false;
-  const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, timeout);
+  const timer = setTimeout(() => {
+    timedOut = true;
+    ctrl.abort();
+  }, timeout);
   const forward = () => ctrl.abort();
   if (signal?.aborted) ctrl.abort();
   signal?.addEventListener('abort', forward, { once: true });
@@ -178,10 +229,19 @@ export async function request(method, path, { query, body, timeout = TIMEOUT_MS,
   try {
     payload = text ? JSON.parse(text) : null;
   } catch {
-    throw fail('http', `${method} ${path} returned HTTP ${res.status} that is not JSON`, { status: res.status, detail: text.slice(0, 500), path });
+    throw fail('http', `${method} ${path} returned HTTP ${res.status} that is not JSON`, {
+      status: res.status,
+      detail: text.slice(0, 500),
+      path,
+    });
   }
   if (!res.ok || payload?.ok !== true) {
-    throw fail('http', payload?.error || `${method} ${path} failed with HTTP ${res.status}`, { status: res.status, detail: payload?.detail || '', path, retryAfter: payload?.retry_after ?? null });
+    throw fail('http', payload?.error || `${method} ${path} failed with HTTP ${res.status}`, {
+      status: res.status,
+      detail: payload?.detail || '',
+      path,
+      retryAfter: payload?.retry_after ?? null,
+    });
   }
   if (hear) heard = releaseName(res.headers.get('X-Forkcast-Release'));
   return payload.data;
@@ -199,37 +259,67 @@ export const getMeta = () => get('/api/meta');
  * live block's stamp held (live_v) → the live block (calls.shownPlayers) comes back null while unchanged. w = the
  * plan's weeks (calls.planWeeks; none: the server's longest).
  */
-export const getBundle = (entry, { refresh, have, hc, hl, w, cl, fa, signal } = {}) =>
-  get('/api/m/bundle', { entry, refresh, have, hc, hl, w, cl: cl ? 1 : null, fa: fa ? 1 : null }, { timeout: have ? BUNDLE_TIMEOUT_MS : FIRST_BUNDLE_TIMEOUT_MS, signal, hear: true })
-    .then((b) => (b?.cards ? { ...b, cards: unpackCards(b.cards) } : b));
+export const getBundle = (
+  entry,
+  {
+    refresh,
+    have,
+    hc,
+    hl,
+    w,
+    cl,
+    fa,
+    signal,
+  } = /** @type {{refresh?: boolean, have?: string, hc?: string, hl?: string, w?: number, cl?: boolean|number, fa?: boolean|number, signal?: AbortSignal}} */ ({}),
+) =>
+  get(
+    '/api/m/bundle',
+    { entry, refresh, have, hc, hl, w, cl: cl ? 1 : null, fa: fa ? 1 : null },
+    { timeout: have ? BUNDLE_TIMEOUT_MS : FIRST_BUNDLE_TIMEOUT_MS, signal, hear: true },
+  ).then((b) => (b?.cards ? { ...b, cards: unpackCards(b.cards) } : b));
 /** The cards of the players the bundle carries (api/mobile.py cards; a bundle asked with cl=1 comes without them) →
  *  {cards: unpacked (unpackCards), or null while `hc` is still their stamp, cards_v}. */
-export const getCards = ({ entry, hc, w, signal } = {}) =>
-  get('/api/m/cards', { entry, hc, w }, { timeout: CARDS_TIMEOUT_MS, signal })
-    .then((c) => ({ cards: unpackCards(c?.cards ?? null), cards_v: c?.cards_v ?? null }));
+export const getCards = (
+  { entry, hc, w, signal } = /** @type {{entry?: number|string, hc?: string, w?: number, signal?: AbortSignal}} */ ({}),
+) =>
+  get('/api/m/cards', { entry, hc, w }, { timeout: CARDS_TIMEOUT_MS, signal }).then((c) => ({
+    cards: unpackCards(c?.cards ?? null),
+    cards_v: c?.cards_v ?? null,
+  }));
 /** The buyable players' rows at stamp `v` (a bundle asked with fa=1: its forecast_all; api/mobile.py forecast_all), the
  *  same for every team, kept a year by this browser and the Render forwarder (owner, 2026-11-12, "fix bug"); in a live
  *  week without the live block's fields, which each bundle brings → {players, forecast_v}; 404 (code 'http', status
  *  404) for a stamp the server no longer holds. */
-export const getAllForecast = (v, { signal } = {}) =>
+export const getAllForecast = (v, { signal } = /** @type {{signal?: AbortSignal}} */ ({})) =>
   get('/api/m/forecast/all', { v }, { timeout: BUNDLE_TIMEOUT_MS, signal, cache: 'default' });
 /** A bundle's players: the shared ones (getAllForecast) with this team's others (the bundle's own, fa=1), one table as
  *  a bundle of them all carried them → {players}. */
 export function joinForecast(all, own) {
-  const players = !own?.players?.rows?.length ? all?.players ?? null : !all?.players ? own.players
-    : { ...all.players, rows: [...all.players.rows, ...own.players.rows] };
+  const players = !own?.players?.rows?.length
+    ? (all?.players ?? null)
+    : !all?.players
+      ? own.players
+      : { ...all.players, rows: [...all.players.rows, ...own.players.rows] };
   return { players };
 }
 /** Every player's cards at stamp `v` (the bundle's cards_all; api/mobile.py cards_all), the same file for every team:
  *  the server keeps it a year at its stamp, so this browser and the Render forwarder ask each stamp once and a phone
  *  off line reads it from its own cache (owner, 2026-11-12, "fix bug") → {cards: unpacked, cards_v}. */
-export const getAllCards = (v, { signal } = {}) =>
-  get('/api/m/cards/all', { v }, { timeout: CARDS_TIMEOUT_MS, signal, cache: 'default' })
-    .then((c) => ({ cards: unpackCards(c?.cards ?? null), cards_v: c?.cards_v ?? null }));
+export const getAllCards = (v, { signal } = /** @type {{signal?: AbortSignal}} */ ({})) =>
+  get('/api/m/cards/all', { v }, { timeout: CARDS_TIMEOUT_MS, signal, cache: 'default' }).then((c) => ({
+    cards: unpackCards(c?.cards ?? null),
+    cards_v: c?.cards_v ?? null,
+  }));
 
 // a past match: the fixture's fields and his own; a cup match: the tie's and his own (api/card.py STRIP_FIELDS, CUP_FIELDS)
-const MATCH = { fields: ['season', 'gw', 'opp', 'home', 'minutes', 'points', 'kickoff', 'fdr'], own: ['minutes', 'points'] };
-const CUP = { fields: ['league', 'season', 'kickoff', 'minutes', 'in_squad', 'after_gw', 'opp', 'opp_name', 'home'], own: ['minutes', 'in_squad'] };
+const MATCH = {
+  fields: ['season', 'gw', 'opp', 'home', 'minutes', 'points', 'kickoff', 'fdr'],
+  own: ['minutes', 'points'],
+};
+const CUP = {
+  fields: ['league', 'season', 'kickoff', 'minutes', 'in_squad', 'after_gw', 'opp', 'opp_name', 'home'],
+  own: ['minutes', 'in_squad'],
+};
 /**
  * The cards as api/card.py cards() made them, from its pack (api/card_build.py pack, PACK 2): each match from its
  * fixture's row (`fx`) and his own fields, his league and cup matches one list; rows and kinds from `lists`; each view's
@@ -250,24 +340,36 @@ export function unpackCards(c) {
       const row = c.fx[flat[i]];
       if ((row.length !== LEAGUE_ROW) !== cup) continue;
       const m = {};
-      shared.forEach((k, j) => { m[k] = row[j]; });
-      own.forEach((k, j) => { m[k] = flat[i + 1 + j]; });
+      shared.forEach((k, j) => {
+        m[k] = row[j];
+      });
+      own.forEach((k, j) => {
+        m[k] = flat[i + 1 + j];
+      });
       out.push(Object.fromEntries(fields.map((k) => [k, m[k]])));
     }
     return out;
   };
-  const players = {}, sent = new Map();
+  const players = {},
+    sent = new Map();
   for (const [id, [pos, pos_avg, club, played, ...more]] of Object.entries(c.players)) {
     const me = { pos, pos_avg, club, last_matches: matches(played, false), cups: matches(played, true) };
     if (more.length) {
-      const [rows, kinds, views] = more, ks = c.keys[pos];
+      const [rows, kinds, views] = more,
+        ks = c.keys[pos];
       me.rows = [...c.lists[rows]];
       me.kinds = [...c.lists[kinds]];
       me.stats = {};
       for (const [v, a] of Object.entries(views)) {
         const hd = c.head[v];
-        me.stats[v] = { n: hd.n[pos], min: a[0], peer_min: hd.peer_min, matches: hd.matches, n_all: hd.n_all,
-          rows: Object.fromEntries(ks.map((k, i) => [k, [a[1 + i], null, null]])) };
+        me.stats[v] = {
+          n: hd.n[pos],
+          min: a[0],
+          peer_min: hd.peer_min,
+          matches: hd.matches,
+          n_all: hd.n_all,
+          rows: Object.fromEntries(ks.map((k, i) => [k, [a[1 + i], null, null]])),
+        };
         if (a.length > 1 + ks.length) sent.set(`${id}|${v}`, a.slice(1 + ks.length));
       }
     }
@@ -281,8 +383,13 @@ export function unpackCards(c) {
     for (const [v, st] of Object.entries(p.stats ?? {})) {
       if (st.min < st.peer_min) continue;
       for (const key of [p.pos, ALL]) {
-        const at = ((by[v] ??= {})[key] ??= {});
-        for (const [k, r] of Object.entries(st.rows)) (at[k] ??= []).push(r[0]);
+        by[v] ??= {};
+        by[v][key] ??= {};
+        const at = by[v][key];
+        for (const [k, r] of Object.entries(st.rows)) {
+          at[k] ??= [];
+          at[k].push(r[0]);
+        }
       }
     }
   }
@@ -290,14 +397,29 @@ export function unpackCards(c) {
     const vals = by[v]?.[key]?.[k] ?? [];
     return vals.some((x) => x == null) ? null : vals.sort((x, y) => x - y);
   };
-  const distOf = (own, s) => (s == null ? own : Array.isArray(s) ? s : [...(own ?? []), ...s.more].sort((x, y) => x - y));
-  const dist = Object.fromEntries(Object.entries(c.dist).map(([v, byKey]) => [v, Object.fromEntries(Object.entries(byKey)
-    .map(([key, byK]) => [key, Object.fromEntries(Object.entries(byK).map(([k, s]) => [k, distOf(peers(v, key, k), s)]))]))]));
+  const distOf = (own, s) =>
+    s == null ? own : Array.isArray(s) ? s : [...(own ?? []), ...s.more].sort((x, y) => x - y);
+  const dist = Object.fromEntries(
+    Object.entries(c.dist).map(([v, byKey]) => [
+      v,
+      Object.fromEntries(
+        Object.entries(byKey).map(([key, byK]) => [
+          key,
+          Object.fromEntries(Object.entries(byK).map(([k, s]) => [k, distOf(peers(v, key, k), s)])),
+        ]),
+      ),
+    ]),
+  );
   const fewer = new Set(c.fewer ?? []);
   // (the first index whose value is past `value`: `strict` >, else >=; a peer list is sorted)
   const cut = (xs, value, strict) => {
-    let lo = 0, hi = xs.length;
-    while (lo < hi) { const mid = (lo + hi) >> 1; if (strict ? xs[mid] <= value : xs[mid] < value) lo = mid + 1; else hi = mid; }
+    let lo = 0,
+      hi = xs.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (strict ? xs[mid] <= value : xs[mid] < value) lo = mid + 1;
+      else hi = mid;
+    }
     return lo;
   };
   const rank = (v, key, k, value, peer) => {
@@ -308,13 +430,24 @@ export function unpackCards(c) {
   };
   for (const [id, me] of Object.entries(players)) {
     for (const [v, st] of Object.entries(me.stats ?? {})) {
-      const peer = st.min >= st.peer_min, got = sent.get(`${id}|${v}`);
+      const peer = st.min >= st.peer_min,
+        got = sent.get(`${id}|${v}`);
       Object.entries(st.rows).forEach(([k, r], i) => {
-        [r[1], r[2]] = got ? got.slice(2 * i, 2 * i + 2) : [rank(v, me.pos, k, r[0], peer), rank(v, ALL, k, r[0], peer)];
+        [r[1], r[2]] = got
+          ? got.slice(2 * i, 2 * i + 2)
+          : [rank(v, me.pos, k, r[0], peer), rank(v, ALL, k, r[0], peer)];
       });
     }
   }
-  return { season: c.season, season_rounds: c.season_rounds, dist, cup_next: c.cup_next, players, v: c.v, ...(c.peers ? { peers: c.peers } : {}) };
+  return {
+    season: c.season,
+    season_rounds: c.season_rounds,
+    dist,
+    cup_next: c.cup_next,
+    players,
+    v: c.v,
+    ...(c.peers ? { peers: c.peers } : {}),
+  };
 }
 /** The Player sheet's on-disk half (api/card.py): last matches, per-90 peers, opponents' xG, price and ownership at the
  *  season's start, other competitions; `now` is the bundle row's price, ownership, status and preview. */
@@ -346,21 +479,36 @@ const FINAL = new Set(['done', 'error', 'cancelled']);
  *  suggested plans' fork solves: ahead.js forkPump), 'pairnext' (ahead.js prepNext) and 'presolve' (ahead.js presolve)
  *  are speculative; the service never counts them in its hourly quota. 'plan' (memory model: the solver's plan with
  *  none of your rules) has a slot of its own: no other solve of this page supersedes it. */
-export const SOLVE_CLASS = { heal: 'user', chip: 'user', cash: 'user', wish: 'spec', speculative: 'spec', chipprep: 'spec', pair: 'spec', card: 'spec', pairnext: 'spec', presolve: 'spec', plan: 'plan' };
-const inflight = new Map();  // slot → {key, ctrl, superseded, purpose}
+export const SOLVE_CLASS = {
+  heal: 'user',
+  chip: 'user',
+  cash: 'user',
+  wish: 'spec',
+  speculative: 'spec',
+  chipprep: 'spec',
+  pair: 'spec',
+  card: 'spec',
+  pairnext: 'spec',
+  presolve: 'spec',
+  plan: 'plan',
+};
+const inflight = new Map(); // slot → {key, ctrl, superseded, purpose}
 /** Whether a solve of this browser's is in flight in `slot` ('user' | 'spec'): background asks wait for a free slot
  *  instead of superseding a Wish solve someone is looking at. */
 export const slotBusy = (slot) => inflight.has(slot);
 /** The purpose of the solve in flight in `slot`, or null: a suggested plan's fork solve (ahead.js forkPump, PAIR_TAKES)
  *  takes the slot from a chip preparation, never from a Wish solve. */
 export const slotHolder = (slot) => inflight.get(slot)?.purpose ?? null;
-const freed = new Map();  // slot → [resolve] of whenFree
+const freed = new Map(); // slot → [resolve] of whenFree
 /** Resolves once no solve of this browser's is in flight in `slot` (at once when none is), so a background ask waiting
  *  for it (forkPump) asks the moment it frees, not on a timer. A solve superseded in the slot hands it to the newer
  *  one: the slot stays busy. */
 export function whenFree(slot) {
   if (!inflight.has(slot)) return Promise.resolve();
-  return new Promise((res) => { if (!freed.has(slot)) freed.set(slot, []); freed.get(slot).push(res); });
+  return new Promise((res) => {
+    if (!freed.has(slot)) freed.set(slot, []);
+    freed.get(slot).push(res);
+  });
 }
 
 /** DELETE /api/m/solve/<key>. */
@@ -387,21 +535,49 @@ export const urgentSolve = (key) => request('POST', `/api/m/solve/${enc(key)}/ur
 let BARE = null;
 // (a saved bundle drawn, the server's yet to land: such a solve waits for it, waitBare; a reload asked it before)
 let BARE_WAIT = null;
-const settleBare = () => { BARE_WAIT?.done(); BARE_WAIT = null; };
-export const holdBare = (road, version = null) => { BARE = road?.weeks?.length && road.values ? { road, version } : null; settleBare(); };
-export const waitBare = () => { BARE = null; if (!BARE_WAIT) { let done; BARE_WAIT = { p: new Promise((r) => { done = r; }), done }; } };
+const settleBare = () => {
+  BARE_WAIT?.done();
+  BARE_WAIT = null;
+};
+export const holdBare = (road, version = null) => {
+  BARE = road?.weeks?.length && road.values ? { road, version } : null;
+  settleBare();
+};
+export const waitBare = () => {
+  BARE = null;
+  if (!BARE_WAIT) {
+    let done;
+    BARE_WAIT = {
+      p: new Promise((r) => {
+        done = r;
+      }),
+      done,
+    };
+  }
+};
 /** No bundle came after the saved one (the load failed): a waiting solve is asked. */
 export const endBareWait = settleBare;
 // (what such a solve sends: api/lineups.py _BARE and bare(), every week's buys off; the server adds poll_max_age and no_table)
 const BARE_KEYS = new Set(['season', 'entry', 'from_r', 'w', 'no_buys_gw', 'poll_max_age', 'no_table']);
-const isBare = (values) => !!values && Object.keys(values).every((k) => BARE_KEYS.has(k))
-  && String(values.no_buys_gw ?? '') === Array.from({ length: Number(values.w) }, (_, i) => Number(values.from_r) + i).join(',');
+const isBare = (values) =>
+  !!values &&
+  Object.keys(values).every((k) => BARE_KEYS.has(k)) &&
+  String(values.no_buys_gw ?? '') ===
+    Array.from({ length: Number(values.w) }, (_, i) => Number(values.from_r) + i).join(',');
 const bareFor = (values) => {
   const v = BARE?.road.values;
   if (!v || !isBare(values)) return null;
-  return ['season', 'entry', 'from_r', 'w', 'no_buys_gw'].every((k) => String(values[k] ?? '') === String(v[k] ?? '')) ? BARE : null;
+  return ['season', 'entry', 'from_r', 'w', 'no_buys_gw'].every((k) => String(values[k] ?? '') === String(v[k] ?? ''))
+    ? BARE
+    : null;
 };
-const bareDone = (held) => ({ key: held.road.key ?? null, state: 'done', road: held.road, error: null, version: held.version });
+const bareDone = (held) => ({
+  key: held.road.key ?? null,
+  state: 'done',
+  road: held.road,
+  error: null,
+  version: held.version,
+});
 
 /** A solve's one gap (the solver's --gap): Settings → Solver gap's later GWs' for a solve of a week after the plan's first
  *  (`to` past from_r), else this GW's; the page's two (memory planValues: gap, later_gap) never sent apart (owner,
@@ -414,19 +590,28 @@ export function solveGap(values) {
 }
 
 /** A solve refused for a wait this short (seconds) is asked again after it, up to FULL_ASKS times (solve). */
-const FULL_WAIT_S = 5, FULL_ASKS = 4;
-export function solve({ entry, purpose, values: asked, lane = 0, said = null, swap = false }, { slot = SOLVE_CLASS[purpose] ?? purpose, onUpdate, signal } = {}) {
+const FULL_WAIT_S = 5,
+  FULL_ASKS = 4;
+export function solve(
+  { entry, purpose, values: asked, lane = 0, said = null, swap = false },
+  {
+    slot = SOLVE_CLASS[purpose] ?? purpose,
+    onUpdate,
+    signal,
+  } = /** @type {{slot?: string, onUpdate?: (update) => unknown, signal?: AbortSignal}} */ ({}),
+) {
   const values = solveGap(asked);
   const held = bareFor(values);
   if (held) {
     const r = bareDone(held);
     onUpdate?.(r);
-    const p = Promise.resolve(r);
-    p.cancel = () => {};
-    return p;
+    return Object.assign(Promise.resolve(r), { cancel: () => {} });
   }
   const prev = inflight.get(slot);
-  if (prev) { prev.superseded = true; prev.ctrl.abort(); }
+  if (prev) {
+    prev.superseded = true;
+    prev.ctrl.abort();
+  }
   const mine = { key: null, ctrl: new AbortController(), superseded: false, purpose };
   inflight.set(slot, mine);
   if (signal?.aborted) mine.ctrl.abort();
@@ -443,15 +628,35 @@ export function solve({ entry, purpose, values: asked, lane = 0, said = null, sw
         await Promise.race([BARE_WAIT.p, new Promise((r) => sig.addEventListener('abort', r, { once: true }))]);
         if (sig.aborted) return stopped();
         const late = bareFor(values);
-        if (late) { const r = bareDone(late); onUpdate?.(r); return r; }
+        if (late) {
+          const r = bareDone(late);
+          onUpdate?.(r);
+          return r;
+        }
       }
-      const ask = () => post('/api/m/solve', { entry, purpose, values, supersedes: prev?.key ?? null, ...(lane ? { lane } : {}), ...(said ? { said } : {}), ...(swap ? { swap: true } : {}) }, { signal: sig });
+      const ask = () =>
+        post(
+          '/api/m/solve',
+          {
+            entry,
+            purpose,
+            values,
+            supersedes: prev?.key ?? null,
+            ...(lane ? { lane } : {}),
+            ...(said ? { said } : {}),
+            ...(swap ? { swap: true } : {}),
+          },
+          { signal: sig },
+        );
       // the server full for a moment (its 429 told a short wait: mobile_conf.FULL_RETRY_S) asked again then, not a
       // minute on (owner, 2026-11-12, "fix problems": a 100-phone burst refused 10, one Show another 34 s); an
       // hourly quota's wait is long and goes to the caller as before
       let s;
       for (let k = 0; ; k++) {
-        try { s = await ask(); break; } catch (e) {
+        try {
+          s = await ask();
+          break;
+        } catch (e) {
           if (sig.aborted || e?.status !== 429 || !(e.retryAfter <= FULL_WAIT_S) || k >= FULL_ASKS) throw e;
           await sleep(e.retryAfter * 1000 * (1 + Math.random() / 2), sig);
           if (sig.aborted) return stopped();
@@ -464,7 +669,10 @@ export function solve({ entry, purpose, values: asked, lane = 0, said = null, sw
         await sleep(purpose === 'card' ? CARD_POLL_MS : SOLVE_POLL_MS, sig);
         if (sig.aborted) return stopped();
         try {
-          s = { key: mine.key, ...(await get(`/api/m/solve/${enc(mine.key)}`, swap ? { swap: 1 } : null, { signal: sig })) };
+          s = {
+            key: mine.key,
+            ...(await get(`/api/m/solve/${enc(mine.key)}`, swap ? { swap: 1 } : null, { signal: sig })),
+          };
           misses = 0;
           onUpdate?.(s);
         } catch (e) {
@@ -472,7 +680,14 @@ export function solve({ entry, purpose, values: asked, lane = 0, said = null, sw
           if (!(e.code === 'unreachable' || e.code === 'timeout') || ++misses >= 5) throw e;
         }
       }
-      return { key: mine.key, state: s.road ? 'done' : s.state, road: s.road ?? null, error: s.error ?? null, version: s.version ?? null, swap: s.swap ?? null };
+      return {
+        key: mine.key,
+        state: s.road ? 'done' : s.state,
+        road: s.road ?? null,
+        error: s.error ?? null,
+        version: s.version ?? null,
+        swap: s.swap ?? null,
+      };
     } catch (e) {
       if (sig.aborted) return stopped();
       throw e;
@@ -481,13 +696,13 @@ export function solve({ entry, purpose, values: asked, lane = 0, said = null, sw
         inflight.delete(slot);
         const waiting = freed.get(slot);
         freed.delete(slot);
-        waiting?.forEach((f) => f());
+        waiting?.forEach((f) => {
+          f();
+        });
       }
     }
   };
-  const p = run();
-  p.cancel = () => mine.ctrl.abort();
-  return p;
+  return Object.assign(run(), { cancel: () => mine.ctrl.abort() });
 }
 
 // ---------------------------------------------------------------- offline snapshot (§10.4)
@@ -502,7 +717,7 @@ export function saveSnapshot(entry, bundle) {
 /** {entry, at (ms), bundle} for this entry, or null. */
 export function loadSnapshot(entry) {
   const s = local.json(KEYS.snapshot);
-  return s && s.bundle && String(s.entry) === String(entry) ? s : null;
+  return s?.bundle && String(s.entry) === String(entry) ? s : null;
 }
 /** A saved memory document replaces the snapshot's for its (entry, gw): the snapshot shows the plan as saved. */
 function mirrorMemory(doc) {
@@ -515,26 +730,28 @@ function mirrorMemory(doc) {
 
 // the server away says so plainly; nothing claims "your plan is unchanged" (a new user has none)
 const UNREACHABLE = "Forkcast can't reach its server. Try again in a minute.";
-const BUSY = 'Busy right now. Try again in a minute.';  // ACCESS_V2 quotas: the server's 429
+const BUSY = 'Busy right now. Try again in a minute.'; // ACCESS_V2 quotas: the server's 429
 /** Any other error: one human sentence; the technical message goes to the console. */
 const SERVER_ERROR = "Something went wrong on Forkcast's side. Try again in a minute.";
 /** The answers that mean Forkcast's server can't serve right now (no answer, a timeout, or a 503 / 504 from in front of
  *  it): the app is off line until one works (app.js loader); its copy is UNREACHABLE. */
-export const isDown = (err) => !!err && (err.code === 'unreachable' || err.code === 'timeout' || err.status === 503 || err.status === 504);
+export const isDown = (err) =>
+  !!err && (err.code === 'unreachable' || err.code === 'timeout' || err.status === 503 || err.status === 504);
 /** An isDown failure turns the app off line only after another just before it (misses) or after an ordinary call's
  *  whole wait without an answer (TIMEOUT_MS, 10 s): one lost request keeps the last good state (no banner, edits on)
  *  until the loader's next try. */
 export const offlineNow = (misses, waitedMs) => misses >= 1 || waitedMs >= TIMEOUT_MS;
 
 /** The one-line copy for an error (§5.1 Connect errors, §7.9). */
-export function plain(err, { entry } = {}) {
+export function plain(err, { entry } = /** @type {{entry?: number|string}} */ ({})) {
   if (!err) return '';
   // a server that answers slowly is busy, not away: a request that ran out of time, or a 504 in front of it; still off
   // line by offlineNow's rule (isDown)
   if (err.code === 'timeout' || err.status === 504) return BUSY;
   if (isDown(err)) return UNREACHABLE;
   if (err.status === 429) return BUSY;
-  if (err.status === 404 && entry != null && /entry/i.test(err.message || '')) return `No FPL team with ID ${entry}. Check the number in your FPL web address.`;
+  if (err.status === 404 && entry != null && /entry/i.test(err.message || ''))
+    return `No FPL team with ID ${entry}. Check the number in your FPL web address.`;
   if (err.status === 502) return "FPL didn't answer. Try again in a minute.";
   console.warn('Forkcast:', err.message || String(err), err.detail || '');
   return SERVER_ERROR;

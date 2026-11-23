@@ -41,22 +41,32 @@ export function decodeSeeds(seeds) {
   if (isSeeds(seeds)) return seeds;
   let S = SEEDS.get(seeds);
   if (S) return S;
-  const pids = ids(seeds.ids), gws = ids(seeds.gws);
+  const pids = ids(seeds.ids),
+    gws = ids(seeds.gws);
   const runs = Math.max(0, Math.round(num(seeds.runs) ?? 0));
-  const data = seeds.data instanceof Float32Array ? seeds.data
-    : Array.isArray(seeds.data) ? Float32Array.from(seeds.data, (v) => num(v) ?? NaN)
-      : typeof seeds.f32 === 'string' ? f32FromBase64(seeds.f32) : new Float32Array(0);
+  const data =
+    seeds.data instanceof Float32Array
+      ? seeds.data
+      : Array.isArray(seeds.data)
+        ? Float32Array.from(seeds.data, (v) => num(v) ?? NaN)
+        : typeof seeds.f32 === 'string'
+          ? f32FromBase64(seeds.f32)
+          : new Float32Array(0);
   if (data.length !== pids.length * gws.length * runs) {
     throw new Error(`seeds: ${data.length} values for ${pids.length} players × ${gws.length} GWs × ${runs} runs`);
   }
   const pi = new Map(pids.map((p, i) => [p, i]));
   const gi = new Map(gws.map((g, i) => [g, i]));
   const at0 = (id, gw) => {
-    const i = pi.get(Number(id)), j = gi.get(Number(gw));
+    const i = pi.get(Number(id)),
+      j = gi.get(Number(gw));
     return i === undefined || j === undefined ? -1 : (i * gws.length + j) * runs;
   };
   S = Object.freeze({
-    ids: pids, gws, runs, data,
+    ids: pids,
+    gws,
+    runs,
+    data,
     has: (id) => pi.has(Number(id)),
     /** where (id, gw)'s runs start in data (run r at offset + r), or -1 if the matrix has no such cell */
     offset: at0,
@@ -71,8 +81,15 @@ export function decodeSeeds(seeds) {
     mean(id, gw) {
       const o = at0(id, gw);
       if (o < 0) return null;
-      let s = 0, n = 0;
-      for (let r = 0; r < runs; r++) { const v = data[o + r]; if (Number.isFinite(v)) { s += v; n++; } }
+      let s = 0,
+        n = 0;
+      for (let r = 0; r < runs; r++) {
+        const v = data[o + r];
+        if (Number.isFinite(v)) {
+          s += v;
+          n++;
+        }
+      }
       return n ? s / n : null;
     },
   });
@@ -87,7 +104,8 @@ export function runXp(seeds, r, fallback) {
 }
 
 /** Whether xpOf scores every player a week counts (its XI, the captain, the bench under BB). */
-const scores = (week, xpOf) => [...week.xi, ...(week.chip === 'bb' ? week.bench : [])].every((p) => num(xpOf(p, week.gw)) !== null);
+const scores = (week, xpOf) =>
+  [...week.xi, ...(week.chip === 'bb' ? week.bench : [])].every((p) => num(xpOf(p, week.gw)) !== null);
 
 /**
  * A plan's weeks, scorable: {gw, xi, bench, captain, chip, hits, ft, used, points, meanOf(id, gw)}. points is the
@@ -95,19 +113,35 @@ const scores = (week, xpOf) => [...week.xi, ...(week.chip === 'bb' ? week.bench 
  * reads a GwState's own xp map, else `xp`.
  */
 function planWeeks(plan, xp) {
-  const list = Array.isArray(plan?.gws) ? plan.gws : Array.isArray(plan?.weeks) ? plan.weeks : Array.isArray(plan) ? plan : [];
-  return list.filter((w) => num(w?.gw) !== null).map((w) => {
-    const own = w.xp && typeof w.xp === 'object' && !Array.isArray(w.xp) ? w.xp : null;
-    const meanOf = (id, g) => (own && num(own[id]) !== null ? Number(own[id]) : xp ? num(xp(id, g)) : null);
-    const week = {
-      gw: Number(w.gw), xi: ids(w.xi), bench: ids(w.bench), captain: num(w.captain),
-      chip: CHIPS.includes(w.chip) ? w.chip : null, hits: num(w.hits) ?? 0,
-      ft: num(w.ft ?? w.ft_avail), used: num(w.used ?? w.ft_used),
-    };
-    const pred = num(w.pred);
-    const points = num(w.points) ?? (pred === null || scores(week, meanOf) ? weekPoints(week, meanOf) : pred - HIT_COST * week.hits);
-    return { ...week, points, meanOf, src: w, xpOf: xp };
-  }).sort((a, b) => a.gw - b.gw);
+  const list = Array.isArray(plan?.gws)
+    ? plan.gws
+    : Array.isArray(plan?.weeks)
+      ? plan.weeks
+      : Array.isArray(plan)
+        ? plan
+        : [];
+  return list
+    .filter((w) => num(w?.gw) !== null)
+    .map((w) => {
+      const own = w.xp && typeof w.xp === 'object' && !Array.isArray(w.xp) ? w.xp : null;
+      const meanOf = (id, g) => (own && num(own[id]) !== null ? Number(own[id]) : xp ? num(xp(id, g)) : null);
+      const week = {
+        gw: Number(w.gw),
+        xi: ids(w.xi),
+        bench: ids(w.bench),
+        captain: num(w.captain),
+        chip: CHIPS.includes(w.chip) ? w.chip : null,
+        hits: num(w.hits) ?? 0,
+        ft: num(w.ft ?? w.ft_avail),
+        used: num(w.used ?? w.ft_used),
+      };
+      const pred = num(w.pred);
+      const points =
+        num(w.points) ??
+        (pred === null || scores(week, meanOf) ? weekPoints(week, meanOf) : pred - HIT_COST * week.hits);
+      return { ...week, points, meanOf, src: w, xpOf: xp };
+    })
+    .sort((a, b) => a.gw - b.gw);
 }
 
 /**
@@ -116,13 +150,26 @@ function planWeeks(plan, xp) {
  * rate.
  */
 export function bankCredit(week, rate) {
-  const r = num(rate), ft = num(week?.ft ?? week?.ft_avail), used = num(week?.used ?? week?.ft_used);
-  if (!(r > 0) || ft === null || used === null || week?.chip === 'wc' || week?.chip === 'fh' || Number(week?.gw) >= LAST_ROUND) return 0;
+  const r = num(rate),
+    ft = num(week?.ft ?? week?.ft_avail),
+    used = num(week?.used ?? week?.ft_used);
+  if (
+    !(r > 0) ||
+    ft === null ||
+    used === null ||
+    week?.chip === 'wc' ||
+    week?.chip === 'fh' ||
+    Number(week?.gw) >= LAST_ROUND
+  )
+    return 0;
   return r * Math.min(FT_CAP - 1, Math.max(0, ft - used));
 }
 
 /** A plan's mean points per GW, its last GW's banked-transfer credit and the sum: {gws, points, bank, total}. */
-export function planPoints(plan, { xp, ftValue } = {}) {
+export function planPoints(
+  plan,
+  { xp, ftValue } = /** @type {{xp?: (id: number, gw: number) => number|null, ftValue?: number}} */ ({}),
+) {
   const weeks = planWeeks(plan, xp);
   const points = weeks.map((w) => w.points);
   const bank = weeks.length ? bankCredit(weeks.at(-1), ftValue) : 0;
@@ -150,7 +197,10 @@ function runWeeks(weeks, S) {
     // neither scores him)
     const col = (p) => ({ o: S.offset(p, g), fill: undefined, p });
     const val = (c, r) => {
-      if (c.o >= 0) { const v = data[c.o + r]; if (Number.isFinite(v)) return v; }
+      if (c.o >= 0) {
+        const v = data[c.o + r];
+        if (Number.isFinite(v)) return v;
+      }
       if (c.fill === undefined) c.fill = num(w.meanOf(c.p, g)) ?? 0;
       return c.fill;
     };
@@ -176,7 +226,7 @@ function runWeeks(weeks, S) {
 const RUN_WEEKS = new WeakMap();
 
 /** Window points per forecast run (lineups fixed): Float32Array(runs); empty without seeds. */
-export function runTotals(plan, seeds, { xp } = {}) {
+export function runTotals(plan, seeds, { xp } = /** @type {{xp?: (id: number, gw: number) => number|null}} */ ({})) {
   const S = decodeSeeds(seeds);
   if (!S) return new Float32Array(0);
   const per = runWeeks(planWeeks(plan, xp), S);
@@ -201,7 +251,8 @@ export function anchorRef(kh, anchor) {
 
 /** 'clear' when the pooled |delta| ≥ 2·noise, 'lean' when ≥ noise, else 'coin' (a zero delta always). */
 export function verdictLabel(delta, noise) {
-  const d = Math.abs(num(delta) ?? 0), n = Math.max(0, num(noise) ?? 0);
+  const d = Math.abs(num(delta) ?? 0),
+    n = Math.max(0, num(noise) ?? 0);
   if (d <= EPS) return 'coin';
   if (d >= VERDICT.clear * n) return 'clear';
   if (d >= VERDICT.lean * n) return 'lean';
@@ -230,7 +281,17 @@ export function payback(cum, gws) {
  * at the last common GW (`ftValue` per transfer). The label is the pooled delta against the noise floor; per-run votes
  * are information.
  */
-export function compareRoads(a, b, { seeds, noise, xp, ftValue, ref = null } = {}) {
+export function compareRoads(
+  a,
+  b,
+  {
+    seeds,
+    noise,
+    xp,
+    ftValue,
+    ref = null,
+  } = /** @type {{seeds?: object, noise?: number, xp?: (id: number, gw: number) => number|null, ftValue?: number, ref?: (gw: number) => number}} */ ({}),
+) {
   const wb = new Map(planWeeks(b, xp).map((w) => [w.gw, w]));
   const A = planWeeks(a, xp).filter((w) => wb.has(w.gw));
   const B = A.map((w) => wb.get(w.gw));
@@ -238,7 +299,10 @@ export function compareRoads(a, b, { seeds, noise, xp, ftValue, ref = null } = {
   const perGw = A.map((w, i) => w.points - B[i].points);
   const bank = A.length ? bankCredit(A.at(-1), ftValue) - bankCredit(B.at(-1), ftValue) : 0;
   const cum = [];
-  perGw.reduce((s, x, i) => (cum[i] = s + x + (i === perGw.length - 1 ? bank : 0)), 0);
+  perGw.reduce((s, x, i) => {
+    cum[i] = s + x + (i === perGw.length - 1 ? bank : 0);
+    return cum[i];
+  }, 0);
   const delta = cum.at(-1) ?? 0;
   // the gap on the anchor's scale (anchorRef): what the label reads. A week's gap d (points minus hits) is (d +
   // 4·Δhits)·f − 4·Δhits there, f = ref(gw); the credit at the last week ×its f. onA(d per week) → the window's gap
@@ -248,17 +312,26 @@ export function compareRoads(a, b, { seeds, noise, xp, ftValue, ref = null } = {
   const atA = !ref ? delta : onA(perGw);
   const S = decodeSeeds(seeds);
   const runs = S?.runs ?? 0;
-  let votes = null, against = null, diffs = null, diffsRef = null, cumRuns = null;
+  let votes = null,
+    against = null,
+    diffs = null,
+    diffsRef = null,
+    cumRuns = null;
   if (runs) {
-    const ra = runWeeks(A, S), rb = runWeeks(B, S);
+    const ra = runWeeks(A, S),
+      rb = runWeeks(B, S);
     diffs = new Float32Array(runs);
     diffsRef = ref ? new Float32Array(runs) : diffs;
     cumRuns = [];
-    votes = 0; against = 0;
+    votes = 0;
+    against = 0;
     for (let r = 0; r < runs; r++) {
       let s = 0;
       const d = gws.map((_, i) => ra[i][r] - rb[i][r]);
-      const c = d.map((x, i) => (s += x + (i === gws.length - 1 ? bank : 0)));
+      const c = d.map((x, i) => {
+        s += x + (i === gws.length - 1 ? bank : 0);
+        return s;
+      });
       diffs[r] = s;
       if (ref) diffsRef[r] = onA(d);
       cumRuns.push(c);
@@ -268,13 +341,25 @@ export function compareRoads(a, b, { seeds, noise, xp, ftValue, ref = null } = {
   }
   const lead = runs ? (delta >= 0 ? votes : against) : null;
   return {
-    gws, delta, ref: atA, points: sum(perGw), bank, perGw, cum, votes, against, lead, runs,
-    label: verdictLabel(atA, noise), payback: payback(cum, gws), diffs, diffsRef, cumRuns,
+    gws,
+    delta,
+    ref: atA,
+    points: sum(perGw),
+    bank,
+    perGw,
+    cum,
+    votes,
+    against,
+    lead,
+    runs,
+    label: verdictLabel(atA, noise),
+    payback: payback(cum, gws),
+    diffs,
+    diffsRef,
+    cumRuns,
     winner: delta > EPS ? 'a' : delta < -EPS ? 'b' : null,
   };
 }
-
-
 
 /**
  * A solved Road's own objective (Road.objective = the anchor solve's {term: {round: value}}, api/mobile.py make_road):
@@ -287,7 +372,9 @@ export function objectiveOf(road, { atAnchor = false } = {}) {
   if (!o || typeof o !== 'object' || !Object.keys(o).length) return null;
   const ref = atAnchor ? anchorRef(road.k_h, roadAnchor(road)) : null;
   const w = ref ?? (() => 1);
-  const terms = Object.fromEntries(Object.entries(o).map(([k, by]) => [k, sum(Object.entries(by || {}).map(([g, v]) => (num(v) ?? 0) * w(g)))]));
+  const terms = Object.fromEntries(
+    Object.entries(o).map(([k, by]) => [k, sum(Object.entries(by || {}).map(([g, v]) => (num(v) ?? 0) * w(g)))]),
+  );
   return { terms, total: sum(Object.values(terms)) };
 }
 
@@ -300,16 +387,29 @@ export function roadAnchor(road) {
   return gws.length ? Math.min(...gws) : null;
 }
 
-const WEEK_FIELDS = ['gw', 'in', 'out', 'xi', 'bench', 'captain', 'vice', 'chip', 'bank', 'ft_avail', 'ft_used', 'hits', 'pred'];
 /** A tap result as a compact Road (IPHONE_DESIGN §7.4): its rows from meta.from, anchor objective, warnings. */
 export function roadFromResult(result, { key = 'base', job = null, values = null } = {}) {
   const rows = solverRows(result);
   const from = rows[0]?.gw;
   return {
-    key, job, values, argv: result?.meta?.argv || result?.argv || [],
+    key,
+    job,
+    values,
+    argv: result?.meta?.argv || result?.argv || [],
     weeks: rows.map(({ gw, t }) => ({
-      ...Object.fromEntries(WEEK_FIELDS.map((k) => [k, t?.[k] ?? null])),
-      gw, in: ids(t?.in), out: ids(t?.out), xi: ids(t?.xi), bench: ids(t?.bench),
+      gw,
+      in: ids(t?.in),
+      out: ids(t?.out),
+      xi: ids(t?.xi),
+      bench: ids(t?.bench),
+      captain: t?.captain ?? null,
+      vice: t?.vice ?? null,
+      chip: t?.chip ?? null,
+      bank: t?.bank ?? null,
+      ft_avail: t?.ft_avail ?? null,
+      ft_used: t?.ft_used ?? null,
+      hits: t?.hits ?? null,
+      pred: t?.pred ?? null,
     })),
     objective: (from === undefined ? null : result?.anchors?.[from]?.objective) || {},
     warnings: result?.warnings || [],
@@ -332,6 +432,18 @@ function resultOfRoad(road) {
  * A Road as a draft over `base` through draftFromSolverResult (the road's chips and lineups; `keep` pairs moves as
  * given). A Road has no player rows, so `players` must cover its buys.
  */
-export function roadToDraft(road, base, { players, name, keep = [] } = {}) {
-  return draftFromSolverResult(resultOfRoad(road), base, { players, keep, name: name ?? `Road ${road?.key ?? ''}`.trim() });
+export function roadToDraft(
+  road,
+  base,
+  {
+    players,
+    name,
+    keep = [],
+  } = /** @type {{players?: object, name?: string, keep?: {out: number, in: number}[]}} */ ({}),
+) {
+  return draftFromSolverResult(resultOfRoad(road), base, {
+    players,
+    keep,
+    name: name ?? `Road ${road?.key ?? ''}`.trim(),
+  });
 }

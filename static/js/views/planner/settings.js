@@ -13,9 +13,12 @@ export const settingsMethods = {
     const cur = this.st.preset || '';
     const opt = (p) => h('option', { value: p.name }, p.name);
     const mine = this.presets.filter((p) => !p.builtin);
-    fill(this.presetSel, h('option', { value: '' }, 'Presets…'),
+    fill(
+      this.presetSel,
+      h('option', { value: '' }, 'Presets…'),
       h('optgroup', { label: 'Built-in' }, this.presets.filter((p) => p.builtin).map(opt)),
-      mine.length ? h('optgroup', { label: 'Saved' }, mine.map(opt)) : null);
+      mine.length ? h('optgroup', { label: 'Saved' }, mine.map(opt)) : null,
+    );
     this.presetSel.value = this.presets.some((p) => p.name === cur) ? cur : '';
     this.renderPresetNote();
   },
@@ -29,10 +32,21 @@ export const settingsMethods = {
     if (!this.presetNote) return;
     const p = this.presets.find((x) => x.name === this.st.preset);
     this.delBtn.hidden = !p || p.builtin;
-    fill(this.presetNote, p
-      ? h('p.small', null, h('strong', null, p.name), ' ', this.presetModified(p) ? pill('changed since', 'warn') : null, ' ',
-        h('span.muted', null, p.description), p.note ? h('span.warn', null, ` (${p.note})`) : null)
-      : h('p.small.muted', null, 'Start from a preset, or set anything below. Settings are kept in this browser.'));
+    fill(
+      this.presetNote,
+      p
+        ? h(
+            'p.small',
+            null,
+            h('strong', null, p.name),
+            ' ',
+            this.presetModified(p) ? pill('changed since', 'warn') : null,
+            ' ',
+            h('span.muted', null, p.description),
+            p.note ? h('span.warn', null, ` (${p.note})`) : null,
+          )
+        : h('p.small.muted', null, 'Start from a preset, or set anything below. Settings are kept in this browser.'),
+    );
   },
 
   /** What a preset or "Reset all" leaves alone: the squad and players, and the first GW when a team is loaded. */
@@ -50,13 +64,15 @@ export const settingsMethods = {
   },
 
   async reloadPresets() {
-    const season = this.season();  // a preset's @next_gw is that season's next deadline
+    const season = this.season(); // a preset's @next_gw is that season's next deadline
     try {
       const list = await api.listPresets(season);
       if (season !== this.season()) return;
       this.presets = list;
       this.presetSeason = season;
-    } catch (e) { toast(e.message, 'error'); }
+    } catch (e) {
+      toast(e.message, 'error');
+    }
     this.renderPresets();
   },
 
@@ -66,24 +82,40 @@ export const settingsMethods = {
     const desc = h('textarea.textarea', { placeholder: 'What it is for (optional)', rows: 3 });
     const dlg = modal({
       title: 'Save settings as a preset',
-      body: h('div.stack.tight', null, field('Name', name), field('Description', desc),
-        h('p.small.muted', null, `Saves ${plural(Object.keys(values).length, 'setting')}. Your team (--entry / --team-state) is not stored.`)),
-      actions: [{ label: 'Cancel', kind: 'ghost' }, {
-        label: 'Save', kind: 'primary',
-        onClick: async () => {
-          if (!name.value.trim()) { name.focus(); return false; }
-          try {
-            const p = await api.savePreset({ name: name.value.trim(), description: desc.value.trim(), values });
-            this.save({ preset: p.name });
-            await this.reloadPresets();
-            toast(`Preset “${p.name}” saved`, 'ok');
-            return true;
-          } catch (e) {
-            toast(errText(e), 'error');
-            return false;
-          }
+      body: h(
+        'div.stack.tight',
+        null,
+        field('Name', name),
+        field('Description', desc),
+        h(
+          'p.small.muted',
+          null,
+          `Saves ${plural(Object.keys(values).length, 'setting')}. Your team (--entry / --team-state) is not stored.`,
+        ),
+      ),
+      actions: [
+        { label: 'Cancel', kind: 'ghost' },
+        {
+          label: 'Save',
+          kind: 'primary',
+          onClick: async () => {
+            if (!name.value.trim()) {
+              name.focus();
+              return false;
+            }
+            try {
+              const p = await api.savePreset({ name: name.value.trim(), description: desc.value.trim(), values });
+              this.save({ preset: p.name });
+              await this.reloadPresets();
+              toast(`Preset “${p.name}” saved`, 'ok');
+              return true;
+            } catch (e) {
+              toast(errText(e), 'error');
+              return false;
+            }
+          },
         },
-      }],
+      ],
     });
     setTimeout(() => name.focus(), 0);
     return dlg;
@@ -92,7 +124,15 @@ export const settingsMethods = {
   async deletePreset() {
     const p = this.presets.find((x) => x.name === this.st.preset);
     if (!p || p.builtin) return;
-    if (!await confirm({ title: 'Delete preset?', body: `“${p.name}” will be removed. Your current settings stay as they are.`, confirmLabel: 'Delete', danger: true })) return;
+    if (
+      !(await confirm({
+        title: 'Delete preset?',
+        body: `“${p.name}” will be removed. Your current settings stay as they are.`,
+        confirmLabel: 'Delete',
+        danger: true,
+      }))
+    )
+      return;
     try {
       await api.deletePreset(p.slug);
       this.save({ preset: undefined });
@@ -107,7 +147,7 @@ export const settingsMethods = {
 
   /** Switch the chip mode (one patch, with `extra` values); manual keeps the rounds already set. */
   setChipMode(mode, extra = {}) {
-    this.chipUi = mode;  // "Stored plan" with no plan picked yet has no flag to show it
+    this.chipUi = mode; // "Stored plan" with no plan picked yet has no flag to show it
     const p = Object.fromEntries(CHIP_KEYS.map((k) => [k, undefined]));
     if (mode === 'manual') Object.assign(p, pick(this.values, CHIP_ROUNDS));
     if (mode === 'plan') p.plan = this.values.plan;
@@ -123,10 +163,17 @@ export const settingsMethods = {
     const e = this.entry;
     if (chipMode(this.values) !== 'manual') return [];
     return CHIP_ROUNDS.flatMap((c) => {
-      const played = (e?.chips_used || []).filter((u) => u.chip === c).map((u) => `GW${u.gw}`).join(', ');
+      const played = (e?.chips_used || [])
+        .filter((u) => u.chip === c)
+        .map((u) => `GW${u.gw}`)
+        .join(', ');
       const rounds = (this.values[c] ?? this.flag(c)?.default_by_season?.[season] ?? []).map(Number);
-      return rounds.filter((r) => this.chipPlayed(c, r, season)).map((r) =>
-        `${chipName(c)} in GW${r}: this team has already played its ${chipName(c)}${played ? ` (${played})` : ''} in this half of the season.`);
+      return rounds
+        .filter((r) => this.chipPlayed(c, r, season))
+        .map(
+          (r) =>
+            `${chipName(c)} in GW${r}: this team has already played its ${chipName(c)}${played ? ` (${played})` : ''} in this half of the season.`,
+        );
     });
   },
 
@@ -134,10 +181,16 @@ export const settingsMethods = {
    *  solver.chips.HALF). */
   chipPlayed(c, r, season) {
     const e = this.entry;
-    const last = num(this.meta?.chip_half);  // the first half's last GW; unknown without /api/meta: no check
+    const last = num(this.meta?.chip_half); // the first half's last GW; unknown without /api/meta: no check
     const half = (gw) => gw > last;
-    return last != null && !!e?.chips_available && e.season === season && !e.chips_available.includes(c)
-      && r >= e.gw && half(r) === half(e.gw);
+    return (
+      last != null &&
+      !!e?.chips_available &&
+      e.season === season &&
+      !e.chips_available.includes(c) &&
+      r >= e.gw &&
+      half(r) === half(e.gw)
+    );
   },
 
   renderChips() {
@@ -149,38 +202,73 @@ export const settingsMethods = {
     // A wildcard squad from the team for its first GW (--entry N --from-r N --wc N), not --fresh, which only moves one
     // GW from the real squad.
     const from = num(this.values.from_r);
-    const wcNow = (this.values.entry || this.values.team_state) && from && !this.chipPlayed('wc', from, season)
-      && !(mode === 'manual' && String(this.values.wc) === String(from))
-      ? h('div', null, h('button.btn.sm', {
-        type: 'button', onClick: () => this.setChipMode('manual', { wc: [from], fresh: undefined }),
-        title: `Rebuild the squad in GW${from} with your wildcard: chip mode Manual, wildcard round ${from}, --fresh off`,
-      }, icon('swap', { size: 14 }), `Wildcard in GW${from}`)) : null;
-    fill(this.chipChecks, this.chipClashes(season).map((t) => callout('warn', t)), wcNow);
+    const wcNow =
+      (this.values.entry || this.values.team_state) &&
+      from &&
+      !this.chipPlayed('wc', from, season) &&
+      !(mode === 'manual' && String(this.values.wc) === String(from))
+        ? h(
+            'div',
+            null,
+            h(
+              'button.btn.sm',
+              {
+                type: 'button',
+                onClick: () => this.setChipMode('manual', { wc: [from], fresh: undefined }),
+                title: `Rebuild the squad in GW${from} with your wildcard: chip mode Manual, wildcard round ${from}, --fresh off`,
+              },
+              icon('swap', { size: 14 }),
+              `Wildcard in GW${from}`,
+            ),
+          )
+        : null;
+    fill(
+      this.chipChecks,
+      this.chipClashes(season).map((t) => callout('warn', t)),
+      wcNow,
+    );
     this.chipChecks.hidden = !this.chipChecks.childElementCount;
     const left = this.entry?.season === season ? this.entry.chips_available : null;
-    const leftNote = left ? h('p.small', null, h('span.muted', null, 'Chips left: '), left.length ? left.map(chipName).join(', ') : 'none') : null;
+    const leftNote = left
+      ? h('p.small', null, h('span.muted', null, 'Chips left: '), left.length ? left.map(chipName).join(', ') : 'none')
+      : null;
     const key = `${mode}|${season}|${left?.join(',') ?? ''}`;
-    if (key === this.chipKey) return;  // re-render only on a mode change, so edits keep their focus
+    if (key === this.chipKey) return; // re-render only on a mode change, so edits keep their focus
     this.chipKey = key;
     let body;
     if (mode === 'manual') {
       const defs = CHIP_ROUNDS.map((c) => [c, this.flag(c)?.default_by_season?.[season]]).filter(([, r]) => r?.length);
       body = [
-        h('div.flag-grid', null, CHIP_ROUNDS.map((c) => this.ctl(c))),
-        h('p.small.muted', null, defs.length
-          ? `Unset uses ${season}'s default rounds (${defs.map(([c, r]) => `${c.toUpperCase()} ${r.join(',')}`).join(' · ')}); enter 0 to drop one. `
-          : `${season} has no default chip rounds: only the rounds you enter are played. `,
-        left ? 'Rounds in the current half of the season are checked against the chips your team has left.'
-          : 'Load your team to check the rounds against the chips it has left.'),
+        h(
+          'div.flag-grid',
+          null,
+          CHIP_ROUNDS.map((c) => this.ctl(c)),
+        ),
+        h(
+          'p.small.muted',
+          null,
+          defs.length
+            ? `Unset uses ${season}'s default rounds (${defs.map(([c, r]) => `${c.toUpperCase()} ${r.join(',')}`).join(' · ')}); enter 0 to drop one. `
+            : `${season} has no default chip rounds: only the rounds you enter are played. `,
+          left
+            ? 'Rounds in the current half of the season are checked against the chips your team has left.'
+            : 'Load your team to check the rounds against the chips it has left.',
+        ),
       ];
     } else if (mode === 'plan') {
       const f = this.flag('plan');
       const choices = f?.choices_by_season?.[season] || [];
       body = choices.length
-        ? [this.ctl('plan', { ...f, choices }), h('p.small.muted', null, 'A stored schedule from solver/chips.py CANONICAL_PLANS; it sets all four chips.')]
-        : callout('warn', `No stored chip plans for ${season} (CANONICAL_PLANS has ${Object.keys(f?.choices_by_season || {}).join(' and ') || 'none'}). Pick another chip mode.`);
+        ? [
+            this.ctl('plan', { ...f, choices }),
+            h('p.small.muted', null, 'A stored schedule from solver/chips.py CANONICAL_PLANS; it sets all four chips.'),
+          ]
+        : callout(
+            'warn',
+            `No stored chip plans for ${season} (CANONICAL_PLANS has ${Object.keys(f?.choices_by_season || {}).join(' and ') || 'none'}). Pick another chip mode.`,
+          );
     } else {
-      body = h('p.small.muted', null, 'No chips are played, not even the season\'s default rounds (--no-chips).');
+      body = h('p.small.muted', null, "No chips are played, not even the season's default rounds (--no-chips).");
     }
     fill(this.chipBody, body, leftNote);
   },
@@ -189,9 +277,14 @@ export const settingsMethods = {
 
   openDrawer() {
     const form = flagForm({
-      flags: this.flags, groups: this.groups, values: this.values, players: this.players(), meta: this.meta,
+      flags: this.flags,
+      groups: this.groups,
+      values: this.values,
+      players: this.players(),
+      meta: this.meta,
       onChange: (vals, dest) => {
-        if (dest == null) {  // "Reset all": keeps the team (as a preset does) and re-syncs the form's own copy
+        if (dest == null) {
+          // "Reset all": keeps the team (as a preset does) and re-syncs the form's own copy
           this.replaceValues(this.kept());
           form.setValues(this.values);
           return;
@@ -201,8 +294,16 @@ export const settingsMethods = {
       },
     });
     const dlg = modal({
-      title: `All settings (${this.flags.length})`, wide: true,
-      body: [h('p.small.muted', null, 'Every solver flag, grouped. Changes apply to the planner at once; the quick settings show the same values.'), form],
+      title: `All settings (${this.flags.length})`,
+      wide: true,
+      body: [
+        h(
+          'p.small.muted',
+          null,
+          'Every solver flag, grouped. Changes apply to the planner at once; the quick settings show the same values.',
+        ),
+        form,
+      ],
       actions: [{ label: 'Done', kind: 'primary' }],
     });
     dlg.el.classList.add('pl-drawer');

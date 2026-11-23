@@ -1,16 +1,14 @@
 // ahead.js: the screen: mount
 
 import * as E from '../../plan/engine.js';
-import { h, svg, fmt, fill, append, toast, chipName, plural, icon, statusInfo, roving, reduceMotion, holdTouch, flick, focusKey, refocus, xpNum, xpGain, shownGain } from '../../ui.js';
-import { subOrder, fitFixtures } from '../../plan/pitch.js';
-import { CHIPS_OFF, COPY, captainGap, priceMorning, pricePlate, gwFlags, liveCheck, clockText, stepShare } from '../calls.js';
-import { rollKeeps } from '../memory.js';
-import { EDGE_PX, FLASH, GRIP_MS, LEARN_KEY, LONG_MS, MINUS, NIGHT_KEY, SPENT_PX, SWIPE_MS, SWIPE_PX, TC_MS, WAIT_KEY, boughtIn, capFirst, closedOf, clubCounts, compare, draftOf, dropMove, editable, flatMoves, ids, inFor, info, inputs, lockedFrom, memOf, memPlan, num, paintWaitView, plan, removedAt, span, squadBefore, takeRulesAsk, waitView, weekOf } from './core.js';
-import { aboutRules, asksOf, benchedBuys, captain, clashLine, clashParts, edit, keep, pendingAgain, pendingTick, removeRule, rescope, resetLineup, ruleOf, sayCheer, scopeLabels, sub, subChoices, tickWas, toastOf, totalShift, useChip, veto, vice, vsPrev } from './edits.js';
-import { PLACE_SLOTS, SQUAD_CHIPS, approxAt, asTaken, askPlace, byGain, choiceVs, countedAfter, decksOf, failedWords, forkKey, lineMoves, lineNotices, listedOf, litOf, litShown, mineAny, multiMove, noteOf, placeBuys, placeFirst, placeOrder, placePages, placeSplit, planBack, planBaseline, planWeeks, plansOf, rollOnly, settleDue, singleMove, slotsBeside, squadChanges, takesBack, weekKey, weekRollOf, weekSettled, weekWait, yoursAt } from './plans.js';
-import { AHEAD, addPlan, fundingOf, moveTo, movesInOrder, pairOf, pinOfMove, planTake, presolveTaps, removeMove, rollingAt, rowGains, takenKeep, weekTaps, whenOf, whenOnBase, whyFacts } from './presolve.js';
-import { pitchChoice, deadlineInfo, fplOf, fplSets, freedBy, gwMode, initials, inkAt, isLive, liftsLive, planHasYours, resetPlan, rowName, watchOf, watchView } from './buys.js';
-import { chipBack, chipWeekGain, chipsAvail, clearGain, emptyHead, factsWords, itbWords, plPays, rollFt, shirtOf, squadWeek, weekFacts, xpShown } from './pieces.js';
+import { h, svg, fmt, icon, statusInfo, roving, reduceMotion, holdTouch, flick } from '../../ui.js';
+import { fitFixtures } from '../../plan/pitch.js';
+import { CHIPS_OFF, COPY, pricePlate } from '../calls.js';
+import { GRIP_MS, LEARN_KEY, LONG_MS, TC_MS, memOf, plan, waitView } from './core.js';
+import { asksOf } from './edits.js';
+import { approxAt } from './plans.js';
+import { AHEAD, pinOfMove } from './presolve.js';
+import { pitchChoice, inkAt, isLive } from './buys.js';
 import { headPart } from './screen-head.js';
 import { linePart } from './screen-line.js';
 import { decksPart } from './screen-decks.js';
@@ -44,21 +42,41 @@ export const MOVE_KINDS = new Set(['sell', 'slide', 'wish']);
 export const listedRules = (P, g = null) => {
   // a move the viewed week or an earlier one shows as its own row and tile is not listed again; one in a later week
   // still is
-  const made = new Set(P.weeks.filter((w) => g == null || w.gw <= g).flatMap((w) => (w.moves || []).map((m) => pinOfMove(P, { ...m, gw: w.gw })?.id)).filter(Boolean));
+  const made = new Set(
+    P.weeks
+      .filter((w) => g == null || w.gw <= g)
+      .flatMap((w) => (w.moves || []).map((m) => pinOfMove(P, { ...m, gw: w.gw })?.id))
+      .filter(Boolean),
+  );
   return rulesOf(P).filter((p) => !ROW_KINDS.has(p.kind) || (MOVE_KINDS.has(p.kind) && !made.has(p.id)));
 };
 
 /** The chips your pins plan: [{gw, chip}] (memory.pinChip pins; 'none' lifts a GW's chip). */
-const CHIP_PINS = new WeakMap();  // per pin list (the preparations ask for every chip × GW)
+const CHIP_PINS = new WeakMap(); // per pin list (the preparations ask for every chip × GW)
 export const chipPins = (P) => {
-  if (!CHIP_PINS.has(P.pins)) CHIP_PINS.set(P.pins, P.pins.flatMap((p) => Object.entries(p.chips || {}).map(([g, c]) => ({ gw: Number(g), chip: c }))).filter((x) => E.CHIPS.includes(x.chip)));
+  if (!CHIP_PINS.has(P.pins))
+    CHIP_PINS.set(
+      P.pins,
+      P.pins
+        .flatMap((p) => Object.entries(p.chips || {}).map(([g, c]) => ({ gw: Number(g), chip: c })))
+        .filter((x) => E.CHIPS.includes(x.chip)),
+    );
   return CHIP_PINS.get(P.pins);
 };
 
-
 /** The round controls' glyphs (× remove, + add): drawn, never text (no font of their own). */
-export const glyph = (k) => svg('svg', { viewBox: '0 0 12 12', width: 12, height: 12, 'aria-hidden': 'true', class: 'ah-glyph' },
-  svg('path', { d: k === '+' ? 'M6 1.5v9M1.5 6h9' : 'M2.5 2.5l7 7M9.5 2.5l-7 7', fill: 'none', stroke: 'currentColor', 'stroke-width': k === '+' ? 1.8 : 1.6, 'stroke-linecap': 'round' }));
+export const glyph = (k) =>
+  svg(
+    'svg',
+    { viewBox: '0 0 12 12', width: 12, height: 12, 'aria-hidden': 'true', class: 'ah-glyph' },
+    svg('path', {
+      d: k === '+' ? 'M6 1.5v9M1.5 6h9' : 'M2.5 2.5l7 7M9.5 2.5l-7 7',
+      fill: 'none',
+      stroke: 'currentColor',
+      'stroke-width': k === '+' ? 1.8 : 1.6,
+      'stroke-linecap': 'round',
+    }),
+  );
 
 /** A number never cut on the pitch (a place header's: `v` its number's box inside `el`): its "xP" first (as a plate's:
  *  fitFixtures), then its chip and −4 marks (its label and its place keep them), then a smaller size (m-ahead.css .noxp
@@ -67,7 +85,10 @@ export const glyph = (k) => svg('svg', { viewBox: '0 0 12 12', width: 12, height
  *  fits */
 /** A place's note's words, a hyphened name kept on one line (.ah-nw: "Calvert-/Lewin" in a card-wide note, a name
  *  broken; fitBlocks then makes room for it) → [text | span] */
-export const whole = (t) => String(t).split(/(\S*-\S*)/).map((x, i) => (i % 2 ? h('span.ah-nw', null, x) : x));
+export const whole = (t) =>
+  String(t)
+    .split(/(\S*-\S*)/)
+    .map((x, i) => (i % 2 ? h('span.ah-nw', null, x) : x));
 export const fitNum = (el, v, steps = ['noxp', 'nomark', 'tight']) => {
   const over = typeof v === 'function' ? v : () => [v].flat().some((x) => !!x && x.scrollWidth > x.clientWidth + 0.5);
   el.classList.remove(...steps);
@@ -112,16 +133,27 @@ export const deadlineOf = (b, A, g) => b?.meta?.deadlines?.[g] ?? (g === A ? b?.
 const countdown = (info) => (info.left > 0 && info.left < 7 * 86400e3 ? info.text : '');
 /** …its parts (the GW line's .ah-dl): the abbreviation shown, its words spoken after a comma (the " · " is CSS, so
  *  VoiceOver would run "Sat 13:00" into "5d 17h"). */
-export const countdownParts = (info) => (countdown(info) ? [h('span', { 'aria-hidden': 'true' }, countdown(info)), h('span.sr-only', null, `, ${info.said}`)] : []);
+export const countdownParts = (info) =>
+  countdown(info)
+    ? [h('span', { 'aria-hidden': 'true' }, countdown(info)), h('span.sr-only', null, `, ${info.said}`)]
+    : [];
 
 /** A hold's progress at the finger (owner, 2026-10-22): a ring round the point (x, y) filling over `ms` (m-ahead.css
  *  .ah-hold), `word` over it, what the hold plays ("TC", "BB"); its caller stops it when the hold fires, or the finger
  *  lifts or moves first, so a ring that hasn't filled never acts. Nothing without a page (the node tests). → stop() */
 const holdFill = (x, y, ms, word = null) => {
   if (!globalThis.document?.body) return () => {};
-  const n = h('div.ah-hold', { 'aria-hidden': 'true', style: { left: `${x}px`, top: `${y}px`, '--ms': `${ms}ms` } },
-    svg('svg', { viewBox: '0 0 56 56' }, svg('circle', { class: 'tr', cx: 28, cy: 28, r: 25 }), svg('circle', { class: 'fl', cx: 28, cy: 28, r: 25, pathLength: 100 })),
-    word ? h('span.ah-holdw', null, word) : null);
+  const n = h(
+    'div.ah-hold',
+    { 'aria-hidden': 'true', style: { left: `${x}px`, top: `${y}px`, '--ms': `${ms}ms` } },
+    svg(
+      'svg',
+      { viewBox: '0 0 56 56' },
+      svg('circle', { class: 'tr', cx: 28, cy: 28, r: 25 }),
+      svg('circle', { class: 'fl', cx: 28, cy: 28, r: 25, pathLength: 100 }),
+    ),
+    word ? h('span.ah-holdw', null, word) : null,
+  );
   document.body.append(n);
   return () => n.remove();
 };
@@ -130,15 +162,24 @@ const holdFill = (x, y, ms, word = null) => {
  *  only over free turf, never onto another card, a corner pill or a token (`walls`), nor above the pitch (the keeper's:
  *  the week line is over it). c and walls are boxes on the pitch ({n, x, y, w, h}: mount's cardBoxes). → its top, on
  *  the pitch */
-export const reachOf = (c, walls, m = 2) => Math.max(0, c.y - 44, ...walls.filter((q) => q.n !== c.n && q.x < c.x + c.w + m && q.x + q.w > c.x - m && q.y < c.y).map((q) => q.y + q.h + 2));
+export const reachOf = (c, walls, m = 2) =>
+  Math.max(
+    0,
+    c.y - 44,
+    ...walls
+      .filter((q) => q.n !== c.n && q.x < c.x + c.w + m && q.x + q.w > c.x - m && q.y < c.y)
+      .map((q) => q.y + q.h + 2),
+  );
 /** The least room over a card for a tab (its one line) and for edges (their slivers), px; the most of the gap beside a
  *  card a sliver of his took each side once, px . */
-export const TAB_MIN = 16, EDGE_MIN = 6;
+export const TAB_MIN = 16,
+  EDGE_MIN = 6;
 /** The least room over a card for a plate (renderDecks: its one line at its .tight 10 px type), px; under it its number
  *  alone (.only), as short as the room. */
 export const PLATE_MIN = 14;
 /** Boxes a and b on the pitch ({x, y, w, h}) meet, b taken `down` px taller (a target under it). */
-export const boxesMeet = (a, b, down = 0) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h + down && b.y < a.y + a.h;
+export const boxesMeet = (a, b, down = 0) =>
+  a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h + down && b.y < a.y + a.h;
 /** The least height of the pitch (m-ahead.css .ah-pitch, the bench inside it) at which no card meets another row's nor
  *  a sub's label (his order, "1"; the keeper's none: .pm-blp): the bench's chrome (--pm-chrome), five cards at the
  *  tile's floor (--pm-hlo: four rows and the bench), a plate more in each row (a fixture on a line of its own where the
@@ -158,200 +199,677 @@ export const cssPx = (host, ...lengths) => {
 };
 
 /** The store listener that forgets the asks of a team left (mount), once for the page. */
-let FORGET_ASKS = null;
+let _FORGET_ASKS = null;
 export function mount(el, ctx) {
   // (?solves=1 only: the fork solves in words, and the server's planning of a new team while it bakes)
   mountSolveLog(ctx);
   const closeDiagnostics = mountDiagnostics(ctx);
   // the parts' view of this function's scope (live getters) and the parts' functions, by their own names
   const V = {
-    get ADD_HOLD_MS() { return ADD_HOLD_MS; },
-    get COPY_FPL_TEAM() { return COPY_FPL_TEAM; },
-    get FACTS_PROBE() { return FACTS_PROBE; },
-    get FLY_EASE() { return FLY_EASE; },
-    get FLY_MS() { return FLY_MS; },
-    get HINTS() { return HINTS; },
-    get LAND_MAX() { return LAND_MAX; },
-    get LATE_S() { return LATE_S; },
-    get LIFT_MS() { return LIFT_MS; },
-    get LINE_LEAST() { return LINE_LEAST; },
-    get PLATES() { return PLATES; },
-    get PLATE_KEY() { return PLATE_KEY; },
-    get S() { return S; },
-    get TOTAL_MS() { return TOTAL_MS; },
-    get WAIT_DIM_MS() { return WAIT_DIM_MS; },
-    get addOnce() { return addOnce; },
-    get ap0() { return ap0; },
-    get armbandSheet() { return armbandSheet; },
-    get asksHost() { return asksHost; },
-    get avatar() { return avatar; },
-    get bankWarn() { return bankWarn; },
-    get barNode() { return barNode; },
-    get boxOf() { return boxOf; },
-    get bringDoor() { return bringDoor; },
-    get bsep() { return bsep; },
-    get cardBoxes() { return cardBoxes; },
-    get cardIn() { return cardIn; },
-    get changeRow() { return changeRow; },
-    get cheerEl() { return cheerEl; },
-    get chipsDoor() { return chipsDoor; },
-    get chipsHint() { return chipsHint; },
-    get clashRow() { return clashRow; },
-    get closePlace() { return closePlace; },
-    get covered() { return covered; },
-    get ctl() { return ctl; },
-    get ctx() { return ctx; },
-    get decks() { return decks; },
-    get dlEl() { return dlEl; },
-    get doorStubs() { return doorStubs; },
-    get drawPlace() { return drawPlace; },
-    get drawWeek() { return drawWeek; },
-    get edgeTicks() { return edgeTicks; },
-    get tabAt() { return tabAt; },
-    get el() { return el; },
-    get entryKey() { return entryKey; },
-    get factSpans() { return factSpans; },
-    get fitDrawn() { return fitDrawn; }, set fitDrawn(v) { fitDrawn = v; },
-    get fitFacts() { return fitFacts; },
-    get fitKey() { return fitKey; }, set fitKey(v) { fitKey = v; },
-    get forecastLine() { return forecastLine; },
-    get frozenAt() { return frozenAt; },
-    get ftAfter() { return ftAfter; },
-    get fitPitch() { return fitPitch; },
-    get gainOf() { return gainOf; },
-    get gwNow() { return gwNow; },
-    get gwline() { return gwline; },
-    get head() { return head; },
-    get hint() { return hint; },
-    get hitSaid() { return hitSaid; },
-    get hitTag() { return hitTag; },
-    get itbNode() { return itbNode; },
-    get keepGwLine() { return keepGwLine; },
-    get keepNight() { return keepNight; },
-    get labelWalls() { return labelWalls; },
-    get landMotion() { return landMotion; },
-    get learn() { return learn; },
-    get litPays() { return litPays; },
-    get mountHere() { return mountHere; },
-    get movesTitle() { return movesTitle; },
-    get notAct() { return notAct; },
-    get noteRow() { return noteRow; },
-    get noticeSaid() { return noticeSaid; },
-    get numOf() { return numOf; },
-    get numParts() { return numParts; },
-    get numSaid() { return numSaid; },
-    get openPlace() { return openPlace; },
-    get openPlanWhy() { return openPlanWhy; },
-    get openWeek() { return openWeek; },
-    get openWhy() { return openWhy; },
-    get paintWait() { return paintWait; },
-    get waitNow() { return waitNow; },
-    get pdBtn() { return pdBtn; },
-    get pitchHost() { return pitchHost; },
-    get plNumSaid() { return plNumSaid; },
-    get placeHint() { return placeHint; },
-    get placeLink() { return placeLink; },
-    get planKey() { return planKey; },
-    get planRow() { return planRow; },
-    get planSaid() { return planSaid; },
-    get plansHeading() { return plansHeading; },
-    get plansListed() { return plansListed; },
-    get plansVs() { return plansVs; },
-    get plateOf() { return plateOf; },
-    get priceDrift() { return priceDrift; },
-    get rail() { return rail; },
-    get reachLabels() { return reachLabels; },
-    get redeck() { return redeck; },
-    get remProbe() { return remProbe; },
-    get render() { return render; },
-    get renderDecks() { return renderDecks; },
-    get renderLine() { return renderLine; },
-    get renderPdBtn() { return renderPdBtn; },
-    get renderPitch() { return renderPitch; },
-    get paintChoosing() { return paintChoosing; },
-    get paintBoard() { return paintBoard; },
-    get renderRail() { return renderRail; },
-    get renderTotal() { return renderTotal; },
-    get replanning() { return replanning; },
-    get roadOfEv() { return roadOfEv; },
-    get rollFacts() { return rollFacts; },
-    get rollOf() { return rollOf; },
-    get rolling() { return rolling; },
-    get ruleSheet() { return ruleSheet; },
-    get rowTies() { return rowTies; },
-    get rsBtn() { return rsBtn; },
-    get sayCarried() { return sayCarried; },
-    get sayNight() { return sayNight; },
-    get schedule() { return schedule; },
-    get setBtn() { return setBtn; },
-    get stack() { return stack; },
-    get paintTicket() { return paintTicket; },
-    get adviceOf() { return adviceOf; },
-    get firstCard() { return firstCard; },
-    get sizeTitle() { return sizeTitle; },
-    get atEdge() { return atEdge; },
-    get holdStack() { return holdStack; },
-    get spanOf() { return spanOf; },
-    get inkAt() { return inkAt; },
-    get setGw() { return setGw; },
-    get settle() { return settle; },
-    get shareWeek() { return shareWeek; },
-    get shell() { return shell; },
-    get sideRoom() { return sideRoom; },
-    get slot() { return slot; },
-    get spend() { return spend; },
-    get letGo() { return letGo; },
-    get spent() { return spent; },
-    get statusLine() { return statusLine; },
-    get strip() { return strip; },
-    get takeFrom() { return takeFrom; },
-    get tapIn() { return tapIn; },
-    get textOf() { return textOf; },
-    get ticks() { return ticks; },
-    get topRow() { return topRow; },
-    get totLine() { return totLine; },
-    get totSaid() { return totSaid; },
-    get totalEl() { return totalEl; },
-    get uncovered() { return uncovered; },
-    get vetoBack() { return vetoBack; },
-    get vetoFromWhy() { return vetoFromWhy; },
-    get waitClock() { return waitClock; },
-    get waitSaid() { return waitSaid; },
-    get waitSig() { return waitSig; },
-    get waitV() { return waitV; },
-    get waitWatch() { return waitWatch; },
-    get waited() { return waited; },
-    get weekGain() { return weekGain; },
-    get weekLead() { return weekLead; },
-    get weekModel() { return weekModel; },
-    get weekPending() { return weekPending; },
-    get weekRoll() { return weekRoll; },
-    get weekSheet() { return weekSheet; },
-    get whyMove() { return whyMove; },
-    get whyPart() { return whyPart; },
-    get whySub() { return whySub; },
-    get wireMoveRow() { return wireMoveRow; },
-    get xferRow() { return xferRow; },
+    get ADD_HOLD_MS() {
+      return ADD_HOLD_MS;
+    },
+    get COPY_FPL_TEAM() {
+      return COPY_FPL_TEAM;
+    },
+    get FACTS_PROBE() {
+      return FACTS_PROBE;
+    },
+    get FLY_EASE() {
+      return FLY_EASE;
+    },
+    get FLY_MS() {
+      return FLY_MS;
+    },
+    get HINTS() {
+      return HINTS;
+    },
+    get LAND_MAX() {
+      return LAND_MAX;
+    },
+    get LATE_S() {
+      return LATE_S;
+    },
+    get LIFT_MS() {
+      return LIFT_MS;
+    },
+    get LINE_LEAST() {
+      return LINE_LEAST;
+    },
+    get PLATES() {
+      return PLATES;
+    },
+    get PLATE_KEY() {
+      return PLATE_KEY;
+    },
+    get S() {
+      return S;
+    },
+    get TOTAL_MS() {
+      return TOTAL_MS;
+    },
+    get WAIT_DIM_MS() {
+      return WAIT_DIM_MS;
+    },
+    get addOnce() {
+      return addOnce;
+    },
+    get ap0() {
+      return ap0;
+    },
+    get armbandSheet() {
+      return armbandSheet;
+    },
+    get asksHost() {
+      return asksHost;
+    },
+    get avatar() {
+      return avatar;
+    },
+    get bankWarn() {
+      return bankWarn;
+    },
+    get barNode() {
+      return barNode;
+    },
+    get boxOf() {
+      return boxOf;
+    },
+    get bringDoor() {
+      return bringDoor;
+    },
+    get bsep() {
+      return bsep;
+    },
+    get cardBoxes() {
+      return cardBoxes;
+    },
+    get cardIn() {
+      return cardIn;
+    },
+    get changeRow() {
+      return changeRow;
+    },
+    get cheerEl() {
+      return cheerEl;
+    },
+    get chipsDoor() {
+      return chipsDoor;
+    },
+    get chipsHint() {
+      return chipsHint;
+    },
+    get clashRow() {
+      return clashRow;
+    },
+    get closePlace() {
+      return closePlace;
+    },
+    get covered() {
+      return covered;
+    },
+    get ctl() {
+      return ctl;
+    },
+    get ctx() {
+      return ctx;
+    },
+    get decks() {
+      return decks;
+    },
+    get dlEl() {
+      return dlEl;
+    },
+    get doorStubs() {
+      return doorStubs;
+    },
+    get drawPlace() {
+      return drawPlace;
+    },
+    get drawWeek() {
+      return drawWeek;
+    },
+    get edgeTicks() {
+      return edgeTicks;
+    },
+    get tabAt() {
+      return tabAt;
+    },
+    get el() {
+      return el;
+    },
+    get entryKey() {
+      return entryKey;
+    },
+    get factSpans() {
+      return factSpans;
+    },
+    get fitDrawn() {
+      return fitDrawn;
+    },
+    set fitDrawn(v) {
+      fitDrawn = v;
+    },
+    get fitFacts() {
+      return fitFacts;
+    },
+    get fitKey() {
+      return fitKey;
+    },
+    set fitKey(v) {
+      fitKey = v;
+    },
+    get forecastLine() {
+      return forecastLine;
+    },
+    get frozenAt() {
+      return frozenAt;
+    },
+    get ftAfter() {
+      return ftAfter;
+    },
+    get fitPitch() {
+      return fitPitch;
+    },
+    get gainOf() {
+      return gainOf;
+    },
+    get gwNow() {
+      return gwNow;
+    },
+    get gwline() {
+      return gwline;
+    },
+    get head() {
+      return head;
+    },
+    get hint() {
+      return hint;
+    },
+    get hitSaid() {
+      return hitSaid;
+    },
+    get hitTag() {
+      return hitTag;
+    },
+    get itbNode() {
+      return itbNode;
+    },
+    get keepGwLine() {
+      return keepGwLine;
+    },
+    get keepNight() {
+      return keepNight;
+    },
+    get labelWalls() {
+      return labelWalls;
+    },
+    get landMotion() {
+      return landMotion;
+    },
+    get learn() {
+      return learn;
+    },
+    get litPays() {
+      return litPays;
+    },
+    get mountHere() {
+      return mountHere;
+    },
+    get movesTitle() {
+      return movesTitle;
+    },
+    get notAct() {
+      return notAct;
+    },
+    get noteRow() {
+      return noteRow;
+    },
+    get noticeSaid() {
+      return noticeSaid;
+    },
+    get numOf() {
+      return numOf;
+    },
+    get numParts() {
+      return numParts;
+    },
+    get numSaid() {
+      return numSaid;
+    },
+    get openPlace() {
+      return openPlace;
+    },
+    get openPlanWhy() {
+      return openPlanWhy;
+    },
+    get openWeek() {
+      return openWeek;
+    },
+    get openWhy() {
+      return openWhy;
+    },
+    get paintWait() {
+      return paintWait;
+    },
+    get waitNow() {
+      return waitNow;
+    },
+    get pdBtn() {
+      return pdBtn;
+    },
+    get pitchHost() {
+      return pitchHost;
+    },
+    get plNumSaid() {
+      return plNumSaid;
+    },
+    get placeHint() {
+      return placeHint;
+    },
+    get placeLink() {
+      return placeLink;
+    },
+    get planKey() {
+      return planKey;
+    },
+    get planRow() {
+      return planRow;
+    },
+    get planSaid() {
+      return planSaid;
+    },
+    get plansHeading() {
+      return plansHeading;
+    },
+    get plansListed() {
+      return plansListed;
+    },
+    get plansVs() {
+      return plansVs;
+    },
+    get plateOf() {
+      return plateOf;
+    },
+    get priceDrift() {
+      return priceDrift;
+    },
+    get rail() {
+      return rail;
+    },
+    get reachLabels() {
+      return reachLabels;
+    },
+    get redeck() {
+      return redeck;
+    },
+    get remProbe() {
+      return remProbe;
+    },
+    get render() {
+      return render;
+    },
+    get renderDecks() {
+      return renderDecks;
+    },
+    get renderLine() {
+      return renderLine;
+    },
+    get renderPdBtn() {
+      return renderPdBtn;
+    },
+    get renderPitch() {
+      return renderPitch;
+    },
+    get paintChoosing() {
+      return paintChoosing;
+    },
+    get paintBoard() {
+      return paintBoard;
+    },
+    get renderRail() {
+      return renderRail;
+    },
+    get renderTotal() {
+      return renderTotal;
+    },
+    get replanning() {
+      return replanning;
+    },
+    get roadOfEv() {
+      return roadOfEv;
+    },
+    get rollFacts() {
+      return rollFacts;
+    },
+    get rollOf() {
+      return rollOf;
+    },
+    get rolling() {
+      return rolling;
+    },
+    get ruleSheet() {
+      return ruleSheet;
+    },
+    get rowTies() {
+      return rowTies;
+    },
+    get rsBtn() {
+      return rsBtn;
+    },
+    get sayCarried() {
+      return sayCarried;
+    },
+    get sayNight() {
+      return sayNight;
+    },
+    get schedule() {
+      return schedule;
+    },
+    get setBtn() {
+      return setBtn;
+    },
+    get stack() {
+      return stack;
+    },
+    get paintTicket() {
+      return paintTicket;
+    },
+    get adviceOf() {
+      return adviceOf;
+    },
+    get firstCard() {
+      return firstCard;
+    },
+    get sizeTitle() {
+      return sizeTitle;
+    },
+    get atEdge() {
+      return atEdge;
+    },
+    get holdStack() {
+      return holdStack;
+    },
+    get spanOf() {
+      return spanOf;
+    },
+    get inkAt() {
+      return inkAt;
+    },
+    get setGw() {
+      return setGw;
+    },
+    get settle() {
+      return settle;
+    },
+    get shareWeek() {
+      return shareWeek;
+    },
+    get shell() {
+      return shell;
+    },
+    get sideRoom() {
+      return sideRoom;
+    },
+    get slot() {
+      return slot;
+    },
+    get spend() {
+      return spend;
+    },
+    get letGo() {
+      return letGo;
+    },
+    get spent() {
+      return spent;
+    },
+    get statusLine() {
+      return statusLine;
+    },
+    get strip() {
+      return strip;
+    },
+    get takeFrom() {
+      return takeFrom;
+    },
+    get tapIn() {
+      return tapIn;
+    },
+    get textOf() {
+      return textOf;
+    },
+    get ticks() {
+      return ticks;
+    },
+    get topRow() {
+      return topRow;
+    },
+    get totLine() {
+      return totLine;
+    },
+    get totSaid() {
+      return totSaid;
+    },
+    get totalEl() {
+      return totalEl;
+    },
+    get uncovered() {
+      return uncovered;
+    },
+    get vetoBack() {
+      return vetoBack;
+    },
+    get vetoFromWhy() {
+      return vetoFromWhy;
+    },
+    get waitClock() {
+      return waitClock;
+    },
+    get waitSaid() {
+      return waitSaid;
+    },
+    get waitSig() {
+      return waitSig;
+    },
+    get waitV() {
+      return waitV;
+    },
+    get waitWatch() {
+      return waitWatch;
+    },
+    get waited() {
+      return waited;
+    },
+    get weekGain() {
+      return weekGain;
+    },
+    get weekLead() {
+      return weekLead;
+    },
+    get weekModel() {
+      return weekModel;
+    },
+    get weekPending() {
+      return weekPending;
+    },
+    get weekRoll() {
+      return weekRoll;
+    },
+    get weekSheet() {
+      return weekSheet;
+    },
+    get whyMove() {
+      return whyMove;
+    },
+    get whyPart() {
+      return whyPart;
+    },
+    get whySub() {
+      return whySub;
+    },
+    get wireMoveRow() {
+      return wireMoveRow;
+    },
+    get xferRow() {
+      return xferRow;
+    },
   };
-  const { pageName, resetTap, resetSheet, learn, gwNow, setGw, outerH, fitBlock, fitHead, fitPitch, redeck, schedule, covered, paintAvatar, renderHead, renderGwLine, paintDeadline, replanning, paintPlanStatus, tick, hosts, focusedKeys, keepFocus, renderPair, render, renderBaking, renderRules, ruleSheet, clearAll, driftRoom, owes, priceDrift, heldOrder, renderWeek, waitNow, paintWait, paintDim, weekModel, waited, clockShown, waitClock, plansHeading, plansListed } = headPart(V);
-  const { openWeek, renderLine, fitFacts, weekGain, boxOf, cardBoxes, reachLabels, labelWalls, sideRoom, cardIn, entryKey, topRow } = linePart(V);
+  const {
+    resetTap,
+    learn,
+    gwNow,
+    setGw,
+    fitPitch,
+    redeck,
+    schedule,
+    covered,
+    replanning,
+    tick,
+    render,
+    ruleSheet,
+    priceDrift,
+    waitNow,
+    paintWait,
+    weekModel,
+    waited,
+    waitClock,
+    plansHeading,
+    plansListed,
+  } = headPart(V);
+  const {
+    openWeek,
+    renderLine,
+    fitFacts,
+    weekGain,
+    boxOf,
+    cardBoxes,
+    reachLabels,
+    labelWalls,
+    sideRoom,
+    cardIn,
+    entryKey,
+    topRow,
+  } = linePart(V);
   const { adviceOf, bindStack, firstCard, fitRows, holdStack, paintTicket, sizeTitle } = ticketPart(V);
-  const { renderDecks, spanOf, sheetFollows, swapPlate, placeLabel, statusLine, tokensOf, numParts, takeFrom, landMotion, land, openPlace, placeKey, closePlace } = decksPart(V);
-  const { drawPlace, planLine, fitLine, scaleHeads, fitBlocks, stepPlace, shadeTap, weekSheet } = placePart(V);
-  const { drawWeek, clashRow, noteRow, forecastLine, waitSig, waitWatch, keepNight, sayNight, sayCarried, barNode, dotted, bsep, textOf, bankWarn, bankLead, weekLead, roadOfEv, movesTitle, openWhy, deckOf, placeLink, whenFree, placeAct, whyTaps, whyActs, notOf, vetoBack, notAct, whenSheet, gainOf, whySub, numOf, numSaid, plNumSaid, hitTag, hitSaid, plansVs, whyPart, rowTies } = weekPart(V);
-  const { moveX, xferRow, factSpans, itbNode, rollFacts, door, openChips, chipsDoor, bringDoor, doorStubs, changeRow, priceOf, addOnce, litPays, planKey, planSaid, takePlan, planRow, openPlanWhy, ftAfter, weekRoll, rollOf, shareWeek, moveGain, moveNum, weekPending, rollPending, rolling, whyMove, tapIn } = rowsPart(V);
-  const { paintBoard, paintChoosing, pitchProps, renderPitch, mountHere, placeHint, frozenAt, renderRail, fitRail, edgeTicks, tabAt, renderTotal, totalNum, keepGwLine, sellOf, hasField, plateOk, plateOf, renderPdBtn, playerDataSheet } = pitchPart(V);
-  const { spend, letGo, atEdge, tickAt, railEnd, unfill, benchBare, swipeGw, pitchEnd, settle, releaseSoon, gesture, cancelGesture, dragBadge, dropBadge, armTo, armbandSheet, lift, dragTo, dropOn, pitchChip, liftShirt, wireMoveRow, vetoRow, vetoFromWhy, pressed, stray, lifted, spentUp, spentDown, spentClick } = touchPart(V);
+  const { renderDecks, spanOf, statusLine, numParts, takeFrom, landMotion, openPlace, closePlace } = decksPart(V);
+  const { drawPlace, weekSheet } = placePart(V);
+  const {
+    drawWeek,
+    clashRow,
+    noteRow,
+    forecastLine,
+    waitSig,
+    waitWatch,
+    keepNight,
+    sayNight,
+    sayCarried,
+    barNode,
+    bsep,
+    textOf,
+    bankWarn,
+    weekLead,
+    roadOfEv,
+    movesTitle,
+    openWhy,
+    placeLink,
+    vetoBack,
+    notAct,
+    gainOf,
+    whySub,
+    numOf,
+    numSaid,
+    plNumSaid,
+    hitTag,
+    hitSaid,
+    plansVs,
+    whyPart,
+    rowTies,
+  } = weekPart(V);
+  const {
+    xferRow,
+    factSpans,
+    itbNode,
+    rollFacts,
+    chipsDoor,
+    bringDoor,
+    doorStubs,
+    changeRow,
+    addOnce,
+    litPays,
+    planKey,
+    planSaid,
+    planRow,
+    openPlanWhy,
+    ftAfter,
+    weekRoll,
+    rollOf,
+    shareWeek,
+    weekPending,
+    rolling,
+    whyMove,
+    tapIn,
+  } = rowsPart(V);
+  const {
+    paintBoard,
+    paintChoosing,
+    renderPitch,
+    mountHere,
+    placeHint,
+    frozenAt,
+    renderRail,
+    fitRail,
+    edgeTicks,
+    tabAt,
+    renderTotal,
+    keepGwLine,
+    sellOf,
+    plateOf,
+    renderPdBtn,
+    playerDataSheet,
+  } = pitchPart(V);
+  const {
+    spend,
+    letGo,
+    atEdge,
+    tickAt,
+    railEnd,
+    unfill,
+    benchBare,
+    swipeGw,
+    pitchEnd,
+    settle,
+    dragBadge,
+    armbandSheet,
+    dragTo,
+    pitchChip,
+    liftShirt,
+    wireMoveRow,
+    vetoFromWhy,
+    pressed,
+    stray,
+    lifted,
+    spentUp,
+    spentDown,
+    spentClick,
+  } = touchPart(V);
   el.classList.add('ah');
   // the legacy suggestions' hide (v1.3.27 or earlier: one for every team), let go
   ctx.api?.local?.set?.('fc:ahead:sugg', null);
   // learnt: the first-use hints done (LEARN_KEY: learn)
   const learntNow = ctx.api?.local?.json?.(LEARN_KEY);
-  const S = { drag: null, flashAt: 0, queued: false, live: isLive(ctx), down: new Set(), held: false, week: null,
+  const S = {
+    drag: null,
+    flashAt: 0,
+    queued: false,
+    live: isLive(ctx),
+    down: new Set(),
+    held: false,
+    week: null,
     learnt: new Set(Array.isArray(learntNow) ? learntNow : []),
     // the wait now (waitNow): the plan's solve and the viewed week's checks as one, {t0: its first solve's start (ms),
     // plan: a plan solve in it, max: the most its bar showed}
-    waitAll: null };
+    waitAll: null,
+  };
   // the header is the team's name, centred, and the avatar; the page is named for assistive tech (a visually hidden h1,
   // the header's label) and the browser tab by the team and the app ("Raketa · Forkcast"): the one screen has no name
   // of its own (owner, 2026-10-07)
@@ -359,16 +877,27 @@ export function mount(el, ctx) {
   const avatar = h('button.ah-avatar', { type: 'button', onClick: () => ctx.openSheet('you') });
   // the header's left column, the avatar's mirror: the Settings gear, the plan's settings at once (owner, 2026-10-29;
   // Help is the You sheet's row). A toast stops short of it, as of the avatar (m.css #toasts)
-  const setBtn = h('button.ah-set', { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': COPY.settingsTitle, onClick: () => ctx.openSheet('you', 'settings') }, icon('settings', { size: 22 }));
+  const setBtn = h(
+    'button.ah-set',
+    {
+      type: 'button',
+      'aria-haspopup': 'dialog',
+      'aria-label': COPY.settingsTitle,
+      onClick: () => ctx.openSheet('you', 'settings'),
+    },
+    icon('settings', { size: 22 }),
+  );
   // (dev mode alone: a release's page never shows it, its place kept (the header's columns mirror); a page stamped as a
   // release (meta forkcast-release) hides it at once, the server's word (ctx.servedRelease, its first answer: null,
   // the tree's own) shows it again, none yet leaves it; owner, 2026-11-11, "disable the settings button in the release,
   // leave it only in dev mode")
   if (document.querySelector('meta[name="forkcast-release"]')) setBtn.style.visibility = 'hidden';
-  Promise.resolve(ctx.servedRelease?.()).then((r) => {
-    setBtn.style.visibility = r ? 'hidden' : '';
-    setBtn.disabled = !!r;
-  }).catch(() => {});
+  Promise.resolve(ctx.servedRelease?.())
+    .then((r) => {
+      setBtn.style.visibility = r ? 'hidden' : '';
+      setBtn.disabled = !!r;
+    })
+    .catch(() => {});
   // the header's second line, under the team's name (owner, 2026-10-22): two facts on one line: GW A's deadline,
   // whatever GW is viewed ("Deadline Sat 13:00 · 4d 17h": tick() runs the countdown), and the window's total where it
   // fits (keepGwLine; renderTotal: "GW6–9 218.9"; an edit's change for a few seconds, "229.0 (+10.1)"; shimmering while
@@ -384,27 +913,53 @@ export function mount(el, ctx) {
   // group's (ui.roving: one Tab stop, the viewed GW; arrows wrap, Home / End), a key moving the week as a tap on its
   // tile does
   const hint = h('div.ah-hint', { 'aria-hidden': 'true' });
-  const ticks = roving(h('div.ah-ticks', { role: 'radiogroup', 'aria-label': 'Gameweek' }), { pick: (b) => setGw(Number(b.dataset.gw)) });
+  const ticks = roving(h('div.ah-ticks', { role: 'radiogroup', 'aria-label': 'Gameweek' }), {
+    pick: (b) => setGw(Number(b.dataset.gw)),
+  });
   const rail = h('div.ah-rail', null, h('span.ah-thumb', { 'aria-hidden': 'true' }), ticks);
-  const totalEl = h('span.ah-total.sr-only');  // the window's total, the switcher's accessible summary
+  const totalEl = h('span.ah-total.sr-only'); // the window's total, the switcher's accessible summary
   // the total's change as it shows (renderTotal), said politely: the line drawing it is hidden from assistive tech, and
   // an edit that lands at once says no number in its toast (B24)
   const totSaid = h('span.sr-only', { 'aria-live': 'polite' });
   // the wait line's start and end said politely ("busy" that simply vanishes reads as done to the eye alone;
   // paintWait), never its every second
-  const waitSaid = h('span.sr-only', { role: 'status' }), waitV = waitView();
-  const railWrap = h('nav.ah-railwrap', { 'aria-label': 'Gameweeks', dataset: { nopull: '' } }, rail, totalEl, totSaid, waitSaid);
-  const pdBtn = h('button.ah-pp.ah-pdbtn', { type: 'button', 'aria-haspopup': 'dialog', onClick: () => { playerDataSheet(); } });
+  const waitSaid = h('span.sr-only', { role: 'status' }),
+    waitV = waitView();
+  const railWrap = h(
+    'nav.ah-railwrap',
+    { 'aria-label': 'Gameweeks', dataset: { nopull: '' } },
+    rail,
+    totalEl,
+    totSaid,
+    waitSaid,
+  );
+  const pdBtn = h('button.ah-pp.ah-pdbtn', {
+    type: 'button',
+    'aria-haspopup': 'dialog',
+    onClick: () => {
+      playerDataSheet();
+    },
+  });
   // "↺ Reset": the pitch's one take-back, in its top-left corner with the week's own choices (one corner for acts on
   // your plan, the other for what you see: owner, 2026-10-29), under the corner's tokens (placePills), only while
   // something of yours is there to take back (renderPitch, S.reset): the viewed GW's lineup ("Reset lineup":
   // resetLineup), your plan's transfers, chips and rules ("Reset plan": planHasYours, resetPlan; owner, 2026-10-21);
   // one tap where one applies (toast, Undo); where both do, "Reset ⌄" and its tap the choice (resetSheet; the wider
   // wipe never the one a tap lands on)
-  const rsBtn = h('button.ah-rsbtn', { type: 'button', hidden: true, onClick: () => { resetTap(); } });
+  const rsBtn = h('button.ah-rsbtn', {
+    type: 'button',
+    hidden: true,
+    onClick: () => {
+      resetTap();
+    },
+  });
   // the pitch's first-use hint (LEARN_KEY), two short lines on the turf (placeHint): the chips' holds in the field's
   // bottom-left corner ('chips'); the help's Swipes paragraph says the holds in full
-  const chipsHint = h('div.ah-ph.chips', { 'aria-hidden': 'true', hidden: true }, ...COPY.hintChips.map((t) => h('span', null, t)));
+  const chipsHint = h(
+    'div.ah-ph.chips',
+    { 'aria-hidden': 'true', hidden: true },
+    ...COPY.hintChips.map((t) => h('span', null, t)),
+  );
   // (no hint of the shirt's hold: owner, 2026-11-02, its "Hold a shirt: sub, sell" over the turf "remove")
   const HINTS = [[chipsHint, 'chips']];
   // the line every GW under the status bar, over the GW tiles' top (sayCheer: for as long as it plans, else once a GW)
@@ -429,7 +984,7 @@ export function mount(el, ctx) {
   el.append(head, slot, h('div.ah-pitchwrap', null, pitchHost), noticeSaid, stack, remProbe);
   // the node Ahead keeps drawing into, placed in the Week sheet: your rules (every GW's)
   const asksHost = h('div.ah-rules-host');
-  GO_GW = setGw;  // an Undo shows where it changed the plan (undoOf)
+  GO_GW = setGw; // an Undo shows where it changed the plan (undoOf)
   /**
    * The pitch's height, the same every week (owner, 2026-10-08): sized from the screen alone, never from what the week
    * line holds: the height left under what is there as it renders, measured, never assumed (so the text size is in
@@ -442,7 +997,8 @@ export function mount(el, ctx) {
    * ResizeObserver, and once the fonts have loaded; never on a GW switch. render() asks until the plan's own week line
    * is drawn and the pitch is mounted (drawn hidden before the switcher showed).
    */
-  let fitKey = '', fitDrawn = false;
+  let fitKey = '',
+    fitDrawn = false;
   /** The widest facts a week with no transfer has (factsWords): the most free transfers, a two-digit bank and the
    *  season's last GW, "5 FT · £99.9m ITB · 5 FT in GW38" (fitBlock's probe, never seen). */
   const FACTS_PROBE = { gw: 37, ft: 5, next: 5, bank: 99.9 };
@@ -450,19 +1006,21 @@ export function mount(el, ctx) {
   // are placed over the cards again (renderDecks) in this same frame, before paint, the pitch's own fixtures fitted
   // first (a two-line fixture moves the rows: m-ahead.css --pm-x-*; pitch.js's observer refits them after, to the same
   // lines). A task later, the first frame of a new text size showed plates over the cards (owner, 2026-10-26)
-  const refitPitch = globalThis.ResizeObserver ? new ResizeObserver(() => {
-    fitPitch();
-    keepGwLine();
-    fitFacts();
-    // the switcher rests under the header as drawn (m-ahead.css .ah-ctl), its GW line on two lines where the deadline
-    // alone wraps (a larger text size)
-    ctl.style.setProperty('--ah-head-h', `${head.getBoundingClientRect().height}px`);
-    const pm = pitchHost.querySelector(':scope > .pm');
-    if (pm) fitFixtures(pm);
-    fitRail();
-    fitRows(strip);
-    redeck();
-  }) : null;
+  const refitPitch = globalThis.ResizeObserver
+    ? new ResizeObserver(() => {
+        fitPitch();
+        keepGwLine();
+        fitFacts();
+        // the switcher rests under the header as drawn (m-ahead.css .ah-ctl), its GW line on two lines where the deadline
+        // alone wraps (a larger text size)
+        ctl.style.setProperty('--ah-head-h', `${head.getBoundingClientRect().height}px`);
+        const pm = pitchHost.querySelector(':scope > .pm');
+        if (pm) fitFixtures(pm);
+        fitRail();
+        fitRows(strip);
+        redeck();
+      })
+    : null;
   refitPitch?.observe(el);
   refitPitch?.observe(pitchHost);
   refitPitch?.observe(remProbe);
@@ -470,9 +1028,20 @@ export function mount(el, ctx) {
   // the header's height (its GW line wrapping or not: a new countdown, deadline or re-plan status) refits the pitch
   // (fitPitch's key) and places the switcher under it
   refitPitch?.observe(head);
-  globalThis.document?.fonts?.ready?.then(() => { if (ctl.isConnected) { fitKey = ''; fitPitch(); setTimeout(redeck, 0); } });
+  globalThis.document?.fonts?.ready?.then(() => {
+    if (ctl.isConnected) {
+      fitKey = '';
+      fitPitch();
+      setTimeout(redeck, 0);
+    }
+  });
   const shell = el.closest('.m-app');
-  const uncovered = new MutationObserver(() => { if (S.held && !covered() && !S.down.size) { S.held = false; render(); } });
+  const uncovered = new MutationObserver(() => {
+    if (S.held && !covered() && !S.down.size) {
+      S.held = false;
+      render();
+    }
+  });
   if (shell) uncovered.observe(shell, { attributes: true, attributeFilter: ['class'] });
   const clock = setInterval(tick, 1000);
   const COPY_FPL_TEAM = 'Your team as set in FPL';
@@ -500,7 +1069,8 @@ export function mount(el, ctx) {
    *  Motion: a 150 ms cross-fade in place. Their cards' own flip (pitch.js) gives way to it; keyboard or VoiceOver
    *  focus moves to the tapped buy. S.fly once, on the first draw of the week that has him, within FLY_MS of the take;
    *  the cards as they stood: S.snap (mountHere). */
-  const FLY_MS = 2500, LAND_MAX = 3;
+  const FLY_MS = 2500,
+    LAND_MAX = 3;
   const FLY_EASE = 'cubic-bezier(.2, .8, .2, 1)';
   /** A place's line (planLine) on one line: its "xP" off, then its words' type a step smaller (--pl-k) to LINE_LEAST of
    *  it; still over (two long names at 320 wide), its take gives way (.nogo: the words, "›", open its Why sheet, whose
@@ -529,18 +1099,54 @@ export function mount(el, ctx) {
     { key: 'fxpts', label: 'Points + opponent', spoken: 'Points and opponent', short: 'Points + opp', second: 'both' },
     { key: 'opp', label: 'Opponent', short: 'Opponent', second: 'fx' },
     { key: 'pts', label: 'Points', spoken: 'Points only', short: 'Points', second: 'pts' },
-    { key: 'price', label: 'Price', spoken: 'Current price', short: 'Price', field: 'price', text: (id, p) => fmt.money(p?.price) },
+    {
+      key: 'price',
+      label: 'Price',
+      spoken: 'Current price',
+      short: 'Price',
+      field: 'price',
+      text: (_id, p) => fmt.money(p?.price),
+    },
     // FPL pays back what it sells him for (half the profit): a buy of the plan's is sold at what he costs today
-    { key: 'sell', label: 'Selling', spoken: 'Selling price', short: 'Selling', field: 'price', ok: () => sellOf().size > 0, text: (id, p) => fmt.money(S.sell?.get(Number(id)) ?? p?.price) },
+    {
+      key: 'sell',
+      label: 'Selling',
+      spoken: 'Selling price',
+      short: 'Selling',
+      field: 'price',
+      ok: () => sellOf().size > 0,
+      text: (id, p) => fmt.money(S.sell?.get(Number(id)) ?? p?.price),
+    },
     // FPL's Progress towards the next price change, as its pitch shows it: pricePlate
-    { key: 'pchg', label: 'Price change', spoken: 'Price change progress', short: 'Price change', field: 'price_progress',
-      text: (id, p) => pricePlate(p).text, bar: (id, p) => pricePlate(p) },
-    { key: 'own', label: 'Owned', spoken: 'Ownership', short: 'Owned', field: 'sel_pct', text: (id, p) => fmt.pct(p?.sel_pct) },
-    { key: 'form', label: 'Form', short: 'Form', field: 'form', text: (id, p) => fmt.num(p?.form) },
-    { key: 'chance', label: 'Chance', spoken: 'Chance of playing', short: 'Chance', field: 'status', text: (id, p) => {
-      const st = statusInfo(p?.status, p?.chance);
-      return st.chance != null ? `${st.chance}%` : st.tone === 'ok' ? '100%' : st.label;
-    } },
+    {
+      key: 'pchg',
+      label: 'Price change',
+      spoken: 'Price change progress',
+      short: 'Price change',
+      field: 'price_progress',
+      text: (_id, p) => pricePlate(p).text,
+      bar: (_id, p) => pricePlate(p),
+    },
+    {
+      key: 'own',
+      label: 'Owned',
+      spoken: 'Ownership',
+      short: 'Owned',
+      field: 'sel_pct',
+      text: (_id, p) => fmt.pct(p?.sel_pct),
+    },
+    { key: 'form', label: 'Form', short: 'Form', field: 'form', text: (_id, p) => fmt.num(p?.form) },
+    {
+      key: 'chance',
+      label: 'Chance',
+      spoken: 'Chance of playing',
+      short: 'Chance',
+      field: 'status',
+      text: (_id, p) => {
+        const st = statusInfo(p?.status, p?.chance);
+        return st.chance != null ? `${st.chance}%` : st.tone === 'ok' ? '100%' : st.label;
+      },
+    },
   ];
   const PLATE_KEY = 'fc:ahead:plate';
 
@@ -556,14 +1162,22 @@ export function mount(el, ctx) {
   rail.addEventListener('pointermove', (e) => {
     const st = S.drag?.rail;
     if (!st || st.pid !== e.pointerId) return;
-    const dx = e.clientX - st.x, dy = e.clientY - st.y;
+    const dx = e.clientX - st.x,
+      dy = e.clientY - st.y;
     // a scrub once the finger goes sideways (over 10 px, more than up or down); one that goes up or down first is the
     // page's scroll (the switcher is pan-y: pointercancel ends it), never a pick of the week under it
     if (!st.dragging && !st.edge && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
       st.dragging = true;
       rail.classList.add('dragging');
-      try { rail.setPointerCapture(e.pointerId); } catch { /* synthetic pointer */ }
-    } else if (!st.dragging && Math.abs(dy) > 10) { S.drag = null; return; }
+      try {
+        rail.setPointerCapture(e.pointerId);
+      } catch {
+        /* synthetic pointer */
+      }
+    } else if (!st.dragging && Math.abs(dy) > 10) {
+      S.drag = null;
+      return;
+    }
     if (!st.dragging) return;
     // a GW past the plan (edgeTicks) is passed over: its word comes from a tap, not from every scrub across it
     const tk = tickAt(e.clientX, e.clientY);
@@ -589,16 +1203,33 @@ export function mount(el, ctx) {
     const badge = e.target.closest('.pm-badge[data-badge="c"], .pm-badge[data-badge="v"]');
     const bare = benchBare(e);
     const pl = bare ? null : e.target.closest('.pm-pl[data-id], .pm-bs[data-id]');
-    const st = { x: e.clientX, y: e.clientY, id: pl ? Number(pl.dataset.id) : null, pl, moved: false, lifted: false, pid: e.pointerId, src: pitchHost, edge: atEdge(e), fl: flick().add(e.clientX, e.timeStamp), end: pitchEnd };
+    const st = {
+      x: e.clientX,
+      y: e.clientY,
+      id: pl ? Number(pl.dataset.id) : null,
+      pl,
+      moved: false,
+      lifted: false,
+      pid: e.pointerId,
+      src: pitchHost,
+      edge: atEdge(e),
+      fl: flick().add(e.clientX, e.timeStamp),
+      end: pitchEnd,
+    };
     S.drag = { pitch: st, used: false };
     // the armband drags after a short hold (GRIP_MS): a finger that moves before it scrolls; the C held still (TC_MS)
     // plays the Triple Captain there or takes it off (owner, 2026-10-13): a drag moves it, a still hold plays it
     if (badge && P) {
       st.badge = badge.dataset.badge;
-      st.timer = setTimeout(() => { st.held = true; }, GRIP_MS);
+      st.timer = setTimeout(() => {
+        st.held = true;
+      }, GRIP_MS);
       if (st.badge === 'c' && P.editable && !CHIPS_OFF) {
         st.fill = holdFill(e.clientX, e.clientY, TC_MS, 'TC');
-        st.chip = setTimeout(() => { unfill(st); if (!st.flying) pitchChip(st, 'tc'); }, TC_MS);
+        st.chip = setTimeout(() => {
+          unfill(st);
+          if (!st.flying) pitchChip(st, 'tc');
+        }, TC_MS);
       }
       return;
     }
@@ -607,19 +1238,26 @@ export function mount(el, ctx) {
     // progress fills at the finger (holdFill)
     else if (bare && P?.editable && !CHIPS_OFF) {
       st.fill = holdFill(e.clientX, e.clientY, LONG_MS, 'BB');
-      st.timer = setTimeout(() => { unfill(st); pitchChip(st, 'bb'); }, LONG_MS);
+      st.timer = setTimeout(() => {
+        unfill(st);
+        pitchChip(st, 'bb');
+      }, LONG_MS);
     }
   });
   pitchHost.addEventListener('pointermove', (e) => {
     const st = S.drag?.pitch;
     if (!st || st.pid !== e.pointerId || st.done) return;
     st.fl.add(e.clientX, e.timeStamp);
-    const dx = e.clientX - st.x, dy = e.clientY - st.y;
+    const dx = e.clientX - st.x,
+      dy = e.clientY - st.y;
     if (st.badge) {
       const far = Math.hypot(dx, dy) > 6;
       // the armband gripped (GRIP_MS) and moving past a still finger's 3 px: it can only move now, its Triple Captain
       // off (owner, 2026-10-22)
-      if (st.held && Math.hypot(dx, dy) > 3) { clearTimeout(st.chip); unfill(st); }
+      if (st.held && Math.hypot(dx, dy) > 3) {
+        clearTimeout(st.chip);
+        unfill(st);
+      }
       if (st.flying || (st.held && far)) dragBadge(st, e);
       if (st.held || !far) return;
       // moved before the hold: no armband drag, no Triple Captain; the finger is the shirt's (the screen scrolls, or
@@ -636,7 +1274,11 @@ export function mount(el, ctx) {
       // sideways: the swipe's lock (never from the screen's edge: atEdge)
       if (!st.edge && Math.abs(dx) > Math.abs(dy)) {
         st.swipe = true;
-        try { pitchHost.setPointerCapture(e.pointerId); } catch { /* synthetic pointer */ }
+        try {
+          pitchHost.setPointerCapture(e.pointerId);
+        } catch {
+          /* synthetic pointer */
+        }
       }
     }
     // the pitch follows the finger, a third as far where no week is that way (the window's first or last); under Reduce
@@ -650,13 +1292,19 @@ export function mount(el, ctx) {
   });
   pitchHost.addEventListener('pointerup', pitchEnd);
   pitchHost.addEventListener('pointercancel', pitchEnd);
-  pitchHost.addEventListener('transitionend', (e) => { if (e.target === pitchHost) pitchHost.classList.remove('settle'); });
+  pitchHost.addEventListener('transitionend', (e) => {
+    if (e.target === pitchHost) pitchHost.classList.remove('settle');
+  });
   // shirts are touch-action: pan-y so the screen scrolls from them; once a shirt is lifted (long-press) or the C badge
   // is held (GRIP_MS), the drag owns the finger: stop the scroll (needs a non-passive listener)
-  pitchHost.addEventListener('touchmove', (e) => {
-    const st = S.drag?.pitch;
-    if (st && (st.lifted || (st.badge && st.held))) holdTouch(e);
-  }, { passive: false });
+  pitchHost.addEventListener(
+    'touchmove',
+    (e) => {
+      const st = S.drag?.pitch;
+      if (st && (st.lifted || (st.badge && st.held))) holdTouch(e);
+    },
+    { passive: false },
+  );
   pitchHost.addEventListener('contextmenu', (e) => e.preventDefault());
   globalThis.addEventListener('pointerdown', pressed, true);
   const strays = ['pointerup', 'pointercancel', 'keydown', 'blur'];
@@ -670,26 +1318,43 @@ export function mount(el, ctx) {
   // (a team left forgets its shown transfers and its Show suggestion taps, listened for from the first mount on and never
   // let go: a sign-out comes with Ahead closed, and the recent chip's return drew Reset all weeks on a fresh plan; sign-out
   // forgets every choice, owner 2026-10-22; qa-tk138/140 team)
-  FORGET_ASKS ??= ctx.store.on('entry', () => { AHEAD.showing.clear(); AHEAD.suggested.clear(); });
-  const offs = [ctx.store.on('gw', () => schedule()), ctx.store.on('memory', () => schedule('mem')), ctx.store.on('aheadRev', () => schedule()), ctx.store.on('bringing', () => schedule()),
-    ctx.store.on('learnt', () => { S.learnt = new Set(); schedule(); }),
-    ctx.store.on('aheadPair', () => schedule('pair'))];
+  _FORGET_ASKS ??= ctx.store.on('entry', () => {
+    AHEAD.showing.clear();
+    AHEAD.suggested.clear();
+  });
+  const offs = [
+    ctx.store.on('gw', () => schedule()),
+    ctx.store.on('memory', () => schedule('mem')),
+    ctx.store.on('aheadRev', () => schedule()),
+    ctx.store.on('bringing', () => schedule()),
+    ctx.store.on('learnt', () => {
+      S.learnt = new Set();
+      schedule();
+    }),
+    ctx.store.on('aheadPair', () => schedule('pair')),
+  ];
   // (plan memory at once: it asks the plan, renderBaking waits for it)
   memOf(ctx);
   render();
   return {
     // a bundle or connection change waits as any store change does (schedule: never under a finger or a large sheet)
-    update() { schedule(); },
+    update() {
+      schedule();
+    },
     // (on show the screen as drawn, its plan and week still the ones on it: no draw; every change since came by schedule.
     // A #/player card closing routes back here, and redrew the whole screen under the next sheet: a comparison's pick
     // ~150 ms on a load test's phone; owner, 2026-11-12, "compare players ... must be instant")
-    show() { if (!S.drawn || S.drawn !== plan(ctx) || S.drawnGw !== gwNow(S.drawn) || S.held) render(); },
+    show() {
+      if (!S.drawn || S.drawn !== plan(ctx) || S.drawnGw !== gwNow(S.drawn) || S.held) render();
+    },
     hide() {},
     unmount() {
       closeDiagnostics();
       if (GO_GW === setGw) GO_GW = null;
       if (TAP_IN === tapIn) TAP_IN = null;
-      offs.forEach((f) => f());
+      offs.forEach((f) => {
+        f();
+      });
       for (const t of lifts) globalThis.removeEventListener(t, lifted);
       for (const t of strays) globalThis.removeEventListener(t, stray);
       globalThis.removeEventListener('pointerdown', pressed, true);

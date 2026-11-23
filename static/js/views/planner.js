@@ -6,31 +6,37 @@
 // URL: #/planner?entry=<id> loads that team; #/planner?job=<id> shows that run's result.
 
 import * as api from '../api.js';
-import { h, toast, fmt, icon, statusDot, chipName, POS, posName, fill, plural } from '../ui.js';
-import { card, statTile, modal, confirm, segmented, loading, empty, errorCard, field, pill, copyText, pick, errText, readNum, entryId, entryTitle, callout } from '../studio/kit.js';
-import { pitch, transferCard, table, playerPicker } from '../studio/tables.js';
-import { flagControl, flagForm, jobRunner, jobStatusPill, flagLabel, infoTip, humanise } from '../studio/flags.js';
+import { h, icon, fill } from '../ui.js';
+import { card, segmented, loading, copyText, callout } from '../studio/kit.js';
+import { flagControl } from '../studio/flags.js';
 import { DEST, toks, findTok, applyMark } from '../marks.js';
-import { committedCells, committedRows, cellsTable, spanText, noteTone } from './runs.js';
-import { seasonLabel } from './fixtures.js';
-import { CHIP_KEYS, CHIP_MODES, CHIP_ROUNDS, DATA_KEYS, KEEP, MAX_VARIANTS, POS_SLOTS, QUICK, XI_RANGE, canon, chipMode, hitCostOf, mergeValues, num, omit, rowTag, sum, timelineOf } from './planner/model.js';
-import { historyCard, pitchCard, recommendationCard, scenarioTable, timelineCard, warningsCard } from './planner/cards.js';
+import { CHIP_KEYS, CHIP_MODES, QUICK, canon, chipMode, num } from './planner/model.js';
 import { squadMethods } from './planner/squad.js';
 import { settingsMethods } from './planner/settings.js';
 import { solveMethods } from './planner/solve.js';
 
 // ---------------------------------------------------------------- the view
 
-class Planner {
+/** @typedef {typeof squadMethods & typeof settingsMethods & typeof solveMethods & {scenAbort?: AbortController, squadSeason?: number}} PlannerSections */
+class PlannerSectionsBase {}
+// Planner's methods by section (planner/*.js), on its prototype as its own are: not enumerable
+for (const part of [squadMethods, settingsMethods, solveMethods]) {
+  for (const [k, d] of Object.entries(Object.getOwnPropertyDescriptors(part)))
+    Object.defineProperty(PlannerSectionsBase.prototype, k, { ...d, enumerable: false });
+}
+
+const PlannerBase = /** @type {new () => PlannerSections} */ (/** @type {unknown} */ (PlannerSectionsBase));
+class Planner extends PlannerBase {
   constructor(el, ctx) {
+    super();
     this.el = el;
     this.ctx = ctx;
     this.store = ctx.state;
-    this.controls = new Map();   // dest → Set of flagControls showing it
+    this.controls = new Map(); // dest → Set of flagControls showing it
     this.playerLists = new Map(); // season → Promise<PlayerRow[]>
     this.entry = null;
-    this.scen = new Map();        // variant id → {id, job, res, error}
-    this.inflight = new Set();    // once() keys of launches still being created
+    this.scen = new Map(); // variant id → {id, job, res, error}
+    this.inflight = new Set(); // once() keys of launches still being created
     this.abort = new AbortController();
     this.unsub = [];
     this.argvSeq = 0;
@@ -38,17 +44,33 @@ class Planner {
     this.jobSeq = 0;
   }
 
-  get st() { return this.store.get('planner', {}) || {}; }
-  get variants() { return this.st.scenarios || []; }
+  get st() {
+    return this.store.get('planner', {}) || {};
+  }
+  get variants() {
+    return this.st.scenarios || [];
+  }
 
   save(patch) {
     this.writing = true;
-    try { this.store.update('planner', patch); } finally { this.writing = false; }
+    try {
+      this.store.update('planner', patch);
+    } finally {
+      this.writing = false;
+    }
   }
 
-  flag(dest) { return this.byDest.get(dest); }
-  season() { return num(this.values.season) ?? num(this.flag('season')?.default) ?? num(this.meta?.season); }
-  clean(v) { return Object.fromEntries(Object.entries(v || {}).filter(([k, x]) => this.byDest.has(k) && x !== undefined && x !== null)); }
+  flag(dest) {
+    return this.byDest.get(dest);
+  }
+  season() {
+    return num(this.values.season) ?? num(this.flag('season')?.default) ?? num(this.meta?.season);
+  }
+  clean(v) {
+    return Object.fromEntries(
+      Object.entries(v || {}).filter(([k, x]) => this.byDest.has(k) && x !== undefined && x !== null),
+    );
+  }
 
   /**
    * Every player of the season (all=1: unforecast ones too, e.g. a long-term injured in a real squad), for the pickers
@@ -56,11 +78,17 @@ class Planner {
    */
   players(season = this.season()) {
     if (!this.playerLists.has(season)) {
-      this.playerLists.set(season, api.getPlayers({ season, all: true }).then((d) => d?.players || []).catch((e) => {
-        this.playerLists.delete(season);
-        console.warn('players unavailable', e);
-        return [];
-      }));
+      this.playerLists.set(
+        season,
+        api
+          .getPlayers({ season, all: true })
+          .then((d) => d?.players || [])
+          .catch((e) => {
+            this.playerLists.delete(season);
+            console.warn('players unavailable', e);
+            return [];
+          }),
+      );
     }
     return this.playerLists.get(season);
   }
@@ -77,7 +105,7 @@ class Planner {
     this.groups = fl?.groups || [];
     this.presets = fl?.presets || [];
     this.byDest = new Map(this.flags.map((f) => [f.dest, f]));
-    this.presetSeason = num(this.flag('season')?.default);  // /api/flags resolves @next_gw for the default season
+    this.presetSeason = num(this.flag('season')?.default); // /api/flags resolves @next_gw for the default season
     this.meta = meta;
     const st = this.st;
     this.values = this.clean(st.values);
@@ -121,7 +149,7 @@ class Planner {
     this.commit(changed);
   }
 
-  commit(changed, { source, persist = true } = {}) {
+  commit(changed, { source, persist = true } = /** @type {{source?: string, persist?: boolean}} */ ({})) {
     if (persist) this.save({ values: { ...this.values } });
     for (const [dest, set] of this.controls) {
       if (changed && !changed.includes(dest)) continue;
@@ -134,7 +162,7 @@ class Planner {
     if (touched(...CHIP_KEYS, 'season', 'from_r', 'entry', 'team_state')) this.renderChips();
     if (touched('entry', 'team_state', 'from_r', 'season')) this.renderEntryHint();
     if (touched('must_have', 'exclude')) this.paintMarks();
-    if (this.squadSeason !== this.season()) this.renderSquad();  // the lock / ban pickers list that season's players
+    if (this.squadSeason !== this.season()) this.renderSquad(); // the lock / ban pickers list that season's players
     if (touched('season')) {
       this.loadRecent();
       const id = this.entry?.entry_id ?? this.values.entry;
@@ -148,7 +176,8 @@ class Planner {
   onStore(next) {
     if (this.writing) return;
     const nv = this.clean(next?.values);
-    if (canon(nv) !== canon(this.values)) {  // another tab, or a view that edits values directly
+    if (canon(nv) !== canon(this.values)) {
+      // another tab, or a view that edits values directly
       this.values = nv;
       this.commit(null, { persist: false });
     }
@@ -156,13 +185,16 @@ class Planner {
 
   toggleMark(kind, id) {
     const v = applyMark(this.values, kind, id, !findTok(toks(this.values[DEST[kind]]), id));
-    this.patch({ must_have: v.must_have, exclude: v.exclude });  // undefined = cleared
+    this.patch({ must_have: v.must_have, exclude: v.exclude }); // undefined = cleared
   }
 
   /** A flagControl bound to values[dest]; every control of a dest is kept in step by commit(). */
   ctl(dest, flag = this.flag(dest)) {
     if (!flag) return null;
-    const c = flagControl(flag, this.values[dest], (v) => this.setValue(dest, v, c), { players: this.players(), meta: this.meta });
+    const c = flagControl(flag, this.values[dest], (v) => this.setValue(dest, v, c), {
+      players: this.players(),
+      meta: this.meta,
+    });
     if (!this.controls.has(dest)) this.controls.set(dest, new Set());
     this.controls.get(dest).add(c);
     return c;
@@ -172,53 +204,120 @@ class Planner {
 
   build() {
     this.entryInput = h('input.input.mono.pl-entry-input', {
-      type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: 'FPL team ID, e.g. 353468',
-      'aria-label': 'FPL team ID', value: this.values.entry || this.st.entry || '',
+      type: 'text',
+      inputmode: 'numeric',
+      autocomplete: 'off',
+      placeholder: 'FPL team ID, e.g. 353468',
+      'aria-label': 'FPL team ID',
+      value: this.values.entry || this.st.entry || '',
     });
     this.recentEl = h('div.pl-recent');
     this.entryHint = h('div.pl-entry-hint');
     const entryCard = card({
-      title: 'Your FPL team', className: 'pl-entry',
+      title: 'Your FPL team',
+      className: 'pl-entry',
       sub: 'Start from your real squad, bank, free transfers and chips.',
       body: [
-        h('form.row.tight', { onSubmit: (e) => { e.preventDefault(); this.loadEntry(this.entryInput.value, { apply: true }); } },
-          this.entryInput, h('button.btn.primary', { type: 'submit' }, 'Load team')),
-        h('p.small.muted', null, 'The ID is the number in your FPL points-page address (…/entry/', h('b', null, 'ID'), '/event/…).'),
-        this.recentEl, this.entryHint,
+        h(
+          'form.row.tight',
+          {
+            onSubmit: (e) => {
+              e.preventDefault();
+              this.loadEntry(this.entryInput.value, { apply: true });
+            },
+          },
+          this.entryInput,
+          h('button.btn.primary', { type: 'submit' }, 'Load team'),
+        ),
+        h(
+          'p.small.muted',
+          null,
+          'The ID is the number in your FPL points-page address (…/entry/',
+          h('b', null, 'ID'),
+          '/event/…).',
+        ),
+        this.recentEl,
+        this.entryHint,
       ],
     });
     this.managerSlot = h('div.pl-slot');
     this.squadSlot = h('div.pl-slot');
     this.resultSlot = h('div.stack.pl-result');
     this.scenSlot = h('div.pl-slot');
-    fill(this.el, h('div.pl-layout', null,
-      h('aside.stack.pl-side', null, entryCard, this.managerSlot, this.squadSlot),
-      h('div.stack.pl-main', null, this.buildSettings(), this.buildRun(), this.resultSlot, this.scenSlot)));
+    fill(
+      this.el,
+      h(
+        'div.pl-layout',
+        null,
+        h('aside.stack.pl-side', null, entryCard, this.managerSlot, this.squadSlot),
+        h('div.stack.pl-main', null, this.buildSettings(), this.buildRun(), this.resultSlot, this.scenSlot),
+      ),
+    );
     this.renderSquad();
     this.renderPresets();
     this.renderScenarios();
   }
 
   buildSettings() {
-    this.presetSel = h('select.select.pl-preset', { 'aria-label': 'Preset', onChange: () => this.applyPreset(this.presetSel.value) });
-    this.delBtn = h('button.icon-btn', { type: 'button', title: 'Delete this saved preset', 'aria-label': 'Delete preset', onClick: () => this.deletePreset() }, icon('trash', { size: 16 }));
+    this.presetSel = h('select.select.pl-preset', {
+      'aria-label': 'Preset',
+      onChange: () => this.applyPreset(this.presetSel.value),
+    });
+    this.delBtn = h(
+      'button.icon-btn',
+      {
+        type: 'button',
+        title: 'Delete this saved preset',
+        'aria-label': 'Delete preset',
+        onClick: () => this.deletePreset(),
+      },
+      icon('trash', { size: 16 }),
+    );
     this.presetNote = h('div.pl-preset-note');
-    this.chipSeg = segmented({ items: CHIP_MODES, value: chipMode(this.values), label: 'Chip mode', onChange: (m) => this.setChipMode(m) });
-    this.chipBody = h('div.stack.tight');    // re-rendered on a mode change only (renderChips)
-    this.chipChecks = h('div.stack.tight');  // the wildcard shortcut and the chips-played checks, on every change
+    this.chipSeg = segmented({
+      items: CHIP_MODES,
+      value: chipMode(this.values),
+      label: 'Chip mode',
+      onChange: (m) => this.setChipMode(m),
+    });
+    this.chipBody = h('div.stack.tight'); // re-rendered on a mode change only (renderChips)
+    this.chipChecks = h('div.stack.tight'); // the wildcard shortcut and the chips-played checks, on every change
     this.chipPanel = h('div.pl-chip-panel.stack.tight', null, this.chipBody, this.chipChecks);
-    const sections = QUICK.map(([title, dests]) => h('section.pl-qs', null,
-      h('h3.pl-h3', null, title), h('div.flag-grid', null, dests.map((d) => this.ctl(d)))));
+    const sections = QUICK.map(([title, dests]) =>
+      h(
+        'section.pl-qs',
+        null,
+        h('h3.pl-h3', null, title),
+        h(
+          'div.flag-grid',
+          null,
+          dests.map((d) => this.ctl(d)),
+        ),
+      ),
+    );
     return card({
-      title: 'Solver settings', className: 'pl-settings',
+      title: 'Solver settings',
+      className: 'pl-settings',
       sub: 'Quick settings; every other flag is under All settings. Nothing runs until you press Solve.',
       actions: [
-        this.presetSel, this.delBtn,
-        h('button.btn.sm', { type: 'button', onClick: () => this.savePresetDialog() }, icon('plus', { size: 14 }), 'Save as…'),
-        h('button.btn.sm', { type: 'button', onClick: () => this.openDrawer() }, 'All settings', h('span.badge', null, this.flags.length)),
+        this.presetSel,
+        this.delBtn,
+        h(
+          'button.btn.sm',
+          { type: 'button', onClick: () => this.savePresetDialog() },
+          icon('plus', { size: 14 }),
+          'Save as…',
+        ),
+        h(
+          'button.btn.sm',
+          { type: 'button', onClick: () => this.openDrawer() },
+          'All settings',
+          h('span.badge', null, this.flags.length),
+        ),
       ],
       body: [
-        this.presetNote, ...sections,
+        this.presetNote,
+        ...sections,
         h('section.pl-qs', null, h('h3.pl-h3', null, 'Chips'), this.chipSeg, this.chipPanel),
       ],
     });
@@ -227,17 +326,45 @@ class Planner {
   buildRun() {
     this.cmdEl = h('code.mono.pl-cmd-text', null, '…');
     this.cmdMsgs = h('div.stack.tight.pl-cmd-msgs');
-    this.solveBtn = h('button.btn.primary.lg', { type: 'button', onClick: () => this.solve() }, icon('play', { size: 16 }), 'Solve');
+    this.solveBtn = h(
+      'button.btn.primary.lg',
+      { type: 'button', onClick: () => this.solve() },
+      icon('play', { size: 16 }),
+      'Solve',
+    );
     return card({
-      title: 'Run', className: 'pl-run',
+      title: 'Run',
+      className: 'pl-run',
       body: [
-        h('div.pl-cmd', null, this.cmdEl,
-          h('button.icon-btn', { type: 'button', title: 'Copy command', 'aria-label': 'Copy command', onClick: () => copyText(this.argv?.cmd || this.cmdEl.textContent) }, icon('copy', { size: 15 }))),
+        h(
+          'div.pl-cmd',
+          null,
+          this.cmdEl,
+          h(
+            'button.icon-btn',
+            {
+              type: 'button',
+              title: 'Copy command',
+              'aria-label': 'Copy command',
+              onClick: () => copyText(this.argv?.cmd || this.cmdEl.textContent),
+            },
+            icon('copy', { size: 15 }),
+          ),
+        ),
         this.cmdMsgs,
-        h('div.row', null, this.solveBtn,
-          h('button.btn', { type: 'button', onClick: () => this.openScenarios() }, icon('compare', { size: 15 }), 'Scenarios…'),
+        h(
+          'div.row',
+          null,
+          this.solveBtn,
+          h(
+            'button.btn',
+            { type: 'button', onClick: () => this.openScenarios() },
+            icon('compare', { size: 15 }),
+            'Scenarios…',
+          ),
           h('span.spacer'),
-          h('span.small.muted', null, 'Runs in the background: you can leave this page and come back.')),
+          h('span.small.muted', null, 'Runs in the background: you can leave this page and come back.'),
+        ),
       ],
     });
   }
@@ -260,15 +387,14 @@ class Planner {
     if (seq !== this.argvSeq || !this.cmdEl.isConnected) return;
     this.argv = d;
     this.cmdEl.textContent = d.cmd || '';
-    fill(this.cmdMsgs, ...(d.errors || []).map((m) => callout('loss', m)), ...(d.warnings || []).map((m) => callout('warn', m)));
+    fill(
+      this.cmdMsgs,
+      ...(d.errors || []).map((m) => callout('loss', m)),
+      ...(d.warnings || []).map((m) => callout('warn', m)),
+    );
     this.solveBtn.disabled = !!d.errors?.length;
     this.solveBtn.title = d.errors?.length ? 'Fix the errors above first' : '';
   }
-}
-
-// Planner's methods by section (planner/*.js), on its prototype as its own are: not enumerable
-for (const part of [squadMethods, settingsMethods, solveMethods]) {
-  for (const [k, d] of Object.entries(Object.getOwnPropertyDescriptors(part))) Object.defineProperty(Planner.prototype, k, { ...d, enumerable: false });
 }
 
 export default {

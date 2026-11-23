@@ -10,34 +10,49 @@ const AGAIN_MS = 5000;
 export function modelPart(V) {
   /** The values and key (solvedKey) of the model's plan for the bundle on screen: planValues of no pin, on the entry's
    *  own data (its bank is no value of a solve) → {key, values} | null (no bundle with an entry). */
-  let asked = { b: null, d: null, ask: null };  // modelAsk's, per bundle and derived data
-  const modelAsk = () => { const { ctx } = V;
-    const b = ctx.bundle, d = ctx.data;
+  let asked = { b: null, d: null, ask: null }; // modelAsk's, per bundle and derived data
+  const modelAsk = () => {
+    const { ctx } = V;
+    const b = ctx.bundle,
+      d = ctx.data;
     if (!b?.entry || !d) return null;
     if (asked.b !== b || asked.d !== d) {
       let ask = null;
       try {
         const values = firstPlanValues(planInputs(b, d), ctx.planDefault);
         ask = { key: solvedKey(b.version ?? null, values), values };
-      } catch { /* no plan inputs yet */ }
+      } catch {
+        /* no plan inputs yet */
+      }
       asked = { b, d, ask };
     }
     return asked.ask;
   };
   /** The model's plan as this device keeps it (ROADS: the newest ARCHIVE_VERSIONS data versions, one road each), for
    *  `key` → Road | null: a warm start or a page off line draws it at once. */
-  const keptModel = (key) => { const { S, local } = V;
+  const keptModel = (key) => {
+    const { S, local } = V;
     const a = S.entry ? local.json(ROADS(S.entry)) : null;
     return a?.versions?.find((x) => x.key === key)?.road ?? null;
   };
-  const keepModel = (key, road) => { const { S, ctx, local } = V;
+  const keepModel = (key, road) => {
+    const { S, ctx, local } = V;
     const v = ctx.bundle?.version ?? null;
     const a = local.json(ROADS(S.entry)) || { versions: [] };
-    local.set(ROADS(S.entry), JSON.stringify({ versions: [{ v, key, road }, ...(a.versions || []).filter((x) => x.v !== v && x.road)].slice(0, ARCHIVE_VERSIONS) }));
+    local.set(
+      ROADS(S.entry),
+      JSON.stringify({
+        versions: [{ v, key, road }, ...(a.versions || []).filter((x) => x.v !== v && x.road)].slice(
+          0,
+          ARCHIVE_VERSIONS,
+        ),
+      }),
+    );
   };
   /** The model's road for data version `version` as this device kept it (rejudge's `before`: the best your plan was
    *  made against), else null. */
-  const modelOn = (version) => { const { S, local } = V;
+  const modelOn = (version) => {
+    const { S, local } = V;
     const a = S.entry ? local.json(ROADS(S.entry)) : null;
     return a?.versions?.find((x) => x.v === version)?.road ?? null;
   };
@@ -50,10 +65,12 @@ export function modelPart(V) {
    * kept on this device (keepModel), the memory's view re-made (onData's drift and sync). → {key, road, error, since
    * (ms: asked, while it solves), values} for the bundle on screen
    */
-  function model() { const { S, ctx } = V;
+  function model() {
+    const { S, ctx } = V;
     const ask = modelAsk();
     if (!ask) return { key: null, road: null, error: null, since: null, values: null };
-    if (S.model?.key !== ask.key) S.model = { key: ask.key, road: keptModel(ask.key), error: null, since: null, p: null };
+    if (S.model?.key !== ask.key)
+      S.model = { key: ask.key, road: keptModel(ask.key), error: null, since: null, p: null };
     const m = S.model;
     // (a request that never reached the plan service, the page off line or the service restarting: asked again on a
     // read AGAIN_MS later)
@@ -66,26 +83,41 @@ export function modelPart(V) {
       m.since = Date.now();
       // (`swap`: what Transfer on the card it suggests makes, brought back with this solve (memory/values.js SWAPS); owner,
       // 2026-11-12, "fix so lineups are provided by solve suggested this transfer")
-      m.p = solveKept(ctx.api, { entry: Number(S.entry), purpose: 'plan', values: ask.values, swap: true }, undefined, { what: 'the solver\'s best · none of your rules' });
-      m.p.then((r) => {
-        if (S.model !== m) return;
-        m.p = null;
-        if (r.road) { m.road = r.road; keepModel(m.key, r.road); }
-        else if (r.state === 'error') m.error = r.error ?? { code: 'solver' };
-        else return;  // cancelled (sign-out, a new team): asked again by the next read
-        V.landed();
-      }, () => { if (S.model === m) { m.p = null; m.error = { code: 'unreachable', at: Date.now() }; V.landed(); } });
+      m.p = solveKept(ctx.api, { entry: Number(S.entry), purpose: 'plan', values: ask.values, swap: true }, undefined, {
+        what: "the solver's best · none of your rules",
+      });
+      m.p.then(
+        (r) => {
+          if (S.model !== m) return;
+          m.p = null;
+          if (r.road) {
+            m.road = r.road;
+            keepModel(m.key, r.road);
+          } else if (r.state === 'error') m.error = r.error ?? { code: 'solver' };
+          else return; // cancelled (sign-out, a new team): asked again by the next read
+          V.landed();
+        },
+        () => {
+          if (S.model === m) {
+            m.p = null;
+            m.error = { code: 'unreachable', at: Date.now() };
+            V.landed();
+          }
+        },
+      );
     }
     return { key: m.key, road: m.road, error: m.error, since: m.road ? null : m.since, values: ask.values };
   }
   /** Ask the model's plan now (Show suggestion's tap: with Solve ahead Off nothing else asks it). */
-  function wantModel() { const { S } = V;
+  function wantModel() {
+    const { S } = V;
     model();
     if (S.model) S.model.want = true;
     return model();
   }
   /** Ask the model's plan again after it failed (renderBaking's Try again). */
-  function retryModel() { const { S } = V;
+  function retryModel() {
+    const { S } = V;
     if (S.model?.error) S.model = null;
     model();
   }

@@ -3,11 +3,35 @@
 import { chipName } from '../../../ui.js';
 import { COPY } from '../../calls.js';
 import { pinChip, isRoll } from '../../memory.js';
-import { compare, flashLanding, info, isFrozen, isPick, lineups, memOf, memPlan, num, picksAt, plan, setLineups, weekOf } from '../core.js';
+import {
+  compare,
+  flashLanding,
+  info,
+  isFrozen,
+  isPick,
+  lineups,
+  memOf,
+  memPlan,
+  num,
+  picksAt,
+  plan,
+  setLineups,
+  weekOf,
+} from '../core.js';
 import { SQUAD_CHIPS, forkKey, planBack, plansListed } from '../plans.js';
 import { goneIds, yoursTakenBack } from '../presolve.js';
 import { isLive } from '../buys.js';
-import { chipCheck, chipPreps, chipStates, chipTold, halfBests, halfEnd, honestBest, plannedAt, squadWeek } from '../pieces.js';
+import {
+  chipCheck,
+  chipPreps,
+  chipStates,
+  chipTold,
+  halfBests,
+  halfEnd,
+  honestBest,
+  plannedAt,
+  squadWeek,
+} from '../pieces.js';
 import { chipPins } from '../screen.js';
 import { edit, restore, say, snapshot, toastOf, undoOf, vsPrev } from './say.js';
 import { asksOf, clashing, withTaken } from './rules.js';
@@ -18,10 +42,16 @@ import { asksOf, clashing, withTaken } from './rules.js';
  */
 export function lineup(ctx, g, patch, what, opts = {}) {
   const I = info(ctx);
-  return lineupEdit(ctx, [g], () => {
-    if (g === I.A) memOf(ctx).setLineup(patch);
-    else setLineups(ctx, I, { ...lineups(ctx, I), [g]: { ...(lineups(ctx, I)[g] || {}), ...patch } });
-  }, what, opts);
+  return lineupEdit(
+    ctx,
+    [g],
+    () => {
+      if (g === I.A) memOf(ctx).setLineup(patch);
+      else setLineups(ctx, I, { ...lineups(ctx, I), [g]: { ...(lineups(ctx, I)[g] || {}), ...patch } });
+    },
+    what,
+    opts,
+  );
 }
 
 /** The one lineup edit (a sub, the armband, a reset): GWs `gws` changed by `change` (phone-only: no solve), each
@@ -29,7 +59,10 @@ export function lineup(ctx, g, patch, what, opts = {}) {
 function lineupEdit(ctx, gws, change, what, { points = true } = {}) {
   const I = info(ctx);
   // GW A under way is FPL's
-  if (gws.includes(I.A) && isLive(ctx)) { toastOf(ctx)(COPY.live(I.A), 'warn'); return false; }
+  if (gws.includes(I.A) && isLive(ctx)) {
+    toastOf(ctx)(COPY.live(I.A), 'warn');
+    return false;
+  }
   const weeks = () => gws.map((g) => weekOf(plan(ctx), g)).filter(Boolean);
   const before = weeks();
   const snap = snapshot(ctx);
@@ -41,7 +74,11 @@ function lineupEdit(ctx, gws, change, what, { points = true } = {}) {
   // what it did to the week's suggestions, said (lineupWhy; owner, 2026-10-22: saved-lineup moves are explained, not
   // changed)
   const why = lineupWhy(ctx, prevP, plan(ctx), gws);
-  say(ctx, [points ? COPY.lineup(subject, gws, c.delta, c.label) : subject, ...why].join(' · '), undoOf(ctx, subject, () => restore(ctx, snap)));
+  say(
+    ctx,
+    [points ? COPY.lineup(subject, gws, c.delta, c.label) : subject, ...why].join(' · '),
+    undoOf(ctx, subject, () => restore(ctx, snap)),
+  );
   return true;
 }
 
@@ -53,7 +90,9 @@ export function benchedBuys(P, g, pl) {
   if (!w?.lineup || pl?.state !== 'ready' || SQUAD_CHIPS.has(pl.choice.chips?.[g])) return [];
   const bench = new Set((pl.ev?.gws.find((x) => x.gw === g)?.bench ?? []).map(Number));
   const benched = new Set(w.bench.map(Number));
-  return planBack(P, g, pl).adds.filter((m) => benched.has(Number(m.out)) && bench.has(Number(m.in))).map((m) => Number(m.in));
+  return planBack(P, g, pl)
+    .adds.filter((m) => benched.has(Number(m.out)) && bench.has(Number(m.in)))
+    .map((m) => Number(m.in));
 }
 /** What a lineup edit of GWs `gws` did to their suggestions (owner, 2026-10-22: saved-lineup moves are explained, not
  *  changed): each choice of plan view `P0` that gained and that `Q` lowers or no longer lists, in words (benchedBuys; a
@@ -63,15 +102,21 @@ function lineupWhy(ctx, P0, Q, gws) {
   for (const g of gws) {
     if (!weekOf(Q, g)?.lineup || !weekOf(P0, g)) continue;
     const now = plansListed(ctx, Q, g).filter((x) => x.state === 'ready');
-    const names = [], chips = [];
+    const names = [],
+      chips = [];
     for (const a of plansListed(ctx, P0, g)) {
       if (a.state !== 'ready' || a.refRow || a.cmp.delta <= 0.05) continue;
-      const k = forkKey(a.choice, g), b = now.find((x) => forkKey(x.choice, g) === k);
+      const k = forkKey(a.choice, g),
+        b = now.find((x) => forkKey(x.choice, g) === k);
       if (b && b.cmp.delta > a.cmp.delta - 0.05) continue;
       const chip = a.choice.chips?.[g];
-      if (SQUAD_CHIPS.has(chip)) { if (!chips.includes(chip)) chips.push(chip); continue; }
+      if (SQUAD_CHIPS.has(chip)) {
+        if (!chips.includes(chip)) chips.push(chip);
+        continue;
+      }
       const was = new Set(benchedBuys(P0, g, a));
-      for (const id of b ? benchedBuys(Q, g, b) : []) if (!was.has(id) && !names.includes(Q.L.name(id))) names.push(Q.L.name(id));
+      for (const id of b ? benchedBuys(Q, g, b) : [])
+        if (!was.has(id) && !names.includes(Q.L.name(id))) names.push(Q.L.name(id));
     }
     if (names.length) out.push(COPY.onYourBench(names));
     out.push(...chips.map((c) => COPY.chipLineup(chipName(c), g)));
@@ -83,7 +128,8 @@ function lineupWhy(ctx, P0, Q, gws) {
 function resetLineups(ctx, gws) {
   const I = info(ctx);
   if (!gws.length) return;
-  if (gws.includes(I.A) && memPlan(ctx)?.lineup) memOf(ctx).setLineup({ xi: null, bench: null, captain: null, vice: null });
+  if (gws.includes(I.A) && memPlan(ctx)?.lineup)
+    memOf(ctx).setLineup({ xi: null, bench: null, captain: null, vice: null });
   setLineups(ctx, I, Object.fromEntries(Object.entries(lineups(ctx, I)).filter(([g]) => !gws.includes(Number(g)))));
 }
 
@@ -91,7 +137,10 @@ function resetLineups(ctx, gws) {
  *  to the plan's best, an edit like any other (lineupEdit). Only GWs whose lineup is yours (ViewWeek.lineup). */
 export function resetLineup(ctx, gws) {
   const P = plan(ctx);
-  let own = [].concat(gws).map(Number).filter((g) => weekOf(P, g)?.lineup);
+  let own = []
+    .concat(gws)
+    .map(Number)
+    .filter((g) => weekOf(P, g)?.lineup);
   if (own.length > 1) own = own.filter((g) => !isFrozen(P, g));
   if (!own.length) return false;
   return lineupEdit(ctx, own, () => resetLineups(ctx, own), own.length > 1 ? 'Best lineups back' : 'Best lineup back');
@@ -103,7 +152,11 @@ export function resetLineup(ctx, gws) {
  *  (chipPreps). The hits rules it takes off ride on its pin (`restores`); chipOff puts them back. P: plan(ctx). */
 export function chipEdit(P, g, chip) {
   const half = halfEnd(P);
-  const drop = P.pins.filter((p) => p.kind === 'chip' && Object.values(p.chips || {}).includes(chip) && (Number(p.gw) <= half) === (g <= half)).map((p) => p.id);
+  const drop = P.pins
+    .filter(
+      (p) => p.kind === 'chip' && Object.values(p.chips || {}).includes(chip) && Number(p.gw) <= half === g <= half,
+    )
+    .map((p) => p.id);
   const restores = [];
   if (chip === 'wc' || chip === 'fh') {
     const auto = P.pins.filter((p) => p.id === `roll:${g}` || p.id === `hits:${g}`);
@@ -116,11 +169,19 @@ export function chipEdit(P, g, chip) {
   const was = (x) => chipPins(P).find((c) => c.gw === x)?.chip ?? weekOf(P, x)?.chip ?? null;
   const moved = P.pins.filter((p) => drop.includes(p.id) && p.kind === 'chip').map((p) => Number(p.gw));
   drop.push(...picksAt(P, [...moved, ...(was(g) !== chip ? [g] : [])]).map((p) => p.id));
-  return { pins: [pinChip(g, chip, { label: `${chipName(chip)} GW${g}`, ...(restores.length ? { restores } : {}) })], drop };
+  return {
+    pins: [pinChip(g, chip, { label: `${chipName(chip)} GW${g}`, ...(restores.length ? { restores } : {}) })],
+    drop,
+  };
 }
 /** A Roll (a plan's +: "GW7 roll", "GW7 lock", COPY.rollRule) or a hits rule of GW g ("Up to −4 in GW7", "FT only in
  *  GW7") in words, for the chip toasts that take it off (chipPlan) and bring it back (chipOff). */
-export const autoRuleName = (q, g) => (isRoll(q) ? COPY.rollRule(g, Number(q.caps?.[g] ?? 0)) : num(q.hits?.[g]) ? COPY.hitsUpTo(num(q.hits[g]), g) : COPY.freeOnly(g));
+export const autoRuleName = (q, g) =>
+  isRoll(q)
+    ? COPY.rollRule(g, Number(q.caps?.[g] ?? 0))
+    : num(q.hits?.[g])
+      ? COPY.hitsUpTo(num(q.hits[g]), g)
+      : COPY.freeOnly(g);
 
 /** A chip planned for GW g in words, the one way chipPlan and addPlan say it: "Free Hit planned for GW8", the chip GW g
  *  played before it (`swap`: "vs Bench Boost"; `inPlace`: "in place of Bench Boost"), the Roll and hits rules it takes
@@ -134,7 +195,10 @@ export function chipWords(P, g, chip, drop, { inPlace = false } = {}) {
   const mine = new Set(SQUAD_CHIPS.has(chip) ? transferPinsAt(P, g) : []);
   const moved = P.pins.filter((p) => mine.has(p.id) && drop.includes(p.id) && !picks.includes(p));
   const head = `${chipName(chip)} planned for GW${g}`;
-  const what = [withTaken(P, inPlace && swap ? COPY.inPlaceOf(head, swap) : head, [...rolls, ...picks, ...moved]), ...gone.map((q) => COPY.chipRemoves(autoRuleName(q, g)))].join(' · ');
+  const what = [
+    withTaken(P, inPlace && swap ? COPY.inPlaceOf(head, swap) : head, [...rolls, ...picks, ...moved]),
+    ...gone.map((q) => COPY.chipRemoves(autoRuleName(q, g))),
+  ].join(' · ');
   return { what, swap, taken: [...rolls, ...picks, ...moved, ...gone] };
 }
 /** The rules of yours (ids) that make GW g's transfers, none in a Wildcard or Free Hit week (its picks are its own):
@@ -153,12 +217,25 @@ export function chipPlan(ctx, g, chip, road = null, { less = null } = {}) {
   // (the chip it replaces there named in its words, "Bench Boost planned for GW10 in place of Free Hit": no "· +x vs
   // Free Hit" in its toast; owner, 2026-10-27)
   const { what, swap, taken } = chipWords(P, g, chip, drop, { inPlace: true });
-  const row = SQUAD_CHIPS.has(chip) && P.mem?.hold ? chipStates(ctx, P, g, chipPreps(ctx, P)).find((x) => x.chip === chip) : null;
-  const gap = row?.cmp && row.best && row.best.gw !== g && row.best.delta != null && row.best.vs === row.vs ? COPY.chipLess(row.best.delta - row.cmp.delta, row.best.gw) : null;
+  const row =
+    SQUAD_CHIPS.has(chip) && P.mem?.hold ? chipStates(ctx, P, g, chipPreps(ctx, P)).find((x) => x.chip === chip) : null;
+  const gap =
+    row?.cmp &&
+    row.best &&
+    row.best.gw !== g &&
+    row.best.delta != null &&
+    row.best.vs === ('vs' in row ? row.vs : undefined)
+      ? COPY.chipLess(row.best.delta - row.cmp.delta, row.best.gw)
+      : null;
   // the gain is the new plan against the one before, or against the chip it replaces (named as such); then no "less
   // than" the best week
   return edit(ctx, {
-    pins, drop, road, from: g, what, taken,
+    pins,
+    drop,
+    road,
+    from: g,
+    what,
+    taken,
     text: (Q, prev) => {
       const c = compare(ctx, { weeks: Q.weeks }, { weeks: prev.weeks });
       if (was == null && !swap) chipTold(Q, g, c);
@@ -174,7 +251,8 @@ export function chipOff(ctx, g) {
   const P = plan(ctx);
   const { mine, picks, pins: back, drop } = chipOffParts(P, g);
   const off = withTaken(P, `No chip in GW${g}`, picks);
-  if (!mine) return edit(ctx, { pins: [pinChip(g, null)], drop, from: g, what: off, taken: picks, text: vsPrev(ctx, off) });
+  if (!mine)
+    return edit(ctx, { pins: [pinChip(g, null)], drop, from: g, what: off, taken: picks, text: vsPrev(ctx, off) });
   const what = [off, ...back.map((q) => COPY.chipBack(autoRuleName(q, g)))].join(' · ');
   return edit(ctx, { pins: back, drop, from: g, what, taken: picks, text: vsPrev(ctx, what) });
 }
@@ -187,11 +265,15 @@ export function useChip(ctx, c, g) {
   const P = plan(ctx);
   if (weekOf(P, g)?.chip === c || chipPins(P).some((x) => x.chip === c && x.gw === g)) return chipOff(ctx, g);
   const check = chipCheck(ctx, P, c, g);
-  if (!check.ok) { toastOf(ctx)(check.reason, 'warn'); return false; }
+  if (!check.ok) {
+    toastOf(ctx)(check.reason, 'warn');
+    return false;
+  }
   const src = chipPreps(ctx, P);
   const pre = src.at(c, g);
   const best = honestBest(halfBests(P, src, g), c);
-  const less = best && best.gw !== g && pre.state === 'ready' ? COPY.chipLess(best.delta - pre.cmp.delta, best.gw) : null;
+  const less =
+    best && best.gw !== g && pre.state === 'ready' ? COPY.chipLess(best.delta - pre.cmp.delta, best.gw) : null;
   return chipPlan(ctx, g, c, pre.state === 'ready' ? pre.road : null, { less });
 }
 /** What taking GW g's chip off changes in your rules (chipOff; owner, 2026-10-13): your chip rule (`mine`) and that
@@ -209,4 +291,7 @@ export function chipOffParts(P, g, { locked = false } = {}) {
 }
 /** Your Wildcard or Free Hit in GW g that choice c ({moves, chips}) doesn't play there (owner, 2026-10-13: the week's
  *  other choices stay, each "instead of Wildcard") | null. */
-export const chipBackOf = (P, g, c) => { const ch = weekOf(P, g)?.chip ?? null; return SQUAD_CHIPS.has(ch) && !SQUAD_CHIPS.has(c?.chips?.[g]) ? ch : null; };
+export const chipBackOf = (P, g, c) => {
+  const ch = weekOf(P, g)?.chip ?? null;
+  return SQUAD_CHIPS.has(ch) && !SQUAD_CHIPS.has(c?.chips?.[g]) ? ch : null;
+};

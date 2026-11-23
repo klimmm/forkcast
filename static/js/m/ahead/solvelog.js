@@ -13,7 +13,10 @@ import { info } from './core.js';
  *  name; any other flag as it is (a season or GW never read as a player). */
 const HIDDEN_FLAG = /^--(entry|poll-max-age)=/;
 const PLAYER_FLAG = /^--(must-have|exclude|not-for-gw|for-gw|[a-z-]*(keep|sell|buy|captain|vice|bench)[a-z-]*)=/;
-const namedFlag = (L, f) => (L && PLAYER_FLAG.test(f) ? f.replace(/=(.*)$/, (_, v) => `=${v.replace(/\d{4,}/g, (id) => (L.has(Number(id)) ? L.name(Number(id)) : id))}`) : f);
+const namedFlag = (L, f) =>
+  L && PLAYER_FLAG.test(f)
+    ? f.replace(/=(.*)$/, (_, v) => `=${v.replace(/\d{4,}/g, (id) => (L.has(Number(id)) ? L.name(Number(id)) : id))}`)
+    : f;
 
 export function mountSolveLog(ctx) {
   if (!/[?&]solves=1\b/.test(location.search) || document.querySelector('.ah-solvelog')) return;
@@ -24,7 +27,14 @@ export function mountSolveLog(ctx) {
   // (your last tap or key on the page, never one on the panel: what it asked since; owner, 2026-11-03, "show solves
   // since last user action")
   let acted = 0;
-  for (const t of ['pointerdown', 'keydown']) document.addEventListener(t, (e) => { if (!el.contains(e.target)) acted = Date.now(); }, { capture: true, passive: true });
+  for (const t of ['pointerdown', 'keydown'])
+    document.addEventListener(
+      t,
+      (e) => {
+        if (!(e.target instanceof Node && el.contains(e.target))) acted = Date.now();
+      },
+      { capture: true, passive: true },
+    );
   const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
   // (a button copies the header and every line, not only the 30 shown, as plain text; owner, 2026-11-03, "add button to
   // copy logs")
@@ -38,13 +48,30 @@ export function mountSolveLog(ctx) {
     const text = [`${location.href} · ${new Date().toISOString()}`, ...said].join('\n');
     const t = Object.assign(document.createElement('textarea'), { value: text, readOnly: true });
     t.addEventListener('click', (e) => e.stopPropagation());
-    document.body.append(t); t.select();
+    document.body.append(t);
+    t.select();
     let ok = false;
-    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    try {
+      ok = document.execCommand('copy');
+    } catch {
+      ok = false;
+    }
     t.remove();
-    const flash = (w) => { copy.textContent = w; setTimeout(() => { copy.textContent = 'Copy'; }, 2000); };
+    const flash = (w) => {
+      copy.textContent = w;
+      setTimeout(() => {
+        copy.textContent = 'Copy';
+      }, 2000);
+    };
     if (ok) return flash('Copied');
-    const byHand = () => { shown?.remove(); shown = t; el.insertBefore(t, list); t.focus(); t.select(); flash('Selected'); };
+    const byHand = () => {
+      shown?.remove();
+      shown = t;
+      el.insertBefore(t, list);
+      t.focus();
+      t.select();
+      flash('Selected');
+    };
     if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => flash('Copied'), byHand);
     else byHand();
   });
@@ -56,29 +83,54 @@ export function mountSolveLog(ctx) {
   let cleared = 0;
   const clear = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Clear' });
   clear.addEventListener('click', (ev) => {
-    ev.stopPropagation(); cleared = Date.now(); acted = 0; shown?.remove(); shown = null; paint();
+    ev.stopPropagation();
+    cleared = Date.now();
+    acted = 0;
+    shown?.remove();
+    shown = null;
+    paint();
     const e = ctx.store.get('entry');
     // (…and the plan this device keeps (memory/live.js ROADS: the solver's best, read at once on a reload), so the reload
     // asks it too; owner, 2026-11-09, "remove any 'server plans' so all solves requested and cached by page")
-    if (e != null) ctx.api.clearSolves(e).then(() => {
-      for (const key of [ROADS(e), CHIP_ROADS(e)]) ctx.api.local.set(key, null);
-      location.reload();
-    }, () => {});
+    if (e != null)
+      ctx.api.clearSolves(e).then(
+        () => {
+          for (const key of [ROADS(e), CHIP_ROADS(e)]) ctx.api.local.set(key, null);
+          location.reload();
+        },
+        () => {},
+      );
   });
   // (the lines redrawn every half second in a list of their own, the buttons never: a tap spanning a redraw kept)
   const list = document.createElement('div');
   el.replaceChildren(copy, clear, list);
   // (the server's list, asked again each second; its times on this device's clock)
-  let got = { solves: [], skew: 0 }, asking = false;
+  let got = { solves: [], skew: 0 },
+    asking = false;
   const ask = () => {
     const e = ctx.store.get('entry');
     if (asking || e == null) return;
     asking = true;
-    ctx.api.getSolves(e).then((r) => { got = { solves: r?.solves ?? [], skew: Date.now() - Number(r?.now ?? 0) * 1000 }; }, () => {}).finally(() => { asking = false; paint(); });
+    ctx.api
+      .getSolves(e)
+      .then(
+        (r) => {
+          got = { solves: r?.solves ?? [], skew: Date.now() - Number(r?.now ?? 0) * 1000 };
+        },
+        () => {},
+      )
+      .finally(() => {
+        asking = false;
+        paint();
+      });
   };
   const paint = () => {
-    const L = info(ctx)?.L, named = (f) => namedFlag(L, f);
-    const now = Date.now(), asks = got.solves.map((x) => ({ ...x, at: Number(x.at) * 1000 + got.skew, ms: x.ms == null ? null : Number(x.ms) })).filter((x) => x.at >= cleared);
+    const L = info(ctx)?.L,
+      named = (f) => namedFlag(L, f);
+    const now = Date.now(),
+      asks = got.solves
+        .map((x) => ({ ...x, at: Number(x.at) * 1000 + got.skew, ms: x.ms == null ? null : Number(x.ms) }))
+        .filter((x) => x.at >= cleared);
     const live = (x) => x.state === 'running' || x.state === 'queued';
     // (one line a solve, its key's: every asker of it named and how many asks, the one that ran it its state and time;
     // an answer the server already had, "cached", ran nothing; owner, 2026-11-03, "why these are different solves": the
@@ -92,21 +144,42 @@ export function mountSolveLog(ctx) {
       g.mine ||= x.mine !== false;
       if (x.mine !== false && x.state !== 'already solved') g.ownAt = Math.min(g.ownAt ?? Infinity, x.at);
       if (!g.kinds.includes(x.kind)) g.kinds.push(x.kind);
-      if (x.state !== 'already solved' && (g.state === 'already solved' || x.at < g.at)) Object.assign(g, { at: x.at, state: x.state, ms: x.ms, what: x.what, gw: x.gw });
+      if (x.state !== 'already solved' && (g.state === 'already solved' || x.at < g.at))
+        Object.assign(g, { at: x.at, state: x.state, ms: x.ms, what: x.what, gw: x.gw });
     }
-    const mine = [...by.values()].sort((x, y) => y.at - x.at), ran = (xs) => xs.filter((x) => x.state !== 'already solved');
+    const mine = [...by.values()].sort((x, y) => y.at - x.at),
+      ran = (xs) => xs.filter((x) => x.state !== 'already solved');
     // (since your tap: the solves this browser ran, each once, from its own first ask; another page's or device's on the same
     // team are listed, marked, never counted against your tap; QA trace f, 2026-11-08: three pages on one team read 15)
-    const running = mine.filter(live).length, sinceTap = mine.filter((x) => x.ownAt != null && (!acted || x.ownAt >= acted)).length;
+    const running = mine.filter(live).length,
+      sinceTap = mine.filter((x) => x.ownAt != null && (!acted || x.ownAt >= acted)).length;
     // (an ask answered with no solve of its own (memory/values.js ANSWERED): the solve whose road answers it, by its key, and
     // when that one ran where it is no line here (kept on this device from an earlier visit); owner, 2026-11-09, "fix so
     // no solves are missing from the list")
-    const answered = [...ANSWERED.values()].filter((x) => x.at >= cleared).map((x) => ({ ...x, kinds: [x.kind], n: 1, mine: true, state: 'answered', key: x.byKey }));
-    const at = (job) => { const m = /^\d{8}-(\d\d)(\d\d)/.exec(job ?? ''); return m ? `${m[1]}:${m[2]}` : null; };
+    const answered = [...ANSWERED.values()]
+      .filter((x) => x.at >= cleared)
+      .map((x) => ({ ...x, kinds: [x.kind], n: 1, mine: true, state: 'answered', key: x.byKey }));
+    const at = (job) => {
+      const m = /^\d{8}-(\d\d)(\d\d)/.exec(job ?? '');
+      return m ? `${m[1]}:${m[2]}` : null;
+    };
     const listed = new Set(mine.map((x) => x.key));
-    const ends = (x) => (x.state === 'answered' ? `answered by #${x.key}${listed.has(x.key) || !at(x.job) ? '' : ` (solved at ${at(x.job)}, kept on this device)`}`
-      : x.state === 'running' ? `solving, ${secs(now - x.at)}` : x.state === 'queued' ? `waiting, ${secs(now - x.at)}`
-      : x.state === 'already solved' ? (x.baked ? `no solve: the lineups${x.ms != null ? ` in ${x.ms < 1000 ? `${x.ms} ms` : secs(x.ms)}` : ''}` : 'cached') : x.state === 'done' ? `solved in ${secs(x.ms ?? 0)}` : x.ms != null ? `${x.state} in ${secs(x.ms)}` : x.state);
+    const ends = (x) =>
+      x.state === 'answered'
+        ? `answered by #${x.key}${listed.has(x.key) || !at(x.job) ? '' : ` (solved at ${at(x.job)}, kept on this device)`}`
+        : x.state === 'running'
+          ? `solving, ${secs(now - x.at)}`
+          : x.state === 'queued'
+            ? `waiting, ${secs(now - x.at)}`
+            : x.state === 'already solved'
+              ? x.baked
+                ? `no solve: the lineups${x.ms != null ? ` in ${x.ms < 1000 ? `${x.ms} ms` : secs(x.ms)}` : ''}`
+                : 'cached'
+              : x.state === 'done'
+                ? `solved in ${secs(x.ms ?? 0)}`
+                : x.ms != null
+                  ? `${x.state} in ${secs(x.ms)}`
+                  : x.state;
     const head = `${running} running · ${sinceTap} since tap · ${ran(mine).length} solved · ${mine.length - ran(mine).length} cached · ${answered.length} answered · ${asks.length} asks`;
     // (each line starts "•", a wrapped one indented under it: where a line starts is seen at once; owner, 2026-11-03)
     // (the flags its solve passes the solver, as its job runs them (the server's `flags`), its players by name, never words
@@ -116,8 +189,12 @@ export function mountSolveLog(ctx) {
     // owner, 2026-11-09, "dont display '--entry=383130'", "dont disply --poll-max-age=100000")
     // (none for a road the lineups answered: no solver ran, no flags passed; owner, 2026-11-11, "where it says no solve
     // don't show all those flags")
-    const what = (x) => { const fs = x.baked ? [] : (x.flags ?? []).filter((f) => !HIDDEN_FLAG.test(f)); return fs.length ? ` · ${fs.map(named).join(' ')}` : ''; };
-    const line = (x) => `• ${x.gw != null ? `GW${x.gw}` : 'GW?'} · ${x.kinds.join(' + ')}${what(x)} · ${ends(x)}${x.n > 1 ? ` · asked ${x.n}×` : ''}${x.mine ? '' : ' · another page'}`;
+    const what = (x) => {
+      const fs = x.baked ? [] : (x.flags ?? []).filter((f) => !HIDDEN_FLAG.test(f));
+      return fs.length ? ` · ${fs.map(named).join(' ')}` : '';
+    };
+    const line = (x) =>
+      `• ${x.gw != null ? `GW${x.gw}` : 'GW?'} · ${x.kinds.join(' + ')}${what(x)} · ${ends(x)}${x.n > 1 ? ` · asked ${x.n}×` : ''}${x.mine ? '' : ' · another page'}`;
     // (each solve's key on screen as in the copy, so "answered by #…" names a line you can see; an answered line's own
     // key is the one it names, never twice; owner, 2026-11-09, "why '#6e6b2979' not displayed in logs only when i copy")
     const all = [...mine, ...answered].sort((x, y) => y.at - x.at);
@@ -125,7 +202,13 @@ export function mountSolveLog(ctx) {
     said = [head, ...all.map(full)];
     list.replaceChildren(
       Object.assign(document.createElement('b'), { textContent: head }),
-      ...all.slice(0, 30).map((x) => Object.assign(document.createElement('div'), { className: live(x) ? 'solving' : x.state === 'done' ? 'solved' : x.state, textContent: full(x) })));
+      ...all.slice(0, 30).map((x) =>
+        Object.assign(document.createElement('div'), {
+          className: live(x) ? 'solving' : x.state === 'done' ? 'solved' : x.state,
+          textContent: full(x),
+        }),
+      ),
+    );
   };
   ask();
   setInterval(ask, 1000);

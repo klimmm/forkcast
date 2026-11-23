@@ -45,17 +45,56 @@ export const HELP_OFF = true;
 export const CHIPS_OFF = false;
 
 export {
-  gwFlags, OUT, newsReason, statusText, hitCap, horizonFeature, planWeeks
+  gwFlags,
+  OUT,
+  newsReason,
+  statusText,
+  hitCap,
+  horizonFeature,
+  planWeeks,
 } from './calls/helpers.js';
 export {
-  sentence, COPY, liveCheck
+  sentence,
+  COPY,
+  liveCheck,
 } from './calls/copy.js';
 export {
-  planInputs, compare, transfersOf, hitsOf, plannerOf, plannerReason, windowGap, counted, shownDelta, hitBook, changeText,
-  forcedNew, withForced, rulesCost, captainGap, subGap, planFromRoad, handoffMoves
+  planInputs,
+  compare,
+  transfersOf,
+  hitsOf,
+  plannerOf,
+  plannerReason,
+  windowGap,
+  counted,
+  shownDelta,
+  hitBook,
+  changeText,
+  forcedNew,
+  withForced,
+  rulesCost,
+  captainGap,
+  subGap,
+  planFromRoad,
+  handoffMoves,
 } from './calls/measure.js';
 export {
-  PRICE_WORD, priceSaid, priceNights, shownPlayers, withPrices, priceOutlook, nightWords, pricePlate, priceProgress, saleStep, priceWatch,
-  priceMorning, clockText, waitedText, waitLines, stepShare,
-  waitFacts, waitFact
+  PRICE_WORD,
+  priceSaid,
+  priceNights,
+  shownPlayers,
+  withPrices,
+  priceOutlook,
+  nightWords,
+  pricePlate,
+  priceProgress,
+  saleStep,
+  priceWatch,
+  priceMorning,
+  clockText,
+  waitedText,
+  waitLines,
+  stepShare,
+  waitFacts,
+  waitFact,
 } from './calls/prices.js';

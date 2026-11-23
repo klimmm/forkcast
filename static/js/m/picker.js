@@ -45,7 +45,11 @@ export function readId(text) {
 }
 
 /** Near-enough copy of the server's folding, for highlighting (api/search.py fold: NFKD, marks dropped, case-folded). */
-export const fold = (s) => String(s ?? '').normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
+export const fold = (s) =>
+  String(s ?? '')
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase();
 
 /** name split around the query's match (folded), a word-start match first: [{text, hit}]. */
 export function parts(name, query) {
@@ -59,7 +63,10 @@ export function parts(name, query) {
   let at = 0;
   for (const ch of chars) {
     const f = fold(ch);
-    for (const c of f) { folded += c; from.push(at); }
+    for (const c of f) {
+      folded += c;
+      from.push(at);
+    }
     at += ch.length;
   }
   from.push(src.length);
@@ -67,30 +74,71 @@ export function parts(name, query) {
   for (let i = folded.indexOf(q); i >= 0; i = folded.indexOf(q, i + 1)) starts.push(i);
   if (!starts.length) return [{ text: src, hit: false }];
   const word = starts.find((i) => i === 0 || !/[\p{L}\p{N}]/u.test(folded[i - 1])) ?? starts[0];
-  const a = from[word], b = from[word + q.length] ?? src.length;
-  return [{ text: src.slice(0, a), hit: false }, { text: src.slice(a, b), hit: true }, { text: src.slice(b), hit: false }].filter((p) => p.text);
+  const a = from[word],
+    b = from[word + q.length] ?? src.length;
+  return [
+    { text: src.slice(0, a), hit: false },
+    { text: src.slice(a, b), hit: true },
+    { text: src.slice(b), hit: false },
+  ].filter((p) => p.text);
 }
 
 let seq = 0;
 /** Team search unavailable (or silent) on this page: every picker asks for the ID only until it answers. */
 let searchDown = false;
 
-export function teamPicker(ctx, { value = '', onPick, onWhere = null, recent = 3, label = COPY.label } = {}) {
+export function teamPicker(
+  ctx,
+  {
+    value = '',
+    onPick,
+    onWhere = null,
+    recent = 3,
+    label = COPY.label,
+  } = /** @type {{value?: string|number, onPick?: (entry, row?) => unknown, onWhere?: (where) => unknown, recent?: number, label?: string}} */ ({}),
+) {
   const { h, fill } = ctx.ui;
   const id = `fc-tp-${++seq}`;
   const field = h('input.m-field', {
-    id, type: 'text', inputmode: 'text', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false',
-    enterkeyhint: 'go', placeholder: searchDown ? COPY.placeholderId : COPY.placeholder, value, role: 'combobox', 'aria-autocomplete': 'list',
-    'aria-expanded': 'false', 'aria-controls': `${id}-list`, 'aria-describedby': `${id}-msg`,
+    id,
+    type: 'text',
+    inputmode: 'text',
+    autocomplete: 'off',
+    autocapitalize: 'off',
+    autocorrect: 'off',
+    spellcheck: 'false',
+    enterkeyhint: 'go',
+    placeholder: searchDown ? COPY.placeholderId : COPY.placeholder,
+    value,
+    role: 'combobox',
+    'aria-autocomplete': 'list',
+    'aria-expanded': 'false',
+    'aria-controls': `${id}-list`,
+    'aria-describedby': `${id}-msg`,
   });
   const list = h('ul.m-tp-list', { id: `${id}-list`, role: 'listbox', 'aria-label': 'Teams', hidden: true });
   const msg = h('div.m-tp-msg', { id: `${id}-msg`, 'aria-live': 'polite' });
   const el = h('div.m-tp', null, h('label.m-label', { htmlFor: id }, label), h('div.m-tp-box', null, field, list), msg);
   const S = { results: [], active: -1, timer: null, ctrl: null, q: '', confirmed: null };
 
-  const say = (text, tone = '', extra = null) => { msg.className = `m-tp-msg ${tone}`; fill(msg, text || null, extra); };
+  const say = (text, tone = '', extra = null) => {
+    msg.className = `m-tp-msg ${tone}`;
+    fill(msg, text || null, extra);
+  };
   // the brackets stay on the link's line (no "(" left at a line end)
-  const where = (idHint) => (onWhere ? [' ', h('span.m-tp-nw', null, '(', h('button.m-tp-where', { type: 'button', onClick: () => onWhere(idHint) }, COPY.where), ')')] : null);
+  const where = (idHint) =>
+    onWhere
+      ? [
+          ' ',
+          h(
+            'span.m-tp-nw',
+            null,
+            '(',
+            h('button.m-tp-where', { type: 'button', onClick: () => onWhere(idHint) }, COPY.where),
+            ')',
+          ),
+        ]
+      : null;
 
   function close() {
     list.hidden = true;
@@ -99,16 +147,35 @@ export function teamPicker(ctx, { value = '', onPick, onWhere = null, recent = 3
     S.active = -1;
   }
   function paint() {
-    if (!S.results.length) { fill(list); close(); return; }
-    fill(list, S.results.map((r, i) => h('li.m-tp-opt', {
-      id: `${id}-o${i}`, role: 'option', 'aria-selected': String(i === S.active), dataset: { id: r.id },
-      // keep the field focused (the keyboard up) while a finger picks
-      onPointerdown: (e) => e.preventDefault(),
-      onClick: () => pick(r),
-    },
-    h('span.m-tp-flag', { 'aria-hidden': 'true' }, r.flag || '·'),
-    h('span.m-tp-name', null, parts(r.name, S.q).map((p) => (p.hit ? h('b', null, p.text) : p.text))),
-    h('span.m-tp-sub', null, [r.manager, r.region, `#${r.id}`].filter(Boolean).join(' · ')))));
+    if (!S.results.length) {
+      fill(list);
+      close();
+      return;
+    }
+    fill(
+      list,
+      S.results.map((r, i) =>
+        h(
+          'li.m-tp-opt',
+          {
+            id: `${id}-o${i}`,
+            role: 'option',
+            'aria-selected': String(i === S.active),
+            dataset: { id: r.id },
+            // keep the field focused (the keyboard up) while a finger picks
+            onPointerdown: (e) => e.preventDefault(),
+            onClick: () => pick(r),
+          },
+          h('span.m-tp-flag', { 'aria-hidden': 'true' }, r.flag || '·'),
+          h(
+            'span.m-tp-name',
+            null,
+            parts(r.name, S.q).map((p) => (p.hit ? h('b', null, p.text) : p.text)),
+          ),
+          h('span.m-tp-sub', null, [r.manager, r.region, `#${r.id}`].filter(Boolean).join(' · ')),
+        ),
+      ),
+    );
     list.hidden = false;
     field.setAttribute('aria-expanded', 'true');
     if (S.active >= 0) field.setAttribute('aria-activedescendant', `${id}-o${S.active}`);
@@ -134,7 +201,10 @@ export function teamPicker(ctx, { value = '', onPick, onWhere = null, recent = 3
     const ctrl = new AbortController();
     S.ctrl = ctrl;
     try {
-      const out = await ctx.api.request('GET', '/api/m/search', { query: { q, limit: SEARCH.limit }, signal: ctrl.signal });
+      const out = await ctx.api.request('GET', '/api/m/search', {
+        query: { q, limit: SEARCH.limit },
+        signal: ctrl.signal,
+      });
       if (ctrl.signal.aborted || S.ctrl !== ctrl) return;
       down(false);
       const results = (out?.results || []).slice(0, SEARCH.limit);
@@ -155,21 +225,25 @@ export function teamPicker(ctx, { value = '', onPick, onWhere = null, recent = 3
       S.results = [];
       paint();
       if (e?.code === 'unreachable' || e?.code === 'timeout' || e?.status === 503) down(true);
-      if (idOnly) { say(COPY.idOnly(idOnly)); return; }
+      if (idOnly) {
+        say(COPY.idOnly(idOnly));
+        return;
+      }
       if (e?.status === 429) {
         // the server's burst window is 2 s: ask once more after it, if the text is still the same
         say(COPY.tooFast, 'quiet');
         clearTimeout(S.timer);
-        S.timer = setTimeout(() => { if (field.value.trim().replace(/\s+/g, ' ').slice(0, SEARCH.max) === q) search(q); }, 2100);
-      }
-      else if (e?.code === 'unreachable' || e?.code === 'timeout' || e?.status === 503) say(COPY.offline, 'warn');
+        S.timer = setTimeout(() => {
+          if (field.value.trim().replace(/\s+/g, ' ').slice(0, SEARCH.max) === q) search(q);
+        }, 2100);
+      } else if (e?.code === 'unreachable' || e?.code === 'timeout' || e?.status === 503) say(COPY.offline, 'warn');
       else if (e?.status !== 400) say(ctx.api.plain(e), 'warn');
     }
   }
 
   function onInput() {
     field.classList.remove('bad');
-    el.classList.toggle('active', !!field.value.trim());  // Connect lifts its form while you type (m.css)
+    el.classList.toggle('active', !!field.value.trim()); // Connect lifts its form while you type (m.css)
     clearTimeout(S.timer);
     const v = field.value;
     const idv = readId(v);
@@ -183,16 +257,31 @@ export function teamPicker(ctx, { value = '', onPick, onWhere = null, recent = 3
       if (idv.length >= SEARCH.min) S.timer = setTimeout(() => search(idv, { idOnly: idv }), SEARCH.debounceMs);
       return;
     }
-    if (S.q.length < SEARCH.min) { S.ctrl?.abort(); S.results = []; paint(); say(null); return; }
+    if (S.q.length < SEARCH.min) {
+      S.ctrl?.abort();
+      S.results = [];
+      paint();
+      say(null);
+      return;
+    }
     S.timer = setTimeout(() => search(S.q.slice(0, SEARCH.max)), SEARCH.debounceMs);
   }
 
   /** Enter / Find my team: highlighted suggestion, else typed ID, else the only suggestion. */
   function submit() {
     const idv = readId(field.value);
-    if (S.active >= 0 && S.results[S.active]) { pick(S.results[S.active]); return true; }
-    if (idv) { pick(S.confirmed ?? { id: idv, name: null }); return true; }
-    if (S.results.length === 1) { pick(S.results[0]); return true; }
+    if (S.active >= 0 && S.results[S.active]) {
+      pick(S.results[S.active]);
+      return true;
+    }
+    if (idv) {
+      pick(S.confirmed ?? { id: idv, name: null });
+      return true;
+    }
+    if (S.results.length === 1) {
+      pick(S.results[0]);
+      return true;
+    }
     field.classList.add('bad');
     say(!field.value.trim() ? COPY.empty : searchDown ? COPY.offline : COPY.pick, 'bad', where(null));
     return false;
@@ -205,27 +294,63 @@ export function teamPicker(ctx, { value = '', onPick, onWhere = null, recent = 3
 
   field.addEventListener('input', onInput);
   field.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); move(1); } else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); } else if (e.key === 'Enter') { e.preventDefault(); submit(); } else if (e.key === 'Escape' && !list.hidden) { e.preventDefault(); e.stopPropagation(); close(); }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      move(1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      move(-1);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      submit();
+    } else if (e.key === 'Escape' && !list.hidden) {
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+    }
   });
   field.addEventListener('blur', () => setTimeout(close, 150));
-  field.addEventListener('focus', () => { if (S.results.length) paint(); });
+  field.addEventListener('focus', () => {
+    if (S.results.length) paint();
+  });
 
   // Recent: a full-width row per team (name, manager and ID under it, points on the right when kept)
   const rows = ctx.api.recent.list().slice(0, recent);
-  const recentEl = h('section.m-recent', { hidden: !rows.length, 'aria-label': COPY.recent },
+  const recentEl = h(
+    'section.m-recent',
+    { hidden: !rows.length, 'aria-label': COPY.recent },
     h('h3.m-recent-h', null, COPY.recent),
-    rows.map((r) => h('button.m-recent-row', {
-      type: 'button', 'aria-label': `${r.team_name ? `${r.team_name}, team ID` : 'Team ID'} ${r.entry_id}`,
-      onClick: () => pick({ id: r.entry_id, name: r.team_name }),
-    },
-    h('span.m-recent-t', null, h('b', null, r.team_name || `Team ${r.entry_id}`),
-      h('small.m-num', null, [r.manager, r.entry_id].filter(Boolean).join(' · '))),
-    r.total != null && Number.isFinite(Number(r.total)) ? h('span.m-recent-pts.m-num', null, `${r.total} pts`) : null)));
+    rows.map((r) =>
+      h(
+        'button.m-recent-row',
+        {
+          type: 'button',
+          'aria-label': `${r.team_name ? `${r.team_name}, team ID` : 'Team ID'} ${r.entry_id}`,
+          onClick: () => pick({ id: r.entry_id, name: r.team_name }),
+        },
+        h(
+          'span.m-recent-t',
+          null,
+          h('b', null, r.team_name || `Team ${r.entry_id}`),
+          h('small.m-num', null, [r.manager, r.entry_id].filter(Boolean).join(' · ')),
+        ),
+        r.total != null && Number.isFinite(Number(r.total))
+          ? h('span.m-recent-pts.m-num', null, `${r.total} pts`)
+          : null,
+      ),
+    ),
+  );
   if (readId(value)) onInput();
 
   return {
-    el, recent: recentEl, field, submit,
+    el,
+    recent: recentEl,
+    field,
+    submit,
     focus: () => field.focus({ preventScroll: true }),
-    destroy() { clearTimeout(S.timer); S.ctrl?.abort(); },
+    destroy() {
+      clearTimeout(S.timer);
+      S.ctrl?.abort();
+    },
   };
 }

@@ -1,14 +1,40 @@
 // engine.js: drafts, chips and the evaluation
 
-import { CHIPS, FT_WEEKLY, HIT_COST, LAST_ROUND, M, MAX_HORIZON, MAX_PER_CLUB, T, chipHalf, ftGrant, ids, lineupFor, money, newId, nextFt, num, playerLookup, seasonLong, sortedGws, sum } from './squad.js';
+import {
+  CHIPS,
+  FT_WEEKLY,
+  HIT_COST,
+  LAST_ROUND,
+  M,
+  MAX_HORIZON,
+  MAX_PER_CLUB,
+  T,
+  chipHalf,
+  ftGrant,
+  ids,
+  lineupFor,
+  money,
+  newId,
+  nextFt,
+  num,
+  playerLookup,
+  seasonLong,
+  sortedGws,
+  sum,
+} from './squad.js';
 
 // ---------------------------------------------------------------- drafts (immutable)
 
-export function createDraft({ name = 'My plan', source = 'manual', id } = {}) {
+/** @typedef {{out: number, in: number}} DraftMove */
+/** @typedef {{xi?: number[], bench?: number[], captain?: number, vice?: number}} DraftLineup */
+/** @typedef {{id: string, name: string, source: string, created: number,
+ * moves: Record<number, DraftMove[]>, chips: Record<number, string>, lineups: Record<number, DraftLineup>, solver?: {from: number|null, w: number|null, pool: string|null, argv: string[], finishedAt: number|null, pred: Record<number, number|null>, hits: Record<number, number|null>, warnings: string[]}}} Draft */
+/** @returns {Draft} */
+export function createDraft(
+  { name = 'My plan', source = 'manual', id } = /** @type {{name?: string, source?: string, id?: string}} */ ({}),
+) {
   return { id: id ?? newId(), name, source, created: Date.now(), moves: {}, chips: {}, lineups: {} };
 }
-
-
 
 /** draft with draft[field][gw] = value (undefined drops the key). */
 function withGw(draft, field, gw, value) {
@@ -23,11 +49,12 @@ export const chipAt = (draft, gw) => (CHIPS.includes(draft?.chips?.[gw]) ? draft
 
 /** Sell outId for inId in GW gw, kept net per GW (the solver counts transfers as net buys, team.py:91). */
 export function applyMove(draft, gw, outId, inId) {
-  const o = Number(outId), n = Number(inId);
+  const o = Number(outId),
+    n = Number(inId);
   if (!Number.isFinite(o) || !Number.isFinite(n) || o === n) return draft;
   const list = movesAt(draft, gw).map((m) => ({ out: Number(m.out), in: Number(m.in) }));
-  const j = list.findIndex((m) => m.in === o);   // selling a player bought this GW: A→o, o→n = A→n
-  const k = list.findIndex((m) => m.out === n);  // buying back a player sold this GW: n→B, o→n = o→B
+  const j = list.findIndex((m) => m.in === o); // selling a player bought this GW: A→o, o→n = A→n
+  const k = list.findIndex((m) => m.out === n); // buying back a player sold this GW: n→B, o→n = o→B
   if (j >= 0) {
     if (list[j].out === n) list.splice(j, 1);
     else list[j] = { out: list[j].out, in: n };
@@ -37,7 +64,6 @@ export function applyMove(draft, gw, outId, inId) {
   } else list.push({ out: o, in: n });
   return withGw(draft, 'moves', gw, list.length ? list : undefined);
 }
-
 
 /** Play `chip` in GW gw (null clears it). One per half: the same chip elsewhere in gw's half moves here (a season-long
  * 2024 chip is checked by canUseChip / evaluate). */
@@ -52,7 +78,6 @@ export function setChip(draft, gw, chip) {
   } else delete chips[String(gw)];
   return { ...draft, chips };
 }
-
 
 export function setLineup(draft, gw, patch) {
   if (patch === null) return withGw(draft, 'lineups', gw, undefined);
@@ -69,13 +94,22 @@ export function setLineup(draft, gw, patch) {
  * Whether `chip` can be planned for GW gw. One per half (chips.py:216-224, HALF = 19), once a season for 2024's
  * fh/bb/tc (chips.py:50); in base.gw's own half (or season) only the chips /api/entry lists as left.
  */
-export function canUseChip({ base, draft, gw, chip } = {}) {
+export function canUseChip(
+  {
+    base,
+    draft,
+    gw,
+    chip,
+  } = /** @type {{base?: {season?: number, gw?: number, next_gw?: number, chips_available?: string[]}, draft?: Partial<Draft>, gw?: number, chip?: string}} */ ({}),
+) {
   if (!CHIPS.includes(chip)) return { ok: false, reason: `unknown chip ${chip}` };
   const label = chip.toUpperCase();
   const g = Number(gw);
   const first = Number(base?.gw ?? base?.next_gw);
   const long = seasonLong(base?.season, chip);
-  const other = sortedGws(draft?.chips).find((x) => x !== g && draft.chips[x] === chip && (long || chipHalf(x) === chipHalf(g)));
+  const other = sortedGws(draft?.chips).find(
+    (x) => x !== g && draft.chips[x] === chip && (long || chipHalf(x) === chipHalf(g)),
+  );
   if (other !== undefined) return { ok: false, reason: `${label} is already planned for GW${other}` };
   const left = base?.chips_available;
   if (Array.isArray(left) && (long || chipHalf(g) === chipHalf(first)) && !left.includes(chip)) {
@@ -87,6 +121,7 @@ export function canUseChip({ base, draft, gw, chip } = {}) {
 // ---------------------------------------------------------------- evaluation
 
 /** The GWs a plan covers: `horizon` GWs from base.gw (1..5, never past GW38), or the GW list given. */
+/** @param {object} base @param {number|number[]} [horizon] */
 export function planGws(base, horizon = 4) {
   if (Array.isArray(horizon)) return ids(horizon).sort((a, b) => a - b);
   const first = Number(base?.gw ?? base?.next_gw);
@@ -110,12 +145,14 @@ export function weekPoints(week, xpOf) {
 
 /** One move on working copies of the squad and its sale prices; prices in tenths. */
 function applyOne(L, squad, sale, m) {
-  const o = Number(m?.out), n = Number(m?.in);
+  const o = Number(m?.out),
+    n = Number(m?.in);
   const idx = squad.indexOf(o);
   if (idx < 0) return { ok: false, reason: `${L.name(o)} is not in the squad` };
   if (squad.includes(n)) return { ok: false, reason: `${L.name(n)} is already in the squad` };
   if (!L.has(n) || L.priceT(n) === null) return { ok: false, reason: `no price for player ${L.name(n)}` };
-  if (L.pos(o) !== L.pos(n)) return { ok: false, reason: `${L.name(o)} (${L.pos(o)}) and ${L.name(n)} (${L.pos(n)}) play different positions` };
+  if (L.pos(o) !== L.pos(n))
+    return { ok: false, reason: `${L.name(o)} (${L.pos(o)}) and ${L.name(n)} (${L.pos(n)}) play different positions` };
   const sellT = sale.get(o) ?? L.priceT(o) ?? 0;
   const buyT = L.priceT(n);
   squad[idx] = n;
@@ -129,17 +166,32 @@ function applyOne(L, squad, sale, m) {
 function overClubs(L, squad, held = []) {
   const count = (ps) => {
     const n = new Map();
-    for (const p of ps) { const c = L.club(p); if (c) n.set(c, (n.get(c) || 0) + 1); }
+    for (const p of ps) {
+      const c = L.club(p);
+      if (c) n.set(c, (n.get(c) || 0) + 1);
+    }
     return n;
   };
   const h = count(held);
-  return [...count(squad)].filter(([c, k]) => k > Math.max(MAX_PER_CLUB, h.get(c) || 0)).map(([c, k]) => ({ club: c, count: k }));
+  return [...count(squad)]
+    .filter(([c, k]) => k > Math.max(MAX_PER_CLUB, h.get(c) || 0))
+    .map(([c, k]) => ({ club: c, count: k }));
 }
 
 /**
  * The draft played out over the planned GWs, accounted as the solver's Team does (team.py:84-97, 155-176, 208-264).
  */
-export function evaluate({ base, players, draft, horizon = 4, xp: xpAt, fixedLineups = false, banksOnly = false } = {}) {
+export function evaluate(
+  {
+    base,
+    players,
+    draft,
+    horizon = 4,
+    xp: xpAt,
+    fixedLineups = false,
+    banksOnly = false,
+  } = /** @type {{base?: {squad?: {id: number}[], season?: number, gw?: number, next_gw?: number, fresh?: boolean, bank?: number, ft?: number}, players?: object, draft?: Partial<Draft>, horizon?: number|number[], xp?: (id: number, gw: number) => number|null, fixedLineups?: boolean, banksOnly?: boolean}} */ ({}),
+) {
   const L = playerLookup({ base, players });
   const score = typeof xpAt === 'function' ? (id, g) => num(xpAt(id, g)) : L.xp;
   const pick = fixedLineups ? L.xp : score;
@@ -147,14 +199,16 @@ export function evaluate({ base, players, draft, horizon = 4, xp: xpAt, fixedLin
   const season = base?.season;
   const warnings = [];
   const first = Number(base?.gw ?? base?.next_gw);
-  if (gws.length && Number.isFinite(first) && gws[0] !== first) warnings.push(`the plan starts at GW${gws[0]}, the team is for GW${first}`);
+  if (gws.length && Number.isFinite(first) && gws[0] !== first)
+    warnings.push(`the plan starts at GW${gws[0]}, the team is for GW${first}`);
   for (const g of new Set([...sortedGws(draft?.moves), ...sortedGws(draft?.chips)])) {
-    if (!gws.includes(g) && (movesAt(draft, g).length || chipAt(draft, g))) warnings.push(`GW${g} is outside the planned GWs and is ignored`);
+    if (!gws.includes(g) && (movesAt(draft, g).length || chipAt(draft, g)))
+      warnings.push(`GW${g} is outside the planned GWs and is ignored`);
   }
 
   // state carried into each GW: squad (ordered), sale prices (tenths), bank (tenths), FTs
   let squad = ids((base?.squad || []).map((r) => r.id));
-  const held = base?.fresh === true ? [] : [...squad];  // owned at the anchor (solve.py owned_at_anchor)
+  const held = base?.fresh === true ? [] : [...squad]; // owned at the anchor (solve.py owned_at_anchor)
   let sale = new Map(squad.map((p) => [p, L.sellT(p) ?? L.priceT(p) ?? 0]));
   let bank = T(base?.bank) ?? 0;
   let ft = num(base?.ft) ?? FT_WEEKLY;
@@ -167,19 +221,35 @@ export function evaluate({ base, players, draft, horizon = 4, xp: xpAt, fixedLin
     if (i > 0) ft = nextFt(ft, prevUsed, ftGrant(season, gw));
     const w = [];
     const chip = chipAt(draft, gw);
-    if (chip) { const c = canUseChip({ base, draft, gw, chip }); if (!c.ok) w.push(c.reason); }
+    if (chip) {
+      const c = canUseChip({ base, draft, gw, chip });
+      if (!c.ok) w.push(c.reason);
+    }
     // a wildcard, a free hit and a fresh build's first GW are unlimited (team.py:88-89; solve.py:564)
     const free = chip === 'wc' || chip === 'fh' || (i === 0 && base?.fresh === true);
 
-    const sq = [...squad], sp = new Map(sale), repl = new Map(replacedBy);
+    const sq = [...squad],
+      sp = new Map(sale),
+      repl = new Map(replacedBy);
     let bk = bank;
     const moves = movesAt(draft, gw).map((m) => {
       const r = applyOne(L, sq, sp, m);
-      if (r.ok) { bk += r.sellT - r.buyT; repl.set(Number(m.out), Number(m.in)); }
-      else w.push(`move ${L.name(m.out)} → ${L.name(m.in)} skipped: ${r.reason}`);
-      return { out: Number(m.out), in: Number(m.in), ok: r.ok, reason: r.ok ? '' : r.reason, sell: M(r.sellT), buy: M(r.buyT), xpDelta: 0 };
+      if (r.ok) {
+        bk += r.sellT - r.buyT;
+        repl.set(Number(m.out), Number(m.in));
+      } else w.push(`move ${L.name(m.out)} → ${L.name(m.in)} skipped: ${r.reason}`);
+      return {
+        out: Number(m.out),
+        in: Number(m.in),
+        ok: r.ok,
+        reason: r.ok ? '' : r.reason,
+        sell: M(r.sellT),
+        buy: M(r.buyT),
+        xpDelta: 0,
+      };
     });
-    const before = new Set(squad), after = new Set(sq);
+    const before = new Set(squad),
+      after = new Set(sq);
     const bought = sq.filter((p) => !before.has(p));
     const sold = squad.filter((p) => !after.has(p));
     // team.py:88-93: transfers are the net buys; a wildcard / free hit "uses" ft_weekly, no hits
@@ -188,8 +258,24 @@ export function evaluate({ base, players, draft, horizon = 4, xp: xpAt, fixedLin
     const hits = free ? 0 : Math.max(0, transfers - ft);
 
     if (bk < 0) w.push(`over budget by ${money(bk)}`);
-    for (const { club, count } of overClubs(L, sq, free ? [] : held)) w.push(`${count} players from ${club} (max ${MAX_PER_CLUB})`);
-    if (banksOnly) out.push({ gw, chip, squad: sq, bank: M(bk), ft, transfers, used, hits, moves, bought, sold, warnings: w, ok: !w.length });
+    for (const { club, count } of overClubs(L, sq, free ? [] : held))
+      w.push(`${count} players from ${club} (max ${MAX_PER_CLUB})`);
+    if (banksOnly)
+      out.push({
+        gw,
+        chip,
+        squad: sq,
+        bank: M(bk),
+        ft,
+        transfers,
+        used,
+        hits,
+        moves,
+        bought,
+        sold,
+        warnings: w,
+        ok: !w.length,
+      });
     else {
       const lineup = lineupFor(L, gw, sq, draft?.lineups?.[gw], repl, w, pick);
       const xp = {};
@@ -203,13 +289,34 @@ export function evaluate({ base, players, draft, horizon = 4, xp: xpAt, fixedLin
       const hitCost = HIT_COST * hits;
 
       out.push({
-        gw, chip, squad: sq, ...lineup, bank: M(bk), ft, transfers, used, hits, hitCost, moves, bought, sold,
-        points: gross - hitCost, gross, xp, sell: Object.fromEntries([...sp].map(([p, t]) => [p, M(t)])),
-        warnings: w, ok: !w.length,
+        gw,
+        chip,
+        squad: sq,
+        ...lineup,
+        bank: M(bk),
+        ft,
+        transfers,
+        used,
+        hits,
+        hitCost,
+        moves,
+        bought,
+        sold,
+        points: gross - hitCost,
+        gross,
+        xp,
+        sell: Object.fromEntries([...sp].map(([p, t]) => [p, M(t)])),
+        warnings: w,
+        ok: !w.length,
       });
     }
     // a free hit's squad and bank are thrown away; its FT accounting is not (team.py:161, 175)
-    if (chip !== 'fh') { squad = sq; sale = sp; bank = bk; replacedBy = repl; }
+    if (chip !== 'fh') {
+      squad = sq;
+      sale = sp;
+      bank = bk;
+      replacedBy = repl;
+    }
     prevUsed = used;
   });
 

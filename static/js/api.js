@@ -8,7 +8,7 @@ export class ApiError extends Error {
     this.status = status;
     this.detail = detail;
     this.path = path;
-    this.retryAfter = retryAfter;  // a 429's wait, seconds (the server's retry_after)
+    this.retryAfter = retryAfter; // a 429's wait, seconds (the server's retry_after)
   }
 }
 
@@ -25,11 +25,14 @@ export function qs(params) {
 
 export const enc = encodeURIComponent;
 
-async function request(method, path, { query, body } = {}) {
+/** @param {{query?: Record<string, unknown>, body?: unknown}} [options] */
+async function request(method, path, options = {}) {
+  const { query, body } = options;
   const url = path + qs(query);
+  /** @type {RequestInit} */
   const init = { method, headers: { Accept: 'application/json' } };
   if (body !== undefined) {
-    init.headers['Content-Type'] = 'application/json';
+    init.headers = { Accept: 'application/json', 'Content-Type': 'application/json' };
     init.body = JSON.stringify(body);
   }
   let res;
@@ -37,7 +40,8 @@ async function request(method, path, { query, body } = {}) {
     res = await fetch(url, init);
   } catch (e) {
     throw new ApiError('The Studio server is not reachable. Is `python forkcast/ui/server.py` still running?', {
-      detail: String(e), path,
+      detail: String(e),
+      path,
     });
   }
   const text = await res.text();
@@ -46,12 +50,16 @@ async function request(method, path, { query, body } = {}) {
     payload = text ? JSON.parse(text) : null;
   } catch {
     throw new ApiError(`${method} ${path} returned HTTP ${res.status} that is not JSON`, {
-      status: res.status, detail: text.slice(0, 2000), path,
+      status: res.status,
+      detail: text.slice(0, 2000),
+      path,
     });
   }
   if (!res.ok || !payload || payload.ok !== true) {
     throw new ApiError(payload?.error || `${method} ${path} failed with HTTP ${res.status}`, {
-      status: res.status, detail: payload?.detail || '', path,
+      status: res.status,
+      detail: payload?.detail || '',
+      path,
     });
   }
   return payload.data;
@@ -71,7 +79,13 @@ export function jobsChanged() {
 export const publishJobs = (detail) => globalThis.dispatchEvent?.(new CustomEvent('fss:joblist', { detail }));
 /** onList(jobs) per published list (first now), onError(e) on failure → unsubscribe. */
 export function watchJobs(onList, onError) {
-  const fn = ({ detail }) => (detail.error ? onError?.(detail.error) : onList(detail.jobs));
+  /** @param {Event} event */
+  const fn = (event) => {
+    if (!(event instanceof CustomEvent)) return;
+    const { detail } = event;
+    if (detail.error) onError?.(detail.error);
+    else onList(detail.jobs);
+  };
   globalThis.addEventListener('fss:joblist', fn);
   jobsChanged();
   return () => globalThis.removeEventListener('fss:joblist', fn);
@@ -80,10 +94,16 @@ export function watchJobs(onList, onError) {
 function memo(fn) {
   let p = null;
   const wrapped = ({ force = false } = {}) => {
-    if (force || !p) p = fn().catch((e) => { p = null; throw e; });
+    if (force || !p)
+      p = fn().catch((e) => {
+        p = null;
+        throw e;
+      });
     return p;
   };
-  wrapped.clear = () => { p = null; };
+  wrapped.clear = () => {
+    p = null;
+  };
   return wrapped;
 }
 
@@ -105,18 +125,40 @@ export async function deletePreset(slug) {
 }
 
 // ---- data ----
-export const getPlayers = ({ season, gw, pool, all } = {}) => get('/api/players', { season, gw, pool, all });
-export const getPlayerHistory = (id, { season, pool } = {}) => get(`/api/players/${enc(id)}/history`, { season, pool });
-export const getFixtures = ({ season, from, n } = {}) => get('/api/fixtures', { season, from, n });
-export const getDashboard = ({ season, gw, pool } = {}) => get('/api/dashboard', { season, gw, pool });
-export const getFreshness = ({ season, pool } = {}) => get('/api/freshness', { season, pool });
+export const getPlayers = (
+  {
+    season,
+    gw,
+    pool,
+    all,
+  } = /** @type {{season?: number|string, gw?: number|string, pool?: string, all?: boolean}} */ ({}),
+) => get('/api/players', { season, gw, pool, all });
+export const getPlayerHistory = (id, { season, pool } = /** @type {{season?: number|string, pool?: string}} */ ({})) =>
+  get(`/api/players/${enc(id)}/history`, { season, pool });
+export const getFixtures = (
+  { season, from, n } = /** @type {{season?: number|string, from?: number|string, n?: number|string}} */ ({}),
+) => get('/api/fixtures', { season, from, n });
+export const getDashboard = (
+  { season, gw, pool } = /** @type {{season?: number|string, gw?: number|string, pool?: string}} */ ({}),
+) => get('/api/dashboard', { season, gw, pool });
+export const getFreshness = ({ season, pool } = /** @type {{season?: number|string, pool?: string}} */ ({})) =>
+  get('/api/freshness', { season, pool });
 /** Drop server data memos and solver lru caches → {cleared}. */
 export const invalidateData = () => post('/api/data/invalidate');
 
 // ---- entry / team state ----
-export const getEntry = (id, { season, gw, pool, refresh } = {}) => get(`/api/entry/${enc(id)}`, { season, gw, pool, refresh });
+export const getEntry = (
+  id,
+  {
+    season,
+    gw,
+    pool,
+    refresh,
+  } = /** @type {{season?: number|string, gw?: number|string, pool?: string, refresh?: boolean}} */ ({}),
+) => get(`/api/entry/${enc(id)}`, { season, gw, pool, refresh });
 /** Cached entries, last viewed first → [{entry_id, season, manager, ...}]. */
-export const getRecentEntries = ({ season } = {}) => get('/api/entries/recent', { season });
+export const getRecentEntries = ({ season } = /** @type {{season?: number|string}} */ ({})) =>
+  get('/api/entries/recent', { season });
 export const saveTeamState = (body) => post('/api/team-state', body);
 
 // ---- jobs ----
@@ -151,7 +193,14 @@ export const isPhone = (job) => job?.source === 'phone' || /^phone · /.test(job
 export function sleep(ms, signal) {
   return new Promise((resolve) => {
     const t = setTimeout(resolve, ms);
-    signal?.addEventListener('abort', () => { clearTimeout(t); resolve(); }, { once: true });
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(t);
+        resolve();
+      },
+      { once: true },
+    );
   });
 }
 
@@ -160,7 +209,15 @@ export function sleep(ms, signal) {
  * tick (text: new chunk, log: all) → {job, result, log}, or null if `signal` aborts. Retries transient errors; rejects
  * on 404 and after 5 in a row.
  */
-export async function pollJob(id, onUpdate, { interval = 1000, signal, withLog = true } = {}) {
+export async function pollJob(
+  id,
+  onUpdate,
+  {
+    interval = 1000,
+    signal,
+    withLog = true,
+  } = /** @type {{interval?: number, signal?: AbortSignal, withLog?: boolean}} */ ({}),
+) {
   let offset = 0;
   let log = '';
   let failures = 0;

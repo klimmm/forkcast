@@ -36,26 +36,45 @@ import docs from './views/docs.js';
 const { h } = ui;
 const ICON = {
   cog: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1h-.2a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5v-.2a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
-  phone: 'M8 2.5h8A1.5 1.5 0 0 1 17.5 4v16a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 20V4A1.5 1.5 0 0 1 8 2.5zM10.5 18.5h3',
+  phone:
+    'M8 2.5h8A1.5 1.5 0 0 1 17.5 4v16a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 20V4A1.5 1.5 0 0 1 8 2.5zM10.5 18.5h3',
 };
 
 // ---------------------------------------------------------------- Open on iPhone (⚙)
 
-const urlRow = (url) => h('div.row.tight', null, h('code.share-url', null, url),
-  h('button.btn.sm.ghost', { type: 'button', title: 'Copy link', 'aria-label': `Copy ${url}`, onClick: () => copyText(url, 'Link copied') },
-    ui.icon('copy', { size: 14 })));
+const urlRow = (url) =>
+  h(
+    'div.row.tight',
+    null,
+    h('code.share-url', null, url),
+    h(
+      'button.btn.sm.ghost',
+      { type: 'button', title: 'Copy link', 'aria-label': `Copy ${url}`, onClick: () => copyText(url, 'Link copied') },
+      ui.icon('copy', { size: 14 }),
+    ),
+  );
 
 /** urls: where another device opens Forkcast, best first (access.share_urls). */
 function openOnPhone(urls) {
   modal({
     title: 'Open on iPhone',
-    body: h('div.share', null,
+    body: h(
+      'div.share',
+      null,
       h('div.share-qr', null, qrSvg(urls[0])),
-      h('div.stack.tight', null,
-        h('p', null, 'Scan this with the iPhone’s Camera, or type the address into Safari. To keep Forkcast on the Home Screen: Share → Add to Home Screen.'),
+      h(
+        'div.stack.tight',
+        null,
+        h(
+          'p',
+          null,
+          'Scan this with the iPhone’s Camera, or type the address into Safari. To keep Forkcast on the Home Screen: Share → Add to Home Screen.',
+        ),
         urlRow(urls[0]),
         urls.length > 1 ? h('p.small.muted', null, 'If that address doesn’t open:') : null,
-        urls.slice(1).map(urlRow))),
+        urls.slice(1).map(urlRow),
+      ),
+    ),
   });
 }
 
@@ -82,12 +101,18 @@ function createStore() {
     try {
       const raw = localStorage.getItem(PREFIX + k);
       if (raw != null) mem.set(k, JSON.parse(raw));
-    } catch { /* storage blocked or corrupt: start empty */ }
+    } catch {
+      /* storage blocked or corrupt: start empty */
+    }
   };
   PERSIST.forEach(read);
   const notify = (k, next, prev) => {
     for (const fn of subs.get(k) || []) {
-      try { fn(next, prev); } catch (e) { console.error(e); }
+      try {
+        fn(next, prev);
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
   const store = {
@@ -101,7 +126,9 @@ function createStore() {
         try {
           if (next === undefined) localStorage.removeItem(PREFIX + k);
           else localStorage.setItem(PREFIX + k, JSON.stringify(next));
-        } catch { /* quota or blocked storage: keep in memory */ }
+        } catch {
+          /* quota or blocked storage: keep in memory */
+        }
       }
       notify(k, next, prev);
       return next;
@@ -152,7 +179,7 @@ darkMq.addEventListener('change', applyTheme);
 
 // ---------------------------------------------------------------- the ⚙ menu
 
-const menus = new Set();  // each open menu's close()
+const menus = new Set(); // each open menu's close()
 
 /**
  * Button opening a panel below it. Closes on Esc (focus back on the button), an outside click, or a link click inside;
@@ -160,10 +187,17 @@ const menus = new Set();  // each open menu's close()
  */
 function dropdown(root, { button, panel, label }) {
   const panelId = ui.uid('menu');
-  const btn = h('button.menu-btn', {
-    type: 'button', 'aria-expanded': 'false', 'aria-controls': panelId,
-    'aria-label': label, title: label,
-  }, button);
+  const btn = h(
+    'button.menu-btn',
+    {
+      type: 'button',
+      'aria-expanded': 'false',
+      'aria-controls': panelId,
+      'aria-label': label,
+      title: label,
+    },
+    button,
+  );
   const box = h('div.menu-panel', { id: panelId, hidden: true }, panel);
   const items = () => [...box.querySelectorAll('a[href], button:not(:disabled), input:not(:disabled)')];
   const close = (focus = false) => {
@@ -182,7 +216,11 @@ function dropdown(root, { button, panel, label }) {
   btn.addEventListener('click', () => (box.hidden ? open() : close()));
   root.addEventListener('keydown', (e) => {
     if (box.hidden) return;
-    if (e.key === 'Escape') { e.preventDefault(); close(true); return; }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      close(true);
+      return;
+    }
     const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
     if (!step) return;
     const list = items();
@@ -191,17 +229,22 @@ function dropdown(root, { button, panel, label }) {
     const i = list.indexOf(document.activeElement);
     list[(i + step + list.length) % list.length].focus();
   });
-  box.addEventListener('click', (e) => { if (e.target.closest('a[href]')) close(); });
+  box.addEventListener('click', (e) => {
+    if (e.target.closest('a[href]')) close();
+  });
   root.replaceChildren(btn, box);
   return { btn, box, close };
 }
 document.addEventListener('pointerdown', (e) => {
-  if (!e.target.closest?.('.menu')) for (const c of [...menus]) c();
+  if (!(e.target instanceof Element && e.target.closest('.menu'))) for (const c of [...menus]) c();
 });
 
-const settingsList = h('nav.menu-list', { 'aria-label': 'Settings' },
+const settingsList = h(
+  'nav.menu-list',
+  { 'aria-label': 'Settings' },
   h('div.menu-head', null, 'Forkcast'),
-  h('a.menu-item', { href: '/m/' }, ui.icon('external', { size: 16 }), h('span', null, 'Open Forkcast')));
+  h('a.menu-item', { href: '/m/' }, ui.icon('external', { size: 16 }), h('span', null, 'Open Forkcast')),
+);
 const settings = dropdown($('settings-menu'), {
   label: 'Settings',
   button: ui.icon(ICON.cog, { size: 18 }),
@@ -214,24 +257,39 @@ async function showShare() {
   let urls = [];
   try {
     urls = ((await api.getMeta())?.access?.urls || []).filter((u) => /^https?:\/\//.test(u));
-  } catch { return; }  // showDeadline reports an unreachable server
+  } catch {
+    return;
+  } // showDeadline reports an unreachable server
   if (!urls.length) return;
-  settingsList.append(h('button.menu-item', { type: 'button', onClick: () => { settings.close(); openOnPhone(urls); } },
-    ui.icon(ICON.phone, { size: 16 }), h('span', null, 'Open on iPhone')));
+  settingsList.append(
+    h(
+      'button.menu-item',
+      {
+        type: 'button',
+        onClick: () => {
+          settings.close();
+          openOnPhone(urls);
+        },
+      },
+      ui.icon(ICON.phone, { size: 16 }),
+      h('span', null, 'Open on iPhone'),
+    ),
+  );
 }
 
 // ---------------------------------------------------------------- nav (top tabs + narrow-window tab bar)
 
-const tabLinks = [];  // [route, <a>] for both bars
+const tabLinks = []; // [route, <a>] for both bars
 
 function buildNav() {
   $('brand').prepend(logo(26));
-  const links = (cls, size) => NAV.filter((r) => byRoute.has(r)).map((r) => {
-    const v = byRoute.get(r);
-    const a = h(`a.${cls}`, { href: `#/${r}` }, ui.icon(v.icon || r, { size }), h('span', null, v.title));
-    tabLinks.push([r, a]);
-    return a;
-  });
+  const links = (cls, size) =>
+    NAV.filter((r) => byRoute.has(r)).map((r) => {
+      const v = byRoute.get(r);
+      const a = h(`a.${cls}`, { href: `#/${r}` }, ui.icon(v.icon || r, { size }), h('span', null, v.title));
+      tabLinks.push([r, a]);
+      return a;
+    });
   $('nav').replaceChildren(...links('nav-tab', 17));
   $('tabbar').replaceChildren(...links('tabbar-item', 22));
 }
@@ -263,7 +321,11 @@ function runCleanup() {
   const fn = current.cleanup;
   current.cleanup = null;
   if (typeof fn === 'function') {
-    try { fn(); } catch (e) { console.error('view cleanup failed', e); }
+    try {
+      fn();
+    } catch (e) {
+      console.error('view cleanup failed', e);
+    }
   }
 }
 
@@ -282,7 +344,7 @@ async function render() {
   const view = byRoute.get(route);
   const token = ++mountSeq;
   const moved = current.route !== route;
-  closeAllModals();  // a dialog belongs to the view it was opened from
+  closeAllModals(); // a dialog belongs to the view it was opened from
   runCleanup();
   current = { route, cleanup: null };
 
@@ -298,13 +360,21 @@ async function render() {
   const el = h('div.view', { dataset: { route } });
   viewRoot.replaceChildren(el);
   const ctx = {
-    api, ui, state, params, route, dev: true, navigate,
+    api,
+    ui,
+    state,
+    params,
+    route,
+    dev: true,
+    navigate,
     setParams(next) {
       if (token !== mountSeq) return;
       ctx.params = { ...next };
       history.replaceState(null, '', hashFor(route, next));
     },
-    setTitle(sub) { if (token === mountSeq) $('view-sub').textContent = sub || ''; },
+    setTitle(sub) {
+      if (token === mountSeq) $('view-sub').textContent = sub || '';
+    },
   };
   try {
     const out = await view.mount(el, ctx);
@@ -315,7 +385,8 @@ async function render() {
     current.cleanup = typeof out === 'function' ? out : null;
   } catch (e) {
     console.error(e);
-    if (token === mountSeq) el.replaceChildren(errorCard(e, { title: `${view.title} could not be shown`, retry: render }));
+    if (token === mountSeq)
+      el.replaceChildren(errorCard(e, { title: `${view.title} could not be shown`, retry: render }));
   }
 }
 
@@ -328,9 +399,11 @@ async function showDeadline() {
     const meta = await api.getMeta();
     if (!meta?.deadline_epoch) return;
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    deadlineBox.replaceChildren(ui.icon('clock', { size: 15 }),
+    deadlineBox.replaceChildren(
+      ui.icon('clock', { size: 15 }),
       h('span.deadline-gw', null, ui.fmt.gw(meta.next_gw)),
-      countdown(meta.deadline_epoch, { passed: 'deadline passed' }));
+      countdown(meta.deadline_epoch, { passed: 'deadline passed' }),
+    );
     deadlineBox.title = `${ui.fmt.gw(meta.next_gw)} deadline: ${ui.fmt.date(meta.deadline_epoch)} (${tz})`;
     deadlineBox.setAttribute('aria-label', deadlineBox.title);
     deadlineBox.hidden = false;
@@ -366,10 +439,10 @@ async function refreshJobs() {
   } catch (error) {
     if (my !== jobsSeq) return;
     api.publishJobs({ error });
-    if (watching.size) jobsTimer = setTimeout(refreshJobs, 6000);
+    if (watching.size) jobsTimer = window.setTimeout(refreshJobs, 6000);
     return;
   }
-  if (my !== jobsSeq) return;  // a newer refresh is on its way
+  if (my !== jobsSeq) return; // a newer refresh is on its way
   api.publishJobs({ jobs: list });
   // Forkcast's phone solves and bakes: no toasts, not in the header count
   const active = list.filter((j) => api.isActive(j) && !api.isPhone(j));
@@ -384,11 +457,13 @@ async function refreshJobs() {
   }
   watching = new Map(active.map((j) => [j.id, j.label || j.kind || 'Job']));
   paintJobs(active);
-  if (active.length) jobsTimer = setTimeout(refreshJobs, 3000);
+  if (active.length) jobsTimer = window.setTimeout(refreshJobs, 3000);
 }
 
 addEventListener('fss:jobs', () => refreshJobs());
-document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshJobs(); });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) refreshJobs();
+});
 
 // ---------------------------------------------------------------- errors & boot
 

@@ -27,7 +27,8 @@ export function litOf(P, w, M, D, toks = []) {
   at.best = best;
   at.chip = best && toks.includes(best) ? best : null;
   // (the best move, a chip's token aside: weekBest of the moves alone)
-  const move = at.move = at.chip ? weekBest(P, w, M, D) : best;
+  const move = at.chip ? weekBest(P, w, M, D) : best;
+  at.move = move;
   if (move) for (const d of placesOf(D, move)) at.set(d.a, { e: d.entries.find((x) => x.pl === move), best: true });
   if (!M.settled) return at;
   for (const d of D) {
@@ -42,7 +43,10 @@ export function litOf(P, w, M, D, toks = []) {
 }
 /** Whether litOf lights choice pl: the solver's own move (plPays; owner, 2026-11-02: no threshold); where your plan
  *  leaves the week short of money (owedAt), one that pays it back keeping your transfers (paysBack). → (pl) → bool */
-const litCan = (P, w) => (owedAt(P, w) ? (pl) => pl?.state === 'ready' && paysBack(w, pl) : (pl) => plPays(pl) || (pl?.state === 'ready' && !!pl.forced && showingAt(P, w.gw)));
+const litCan = (P, w) =>
+  owedAt(P, w)
+    ? (pl) => pl?.state === 'ready' && paysBack(w, pl)
+    : (pl) => plPays(pl) || (pl?.state === 'ready' && !!pl.forced && showingAt(P, w.gw));
 /** The places choice pl is drawn at (decksOf): behind each player it replaces; a take-back of a transfer of yours behind
  *  your buy. → [deck] */
 const placesOf = (D, pl) => D.filter((d) => d.entries.some((e) => e.pl === pl));
@@ -65,14 +69,34 @@ export function weekBest(P, w, M, D, toks = []) {
   // (…and none while a row is still to come at all, its solve out (weekModel's `shownOut`: plansOf `forcedOut`): a refusal's
   // next row landed 6 s after the card had shown the one before it, so the card went Dovin → Kinsky, then Ajayi → Justin;
   // owner, 2026-11-08, "why switching dovin to kinsky ... then ajayi to justin back and forth")
-  const waits = !!M.shownOut || shownWaits(M.plans), worth = (pl) => (pl.forced ? pl.gain : pl.cmp.delta);
-  const moves = M.plans.filter((pl) => ok(pl) && can(pl) && (!pl.forced || (!waits && pl.gain > -Infinity)) && placesOf(D, pl).length && !placesOf(D, pl).some((d) => litEdges(d.a, d.entries.find((e) => e.pl === pl))));
+  const waits = !!M.shownOut || shownWaits(M.plans),
+    worth = (pl) => (pl.forced ? pl.gain : pl.cmp.delta);
+  const moves = M.plans.filter(
+    (pl) =>
+      ok(pl) &&
+      can(pl) &&
+      (!pl.forced || (!waits && pl.gain > -Infinity)) &&
+      placesOf(D, pl).length &&
+      !placesOf(D, pl).some((d) =>
+        litEdges(
+          d.a,
+          d.entries.find((e) => e.pl === pl),
+        ),
+      ),
+  );
   // (the solver's row as it is: how many moves the card shows is refusalRoads' (fewest transfers a card, the plan's own);
   // a single-move row holding one of its moves, preferred here since 2026-11-09, showed 395's GW11 Gabriel → Diop −3.5,
   // the sale paying for Manzambi → Palmer, over the two the solver makes together; owner, 2026-11-11, "how it now offer
   // gabriel diop to me")
   const move = moves.reduce((m, pl) => (!m || worth(pl) > worth(m) ? pl : m), null);
-  const chips = toks.filter((pl) => ok(pl) && pl.state === 'ready' && !rollOnly(pl) && !!pl.choice.chips?.[g] && pl.cmp.delta > (move?.cmp.delta ?? 0));
+  const chips = toks.filter(
+    (pl) =>
+      ok(pl) &&
+      pl.state === 'ready' &&
+      !rollOnly(pl) &&
+      !!pl.choice.chips?.[g] &&
+      pl.cmp.delta > (move?.cmp.delta ?? 0),
+  );
   return chips.reduce((m, pl) => (!m || pl.cmp.delta > m.cmp.delta ? pl : m), null) ?? move;
 }
 /** The choices the pitch shows lit, green (owner, 2026-10-22: one rule for pitch and Week sheet): those litOf lights
@@ -82,10 +106,22 @@ export function weekBest(P, w, M, D, toks = []) {
  *  a place the pitch as last drawn gave no plate (`D.drawn`); the best's wherever it is (ringed). Pure. → Set(pl) */
 export function litShown(P, w, M, D, toks = [], lit = litOf(P, w, M, D, toks)) {
   const on = (a) => !D.drawn || D.drawn.has(a);
-  const first = M.settled ? D.filter((d) => !lit.has(d.a) && on(d.a)).map(placeFirst).filter((e) => e?.pl?.state === 'ready').map((e) => e.pl) : [];
+  const first = M.settled
+    ? D.filter((d) => !lit.has(d.a) && on(d.a))
+        .map(placeFirst)
+        .filter((e) => e?.pl?.state === 'ready')
+        .map((e) => e.pl)
+    : [];
   // (the plates as last drawn, a sentence's sellers' own singles among them: D.drawnPl, renderDecks)
   // (a chip's token green where it is the week's best, litOf `chip`: no solver's move of its own)
-  return new Set([...[...lit].filter(([a, x]) => x.best || on(a)).map(([, x]) => x.e.pl), ...first, ...(M.settled ? D.drawnPl ?? [] : []), ...toks.filter((pl) => pl.state === 'ready' && !pl.refRow)].filter((pl) => plPays(pl) || pl === lit.chip));
+  return new Set(
+    [
+      ...[...lit].filter(([a, x]) => x.best || on(a)).map(([, x]) => x.e.pl),
+      ...first,
+      ...(M.settled ? (D.drawnPl ?? []) : []),
+      ...toks.filter((pl) => pl.state === 'ready' && !pl.refRow),
+    ].filter((pl) => plPays(pl) || pl === lit.chip),
+  );
 }
 /** The Roll of a week you roll (plansOf `rolls`: no transfer, chip or Roll of yours there): its + would only make the
  *  roll one of your rules, changing nothing on screen, so it has none (owner, 2026-10-22): a "Rolling" status beside
@@ -100,7 +136,8 @@ export const rollOnly = (pl) => !!pl?.rolls;
  *  whole only where the choice buys him too ("instead of Murillo → Hill"). Pure. */
 /** Choice c's GW-g moves your week doesn't make already (`yours`: its moves; none in your chip week, where a choice's
  *  moves are all its own): what its + adds (planBack's `adds`; weekBest's single or several). Pure. */
-const addsOf = (c, g, yours) => c.moves.filter((m) => m.gw === g && !yours.some((y) => y.out === m.out && y.in === m.in));
+const addsOf = (c, g, yours) =>
+  c.moves.filter((m) => m.gw === g && !yours.some((y) => y.out === m.out && y.in === m.in));
 export function planBack(P, g, pl) {
   const nm = P.L.name;
   const c = pl.choice;
@@ -114,10 +151,21 @@ export function planBack(P, g, pl) {
   const taken = ch ? [] : yoursTakenBack(P, g, c.moves);
   // under your Roll (rollingAt: "Rolling ✓") a choice that moves someone takes it back: "instead of rolling"
   const roll = !ch && adds.length && rollingAt(P, g) ? COPY.planVsRoll : '';
-  const gone = ch ? chipName(ch) : roll || taken.map((m) => (adds.some((a) => a.in === m.in) ? `${nm(m.out)} → ${nm(m.in)}` : nm(m.in))).join(' + ');
+  const gone = ch
+    ? chipName(ch)
+    : roll || taken.map((m) => (adds.some((a) => a.in === m.in) ? `${nm(m.out)} → ${nm(m.in)}` : nm(m.in))).join(' + ');
   const lost = ch ? chipName(ch) : roll || taken.map((m) => nm(m.in)).join(' + ');
   // rolls: all it takes back is your Roll (no transfer, no chip): a single move stays a single there (multiMove)
-  return { chipNow, now, adds, taken, lost, gone, rolls: !!roll, back: !gone ? '' : ch || adds.length || chipNow || !now.length ? COPY.planInsteadOf(gone) : COPY.planWithout(gone) };
+  return {
+    chipNow,
+    now,
+    adds,
+    taken,
+    lost,
+    gone,
+    rolls: !!roll,
+    back: !gone ? '' : ch || adds.length || chipNow || !now.length ? COPY.planInsteadOf(gone) : COPY.planWithout(gone),
+  };
 }
 /**
  * The card behind (owner, 2026-10-20): the week's choices (weekModel's order) on the pitch, each behind the card of
@@ -130,10 +178,13 @@ export function planBack(P, g, pl) {
  * → {decks: [{a, mine, entries: [{pl | remove, inId, back?, adds, pair: [{a, out, in}], taken, lost}]}], toks: [pl]}
  */
 export function decksOf(P, w, M) {
-  const g = w.gw, on = new Set([...w.xi, ...w.bench].map(Number));
+  const g = w.gw,
+    on = new Set([...w.xi, ...w.bench].map(Number));
   const mine = M.sq ? [] : w.moves;
-  const anchorOf = (o) => (on.has(Number(o)) ? Number(o) : Number(mine.find((m) => Number(m.out) === Number(o))?.in) || null);
-  const by = new Map(), toks = [];
+  const anchorOf = (o) =>
+    on.has(Number(o)) ? Number(o) : Number(mine.find((m) => Number(m.out) === Number(o))?.in) || null;
+  const by = new Map(),
+    toks = [];
   const put = (a, e, rank) => {
     if (!on.has(a) || a === e.inId) return;
     if (!by.has(a)) by.set(a, { a, mine: false, rank, entries: [] });
@@ -147,10 +198,14 @@ export function decksOf(P, w, M) {
     else if (adds.length) {
       if (benchOnly(g, pl, adds) && !pl.forced) return;
       for (const m of adds) {
-        const pair = adds.filter((x) => x !== m).map((x) => ({ a: anchorOf(x.out), out: Number(x.out), in: Number(x.in) }));
+        const pair = adds
+          .filter((x) => x !== m)
+          .map((x) => ({ a: anchorOf(x.out), out: Number(x.out), in: Number(x.in) }));
         put(anchorOf(m.out), { pl, inId: Number(m.in), adds, pair, taken, lost, gone, rolls }, i);
       }
-    } else for (const m of taken) put(Number(m.in), { pl, inId: Number(m.out), back: true, adds, pair: [], taken, lost, gone, rolls }, i);
+    } else
+      for (const m of taken)
+        put(Number(m.in), { pl, inId: Number(m.out), back: true, adds, pair: [], taken, lost, gone, rolls }, i);
   });
   for (const m of mine) {
     const a = Number(m.in);
@@ -159,13 +214,27 @@ export function decksOf(P, w, M) {
     // the Roll that takes this transfer alone back, once it can be taken (checking or failed: Remove, which acts at once);
     // dealt last, as every take-back is (placeOrder)
     const one = (e) => e.back && e.taken.length === 1;
-    const d = by.get(a), k = d.entries.findIndex((e) => one(e) && e.pl?.state === 'ready');
+    const d = by.get(a),
+      k = d.entries.findIndex((e) => one(e) && e.pl?.state === 'ready');
     d.mine = true;
-    const first = k >= 0 ? d.entries.splice(k, 1)[0]
-      : { remove: { gw: g, out: m.out, in: m.in }, inId: Number(m.out), back: true, adds: [], pair: [], taken: [m], lost: P.L.name(m.in) };
+    const first =
+      k >= 0
+        ? d.entries.splice(k, 1)[0]
+        : {
+            remove: { gw: g, out: m.out, in: m.in },
+            inId: Number(m.out),
+            back: true,
+            adds: [],
+            pair: [],
+            taken: [m],
+            lost: P.L.name(m.in),
+          };
     d.entries = [first, ...d.entries.filter((e) => !one(e))];
   }
-  return { decks: [...by.values()].sort((x, y) => y.mine - x.mine || x.rank - y.rank), toks };
+  /** @type {Array<{a: number, mine: boolean, rank: number, entries: object[]}>
+   *   & {drawn?: Set<number>, drawnPl?: Set<object>}} */
+  const decks = [...by.values()].sort((x, y) => Number(y.mine) - Number(x.mine) || x.rank - y.rank);
+  return { decks, toks };
 }
 /** Whether all GW-g buys miss the scoring lineup from g on: starters and, on Bench Boost, the bench count.
  *  A bench-only transfer has no pitch plate or place card. The player's Replace list still offers it. */
@@ -199,7 +268,12 @@ export const placeDealt = (entries, n, tile = false) => {
   // buy's card, its line then the single)
   const shows = (e) => singleMove(e) || singleMove(placeLine(all, e) ?? {});
   const one = all.find((e) => singleMove(e) && e.pl.state === 'ready') ?? all.find(singleMove);
-  if (one && k && !best.some(shows)) best.splice(k - 1, 1, entries.find((e) => e === one || (!takesBack(e) && e.inId != null && e.inId === one.inId)));
+  if (one && k && !best.some(shows))
+    best.splice(
+      k - 1,
+      1,
+      entries.find((e) => e === one || (!takesBack(e) && e.inId != null && e.inId === one.inId)),
+    );
   return [...best, ...(back ? [back] : [])];
 };
 /** A place's cards page by page (drawPlace): placeDealt's first, then every buy it had no room for (placeBuys, in
@@ -209,7 +283,8 @@ export const placeDealt = (entries, n, tile = false) => {
 export const placePages = (entries, n, tile = false) => {
   const buys = placeBuys(entries);
   if (buys.length <= n - (tile ? 1 : 0)) return [buys];
-  const first = placeDealt(entries, n, tile), per = Math.max(1, n - 1);
+  const first = placeDealt(entries, n, tile),
+    per = Math.max(1, n - 1);
   const rest = buys.filter((e) => !first.includes(e));
   const pages = [first];
   for (let i = 0; i < rest.length; i += per) pages.push(rest.slice(i, i + per));
@@ -227,11 +302,15 @@ export const placeBuys = (entries) => {
  *  is no single move; else the buy's move alone where there is one (placeDealt's held single). Pure. → entry | null */
 export const placeLine = (entries, e) => {
   if (takesBack(e) || e.inId == null) return null;
-  const ways = entries.filter((x) => x !== e && !takesBack(x) && x.inId === e.inId && entries.indexOf(x) > entries.indexOf(e));
+  const ways = entries.filter(
+    (x) => x !== e && !takesBack(x) && x.inId === e.inId && entries.indexOf(x) > entries.indexOf(e),
+  );
   if (!ways.length) return null;
   // (its move alone that can't be made alone too, "needs Kayode's sale")
   const lone = (x) => !x.pair?.length;
-  return singleMove(e) || lone(ways[0]) ? ways[0] : ways.find((x) => singleMove(x) && x.pl.state === 'ready') ?? ways.find(lone) ?? ways[0];
+  return singleMove(e) || lone(ways[0])
+    ? ways[0]
+    : (ways.find((x) => singleMove(x) && x.pl.state === 'ready') ?? ways.find(lone) ?? ways[0]);
 };
 /** A place's choice of more than one move (design 1026e "line"; owner, 2026-10-26): a plan with other moves (`pair`),
  *  or one whose take also takes back a buy of his elsewhere (`gone`; in his own buy's place, `a`, the one it replaces
@@ -255,7 +334,10 @@ export const placeSplit = (entries, a = null) => {
   // place's own take-back its Remove card)
   const live = entries.filter((e) => !e.pl?.needs && !(takesBack(e) && multiMove(e, a)));
   const multi = live.filter((e) => multiMove(e, a));
-  return { singles: live.filter((e) => !multi.includes(e)), line: multi.find((e) => e.pl.state === 'ready') ?? multi.find((e) => e.pl.state !== 'failed') ?? null };
+  return {
+    singles: live.filter((e) => !multi.includes(e)),
+    line: multi.find((e) => e.pl.state === 'ready') ?? multi.find((e) => e.pl.state !== 'failed') ?? null,
+  };
 };
 /** A multi-move choice as one sentence (design 1026e "line"): its GW-g moves in the order its solved road makes them
  *  (`adds`: planBack's), "Neto → Tavernier, Cunha → Palmer", a take-back's words after them, "instead of Palmer". Never
@@ -263,14 +345,20 @@ export const placeSplit = (entries, a = null) => {
 export const lineMoves = (P, e) => {
   const nm = P.L.name;
   const back = e.gone ? COPY.planInsteadOf(e.gone) : '';
-  return Object.assign(e.adds.map((m) => `${nm(m.out)} → ${nm(m.in)}`), { back: e.adds.length ? back : capFirst(back) });
+  return Object.assign(
+    e.adds.map((m) => `${nm(m.out)} → ${nm(m.in)}`),
+    { back: e.adds.length ? back : capFirst(back) },
+  );
 };
 /** A place's entries (decksOf's) in the order its cards are dealt, nearest his own card first: the checked choices best
  *  first, then those still checking or failed, then what takes a transfer back (the Roll of a week with yours, Remove)
  *  last; ties as listed. Pure. */
 export const placeOrder = (entries) => {
   const tier = (e) => (takesBack(e) ? 2 : e.pl?.state === 'ready' ? 0 : 1);
-  return entries.map((e, i) => [e, i]).sort(([a, i], [b, j]) => tier(a) - tier(b) || (tier(a) === 0 ? b.pl.cmp.delta - a.pl.cmp.delta : 0) || i - j).map(([e]) => e);
+  return entries
+    .map((e, i) => [e, i])
+    .sort(([a, i], [b, j]) => tier(a) - tier(b) || (tier(a) === 0 ? b.pl.cmp.delta - a.pl.cmp.delta : 0) || i - j)
+    .map(([e]) => e);
 };
 /** The most cards a player's place deals beside him (drawPlace: slotsBeside's n). */
 export const PLACE_SLOTS = 4;
@@ -283,7 +371,10 @@ export const PLACE_SLOTS = 4;
 export const placeFirst = (d) => {
   if (d.mine) return d.entries[0] && takesBack(d.entries[0]) ? d.entries[0] : null;
   // (never a buy its opened place asked for: plansOf `placeOnly`, its cards' alone)
-  const live = (e) => !takesBack(e) && !e.pl?.placeOnly && ((e.pl?.state === 'ready' && shownGain(e.pl.cmp.delta)) || e.pl?.state === 'solving');
+  const live = (e) =>
+    !takesBack(e) &&
+    !e.pl?.placeOnly &&
+    ((e.pl?.state === 'ready' && shownGain(e.pl.cmp.delta)) || e.pl?.state === 'solving');
   // (his own moves alone: a plan he is part of has its one mark elsewhere, its sentence)
   const own = placeSplit(placeOrder(d.entries), d.a).singles;
   if (!own.some(live)) return null;
@@ -303,8 +394,14 @@ export function slotsBeside(x0, step, n, W, cw) {
  *  full (COPY.planFailed); a pair's move the week can't make alone (`needs`) all it lacks alone ("£1.7m short"; "£1.3m
  *  short, 3 from ARS": problemShort each) and the sales it needs ("needs Kayode's sale"). Pure. → {head, note, row} */
 export function failedWords(P, pl) {
-  if (!pl.needs) return { head: COPY.placeCantPlan, note: `${COPY.placeCantPlan}: ${COPY.planFailedShort(pl.why)}`, row: COPY.planFailed(pl.why) };
-  const lack = pl.problems.length ? pl.problems.map(problemShort).join(', ') : problemShort(null), need = COPY.needsSale(pl.needs.map((id) => P.L.name(id)));
+  if (!pl.needs)
+    return {
+      head: COPY.placeCantPlan,
+      note: `${COPY.placeCantPlan}: ${COPY.planFailedShort(pl.why)}`,
+      row: COPY.planFailed(pl.why),
+    };
+  const lack = pl.problems.length ? pl.problems.map(problemShort).join(', ') : problemShort(null),
+    need = COPY.needsSale(pl.needs.map((id) => P.L.name(id)));
   return { head: lack, note: need, row: `${lack} · ${need}` };
 }
 /** What else a place's choice does, under its card: "planning…", why it can't be checked or made alone (failedWords),
@@ -313,7 +410,9 @@ export function failedWords(P, pl) {
  *  transfer"), a Bench Boost or Triple Captain it plays (no words for one worth no less a week later: owner,
  *  2026-10-29); last, "removed by you". `e`: its entry in the place (decksOf). Pure. */
 export function noteOf(P, w, e, a = null) {
-  const nm = P.L.name, pl = e.pl, chip = pl?.choice.chips?.[w.gw];
+  const nm = P.L.name,
+    pl = e.pl,
+    chip = pl?.choice.chips?.[w.gw];
   // (no "about as good as Truffert" under a card: owner, 2026-10-25)
   const said = (...xs) => [...xs, pl?.removed ? COPY.removedByYou : null].filter(Boolean).join(' · ') || null;
   if (pl?.state === 'solving') return said(COPY.waitShort);
@@ -321,10 +420,21 @@ export function noteOf(P, w, e, a = null) {
   // in the place of a buy of yours (`a`: the place's player) every card takes that buy back: its title says so ("Rice's
   // place"), so a note naming that buy alone says nothing more; one taking back more than it still says so
   const own = a != null && e.taken?.length === 1 && Number(e.taken[0].in) === Number(a);
-  const what = own ? (e.pair.length ? COPY.placeAlso(e.pair.map((p) => `${nm(p.out)} → ${nm(p.in)}`)) : null)
-    : e.back ? COPY.planInsteadOf(e.lost)
-    : e.pair.length ? [COPY.placeAlso(e.pair.map((p) => `${nm(p.out)} → ${nm(p.in)}`)), e.gone ? COPY.planInsteadOf(e.gone) : null].filter(Boolean).join(' · ')
-      : e.gone ? COPY.planInsteadOf(e.gone) : w.moves.length && !squadWeek(w) ? COPY.placeNth(w.moves.length + 1) : null;
+  const what = own
+    ? e.pair.length
+      ? COPY.placeAlso(e.pair.map((p) => `${nm(p.out)} → ${nm(p.in)}`))
+      : null
+    : e.back
+      ? COPY.planInsteadOf(e.lost)
+      : e.pair.length
+        ? [COPY.placeAlso(e.pair.map((p) => `${nm(p.out)} → ${nm(p.in)}`)), e.gone ? COPY.planInsteadOf(e.gone) : null]
+            .filter(Boolean)
+            .join(' · ')
+        : e.gone
+          ? COPY.planInsteadOf(e.gone)
+          : w.moves.length && !squadWeek(w)
+            ? COPY.placeNth(w.moves.length + 1)
+            : null;
   return said(what, chip && !SQUAD_CHIPS.has(chip) ? chipName(chip) : null);
 }
 /** Your plan has a transfer in some week (every plan keeps the others), so plans count against "your plan", never "no
@@ -343,15 +453,30 @@ const FITS = new WeakMap();
 export function fitOf(ctx, P, g, c, d0) {
   if (Object.keys(c.chips || {}).length) return { ok: true, problems: [] };
   let by = FITS.get(P);
-  if (!by) FITS.set(P, (by = new Map()));
+  if (!by) {
+    by = new Map();
+    FITS.set(P, by);
+  }
   const k = `${g}|${forkKey(c, g)}`;
   if (!by.has(k)) {
     const mine = flatMoves(d0);
     const base = chipBackOf(P, g, c) ? E.setChip(d0, g, null) : d0;
     const ev = estimate(ctx, planTakeDraft(ctx, P, g, base, c.moves), g);
-    const ps = problemsOf(ctx, ev, g), p = ps[0] ?? null, p0 = p && problemOf(ctx, estimate(ctx, d0, g), g);
+    const ps = problemsOf(ctx, ev, g),
+      p = ps[0] ?? null,
+      p0 = p && problemOf(ctx, estimate(ctx, d0, g), g);
     const own = !!p && p0?.code === p.code && p0.gw === p.gw;
-    by.set(k, { ok: (!p || own) && !rebought(P, c.moves, ev, mine.filter((m) => pinOfMove(P, m))), problems: own ? [] : ps });
+    by.set(k, {
+      ok:
+        (!p || own) &&
+        !rebought(
+          P,
+          c.moves,
+          ev,
+          mine.filter((m) => pinOfMove(P, m)),
+        ),
+      problems: own ? [] : ps,
+    });
   }
   return by.get(k);
 }
@@ -371,5 +496,11 @@ export function rebought(P, moves, ev, mine) {
 
 /** A plan's GW-g choice as a key: GW g's decision only, the moves it makes there or the Wildcard or Free Hit it plays
  *  there (a chip in a later week is that week's decision, never a second "GW7 roll"). */
-export const forkKey = (p, g) => (SQUAD_CHIPS.has(p.chips?.[g]) ? p.chips[g]
-  : p.moves.filter((m) => m.gw === g).map((m) => `${m.out}>${m.in}`).sort().join(','));
+export const forkKey = (p, g) =>
+  SQUAD_CHIPS.has(p.chips?.[g])
+    ? p.chips[g]
+    : p.moves
+        .filter((m) => m.gw === g)
+        .map((m) => `${m.out}>${m.in}`)
+        .sort()
+        .join(',');

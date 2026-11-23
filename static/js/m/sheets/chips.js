@@ -6,7 +6,7 @@ import { h, fill, fmt, chipName, xpGain, reduceMotion } from '../../ui.js';
 import { COPY, shownDelta } from '../calls.js';
 import * as AH from '../ahead.js';
 
-export function open(ctx, { gw } = {}) {
+export function open(ctx, { gw } = /** @type {{gw?: number}} */ ({})) {
   const P0 = AH.plan(ctx);
   if (!P0) return null;
   const g = Number(gw);
@@ -15,8 +15,18 @@ export function open(ctx, { gw } = {}) {
   let tick = null;
 
   return ctx.sheets.open({
-    title: COPY.chipsIn(g), detent: 'medium', fit: true, cls: 'cs', label: COPY.chipsIn(g),
-    onClose: () => { clearInterval(tick); offs.forEach((f) => f()); AH.presolveTaps(ctx, null, { owner: offs }); },
+    title: COPY.chipsIn(g),
+    detent: 'medium',
+    fit: true,
+    cls: 'cs',
+    label: COPY.chipsIn(g),
+    onClose: () => {
+      clearInterval(tick);
+      offs.forEach((f) => {
+        f();
+      });
+      AH.presolveTaps(ctx, null, { owner: offs });
+    },
     build(body, sheet) {
       const sub = h('p.rs-sub', null, COPY.chipsSub(P0.gws.filter((x) => x >= g)));
       const list = h('div.ah-list', { role: 'group', 'aria-label': COPY.chipsIn(g) });
@@ -24,10 +34,13 @@ export function open(ctx, { gw } = {}) {
       const foot = h('p.m-foot', { hidden: true });
       // the sheet's checks told once over its rows in the wait line's look (AH.waitView): "Planning chips · 2 of 3 ·
       // 0:04", its bar by the count
-      const wv = AH.waitView(), wbox = h('div.m-wait', { hidden: true }, wv.t, wv.bar), opened = Date.now(), seen = new Set();
+      const wv = AH.waitView(),
+        wbox = h('div.m-wait', { hidden: true }, wv.t, wv.bar),
+        opened = Date.now(),
+        seen = new Set();
       let step = { done: -1, at: opened, max: 0 };
       body.append(sub, wbox, list, foot);
-      let drawn = null;  // [plan view, source, its rows' clocks (clocksOf)] last drawn with numbers
+      let drawn = null; // [plan view, source, its rows' clocks (clocksOf)] last drawn with numbers
 
       const factOf = (r) => {
         if (r.state === 'on') return r.mine ? COPY.chipTakeOff : COPY.chipByForkcast;
@@ -40,18 +53,36 @@ export function open(ctx, { gw } = {}) {
       };
       /** the checks' clock after the fact (ahead.waitedText), set each second by the sheet's tick, never a whole draw;
        *  not read out (the row's label has the fact). */
-      const t0Of = (r) => (r.state === 'free' && !r.best && !r.final ? r.wait?.t0 ?? null : null);
+      const t0Of = (r) => (r.state === 'free' && !r.best && !r.final ? (r.wait?.t0 ?? null) : null);
       /** The wait line over the rows while any row checks (its solve, or its weeks: t0Of), counted over the rows that
        *  checked since the sheet opened, on the earliest row's clock. */
       const paintWait = (rows) => {
-        const waiting = rows.filter((r) => r.solving || t0Of(r) != null), now = Date.now();
+        const waiting = rows.filter((r) => r.solving || t0Of(r) != null),
+          now = Date.now();
         for (const r of waiting) seen.add(r.chip);
         wbox.hidden = !waiting.length;
-        if (!waiting.length) { wv.key = null; return; }
-        const n = seen.size, done = n - waiting.length, t0 = Math.min(...waiting.map((r) => t0Of(r) ?? opened));
+        if (!waiting.length) {
+          wv.key = null;
+          return;
+        }
+        const n = seen.size,
+          done = n - waiting.length,
+          t0 = Math.min(...waiting.map((r) => t0Of(r) ?? opened));
         if (step.done !== done) step = { done, at: now, max: step.max };
-        const p = step.max = Math.max(step.max, AH.stepShare(done, n, reduceMotion() ? 0 : now - step.at, done ? (step.at - t0) / done : 4000));
-        AH.paintWaitView(wv, { key: 'chips', word: 'Checking', scope: 'chips', long: `GW${g}'s chips`, prog: `${done + 1} of ${n}`, so: (now - t0) / 1000, p });
+        const p = Math.max(
+          step.max,
+          AH.stepShare(done, n, reduceMotion() ? 0 : now - step.at, done ? (step.at - t0) / done : 4000),
+        );
+        step.max = p;
+        AH.paintWaitView(wv, {
+          key: 'chips',
+          word: 'Checking',
+          scope: 'chips',
+          long: `GW${g}'s chips`,
+          prog: `${done + 1} of ${n}`,
+          so: (now - t0) / 1000,
+          p,
+        });
       };
       /** Which rows run a clock from when: a check asked by a timer (ahead prepAgain) changes neither the plan view nor
        *  the source, and its row had no clock until that check landed. */
@@ -59,11 +90,13 @@ export function open(ctx, { gw } = {}) {
       /** Its number: the gap once known, forecast points blue with "xP" (ui.js xpGain; owner, 2026-10-22: no green or
        *  red), its sign its direction; "planning…" while its solve runs,
        *  else nothing. */
-      const numberOf = (r) => (r.cmp ? [xpGain(shownDelta(r.cmp))]
-        : r.solving ? h('small', null, COPY.waitShort) : null);
+      const numberOf = (r) =>
+        r.cmp ? [xpGain(shownDelta(r.cmp))] : r.solving ? h('small', null, COPY.waitShort) : null;
       const saidOf = (r, fact) => {
         const n = chipName(r.chip);
-        const pts = r.cmp ? `: ${fmt.signed(shownDelta(r.cmp))} points over ${COPY.span(P0.gws.filter((x) => x >= g))} ${COPY.chipVs(COPY.chipNoChip)}` : '';
+        const pts = r.cmp
+          ? `: ${fmt.signed(shownDelta(r.cmp))} points over ${COPY.span(P0.gws.filter((x) => x >= g))} ${COPY.chipVs(COPY.chipNoChip)}`
+          : '';
         if (r.state === 'on') return `${n} planned for GW${g}${r.mine ? '' : ' by Forkcast'}${pts}. Takes it off.`;
         if (r.state === 'off') return `${n}: ${fact.toLowerCase()}.`;
         if (r.state === 'moved') return `Move ${n} from GW${r.at} to GW${g}.`;
@@ -80,13 +113,26 @@ export function open(ctx, { gw } = {}) {
         const can = P.editable && !AH.inkAt(ctx, P, g);
         for (const r of rows) {
           const fact = factOf(r);
-          const chip = r.chip, on = r.state === 'on';
+          const chip = r.chip,
+            on = r.state === 'on';
           if (!buttons.has(chip)) {
             const mark = h('span.mk.rs-automk', { 'aria-hidden': 'true' }, chip.toUpperCase());
-            const name = h('b'), note = h('span'), number = h('span.rt.m-num');
-            const button = h('button.ah-lrow', { type: 'button', dataset: { chip },
-              onClick: () => { if (act(chip)) sheet.close(); },
-            }, mark, h('span.nm', null, name, note), number);
+            const name = h('b'),
+              note = h('span'),
+              number = h('span.rt.m-num');
+            const button = h(
+              'button.ah-lrow',
+              {
+                type: 'button',
+                dataset: { chip },
+                onClick: () => {
+                  if (act(chip)) sheet.close();
+                },
+              },
+              mark,
+              h('span.nm', null, name, note),
+              number,
+            );
             buttons.set(chip, { button, mark, name, note, number });
             list.append(button);
           }
@@ -106,8 +152,14 @@ export function open(ctx, { gw } = {}) {
         // its rows' taps solved ahead (AH.presolveTaps; owner, 2026-10-26): a chip taken off, and one to play whose
         // preparation isn't in (one that is lands at once: useChip)
         if (can && src) {
-          const chips = rows.filter((r) => r.state !== 'off' && (r.state === 'on' || src.at(r.chip, g)?.state !== 'ready')).map((r) => r.chip);
-          AH.presolveTaps(ctx, chips.map((c) => ({ kind: 'chip', gw: g, run: () => act(c) })), { gw: g, sig: chips.join(), owner: offs });
+          const chips = rows
+            .filter((r) => r.state !== 'off' && (r.state === 'on' || src.at(r.chip, g)?.state !== 'ready'))
+            .map((r) => r.chip);
+          AH.presolveTaps(
+            ctx,
+            chips.map((c) => ({ kind: 'chip', gw: g, run: () => act(c) })),
+            { gw: g, sig: chips.join(), owner: offs },
+          );
         }
         // the week gone live while the sheet was open: why once, the rows' facts kept (a plan you can't change has no
         // door: chipsDoor)

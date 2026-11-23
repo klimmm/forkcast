@@ -5,12 +5,97 @@ import { solveGap } from '../api.js';
 import { fmt, chipName } from '../../ui.js';
 import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
 import { SOLVES, SWAPS, attach, pinSell, pinHits, pinRefusal, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
-import { MINUS, WHY_SHEET, addMove, asYours, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withLaterChipSquads, withMoves } from './core.js';
-import { saidNow, sayAgain, asksOf, autoRuleName, barred, refusedAt, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
+import {
+  MINUS,
+  WHY_SHEET,
+  addMove,
+  asYours,
+  ids,
+  baseline,
+  bestOf,
+  compare,
+  draftOf,
+  dropDrafted,
+  dropMove,
+  estimate,
+  flatMoves,
+  isFrozen,
+  isPick,
+  leftBehind,
+  memOf,
+  movedFrom,
+  noteRemoved,
+  num,
+  pairedMoves,
+  pairsOf,
+  plan,
+  problemOf,
+  sameView,
+  problemText,
+  sameMove,
+  squadBefore,
+  valuesFor,
+  valuesKey,
+  weekOf,
+  whyAct,
+  wishDrop,
+  withLaterChipSquads,
+  withMoves,
+} from './core.js';
+import {
+  saidNow,
+  sayAgain,
+  asksOf,
+  autoRuleName,
+  barred,
+  refusedAt,
+  buyCandidates,
+  chainOf,
+  chipBackOf,
+  chipEdit,
+  chipOffParts,
+  chipWords,
+  clashing,
+  derivedPin,
+  edit,
+  endingOf,
+  hitsLater,
+  inPlaceOf,
+  keep,
+  keptFrom,
+  removeRule,
+  ruleOf,
+  toastOf,
+  withPoints,
+  withTaken,
+} from './edits.js';
 import { recordDecision } from './diagnostics.js';
 import { refusedRoad } from '../memory/pins.js';
 import { fitOf } from './plans/lit.js';
-import { FORK_FLIGHTS, SQUAD_CHIPS, answeredBy, noteAnswered, asTaken, byGain, choiceVs, forkAgain, forkAsk, forkFlights, forkKey, forkKept, forkPump, forkRead, forkValues, modelMoves, planBaseline, planOfRoad, plansListed, rollOnly, settledList, takenBy, weekRollOf } from './plans.js';
+import {
+  FORK_FLIGHTS,
+  SQUAD_CHIPS,
+  answeredBy,
+  noteAnswered,
+  asTaken,
+  byGain,
+  choiceVs,
+  forkAgain,
+  forkAsk,
+  forkFlights,
+  forkKey,
+  forkKept,
+  forkPump,
+  forkRead,
+  forkValues,
+  modelMoves,
+  planBaseline,
+  planOfRoad,
+  plansListed,
+  rollOnly,
+  takenBy,
+  weekRollOf,
+} from './plans.js';
 import { freedBy, lineupMoved, gwMode, inkAt, isLive } from './buys.js';
 import { plPays, squadWeek } from './pieces.js';
 import { rulesOf } from './screen.js';
@@ -42,13 +127,29 @@ const PRESOLVE_MAX = { week: 1, next: 1, sheet: 5 };
 const SOLVE_MAX = 6;
 // and at most PRESOLVE_RATE distinct solves a minute on a page, the week's at most its share, so an open sheet's taps
 // (the likelier) always have room
-const PRESOLVE_RATE = { all: 30, week: 16 }, PRESOLVE_WINDOW_MS = 60000;
+const PRESOLVE_RATE = { all: 30, week: 16 },
+  PRESOLVE_WINDOW_MS = 60000;
 // the tap's edit made dry (dryEdit): {got} while one is, edit's args then
 export let DRY = null;
 // srcs: 'week' | 'next' | 'sheet' → {P, gw, sig, owner, asks: [ask], made: [ask], tried: Set(tap id)}; failed: keys of failed
 // solves (not your rules'); at: viewed week {P, g} (plansOf); ctx: the page's; tapped: SOLVES.asked at your last tap
 // (null before the first: a page's load is no action), tappedOn: the team it was on
-export const AHEAD = { srcs: new Map(), failed: new Set(), at: null, ctx: null, watching: false, asked: [], dropped: new Map(), landed: new Map(), took: null, tapped: null, tappedOn: null, showing: new Set(), suggested: new Set(), urgent: new Set() };
+export const AHEAD = {
+  srcs: new Map(),
+  failed: new Set(),
+  at: null,
+  ctx: null,
+  watching: false,
+  asked: [],
+  dropped: new Map(),
+  landed: new Map(),
+  took: null,
+  tapped: null,
+  tappedOn: null,
+  showing: new Set(),
+  suggested: new Set(),
+  urgent: new Set(),
+};
 // (the page's own team, memory's attached shell, never only AHEAD.ctx: that is set by the first solve asked ahead, so a tap
 // before it was counted for no team, and once a solve ahead set it no tap of that team's was ever spent: 7 solves after
 // GW13's tab; qa-tk118 j-ahead-random-b2, the dev page 2026-11-09 tappedOn null)
@@ -60,37 +161,71 @@ const teamOn = () => (AHEAD.ctx ?? attach()?.ctx)?.store.get('entry') ?? null;
 // or a script's, counts from itself; one right after its press is the same tap)
 let pressedAt = 0;
 /** A tap of yours: the 6 solves after it counted from here (tapSpent). */
-export const tapNow = () => { AHEAD.tapped = SOLVES.asked; AHEAD.tappedOn = teamOn(); };
+export const tapNow = () => {
+  AHEAD.tapped = SOLVES.asked;
+  AHEAD.tappedOn = teamOn();
+};
 if (typeof document !== 'undefined' && document.addEventListener) {
   const opt = { capture: true, passive: true };
-  document.addEventListener('pointerdown', () => { pressedAt = Date.now(); tapNow(); }, opt);
-  document.addEventListener('click', () => { if (Date.now() - pressedAt > 1000) tapNow(); }, opt);
+  document.addEventListener(
+    'pointerdown',
+    () => {
+      pressedAt = Date.now();
+      tapNow();
+    },
+    opt,
+  );
+  document.addEventListener(
+    'click',
+    () => {
+      if (Date.now() - pressedAt > 1000) tapNow();
+    },
+    opt,
+  );
   document.addEventListener('keydown', tapNow, opt);
 }
 // A manual purchase or chip changes the plan the user can ask about. Undo restores its previous choice.
-export const manualSales = (P, g) => (P.pins ?? []).filter((p) => p.kind === 'sell' && p.in != null && Number(p.gw) === g &&
-  (p.manual || p.must?.some(([, , end]) => end > g)));
-const suggestionKey = (P, g) => JSON.stringify([P.entry, g, weekOf(P, g)?.chip ?? null, manualSales(P, g).map((p) => [p.player, p.in, p.at])]);
+export const manualSales = (P, g) =>
+  (P.pins ?? []).filter(
+    (p) =>
+      p.kind === 'sell' && p.in != null && Number(p.gw) === g && (p.manual || p.must?.some(([, , end]) => end > g)),
+  );
+const suggestionKey = (P, g) =>
+  JSON.stringify([P.entry, g, weekOf(P, g)?.chip ?? null, manualSales(P, g).map((p) => [p.player, p.in, p.at])]);
 /** The weeks whose card shows a transfer though the plan rolls them (their Show a transfer, AHEAD.showing; owner, 2026-11-06:
  *  shown as any other transfer, not a list, and there when you come back), till its Previous or Reset all weeks. */
-export const showTransfer = (P, g, on = true) => { AHEAD.showing[on ? 'add' : 'delete'](suggestionKey(P, g)); PAIR.rev++; };
+export const showTransfer = (P, g, on = true) => {
+  AHEAD.showing[on ? 'add' : 'delete'](suggestionKey(P, g));
+  PAIR.rev++;
+};
 export const showingAt = (P, g) => AHEAD.showing.has(suggestionKey(P, g));
 /** The week's card past its opening choice (Show suggestion | Bring in a player): the solver's answer shown, this page's
  *  session (owner, 2026-11-09, "make user initially choose whether to show a suggestion - so user can just bring a
  *  player - make buttons equal to each other"). */
-export const showSuggestion = (P, g, on = true) => { AHEAD.suggested[on ? 'add' : 'delete'](suggestionKey(P, g)); PAIR.rev++; };
+export const showSuggestion = (P, g, on = true) => {
+  AHEAD.suggested[on ? 'add' : 'delete'](suggestionKey(P, g));
+  PAIR.rev++;
+};
 /** …by your tap on Show suggestion (its Previous back to the choice). */
 export const tappedSuggestion = (P, g) => AHEAD.suggested.has(suggestionKey(P, g));
 /** Your last tap on this team has asked the 6 it may (SOLVE_MAX). No tap yet is no action, nor the tap that opened it, a
  *  load like any other: its own solves spent the 6 and left Make the swap and Show another unsolved (owner, 2026-11-05,
  *  "Yes, full preparation"). */
-export const tapSpent = (reserve = 0) => AHEAD.tapped !== null && AHEAD.tappedOn === teamOn() && SOLVES.asked - AHEAD.tapped >= SOLVE_MAX - reserve;
+export const tapSpent = (reserve = 0) =>
+  AHEAD.tapped !== null && AHEAD.tappedOn === teamOn() && SOLVES.asked - AHEAD.tapped >= SOLVE_MAX - reserve;
 /** Whether the shown card of GW g on view P has asked its own Make the swap (presolveSwap, the 'week' source): till it
  *  has, a week prepared ahead leaves it a place among your tap's 6 (forkPump), drawn after the week settles as it is
  *  (qa-tk125 j-state-cascade: 3 card, 3 pairnext, the swap 7th). */
-export const swapAsked = (P, g) => { const own = AHEAD.srcs.get('week'); return !!own && sameView(own.P, P) && own.gw === g; };
+export const swapAsked = (P, g) => {
+  const own = AHEAD.srcs.get('week');
+  return !!own && sameView(own.P, P) && own.gw === g;
+};
 /** A week's moves as one key ("out>in" sorted): the take's (addPlan, AHEAD.took) against the week's (weekRollOf). */
-export const movesKey = (ms) => ms.map((m) => `${m.out}>${m.in}`).sort().join(',');
+export const movesKey = (ms) =>
+  ms
+    .map((m) => `${m.out}>${m.in}`)
+    .sort()
+    .join(',');
 /** The take's number for week w while your plan is what the take made (AHEAD.took: its rules landed, none changed
  *  since, its GW-g moves the week's) → its cmp | null. */
 /** Your rules as one key (the derived hold and Settings → Hits' cap left out: the take's landing re-derives them). */
@@ -99,9 +234,12 @@ export function tookOf(P, w) {
   const t = AHEAD.took;
   if (!t || t.g !== w.gw || t.team !== `${P.entry}|${P.A}` || t.version !== P.b.version) return null;
   const pins = rulesKey(P);
-  if (pins === t.before) return null;  // not landed yet (or taken back by its Undo)
+  if (pins === t.before) return null; // not landed yet (or taken back by its Undo)
   if (t.pins === null) t.pins = pins;
-  if (t.pins !== pins) { AHEAD.took = null; return null; }
+  if (t.pins !== pins) {
+    AHEAD.took = null;
+    return null;
+  }
   return movesKey(w.moves) === t.sig ? t : null;
 }
 export const tookCmp = (P, w) => tookOf(P, w)?.cmp ?? null;
@@ -113,29 +251,63 @@ export function tookSaid(g, said) {
 /** The rules tap `run` (an edit call: addPlan, removeRule, keep…) would make, made dry → edit's args {pins, drop,
  *  inPlace, hitsMax, was} | null (changes nothing, or refused: no solve). */
 function dryEdit(run) {
-  const was = DRY, mine = (DRY = { got: null });
-  try { return run() ? mine.got : null; } catch (e) { console.warn('Forkcast: a tap made dry', e); return null; } finally { DRY = was; }
+  const was = DRY;
+  const mine = { got: null };
+  DRY = mine;
+  try {
+    return run() ? mine.got : null;
+  } catch (e) {
+    console.warn('Forkcast: a tap made dry', e);
+    return null;
+  } finally {
+    DRY = was;
+  }
 }
 
 /** Tap t ({kind, gw, run} | {kind: 'reset'}) as the solve its heal would ask on plan view P: {key, values, version, gw,
  *  kind, src, prep, ahead} | null. Reset plan is no edit: all rules off, Settings → Hits the solver's own
  *  (memory.reset). */
 function askOf(ctx, P, t, src) {
-  const a = t.kind === 'reset' ? { pins: [], drop: P.pins.filter((p) => !derivedPin(p)).map((p) => p.id), hitsMax: null } : dryEdit(t.run);
+  const a =
+    t.kind === 'reset'
+      ? { pins: [], drop: P.pins.filter((p) => !derivedPin(p)).map((p) => p.id), hitsMax: null }
+      : dryEdit(t.run);
   if (!a) return null;
   let values;
   // (`extra`: rules the tap's view will have that this one hasn't, before the tap's own: the next card's refusal, presolveNext)
   try {
-    values = memOf(ctx).values({ extra: [...(t.extra ?? []), ...a.pins], drop: a.drop, hitsMax: a.hitsMax, order: a.inPlace ? (list) => inPlaceOf(list, a.inPlace, a.was) : null });
-  } catch { return null; }
+    values = memOf(ctx).values({
+      extra: [...(t.extra ?? []), ...a.pins],
+      drop: a.drop,
+      hitsMax: a.hitsMax,
+      order: a.inPlace ? (list) => inPlaceOf(list, a.inPlace, a.was) : null,
+    });
+  } catch {
+    return null;
+  }
   // (a take's: the week's choices its plan will ask first, refusalRoads' root under its rules, solved ahead too, so the
   // pitch after it never waits on a solve: 2026-11-02, Raketa GW10 Murillo → Hill greyed 8 s on a cold cache)
   let root = null;
-  if (t.kind === 'take' && !t.bare) try { const v = rootValues(ctx, P, t.gw ?? P.A, a.pins, a.drop); root = { key: valuesKey(P, v), values: v }; } catch {}
+  if (t.kind === 'take' && !t.bare)
+    try {
+      const v = rootValues(ctx, P, t.gw ?? P.A, a.pins, a.drop);
+      root = { key: valuesKey(P, v), values: v };
+    } catch {}
   // (…and what its week's rows count against after it, the roll ("No transfer") under the take's other-week rules: asked
   // at the tap it greyed GW14 13.9 s on a cold server, a 14.5 s solve; qa-tk91 trace o)
   let ref = null;
-  if (t.kind === 'take' && !t.bare) try { const g = t.gw ?? P.A, v = forkValues(ctx, P, g, { moves: [], chips: {} }, a.pins.filter((p) => num(p.gw) !== g)); ref = { key: valuesKey(P, v), values: v }; } catch {}
+  if (t.kind === 'take' && !t.bare)
+    try {
+      const g = t.gw ?? P.A,
+        v = forkValues(
+          ctx,
+          P,
+          g,
+          { moves: [], chips: {} },
+          a.pins.filter((p) => num(p.gw) !== g),
+        );
+      ref = { key: valuesKey(P, v), values: v };
+    } catch {}
   return { key: valuesKey(P, values), values, gw: t.gw ?? P.A, kind: t.kind, src, prep: true, ahead: true, root, ref };
 }
 
@@ -156,11 +328,16 @@ function presolve(ctx, P, src, taps, { gw = P.A, sig = '', owner = null } = {}) 
   // taps with ids (the week's: a take's choice, a Remove's rule) of the same view add to what it asked as more are
   // ready, each made dry once (tried); another view's are asked afresh
   const grows = taps.every((t) => t.id != null);
-  if (!(sameView(cur?.P, P) && cur.gw === gw && cur.owner === owner && (cur.sig === sig || grows))) AHEAD.srcs.set(src, (cur = { P, gw, sig: null, owner, asks: [], made: [], tried: new Set() }));
+  if (!(sameView(cur?.P, P) && cur.gw === gw && cur.owner === owner && (cur.sig === sig || grows))) {
+    cur = { P, gw, sig: null, owner, asks: [], made: [], tried: new Set() };
+    AHEAD.srcs.set(src, cur);
+  }
   if (cur.sig !== sig) {
     cur.sig = sig;
     // (none another source asks, nor one memory has: a sheet's taps besides the week's)
-    const others = [...AHEAD.srcs].filter(([k, x]) => k !== src && sameView(x.P, P)).flatMap(([, x]) => x.asks.map((a) => a.key));
+    const others = [...AHEAD.srcs]
+      .filter(([k, x]) => k !== src && sameView(x.P, P))
+      .flatMap(([, x]) => x.asks.map((a) => a.key));
     // (the room counts every tap made, its solve asked or memory's already: one solved before never makes room for the
     // next likeliest; 2026-11-03, a new team's load asked the Swap of Barry and of Hill, the band's best Evanilson's
     // solved, a new plan view later: 22 solves)
@@ -170,12 +347,27 @@ function presolve(ctx, P, src, taps, { gw = P.A, sig = '', owner = null } = {}) 
       if (!room() || (t.id != null && cur.tried.has(t.id))) continue;
       if (t.id != null) cur.tried.add(t.id);
       const a = askOf(ctx, P, t, src);
-      if (a) cur.made.push(a);  // (every tap's, asked here or not: presolveTaps)
-      if (a && !cur.asks.some((x) => x.key === a.key) && !others.includes(a.key) && !memOf(ctx).solved(a.values)) cur.asks.push({ ...a, pri: t.pri ?? cur.asks.length });
+      if (a) cur.made.push(a); // (every tap's, asked here or not: presolveTaps)
+      if (a && !cur.asks.some((x) => x.key === a.key) && !others.includes(a.key) && !memOf(ctx).solved(a.values))
+        cur.asks.push({ ...a, pri: t.pri ?? cur.asks.length });
       // (its root after it, just after it: never counted in the source's room)
-      if (a?.root && !cur.asks.some((x) => x.key === a.root.key) && !others.includes(a.root.key) && !forkRead(a.root.key)) cur.asks.push({ ...a, ...a.root, kind: 'root', root: null, take: a.key, pri: (t.pri ?? cur.asks.length) + 0.5 });
+      if (
+        a?.root &&
+        !cur.asks.some((x) => x.key === a.root.key) &&
+        !others.includes(a.root.key) &&
+        !forkRead(a.root.key)
+      )
+        cur.asks.push({
+          ...a,
+          ...a.root,
+          kind: 'root',
+          root: null,
+          take: a.key,
+          pri: (t.pri ?? cur.asks.length) + 0.5,
+        });
       // (its roll reference after the root: never counted in the room either)
-      if (a?.ref && !cur.asks.some((x) => x.key === a.ref.key) && !others.includes(a.ref.key) && !forkRead(a.ref.key)) cur.asks.push({ ...a, ...a.ref, kind: 'ref', root: null, ref: null, pri: (t.pri ?? cur.asks.length) + 0.6 });
+      if (a?.ref && !cur.asks.some((x) => x.key === a.ref.key) && !others.includes(a.ref.key) && !forkRead(a.ref.key))
+        cur.asks.push({ ...a, ...a.ref, kind: 'ref', root: null, ref: null, pri: (t.pri ?? cur.asks.length) + 0.6 });
     }
     cur.asks.sort((x, y) => x.pri - y.pri);
   }
@@ -186,14 +378,31 @@ function presolve(ctx, P, src, taps, { gw = P.A, sig = '', owner = null } = {}) 
  *  number (the week's best, the lit plates: litShown), and the Removes of your rules (removeRule: that week's first,
  *  newest first). → {takes, removes, sig} */
 export function weekTaps(ctx, P, g, list) {
-  const ready = list.filter((pl) => pl.state === 'ready' && !pl.self && !rollOnly(pl) && !pl.removed)
-    .sort((a, b) => plPays(b) - plPays(a) || byGain(a, b));
+  const ready = list
+    .filter((pl) => pl.state === 'ready' && !pl.self && !rollOnly(pl) && !pl.removed)
+    .sort((a, b) => Number(plPays(b)) - Number(plPays(a)) || byGain(a, b));
   // (`pri`: ask order, takes first by number; `id`: one tap of the view's, made dry once)
-  const takes = ready.map((pl, i) => ({ kind: 'take', gw: g, id: `take:${forkKey(pl.choice, g)}`, pri: i, solver: !!pl.solver, run: () => addPlan(ctx, g, pl) }));
+  const takes = ready.map((pl, i) => ({
+    kind: 'take',
+    gw: g,
+    id: `take:${forkKey(pl.choice, g)}`,
+    pri: i,
+    solver: !!pl.solver,
+    run: () => addPlan(ctx, g, pl),
+  }));
   const rules = rulesOf(P).filter((p) => ruleOf(P, p).removable);
-  const removes = [...rules.filter((p) => num(p.gw) === g), ...rules.filter((p) => num(p.gw) !== g)]
-    .map((p, i) => ({ kind: 'remove', gw: g, id: `rm:${p.id}`, pri: 100 + i, run: () => removeRule(ctx, p.id) }));
-  return { takes, removes, sig: `${ready.map((pl) => forkKey(pl.choice, g)).join(';')}|${rules.map((p) => p.id).join(',')}` };
+  const removes = [...rules.filter((p) => num(p.gw) === g), ...rules.filter((p) => num(p.gw) !== g)].map((p, i) => ({
+    kind: 'remove',
+    gw: g,
+    id: `rm:${p.id}`,
+    pri: 100 + i,
+    run: () => removeRule(ctx, p.id),
+  }));
+  return {
+    takes,
+    removes,
+    sig: `${ready.map((pl) => forkKey(pl.choice, g)).join(';')}|${rules.map((p) => p.id).join(',')}`,
+  };
 }
 /** Make the swap on GW g's card, solved ahead: the move the card shows (screen-ticket.js paintTicket; of a week's several
  *  moves the one highest on the pitch, so never read from the rows' order), in the fork lanes its own checks leave free. */
@@ -202,7 +411,13 @@ export function presolveSwap(ctx, P, g, pl) {
   const [take] = weekTaps(ctx, P, g, [pl]).takes;
   if (!take) return;
   const a = swapAsk(ctx, P, g, take);
-  if (a && !memOf(ctx).solved(a.values) && !forkRead(a.key) && ctx.api?.solve && ctx.store.get('conn')?.state !== 'offline') {
+  if (
+    a &&
+    !memOf(ctx).solved(a.values) &&
+    !forkRead(a.key) &&
+    ctx.api?.solve &&
+    ctx.store.get('conn')?.state !== 'offline'
+  ) {
     // A restored suggestion may have no bundled swap. Its displayed forecast is an on-screen request.
     forkPump(ctx, P, { key: a.key, values: a.values, gw: g, card: true, side: true, said: 'Transfer forecast' });
     return;
@@ -241,9 +456,13 @@ function swapKept(ctx, P, g, pl, a) {
  *  of your tap's 6 the card on screen needs for its number (qa-tk117 j-card-reset). Never a gate on the refusal walk:
  *  the card is drawn once the week settles, which waits on that walk, so the card's swap was never asked (a deadlock,
  *  design_1109b capture, 2026-11-10). */
-const ownIn = (mem, a) => mem.solved(a.values) || ((a.kind === 'root' || a.kind === 'ref') && forkRead(a.key) != null) || AHEAD.failed.has(a.key);
+const ownIn = (mem, a) =>
+  mem.solved(a.values) ||
+  ((a.kind === 'root' || a.kind === 'ref') && forkRead(a.key) != null) ||
+  AHEAD.failed.has(a.key);
 const ownSwapIn = (ctx, P, g) => {
-  const own = AHEAD.srcs.get('week'), mem = memOf(ctx);
+  const own = AHEAD.srcs.get('week'),
+    mem = memOf(ctx);
   return swapAsked(P, g) && !own.asks.some((a) => !ownIn(mem, a));
 };
 /** The places among your tap's 6 a week prepared ahead leaves the shown card of GW g on view P (forkPump): one till its
@@ -252,7 +471,8 @@ const ownSwapIn = (ctx, P, g) => {
  *  (solve-budget, 2026-11-11). */
 export const ownLeft = (ctx, P, g) => {
   if (!swapAsked(P, g)) return 1;
-  const mem = memOf(ctx), flying = new Set(forkFlights().map(([, f]) => f.key));
+  const mem = memOf(ctx),
+    flying = new Set(forkFlights().map(([, f]) => f.key));
   return AHEAD.srcs.get('week').asks.filter((a) => !ownIn(mem, a) && !flying.has(a.key)).length;
 };
 function presolveNext(ctx, P, g, road, refusals, d0) {
@@ -263,7 +483,22 @@ function presolveNext(ctx, P, g, road, refusals, d0) {
   const plan = planOfRoad(ctx, P, road, g, d0)?.plan;
   if (!plan) return;
   const key = valuesKey(P, rootValues(ctx, P, g, refusals));
-  presolve(ctx, P, 'next', [{ kind: 'take', gw: g, id: `next:${key}`, bare: true, extra: refusals, run: () => addPlan(ctx, g, { ...plan, state: 'ready' }) }], { gw: g, sig: key, owner: key });
+  presolve(
+    ctx,
+    P,
+    'next',
+    [
+      {
+        kind: 'take',
+        gw: g,
+        id: `next:${key}`,
+        bare: true,
+        extra: refusals,
+        run: () => addPlan(ctx, g, { ...plan, state: 'ready' }),
+      },
+    ],
+    { gw: g, sig: key, owner: key },
+  );
 }
 
 /** What Make the swap on GW g's card moves your weeks' xP by, so what the tabs' numbers change by (the plan its solve
@@ -278,8 +513,9 @@ export function forecastGain(gws, before, after) {
   if (!gws.length) return null;
   let gain = 0;
   for (const g of gws) {
-    const points = weeks => weeks.find(w => Number(w.gw) === g)?.points;
-    const a = points(before), b = points(after);
+    const points = (weeks) => weeks.find((w) => Number(w.gw) === g)?.points;
+    const a = points(before),
+      b = points(after);
     if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
     gain += b - a;
   }
@@ -296,8 +532,9 @@ export const sameWindow = (a, b, g) => {
   const rb = new Set(Object.values(b?.windows?.[g] ?? {}).flatMap((by) => Object.keys(by ?? {})));
   return ra.size && ra.size === rb.size && [...ra].every((r) => rb.has(r)) ? ra.size : 0;
 };
-export const windowRounds = (road, g) => new Set(Object.values(road?.windows?.[g] ?? {}).flatMap((by) => Object.keys(by ?? {}))).size;
-export const cardGain = (ctx, P, g, pl) => (pl?.state === 'ready' && pl.cmp ? pl.cmp.delta : null);
+export const windowRounds = (road, g) =>
+  new Set(Object.values(road?.windows?.[g] ?? {}).flatMap((by) => Object.keys(by ?? {}))).size;
+export const cardGain = (_ctx, _P, _g, pl) => (pl?.state === 'ready' && pl.cmp ? pl.cmp.delta : null);
 /** What Show a transfer's row pl is ordered by (cardGain): -Infinity where no number will come, no swap of it to solve, its
  *  solve failed or your tap's 6 spent. → number | null while its solve is out */
 export function shownGain(ctx, P, g, pl) {
@@ -309,14 +546,15 @@ export function shownGain(ctx, P, g, pl) {
  *  spent; false where none will (no swap of it to solve, its solve failed, or the 6 spent and it not out: asked after
  *  your next tap). */
 export function swapComing(ctx, P, g, pl) {
-  const [take] = weekTaps(ctx, P, g, [pl]).takes, a = take ? askOf(ctx, P, take, 'week') : null;
+  const [take] = weekTaps(ctx, P, g, [pl]).takes,
+    a = take ? askOf(ctx, P, take, 'week') : null;
   if (!a || AHEAD.failed.has(a.key)) return false;
   // (the card's own number is asked whatever your tap's 6 (forkPump): it comes unless its solve failed; owner,
   // 2026-11-10, "27 of 103 suggestions have no number - fix bug")
   return true;
 }
 /** The plan Make the swap brings, as yours. → {weeks} | null till its solve is in */
-const swapAsk = (ctx, P, g, take) => askOf(ctx, P, { ...take, bare: true }, 'week');
+const swapAsk = (ctx, P, _g, take) => askOf(ctx, P, { ...take, bare: true }, 'week');
 const swapRoad = (ctx, P, g, pl) => {
   const [take] = weekTaps(ctx, P, g, [pl]).takes;
   if (!take) return null;
@@ -326,7 +564,8 @@ const swapRoad = (ctx, P, g, pl) => {
   if (!mem.solved(a.values)) {
     swapKept(ctx, P, g, pl, a);
     const forecast = forkRead(a.key);
-    if (!mem.solved(a.values) && forecast?.weeks?.length) mem.offer(forecast, { values: a.values, version: P.b.version });
+    if (!mem.solved(a.values) && forecast?.weeks?.length)
+      mem.offer(forecast, { values: a.values, version: P.b.version });
   }
   return mem.solvedRoad(a.values);
 };
@@ -334,8 +573,8 @@ const swapRoad = (ctx, P, g, pl) => {
 export function swapForecast(ctx, P, g, pl) {
   const road = swapRoad(ctx, P, g, pl);
   const weeks = road ? asYours(ctx, road).weeks : [];
-  const gws = P.gws.filter(x => x >= g);
-  return { preview: weeks.find(w => Number(w.gw) === g), pts: forecastGain(gws, P.weeks, weeks), rounds: gws.length };
+  const gws = P.gws.filter((x) => x >= g);
+  return { preview: weeks.find((w) => Number(w.gw) === g), pts: forecastGain(gws, P.weeks, weeks), rounds: gws.length };
 }
 
 /** An open sheet's taps, asked ahead while it is open (presolve 'sheet'): each {kind, gw, run} (or a function making
@@ -356,8 +595,12 @@ export function presolveTaps(ctx, taps, { gw = null, sig = '', owner = null } = 
  *  whether any is still to land. A source of another plan view asks nothing (presolve replaces it); the week's waits
  *  while another week is viewed. */
 export function pumpAhead(ctx) {
-  const P = plan(ctx), mem = memOf(ctx);
-  if (P?.healing) { urgentRoots(ctx, P); return false; }
+  const P = plan(ctx),
+    mem = memOf(ctx);
+  if (P?.healing) {
+    urgentRoots(ctx, P);
+    return false;
+  }
   if (!P || leftBehind(ctx, P)) return false;
   let left = false;
   // (PRESOLVE_RATE a minute: the window's asks, all and the week's, made once a pump and again only when a solve asked
@@ -366,7 +609,8 @@ export function pumpAhead(ctx) {
   AHEAD.asked = AHEAD.asked.filter((x) => x.at > now - PRESOLVE_WINDOW_MS);
   // (a solve asked here only appends: the Sets take the new asks alone)
   let seen = 0;
-  const all = new Set(), week = new Set();
+  const all = new Set(),
+    week = new Set();
   const counts = () => {
     for (; seen < AHEAD.asked.length; seen++) {
       const x = AHEAD.asked[seen];
@@ -393,7 +637,8 @@ export function pumpAhead(ctx) {
       const sent = answeredBy(P, a.key, a.values);
       if (sent) {
         noteAnswered(ctx, P, { ...a, ahead: true }, sent);
-        if (a.kind === 'root') forkKept(a.key, sent); else mem.offer(sent, { values: a.values, version: P.b?.version });
+        if (a.kind === 'root') forkKept(a.key, sent);
+        else mem.offer(sent, { values: a.values, version: P.b?.version });
         AHEAD.landed.set(a.key, P.b?.version ?? null);
         continue;
       }
@@ -441,7 +686,13 @@ export const aheadAsks = (f, P, g) => {
   // (by key, not plan view object: a view drawn anew for the same rules asks the same solves; one for other rules
   // replaces the source before the next draw lets the flight go)
   const s = AHEAD.srcs.get(f.src);
-  return !!s && s.P.entry === P.entry && s.P.A === P.A && (f.src === 'sheet' || s.gw === g) && s.asks.some((a) => a.key === f.key);
+  return (
+    !!s &&
+    s.P.entry === P.entry &&
+    s.P.A === P.A &&
+    (f.src === 'sheet' || s.gw === g) &&
+    s.asks.some((a) => a.key === f.key)
+  );
 };
 /** Fork flight f is the solve asked ahead your rules' heal waits on (memory's pending heal of those values). */
 export const aheadWaited = (f) => !!f.ahead && !!AHEAD.ctx && memOf(AHEAD.ctx)?.getPlan().pending?.ahead === f.key;
@@ -453,7 +704,8 @@ export function stopAhead(src = null) {
   for (const [lane, f] of forkFlights()) {
     if (!f.ahead || (src && f.src !== src) || aheadWaited(f)) continue;
     f.cancel?.();
-    if (lane) FORK_FLIGHTS.delete(lane); else PAIR.flight = null;
+    if (lane) FORK_FLIGHTS.delete(lane);
+    else PAIR.flight = null;
     gone++;
   }
   // (lanes freed: the choices re-draw, so the next week's preparation a sheet's tap took a lane from asks again)
@@ -483,7 +735,8 @@ export const owedAt = (P, w) => !!P?.mem?.hold && !!w?.moves?.length && w.bank !
 export const paysBack = (w, pl) => {
   const g = w.gw;
   const keeps = w.moves.every((m) => pl.choice.moves.some((x) => x.gw === g && x.out === m.out && x.in === m.in));
-  const bank = num((pl.road?.weeks || []).find((x) => Number(x.gw) === g)?.bank) ?? pl.ev?.gws.find((s) => s.gw === g)?.bank;
+  const bank =
+    num((pl.road?.weeks || []).find((x) => Number(x.gw) === g)?.bank) ?? pl.ev?.gws.find((s) => s.gw === g)?.bank;
   return keeps && bank != null && bank >= -1e-9;
 };
 /** owedAt's GW g: your plan solved with that week the planner's (a hits rule there lifts the hold, memory.holdOf),
@@ -520,66 +773,125 @@ export const ROOT_NARROW = new Set(['must_have', 'exclude', 'not_for', 'no_buys_
  *  that made no GW12 transfer, its --max-hits=0 the one difference). */
 const sameRest = (was, now) => {
   const last = now.to != null ? Number(now.to) : Number(now.from_r) + Number(now.w) - 1;
-  const rolled = new Set(String(now.no_buys_gw ?? '').split(',').filter(Boolean).map(Number));
-  const noHits = Number.isFinite(last) && last >= Number(now.from_r)
-    && Array.from({ length: last - Number(now.from_r) + 1 }, (_, i) => Number(now.from_r) + i).every((g) => rolled.has(g));
-  return [...new Set([...Object.keys(was), ...Object.keys(now)])].every((k) => ROOT_NARROW.has(k) || (noHits && (k === 'max_hits' || k === 'max_hits_gw'))
-    || JSON.stringify(was[k] ?? null) === JSON.stringify(now[k] ?? null));
+  const rolled = new Set(
+    String(now.no_buys_gw ?? '')
+      .split(',')
+      .filter(Boolean)
+      .map(Number),
+  );
+  const noHits =
+    Number.isFinite(last) &&
+    last >= Number(now.from_r) &&
+    Array.from({ length: last - Number(now.from_r) + 1 }, (_, i) => Number(now.from_r) + i).every((g) => rolled.has(g));
+  return [...new Set([...Object.keys(was), ...Object.keys(now)])].every(
+    (k) =>
+      ROOT_NARROW.has(k) ||
+      (noHits && (k === 'max_hits' || k === 'max_hits_gw')) ||
+      JSON.stringify(was[k] ?? null) === JSON.stringify(now[k] ?? null),
+  );
 };
 /** Whether a road of `was`, once solved, may answer an ask of `now` (rootStill then decides on its road): every rule of
  *  `was` in `now` too, the rest the same, its last week no earlier. Pure. */
 /** A keep's or bar's spans ("id@a-b,…") → its weeks, one "id@g" each: rules compared week by week, the same weeks
  *  however their spans split ("Murillo@11-12" and "Murillo@12-12" share GW12). */
-const spanWeeks = (v) => new Set(String(v ?? '').split(',').filter(Boolean).flatMap((t) => {
-  const [id, span] = t.split('@'), [a, b] = (span ?? '').split('-').map(Number);
-  return Array.from({ length: Math.max(0, (b || a) - a + 1) }, (_, i) => `${id}@${a + i}`);
-}));
+const spanWeeks = (v) =>
+  new Set(
+    String(v ?? '')
+      .split(',')
+      .filter(Boolean)
+      .flatMap((t) => {
+        const [id, span] = t.split('@'),
+          [a, b] = (span ?? '').split('-').map(Number);
+        return Array.from({ length: Math.max(0, (b || a) - a + 1) }, (_, i) => `${id}@${a + i}`);
+      }),
+  );
 /** Whether a solve of `v` buys no one in any week from its first to g (values.no_buys_gw). */
-const buysNoneTo = (v, g) => { const nn = new Set(String(v.no_buys_gw ?? '').split(',').filter(Boolean).map(Number));
+const buysNoneTo = (v, g) => {
+  const nn = new Set(
+    String(v.no_buys_gw ?? '')
+      .split(',')
+      .filter(Boolean)
+      .map(Number),
+  );
   for (let x = Number(v.from_r); x <= g; x++) if (!nn.has(x)) return false;
-  return true; };
+  return true;
+};
 export function mayAnswer(was0, now0) {
-  const was = solveGap(was0), now = solveGap(now0);
+  const was = solveGap(was0),
+    now = solveGap(now0);
   if (!sameRest(was, now)) return false;
   if (now.to == null ? was.to != null : was.to != null && Number(was.to) < Number(now.to)) return false;
-  const toks = (v) => new Set(String(v ?? '').split(',').filter(Boolean));
+  const toks = (v) =>
+    new Set(
+      String(v ?? '')
+        .split(',')
+        .filter(Boolean),
+    );
   // (a keep's or bar's week the ask lacks where it buys no one up to it: may be its own already, rootStill says once
   // in; owner, 2026-11-11, GW11's No transfer solved beside the week's plan for "Murillo@11-12" against "@12-12")
-  const weekly = ['must_have', 'exclude'].every((k) => { const cur = spanWeeks(now[k]);
-    return [...spanWeeks(was[k])].every((t) => cur.has(t) || buysNoneTo(now, Number(t.split('@')[1]))); });
-  return weekly && ['not_for', 'no_buys_gw', 'max_buys_gw'].every((k) => [...toks(was[k])].every((t) => toks(now[k]).has(t)));
+  const weekly = ['must_have', 'exclude'].every((k) => {
+    const cur = spanWeeks(now[k]);
+    return [...spanWeeks(was[k])].every((t) => cur.has(t) || buysNoneTo(now, Number(t.split('@')[1])));
+  });
+  return (
+    weekly && ['not_for', 'no_buys_gw', 'max_buys_gw'].every((k) => [...toks(was[k])].every((t) => toks(now[k]).has(t)))
+  );
 }
 export function rootStill(was0, now0, road) {
   // (each as sent: its one gap, api.solveGap)
-  const was = solveGap(was0), now = solveGap(now0);
+  const was = solveGap(was0),
+    now = solveGap(now0);
   // (the plan service's own test, api/mobile_roads.road_answers, the same rules: owner, 2026-11-03, "find what else
   // solves do the repeated job between them ... fix all such cases". Under the solver's plan each week commits from its own
   // window, which reaches the weeks after it: a narrower rule on the first week, or the road's stop (`to`) earlier,
   // leaves every window as solved; one on a later week can change an earlier window's plan though the road keeps it
   // (2 of 3 such pairs solved another plan), unless no transfer is possible up to that week, no buys from the first)
-  const toks = (v) => new Set(String(v ?? '').split(',').filter(Boolean));
+  const toks = (v) =>
+    new Set(
+      String(v ?? '')
+        .split(',')
+        .filter(Boolean),
+    );
   if (road?.anchor != null) return false;
   if (!sameRest(was, now)) return false;
   const first = Number(now.from_r);
-  if ((now.to == null && was.to != null) || (now.to != null && was.to != null && Number(was.to) < Number(now.to))) return false;
+  if ((now.to == null && was.to != null) || (now.to != null && was.to != null && Number(was.to) < Number(now.to)))
+    return false;
   const weeks = new Map((road.weeks || []).map((w) => [Number(w.gw), w]));
   if (!weeks.has(first)) return false;
-  const squad = (g) => { const w = weeks.get(g) ?? weeks.get(first); return new Set([...ids(w.xi), ...ids(w.bench)]); };
+  const squad = (g) => {
+    const w = weeks.get(g) ?? weeks.get(first);
+    return new Set([...ids(w.xi), ...ids(w.bench)]);
+  };
   const held = new Set([...toks(was.no_buys_gw)].map(Number));
   // (a solve to week `to` counts that week over its whole window; a road solved with no `to` committed each week it rolls
   // from there to its last from that round alone (rolling.round_window, the solver's plan's own): the plan service's road_answers
   // alike; GW14 read +149.6 against such a cut, journeys 2026-11-08)
-  if (now.to != null && was.to == null && [...weeks.keys()].filter((g) => g >= Number(now.to)).every((g) => held.has(g))) return false;
+  if (
+    now.to != null &&
+    was.to == null &&
+    [...weeks.keys()].filter((g) => g >= Number(now.to)).every((g) => held.has(g))
+  )
+    return false;
   // (a week whose squad is the first week's in every window: no buys in any week from the first to it)
-  const fixed = (g) => g === first || Array.from({ length: g - first + 1 }, (_, i) => first + i).every((x) => held.has(x));
+  const fixed = (g) =>
+    g === first || Array.from({ length: g - first + 1 }, (_, i) => first + i).every((x) => held.has(x));
   // (the squad the road starts from: its first week's, where it buys no one there)
   const start = (weeks.get(first).in || []).length ? null : squad(first);
-  for (const [k, want] of [['must_have', true], ['exclude', false]]) {
-    const old = spanWeeks(was[k]), cur = spanWeeks(now[k]);
+  for (const k of ['must_have', 'exclude']) {
+    const want = k === 'must_have';
+    const old = spanWeeks(was[k]),
+      cur = spanWeeks(now[k]);
     // (week by week; one of the road's rules the ask lacks is the ask's own where it buys no one up to that week and
     // the squad it starts from has (a keep) or lacks (a bar) him: GW11's "Murillo@11-12" under No transfer's
     // --no-buys-gw=11, Murillo bought in GW13; owner, 2026-11-11)
-    if ([...old].some((t) => { const [id, g] = t.split('@'); return !cur.has(t) && !(start && buysNoneTo(now, Number(g)) && start.has(Number(id)) === want); })) return false;
+    if (
+      [...old].some((t) => {
+        const [id, g] = t.split('@');
+        return !cur.has(t) && !(start && buysNoneTo(now, Number(g)) && start.has(Number(id)) === want);
+      })
+    )
+      return false;
     for (const t of [...cur].filter((x) => !old.has(x))) {
       const [id, g] = t.split('@');
       if (!fixed(Number(g)) || squad(Number(g)).has(Number(id)) !== want) return false;
@@ -588,19 +900,32 @@ export function rootStill(was0, now0, road) {
   // (a refusal added, "GW:out:in": the solver's add_not_for forbids buying `in` while selling `out` that week; a road
   // that doesn't make that pair there keeps its answer; Show another's next root was solved again after each refusal,
   // 1.5 s before its card could draw: journeys, 2026-11-08)
-  const fw = toks(was.not_for), fn = toks(now.not_for);
+  const fw = toks(was.not_for),
+    fn = toks(now.not_for);
   if ([...fw].some((t) => !fn.has(t))) return false;
   for (const t of [...fn].filter((x) => !fw.has(x))) {
-    const i = t.indexOf(':'), g = Number(t.slice(0, i)), w = weeks.get(g);
+    const i = t.indexOf(':'),
+      g = Number(t.slice(0, i)),
+      w = weeks.get(g);
     const blocked = refusedRoad(t, w);
     if (!fixed(g) || blocked) return false;
   }
   const nn = new Set([...toks(now.no_buys_gw)].map(Number));
   if ([...held].some((g) => !nn.has(g))) return false;
-  const caps = (v) => new Map([...toks(v)].map((t) => t.split(':').map(Number)));
-  const capn = caps(now.max_buys_gw), capw = caps(was.max_buys_gw);
+  const caps = (v) =>
+    new Map(
+      [...toks(v)].map((t) => {
+        const [gw, cap] = t.split(':').map(Number);
+        return [gw, cap];
+      }),
+    );
+  const capn = caps(now.max_buys_gw),
+    capw = caps(was.max_buys_gw);
   if ([...capw].some(([g, n]) => !capn.has(g) || capn.get(g) > n)) return false;
-  const narrower = [...[...nn].filter((g) => !held.has(g)).map((g) => [g, 0]), ...[...capn].filter(([g, n]) => (capw.get(g) ?? 99) > n)];
+  const narrower = [
+    ...[...nn].filter((g) => !held.has(g)).map((g) => [g, 0]),
+    ...[...capn].filter(([g, n]) => (capw.get(g) ?? 99) > n),
+  ];
   return narrower.every(([g, n]) => g === first && (weeks.get(first).in || []).length <= n);
 }
 /** The values refusalRoads solves GW g's choices under: your rules plus `extra`, less `drop` (ids), the solver's hit cap
@@ -609,14 +934,19 @@ export function rootStill(was0, now0, road) {
  *  with the Roll kept the root after a take was the take's own solve again, and under your Roll no move was offered:
  *  2026-11-02). With a tap's pins made dry (askOf): the root that tap's plan will ask, solved ahead. */
 function rootValues(ctx, P, g, extra = [], drop = []) {
-  const cap = hitCap(P.base) ?? 2, roll = `roll:${g}`;
+  const cap = hitCap(P.base) ?? 2,
+    roll = `roll:${g}`;
   // (a later week's Show another left out: a week before it changes by your transfers alone, never by a refusal after it;
   // GW13's "Not Murillo for Gabriel" turned GW12's Save into Gabriel → Murillo; owner, 2026-11-11, "Show another on week
   // g doesn't change the weeks before, only concrete transfers made do")
   drop = [...drop, ...P.pins.filter((p) => p.kind === 'notfor' && Number(p.gw) > g).map((p) => p.id)];
   // (solved to GW g alone, `to`, as a choice's (forkValues): only its GW-g moves are read, the weeks after it your
   // plan's (planOfRoad); owner, 2026-11-03, "why anytime goes to GW11–13": the ✕ and Keep refusals 8-10 s, GW10 0.3 s)
-  const values = valuesFor(ctx, [...P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x)), ...extra.filter((p) => p.id !== roll)], [...drop, ...P.pins.filter((p) => p.id === roll).map((p) => p.id)]);
+  const values = valuesFor(
+    ctx,
+    [...P.gws.filter((x) => x >= g).map((x) => pinHits(cap, x)), ...extra.filter((p) => p.id !== roll)],
+    [...drop, ...P.pins.filter((p) => p.id === roll).map((p) => p.id)],
+  );
   return { ...noHitsFrom(P, g, values), to: g };
 }
 /**
@@ -632,7 +962,15 @@ function rootValues(ctx, P, g, extra = [], drop = []) {
  */
 export function noHitsFrom(P, g, values, own = false, last = g) {
   if (g <= P.A) return values;
-  const caps = Object.fromEntries(String(values.max_hits_gw ?? '').split(',').filter(Boolean).map((t) => t.split(':').map(Number)));
+  const caps = Object.fromEntries(
+    String(values.max_hits_gw ?? '')
+      .split(',')
+      .filter(Boolean)
+      .map((t) => {
+        const [gw, cap] = t.split(':').map(Number);
+        return [gw, cap];
+      }),
+  );
   const was = num(values.max_hits) ?? hitCap(P.base) ?? 2;
   // (every week after GW A alike, the weeks before g too: owner, 2026-11-09, "fix so gw12 and gw13 handled same way"),
   // each at the hits your own transfers there already cost in your plan (its week's hits; none: 0), never above the cap
@@ -641,12 +979,21 @@ export function noHitsFrom(P, g, values, own = false, last = g) {
   // (none for a week no one is bought in, values.no_buys_gw: no hit is possible there; and nothing at all where every
   // week the solve commits buys no one; owner, 2026-11-09, "why max-hits passed": the roll ahead of GW12 sent
   // --max-hits=0 --max-hits-gw=11:2,12:2 under --no-buys-gw=11,12)
-  const rolled = new Set(String(values.no_buys_gw ?? '').split(',').filter(Boolean).map(Number));
+  const rolled = new Set(
+    String(values.no_buys_gw ?? '')
+      .split(',')
+      .filter(Boolean)
+      .map(Number),
+  );
   // (`last`: the solve's last week, its `to`; owedRoad's has none, the plan's end)
   if (P.gws.filter((y) => y <= last).every((y) => rolled.has(y))) return values;
-  for (const y of P.gws) if (!rolled.has(y)) caps[y] = y <= P.A || (own && y === g) ? caps[y] ?? was : Math.min(caps[y] ?? was, yours(y));
+  for (const y of P.gws)
+    if (!rolled.has(y)) caps[y] = y <= P.A || (own && y === g) ? (caps[y] ?? was) : Math.min(caps[y] ?? was, yours(y));
   for (const y of rolled) delete caps[y];
-  const spec = Object.entries(caps).sort(([x], [y]) => x - y).map(([y, n]) => `${y}:${n}`).join(',');
+  const spec = Object.entries(caps)
+    .sort(([x], [y]) => Number(x) - Number(y))
+    .map(([y, n]) => `${y}:${n}`)
+    .join(',');
   return { ...values, max_hits: 0, ...(spec ? { max_hits_gw: spec } : {}) };
 }
 /** `lead`: the move the week's best token shows (plansOf: the solver's row with the highest number), the one its ✕
@@ -655,10 +1002,14 @@ export function noHitsFrom(P, g, values, own = false, last = g) {
 /** Another week's refusal solving ahead (a side flight, not a root): what holds GW g's refusals ahead back. */
 const sideBusy = (g, key) => forkFlights().some(([, f]) => f.side && !f.root && f.key !== key && f.gw !== g);
 export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1, offered = null } = {}) {
-  const yours = weekOf(P, g)?.moves || [], out = [], seen = new Set(), d0 = draftOf(ctx);
+  const yours = weekOf(P, g)?.moves || [],
+    out = [],
+    seen = new Set(),
+    d0 = draftOf(ctx);
   // (`chain`: the node is Show another's next card, the root's own refused: its swap solved ahead too, presolveNext)
   const walk = (extra, d, chain = false) => {
-    const values = rootValues(ctx, P, g, extra), key = valuesKey(P, values);
+    const values = rootValues(ctx, P, g, extra),
+      key = valuesKey(P, values);
     if (seen.has(key)) return;
     seen.add(key);
     // (the root's flight never let go by a later view: plansOf; an Undo back finds it. A refusal ahead is the plan
@@ -667,11 +1018,18 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1,
     // (…one at a time against OTHER weeks' refusals only: the viewed week's own chain, the card after next beside the next,
     // goes at once in a lane of its own. Held behind each other a cold server solved GW13's Show another chain one card
     // per 4–7 s on one core of four, and a tap waited 11–19 s; qa-tk87 trace n)
-    const root = d === depth, busy = !root && sideBusy(g, key);
+    const root = d === depth,
+      busy = !root && sideBusy(g, key);
     // (the week's last root still its best under rules it already keeps: kept, no solve; owner, 2026-11-02, "nothing
     // greyed out after any choice made")
     const last = root ? ROOTS.get(`${P.entry}|${g}`) : null;
-    const lane = { gw: g, side: true, ...(prep || !root ? { prep: true } : {}), ...(root ? { root: true } : {}), ...(root && !prep ? { card: true } : {}) };
+    const lane = {
+      gw: g,
+      side: true,
+      ...(prep || !root ? { prep: true } : {}),
+      ...(root ? { root: true } : {}),
+      ...(root && !prep ? { card: true } : {}),
+    };
     if (last && !forkRead(key) && last.version === P.b.version && rootStill(last.values, values, last.road)) {
       forkKept(key, { ...last.road, key, values, from: last.road.from ?? last.road.key });
       noteAnswered(ctx, P, { key, values, ...lane }, last.road);
@@ -684,13 +1042,15 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1,
     // (…your own GW-g moves aside by their sale and buy, however the road pairs the week's sales and buys: Konsa →
     // Muharemović yours and the solver's Rice → Gibbs-White read Konsa → Gibbs-White, Rice → Muharemović, two moves not
     // yours, and the card waited on halves; owner, 2026-11-09, "what happening")
-    const yo = new Set(yours.map((y) => Number(y.out))), yi = new Set(yours.map((y) => Number(y.in)));
+    const yo = new Set(yours.map((y) => Number(y.out))),
+      yi = new Set(yours.map((y) => Number(y.in)));
     const movesOf = (r) => {
       const x = r?.weeks.find((y) => Number(y.gw) === g);
       if (!x) return [];
       const ms = planOfRoad(ctx, P, r, g, d0)?.choice.moves ?? pairedMoves(x.out || [], x.in || [], P.L);
       if (!yours.length) return ms;
-      const outs = ms.map((m) => Number(m.out)).filter((o) => !yo.has(o)), ins = ms.map((m) => Number(m.in)).filter((i) => !yi.has(i));
+      const outs = ms.map((m) => Number(m.out)).filter((o) => !yo.has(o)),
+        ins = ms.map((m) => Number(m.in)).filter((i) => !yi.has(i));
       const kept = ms.filter((m) => outs.includes(Number(m.out)) && ins.includes(Number(m.in)));
       return kept.length === outs.length ? kept : pairedMoves(outs, ins, P.L).map((m) => ({ gw: g, ...m }));
     };
@@ -698,19 +1058,54 @@ export function refusalRoads(ctx, P, g, { peek = false, prep = false, depth = 1,
     const ms = road ? movesOf(road) : [];
     let single;
     if (root && ms.length > 1 && !SQUAD_CHIPS.has(weekOf(P, g)?.chip)) {
-      const caps = new Map(String(values.max_buys_gw ?? '').split(',').filter(Boolean).map(x => x.split(':').map(Number)));
+      const caps = new Map(
+        String(values.max_buys_gw ?? '')
+          .split(',')
+          .filter(Boolean)
+          .map((x) => {
+            const [gw, cap] = x.split(':').map(Number);
+            return [gw, cap];
+          }),
+      );
       caps.set(g, Math.min(caps.get(g) ?? Infinity, yours.length + 1));
-      const v = { ...values, max_buys_gw: [...caps].sort(([a], [b]) => a - b).map(([gw, n]) => `${gw}:${n}`).join(',') };
-      const k = valuesKey(P, v), answer = ask(k, v);
+      const v = {
+        ...values,
+        max_buys_gw: [...caps]
+          .sort(([a], [b]) => a - b)
+          .map(([gw, n]) => `${gw}:${n}`)
+          .join(','),
+      };
+      const k = valuesKey(P, v),
+        answer = ask(k, v);
       single = { key: k, values: v, road: answer?.weeks ? answer : null, answered: answer != null, single: true };
     }
     if (root && !prep) {
-      const checks = ms.length > 1 ? ms.map((move) => ({
-        ...move, ...fitOf(ctx, P, g, { moves: [...yours, move], chips: {} }, d0),
-      })) : [];
+      const checks =
+        ms.length > 1
+          ? ms.map((move) => ({
+              ...move,
+              ...fitOf(ctx, P, g, { moves: [...yours, move], chips: {} }, d0),
+            }))
+          : [];
       recordDecision(P, g, {
-        key, checks, reason: road ? 'solver-plan' : 'pending', original: ms,
-        requests: [{ label: 'Week plan', key, values, state: road ? 'ready' : got ?? 'pending', moves: ms }, ...(single ? [{ label: 'Best single transfer', key: single.key, values: single.values, state: single.road ? 'ready' : single.answered ? 'unavailable' : 'pending', moves: movesOf(single.road) }] : [])],
+        key,
+        checks,
+        reason: road ? 'solver-plan' : 'pending',
+        original: ms,
+        requests: [
+          { label: 'Week plan', key, values, state: road ? 'ready' : (got ?? 'pending'), moves: ms },
+          ...(single
+            ? [
+                {
+                  label: 'Best single transfer',
+                  key: single.key,
+                  values: single.values,
+                  state: single.road ? 'ready' : single.answered ? 'unavailable' : 'pending',
+                  moves: movesOf(single.road),
+                },
+              ]
+            : []),
+        ],
       });
     }
     out.push({ key, road });
@@ -758,7 +1153,7 @@ export function addYours(ctx, P, g, out, inn, d0 = draftOf(ctx), measure = null)
   for (const x of P.gws.filter((y) => y >= g && repicks(P, y))) {
     if (hitsAt(r.ev, x) <= hitsAt(before, x)) continue;
     const mode = gwMode(P, x);
-    const room = mode === 'free' ? 0 : mode.startsWith('h') ? Number(mode.slice(1)) : hitCap(P.base) ?? Infinity;
+    const room = mode === 'free' ? 0 : mode.startsWith('h') ? Number(mode.slice(1)) : (hitCap(P.base) ?? Infinity);
     const drops = new Map();
     for (const m of weekOf(P, x).moves.filter((y) => !pinOfMove(P, { ...y, gw: x }) && (x !== g || y.out !== out))) {
       const dm = flatMoves(r.draft).find((y) => y.gw === x && y.out === m.out && y.in === m.in);
@@ -782,47 +1177,75 @@ export function addYours(ctx, P, g, out, inn, d0 = draftOf(ctx), measure = null)
  * (owner, 2026-10-21). Once per plan view and move. → [{out, in, cmp}]
  */
 export const OWN_ALTS = 6;
-const OWN_ALT_TRIES = 12;   // Replace's best few of his position that fit (buyCandidates' order: mean xP)
-const OWN_ALTS_ALONE = 3;   // …shown when the model has no other buy for him (a buy you chose yourself)
+const OWN_ALT_TRIES = 12; // Replace's best few of his position that fit (buyCandidates' order: mean xP)
+const OWN_ALTS_ALONE = 3; // …shown when the model has no other buy for him (a buy you chose yourself)
 const OWNALTS = new WeakMap();
 export function ownAltsOf(ctx, P, w, m, all = false) {
   const g = w?.gw;
   const made = !!w?.moves.some((x) => x.out === m.out && x.in === m.in);
-  if (!w || isFrozen(P, g) || squadWeek(w) || (made ? pinOfMove(P, m)?.kind !== 'sell' || fundingOf(P, g, m) : !w.squad.includes(m.out) || w.squad.includes(m.in))) return [];
+  if (
+    !w ||
+    isFrozen(P, g) ||
+    squadWeek(w) ||
+    (made ? pinOfMove(P, m)?.kind !== 'sell' || fundingOf(P, g, m) : !w.squad.includes(m.out) || w.squad.includes(m.in))
+  )
+    return [];
   let by = OWNALTS.get(P);
-  if (!by) OWNALTS.set(P, (by = new Map()));
+  if (!by) {
+    by = new Map();
+    OWNALTS.set(P, by);
+  }
   const key = `${g}:${m.out}>${m.in}${all ? ':all' : ''}`;
   if (by.has(key)) return by.get(key);
   const d0 = draftOf(ctx);
   // the plan as the row measures it (`d`: the week's moves up to this one, later ones dropped last first; `cut` when
   // some are), against those before it (rowGains); a suggestion's: your plan with it added against your plan
-  let rg = null, d = d0, bank = w.bank ?? 0;
+  let rg = null,
+    d = d0,
+    bank = w.bank ?? 0;
   if (made) {
     rg = rowGains(ctx, P, w).get(`${m.out}>${m.in}`);
     const ms = movesInOrder(P, w);
     const k = ms.findIndex((x) => x.out === m.out && x.in === m.in);
-    for (let j = ms.length - 1; j > k; j--) d = dropMove(d, flatMoves(d).find((x) => x.gw === g && x.out === ms[j].out) ?? { gw: g, ...ms[j] });
+    for (let j = ms.length - 1; j > k; j--)
+      d = dropMove(d, flatMoves(d).find((x) => x.gw === g && x.out === ms[j].out) ?? { gw: g, ...ms[j] });
   } else {
-    const r = addMove(ctx, d0, g, m.out, m.in, takenBy(ctx, P)), without = planBaseline(ctx, P, g);
-    if (!r.problem) { rg = { cmp: compare(ctx, r.ev, without), without }; d = r.draft; bank = r.ev.gws.find((s) => s.gw === g)?.bank ?? 0; }
+    const r = addMove(ctx, d0, g, m.out, m.in, takenBy(ctx, P)),
+      without = planBaseline(ctx, P, g);
+    if (!r.problem) {
+      rg = { cmp: compare(ctx, r.ev, without), without };
+      d = r.draft;
+      bank = r.ev.gws.find((s) => s.gw === g)?.bank ?? 0;
+    }
   }
   const cut = made && d !== d0;
   let list = [];
   if (rg) {
-    const no = barred(P, g), refused = refusedAt(P, g);
+    const no = barred(P, g),
+      refused = refusedAt(P, g);
     const mine = movedFrom(P, g);
-    const measure = (ids) => ids.flatMap((id) => {
-      if (id === m.in || w.squad.includes(id) || mine.has(id) || no.has(id) || refused.has(`${m.out}>${id}`)) return [];
-      const r = addMove(ctx, d, g, m.out, id, takenBy(ctx, P));
-      if (r.problem || (cut && addMove(ctx, d0, g, m.out, id).problem)) return [];
-      return [{ out: m.out, in: id, cmp: compare(ctx, r.ev, rg.without) }];
-    }).sort((a, b) => b.cmp.delta - a.cmp.delta);
+    const measure = (ids) =>
+      ids
+        .flatMap((id) => {
+          if (id === m.in || w.squad.includes(id) || mine.has(id) || no.has(id) || refused.has(`${m.out}>${id}`))
+            return [];
+          const r = addMove(ctx, d, g, m.out, id, takenBy(ctx, P));
+          if (r.problem || (cut && addMove(ctx, d0, g, m.out, id).problem)) return [];
+          return [{ out: m.out, in: id, cmp: compare(ctx, r.ev, rg.without) }];
+        })
+        .sort((a, b) => b.cmp.delta - a.cmp.delta);
     const model = measure([...new Set([...modelMoves(P, g).values()].filter((x) => x.out === m.out).map((x) => x.in))]);
-    const room = bank + (P.L.price(m.in) ?? 0) + 1e-6;  // the bank after the week, and what its buy costs back
-    const fits = buyCandidates(P, { pos: P.L.pos(m.out), from: g, not: [m.in], limit: 80 }).filter((x) => (P.L.price(x) ?? Infinity) <= room);
+    const room = bank + (P.L.price(m.in) ?? 0) + 1e-6; // the bank after the week, and what its buy costs back
+    const fits = buyCandidates(P, { pos: P.L.pos(m.out), from: g, not: [m.in], limit: 80 }).filter(
+      (x) => (P.L.price(x) ?? Infinity) <= room,
+    );
     const more = measure(fits.slice(0, OWN_ALT_TRIES).filter((id) => !model.some((x) => x.in === id)));
     const better = more.filter((x) => x.cmp.delta > rg.cmp.delta + 0.05);
-    list = all ? [...model, ...more] : model.length || better.length ? [...model, ...better] : more.slice(0, OWN_ALTS_ALONE);
+    list = all
+      ? [...model, ...more]
+      : model.length || better.length
+        ? [...model, ...better]
+        : more.slice(0, OWN_ALTS_ALONE);
     list = cheaperFirst(list, P.noise, P.L.price);
   }
   list = list.slice(0, OWN_ALTS);
@@ -858,18 +1281,36 @@ export function otherUseOf(ctx, P, w, m) {
   const g = w?.gw;
   if (!P?.mem?.hold || !w || isFrozen(P, g) || squadWeek(w) || !extraWeek(P, g)) return null;
   let by = OTHERUSE.get(P);
-  if (!by) OTHERUSE.set(P, (by = new Map()));
+  if (!by) {
+    by = new Map();
+    OTHERUSE.set(P, by);
+  }
   const key = `${g}:${m.out}>${m.in}`;
   if (by.has(key)) return by.get(key);
   const rg = rowGains(ctx, P, w).get(`${m.out}>${m.in}`);
   let best = null;
   if (rg && !rg.hit) {
-    const into = squadBefore(P, g), squad = rg.without.gws.find((s) => s.gw === g)?.squad ?? [];
-    const no = barred(P, g), refused = refusedAt(P, g), kept = keptFrom(P, g), mine = movedFrom(P, g);
+    const into = squadBefore(P, g),
+      squad = rg.without.gws.find((s) => s.gw === g)?.squad ?? [];
+    const no = barred(P, g),
+      refused = refusedAt(P, g),
+      kept = keptFrom(P, g),
+      mine = movedFrom(P, g);
     mine.delete(m.out);
     mine.delete(m.in);
     for (const x of modelMoves(P, g, { now: true }).values()) {
-      if ((x.out === m.out && x.in === m.in) || !into.includes(x.out) || !squad.includes(x.out) || squad.includes(x.in) || mine.has(x.out) || mine.has(x.in) || no.has(x.in) || refused.has(`${x.out}>${x.in}`) || kept.has(x.out)) continue;
+      if (
+        (x.out === m.out && x.in === m.in) ||
+        !into.includes(x.out) ||
+        !squad.includes(x.out) ||
+        squad.includes(x.in) ||
+        mine.has(x.out) ||
+        mine.has(x.in) ||
+        no.has(x.in) ||
+        refused.has(`${x.out}>${x.in}`) ||
+        kept.has(x.out)
+      )
+        continue;
       const r = addYours(ctx, P, g, x.out, x.in, rg.dWithout, takenBy(ctx, P));
       if (r.problem) continue;
       const cmp = compare(ctx, r.ev, rg.without);
@@ -911,7 +1352,7 @@ export function whenOf(ctx, P, m) {
     const current = x === g;
     const no = { gw: x, ok: false, current, delta: null, label: null };
     const wx = weekOf(P, x);
-    if (current && own) return { gw: x, ok: true, current, delta: own.delta, label: own.label };  // made there, frozen or not
+    if (current && own) return { gw: x, ok: true, current, delta: own.delta, label: own.label }; // made there, frozen or not
     if (!wx || inkAt(ctx, P, x) || squadWeek(wx) || inkAt(ctx, P, g)) return no;
     const r = addMove(ctx, d, x, m.out, m.in);
     if (r.problem) return no;
@@ -930,20 +1371,35 @@ export function whenOf(ctx, P, m) {
  */
 export function moveTo(ctx, m, g2) {
   const P = plan(ctx);
-  const g = Number(m.gw), to = Number(g2);
+  const g = Number(m.gw),
+    to = Number(g2);
   const pin = P ? pinOfMove(P, m) : null;
-  if (!P || to === g || !P.gws.includes(to) || pin?.kind !== 'sell' || !weekOf(P, g)?.moves.some((x) => x.out === m.out && x.in === m.in)) return false;
+  if (
+    !P ||
+    to === g ||
+    !P.gws.includes(to) ||
+    pin?.kind !== 'sell' ||
+    !weekOf(P, g)?.moves.some((x) => x.out === m.out && x.in === m.in)
+  )
+    return false;
   const nm = P.L.name;
   const lo = Math.min(g, to);
   const d = draftWithout(ctx, P, g, m, lo);
   const r = addMove(ctx, d, to, m.out, m.in);
-  if (r.problem) { toastOf(ctx)(problemText(ctx, r.problem, nm(m.in)), 'warn'); return false; }
+  if (r.problem) {
+    toastOf(ctx)(problemText(ctx, r.problem, nm(m.in)), 'warn');
+    return false;
+  }
   const next = pinSell(m.out, to, P.end, { in: m.in, label: `${nm(m.out)} → ${nm(m.in)} from GW${to}` });
   const taken = clashing(P, next).filter((q) => q.id !== pin.id);
   const what = withTaken(P, COPY.movedTo(`${nm(m.out)} → ${nm(m.in)}`, to), taken);
   // its row leaves the week on screen: its points even when it lands at once (B24's premise fails)
   return edit(ctx, {
-    pins: [next], drop: [pin.id, ...wishDrop(P, m.in), ...taken.map((q) => q.id)], from: lo, what, taken,
+    pins: [next],
+    drop: [pin.id, ...wishDrop(P, m.in), ...taken.map((q) => q.id)],
+    from: lo,
+    what,
+    taken,
     text: withPoints(ctx, what, (Q, prev) => endingOf(Q, prev, to, { own: m.out })),
   });
 }
@@ -963,7 +1419,8 @@ export function pairMovesOf(road, g, have = [], L = null) {
 // the slot's fork solve in flight (lane 0: forkFlights), when a refused or cancelled ask may go again, and the landed
 // solves' count (pairChanged; plansOf's cache keys on it)
 export const PAIR = { flight: null, until: 0, prepUntil: 0, rev: 0 };
-export const PAIR_AGAIN_MS = 1500, PAIR_HOLD_MS = 30000;
+export const PAIR_AGAIN_MS = 1500,
+  PAIR_HOLD_MS = 30000;
 
 /** Speculative-slot solves of this browser a suggested plan's solve takes the slot from: its own background asks (a
  *  chip preparation, the options road; each asked again later) and an older fork. A Wish solve is a sheet you are
@@ -984,7 +1441,9 @@ export function planTake(P, g, pl) {
   const chip = pl.chips?.[g] ?? null;
   // a move of yours the plan's choice keeps stays yours only when exact (an open sale, "Let Forkcast choose", is made
   // the choice's: the week's Roll caps it at exactly these moves, addPlan)
-  const own = SQUAD_CHIPS.has(chip) ? [] : pl.moves.filter((m) => m.gw === g && !(isYours(P, m) && isExact(pinOfMove(P, m))));
+  const own = SQUAD_CHIPS.has(chip)
+    ? []
+    : pl.moves.filter((m) => m.gw === g && !(isYours(P, m) && isExact(pinOfMove(P, m))));
   // `back`: your Wildcard or Free Hit there that it doesn't play, taken off (chipBackOf; owner, 2026-10-13)
   return { own, chips: chip ? [[g, chip]] : [], gone: yoursTakenBack(P, g, pl.moves), back: chipBackOf(P, g, pl) };
 }
@@ -1006,7 +1465,9 @@ export function takenKeep(P, g, pl) {
  *  earlier goes (madeEarlier; owner, 2026-10-30). */
 export function planTakeDraft(ctx, P, g, base, now) {
   const wished = wishWeeks(P);
-  const keeps = (m) => m.gw < g || (m.gw > g && !squadWeek(weekOf(P, m.gw)) && (!!pinOfMove(P, m) || wished.has(m.gw)) && !madeEarlier(now, m));
+  const keeps = (m) =>
+    m.gw < g ||
+    (m.gw > g && !squadWeek(weekOf(P, m.gw)) && (!!pinOfMove(P, m) || wished.has(m.gw)) && !madeEarlier(now, m));
   const draft = withMoves(base, [...flatMoves(draftOf(ctx)).filter(keeps), ...now]);
   return withLaterChipSquads(ctx, P, g, draft);
 }
@@ -1014,14 +1475,23 @@ export function planTakeDraft(ctx, P, g, base, now) {
  *  them made earlier, so it goes from its later week, as addMove takes it (planOfRoad, planTakeDraft). Pure. */
 export const madeEarlier = (ms, m) => ms.some((y) => y.out === m.out || y.in === m.in);
 /** The GWs a wish of yours makes the planner's (him from then: Add a player's button; never a chip week's pick). */
-export const wishWeeks = (P) => new Set(asksOf(P).filter((p) => p.kind === 'wish' && !isPick(p)).map((p) => Number(p.gw)));
+export const wishWeeks = (P) =>
+  new Set(
+    asksOf(P)
+      .filter((p) => p.kind === 'wish' && !isPick(p))
+      .map((p) => Number(p.gw)),
+  );
 
 /** Draft `base` with GW g's week taken from draft `from`: its moves, its chip and its saved lineup, every other week
  *  `base`'s (a Free Hit's week alone on the roll plan's later weeks, its squad reverting after it: plansOf's chipOf).
  *  Pure. */
 export const weekOnto = (base, from, g) => {
-  const d = withMoves(base, [...flatMoves(base).filter((m) => m.gw !== g), ...flatMoves(from).filter((m) => m.gw === g)]);
-  const c = E.setLineup(E.setChip(d, g, from.chips?.[g] ?? null), g, null), lu = from.lineups?.[g];
+  const d = withMoves(base, [
+    ...flatMoves(base).filter((m) => m.gw !== g),
+    ...flatMoves(from).filter((m) => m.gw === g),
+  ]);
+  const c = E.setLineup(E.setChip(d, g, from.chips?.[g] ?? null), g, null),
+    lu = from.lineups?.[g];
   return lu ? E.setLineup(c, g, lu) : c;
 };
 
@@ -1039,7 +1509,11 @@ export const weekOnto = (base, from, g) => {
  *  one up, for a minute at most. → its words now */
 function takeSaid(ctx, g, head, cmp, tail) {
   // (as drawn, never a solve asked: plansListed)
-  const line = () => { const Q = plan(ctx), w = Q && weekOf(Q, g); return w ? weekRollOf(ctx, Q, w, (x) => plansListed(ctx, Q, x)) : null; };
+  const line = () => {
+    const Q = plan(ctx),
+      w = Q && weekOf(Q, g);
+    return w ? weekRollOf(ctx, Q, w, (x) => plansListed(ctx, Q, x)) : null;
+  };
   const now = line();
   if (now) return `${head}${fmt.signed(shownDelta(now))}${tail}`;
   // (the toast is made after these words: its handle a task later)
@@ -1051,8 +1525,16 @@ function takeSaid(ctx, g, head, cmp, tail) {
     stop.unref?.();
     off = ctx.store.on('aheadPair', () => {
       const r = saidNow() === was ? line() : null;
-      if (saidNow() !== was) { off(); clearTimeout(stop); return; }
-      if (r) { off(); clearTimeout(stop); sayAgain(was, `${head}${fmt.signed(shownDelta(r))}${tail}`); }
+      if (saidNow() !== was) {
+        off();
+        clearTimeout(stop);
+        return;
+      }
+      if (r) {
+        off();
+        clearTimeout(stop);
+        sayAgain(was, `${head}${fmt.signed(shownDelta(r))}${tail}`);
+      }
     });
   }, 0);
   return `${head}${fmt.signed(shownDelta(cmp))}${tail}`;
@@ -1066,28 +1548,46 @@ export function addPlan(ctx, g, pl) {
   // the week has none (owner, 2026-10-19: Roll clickable via + like the others)
   const locks = !!pl.rolls && !P.pins.some((p) => p.id === `roll:${g}`);
   if (!own.length && !chips.length && !gone.length && !back && !locks) return false;
-  const draft = planTakeDraft(ctx, P, g, pl.draft, flatMoves(pl.draft).filter((m) => m.gw === g));
+  const draft = planTakeDraft(
+    ctx,
+    P,
+    g,
+    pl.draft,
+    flatMoves(pl.draft).filter((m) => m.gw === g),
+  );
   // a sale whose money its week's other buy needs (the week without it over budget) funds that buy, as a bring-in's
   // does (buyPins), so its row reads "Frees £x so Y fits"; of two that each need the other, the one that frees more
   const ev = estimate(ctx, draft, g);
-  const funder = new Map((() => {
-    if (own.length !== 2) return [];
-    const needs = (m) => freedBy(ev, g, m) > 0 && problemOf(ctx, estimate(ctx, dropDrafted(draft, m), g), g)?.code === 'budget';
-    const f = own.filter(needs).sort((a, c) => freedBy(ev, g, c) - freedBy(ev, g, a))[0];
-    return f ? [[f, own.find((m) => m !== f).in]] : [];
-  })());
+  const funder = new Map(
+    (() => {
+      if (own.length !== 2) return [];
+      const needs = (m) =>
+        freedBy(ev, g, m) > 0 && problemOf(ctx, estimate(ctx, dropDrafted(draft, m), g), g)?.code === 'budget';
+      const f = own.filter(needs).sort((a, c) => freedBy(ev, g, c) - freedBy(ev, g, a))[0];
+      return f ? [[f, own.find((m) => m !== f).in]] : [];
+    })(),
+  );
   // held only until the GW before that sale (as sellsOn remakes a transfer of yours)
   const later = flatMoves(draftOf(ctx)).filter((x) => x.gw > g && pinOfMove(P, x));
   const pins = own.map((m) => {
-    const p = pinSell(m.out, m.gw, P.end, { in: m.in, funds: funder.get(m) ?? null, label: `${nm(m.out)} → ${nm(m.in)} in GW${m.gw}`, week: true });
+    const p = pinSell(m.out, m.gw, P.end, {
+      in: m.in,
+      funds: funder.get(m) ?? null,
+      label: `${nm(m.out)} → ${nm(m.in)} in GW${m.gw}`,
+      week: true,
+    });
     const resold = later.find((x) => x.out === m.in);
     return resold ? { ...p, must: p.must.map(([id, a]) => [id, a, resold.gw - 1]) } : p;
   });
   const drop = goneIds(P, gone);
   // your chip week, a choice that plays none: the chip off as chipOff takes it, its picks named
   const off = back ? chipOffParts(P, g, { locked: true }) : null;
-  if (off) { pins.push(...off.pins); drop.push(...off.drop); }
-  const chipSaid = new Map(), chipTaken = [...(off?.picks ?? [])];
+  if (off) {
+    pins.push(...off.pins);
+    drop.push(...off.drop);
+  }
+  const chipSaid = new Map(),
+    chipTaken = [...(off?.picks ?? [])];
   for (const [x, c] of chips) {
     const e = chipEdit(P, x, c);
     const cw = chipWords(P, x, c, e.drop, { inPlace: true });
@@ -1110,37 +1610,73 @@ export function addPlan(ctx, g, pl) {
   const ids = new Set(pins.map((p) => p.id));
   // a limit counts the week's hits, not only those the take adds
   const hits = ev.gws.find((s) => s.gw === g)?.hits ?? 0;
-  const limit = asksOf(P).filter((p) => p.kind === 'hits' && !drop.includes(p.id) && Number(p.hits?.[g] ?? Infinity) < hits);
+  const limit = asksOf(P).filter(
+    (p) => p.kind === 'hits' && !drop.includes(p.id) && Number(p.hits?.[g] ?? Infinity) < hits,
+  );
   // the week's Roll is the choice itself, never a rule against your moves it keeps; a Wish the take makes an exact sale
   // is no rule taken back
   const wished = new Set(own.flatMap((m) => wishDrop(P, m.in)));
   // A refused card may be a subset of this suggestion. Keep its history for Undo.
-  const taken = [...new Map([...pins.filter((p) => !isRoll(p) && !chain.has(p.id)).flatMap((p) => clashing(P, p, asks)), ...limit].filter((q) => q.kind !== 'notfor' && !ids.has(q.id) && !drop.includes(q.id) && !wished.has(q.id)).map((q) => [q.id, q])).values()];
+  const taken = [
+    ...new Map(
+      [...pins.filter((p) => !isRoll(p) && !chain.has(p.id)).flatMap((p) => clashing(P, p, asks)), ...limit]
+        .filter((q) => q.kind !== 'notfor' && !ids.has(q.id) && !drop.includes(q.id) && !wished.has(q.id))
+        .map((q) => [q.id, q]),
+    ).values(),
+  ];
   const move = (m) => `${nm(m.out)} → ${nm(m.in)}`;
   const hit = own.length && pl.hits?.[g] ? ` (${MINUS}${E.HIT_COST * pl.hits[g]})` : '';
-  const head = chipSaid.get(g) ?? (own.length ? `GW${g} ${own.map(move).join(' + ')}${hit}` : !pl.moves.some((m) => m.gw === g) ? COPY.planRoll(g) : null);
+  const head =
+    chipSaid.get(g) ??
+    (own.length
+      ? `GW${g} ${own.map(move).join(' + ')}${hit}`
+      : !pl.moves.some((m) => m.gw === g)
+        ? COPY.planRoll(g)
+        : null);
   // the rule it adds, named as Your rules lists it, its GW once after a head that names it ("GW8 Saka → Palmer ·
   // frozen"), unless its words are the head's ("GW8 roll") or it stands already (owner, 2026-10-22)
   const rg = `GW${g} `;
   // (a standing rule is judged by what it keeps, never its stored label: rules saved before 2026-10-22 say "GW8 lock")
-  const made = roll && roll.label !== head && !P.pins.some((p) => p.id === roll.id && rollKeeps(p) === rollKeeps(roll))
-    ? (head?.startsWith(rg) && roll.label.startsWith(rg) ? roll.label.slice(rg.length) : roll.label) : null;
+  const made =
+    roll && roll.label !== head && !P.pins.some((p) => p.id === roll.id && rollKeeps(p) === rollKeeps(roll))
+      ? head?.startsWith(rg) && roll.label.startsWith(rg)
+        ? roll.label.slice(rg.length)
+        : roll.label
+      : null;
   // the transfers it takes back in one clause, its GW said once; where the week keeps transfers of yours beside its
   // own, their count named ("… · frozen · 3 transfers in GW8"; owner, 2026-10-22)
   const nAt = pl.moves.filter((m) => m.gw === g).length;
-  const kept = own.length && !chips.length && nAt > own.length && (weekOf(P, g)?.moves.length ?? 0) > 0 ? COPY.weekTransfers(nAt, g) : null;
+  const kept =
+    own.length && !chips.length && nAt > own.length && (weekOf(P, g)?.moves.length ?? 0) > 0
+      ? COPY.weekTransfers(nAt, g)
+      : null;
   // one move in place of your one transfer of the same player, in the place's words: "GW9 Calvert-Lewin → Barry instead
   // of Evanilson", not "… · Calvert-Lewin → Evanilson removed", whose "removed" a one-line toast head would clip first
   // (ui.js toastWords; owner, 2026-10-26)
-  const swapped = own.length === 1 && gone.length === 1 && gone[0].out === own[0].out && head?.endsWith(move(own[0]) + hit)
-    && !chips.length && !back;
-  const said = [swapped ? `${head} ${COPY.planInsteadOf(nm(gone[0].in))}` : head, made, kept, gone.length && !swapped ? COPY.removed(gone.map((m, i) => `${head || i ? '' : `GW${g} `}${move(m)}`)) : null, off ? COPY.chipTakenOff(chipName(back), g) : null,
-    ...(off?.pins ?? []).map((q) => COPY.chipBack(autoRuleName(q, g))), ...rule.map((q) => COPY.chipRemoves(autoRuleName(q, g)))].filter(Boolean);
+  const swapped =
+    own.length === 1 &&
+    gone.length === 1 &&
+    gone[0].out === own[0].out &&
+    head?.endsWith(move(own[0]) + hit) &&
+    !chips.length &&
+    !back;
+  const said = [
+    swapped ? `${head} ${COPY.planInsteadOf(nm(gone[0].in))}` : head,
+    made,
+    kept,
+    gone.length && !swapped ? COPY.removed(gone.map((m, i) => `${head || i ? '' : `GW${g} `}${move(m)}`)) : null,
+    off ? COPY.chipTakenOff(chipName(back), g) : null,
+    ...(off?.pins ?? []).map((q) => COPY.chipBack(autoRuleName(q, g))),
+    ...rule.map((q) => COPY.chipRemoves(autoRuleName(q, g))),
+  ].filter(Boolean);
   const what = withTaken(P, said.join(' · '), taken);
   // a choice the solver hasn't planned (no road of its own) is checked for budget and club before its solve is asked
   // (whether a solve is worth asking; never what is drawn)
   const p = !pl.road && !chips.some(([, c]) => SQUAD_CHIPS.has(c)) ? problemOf(ctx, ev, g) : null;
-  if (p) { toastOf(ctx)(problemText(ctx, p), 'warn'); return false; }
+  if (p) {
+    toastOf(ctx)(problemText(ctx, p), 'warn');
+    return false;
+  }
   // the week line keeps the take's number while your plan is what it made (owner, 2026-11-02: "+1.9" after the take
   // too, not the re-plan's 1.74, a later week solved another way the solver counts the same): weekRollOf, until your
   // rules change again
@@ -1148,19 +1684,39 @@ export function addPlan(ctx, g, pl) {
   // made card, naming them all, read the last one's +0.15 for both; there the week's own count against saving,
   // weekRollOf; owner, 2026-11-09, "why for every variant it shows +0.2")
   if (!DRY && pl.vsRoll && !pl.refRow && weekOf(P, g)?.moves.length) AHEAD.took = null;
-  else if (!DRY && pl.vsRoll && !pl.refRow) AHEAD.took = { team: `${P.entry}|${P.A}`, version: P.b.version, g, sig: movesKey(pl.choice.moves.filter((m) => (m.gw ?? g) === g)), cmp: pl.cmp, forced: !!pl.forced, rounds: windowRounds(pl.road, g), before: rulesKey(P), pins: null };
+  else if (!DRY && pl.vsRoll && !pl.refRow)
+    AHEAD.took = {
+      team: `${P.entry}|${P.A}`,
+      version: P.b.version,
+      g,
+      sig: movesKey(pl.choice.moves.filter((m) => (m.gw ?? g) === g)),
+      cmp: pl.cmp,
+      forced: !!pl.forced,
+      rounds: windowRounds(pl.road, g),
+      before: rulesKey(P),
+      pins: null,
+    };
   return edit(ctx, {
-    pins, drop: [...own.flatMap((m) => wishDrop(P, m.in)), ...drop, ...taken.map((q) => q.id)], road: pl.road, inPlace: chain.keys().next().value ?? null,
+    pins,
+    drop: [...own.flatMap((m) => wishDrop(P, m.in)), ...drop, ...taken.map((q) => q.id)],
+    road: pl.road,
+    inPlace: chain.keys().next().value ?? null,
     // a GW-g armband the plan moves is said, as every edit's ending says it (B21)
-    from: g, what, taken: [...chipTaken, ...rule, ...taken],
+    from: g,
+    what,
+    taken: [...chipTaken, ...rule, ...taken],
     // a Roll + that takes nothing back and changes no number says the rule it made (rollMade), not "GW8 roll · total
     // 0.0"
-    text: locks && !own.length && !chips.length && !gone.length && !back ? () => COPY.rollMade(g)
-      // the row's own number and what it counts against, as its plate said it, last (review 7, 2026-11-02: "a
-      // confirmation states what the edit did, with its number", reversing the owner's 2026-10-27 no number): its row
-      // beside the buttons (ui.toast .split), the lineup's words in the head, which clips; never what your total moved
-      // by (owner, 2026-10-26): that is the header's change (renderTotal)
-      : pl.vsRoll && !pl.refRow ? (Q, prev) => takeSaid(ctx, g, `${what}${lineupMoved(Q, prev, g)} · `, pl.cmp, ` vs ${choiceVs(P, pl)}`) : withPoints(ctx, what, (Q, prev) => lineupMoved(Q, prev, g), { total: true }),
+    text:
+      locks && !own.length && !chips.length && !gone.length && !back
+        ? () => COPY.rollMade(g)
+        : // the row's own number and what it counts against, as its plate said it, last (review 7, 2026-11-02: "a
+          // confirmation states what the edit did, with its number", reversing the owner's 2026-10-27 no number): its row
+          // beside the buttons (ui.toast .split), the lineup's words in the head, which clips; never what your total moved
+          // by (owner, 2026-10-26): that is the header's change (renderTotal)
+          pl.vsRoll && !pl.refRow
+          ? (Q, prev) => takeSaid(ctx, g, `${what}${lineupMoved(Q, prev, g)} · `, pl.cmp, ` vs ${choiceVs(P, pl)}`)
+          : withPoints(ctx, what, (Q, prev) => lineupMoved(Q, prev, g), { total: true }),
     more: own.length && WHY_SHEET ? [whyAct(g, own[0].in)] : [],
     // a take's receipt: two rows on a phone, its head one line, "frozen", the week's count and the lineup's words clipping
     // after the sales, anything it takes back whole (ui.toast; owner, 2026-10-26; the lineup's since QA manyft, 2026-11-04:
@@ -1173,17 +1729,28 @@ export function addPlan(ctx, g, pl) {
 const isYours = (P, m) => !!pinOfMove(P, m) && !!weekOf(P, m.gw)?.moves.some((y) => y.out === m.out && y.in === m.in);
 /** GW g's transfers that `moves` (a plan's) doesn't make, yours and Forkcast's (owner, 2026-10-13), never a Wildcard's
  *  or Free Hit's squad: what taking it takes back (addPlan's toast, the plan row's "instead of"). → [{gw, out, in}] */
-export const yoursTakenBack = (P, g, moves) => (weekOf(P, g)?.moves || []).map((m) => ({ gw: g, out: m.out, in: m.in }))
-  .filter((m) => (!squadWeek(weekOf(P, g)) || isYours(P, m)) && !moves.some((x) => sameMove(x, m)));
+export const yoursTakenBack = (P, g, moves) =>
+  (weekOf(P, g)?.moves || [])
+    .map((m) => ({ gw: g, out: m.out, in: m.in }))
+    .filter((m) => (!squadWeek(weekOf(P, g)) || isYours(P, m)) && !moves.some((x) => sameMove(x, m)));
 /** Your Roll holds GW g (a Roll row's +: addPlan; "Rolling ✓" beside the goal) while the week has no transfer and no
  *  Wildcard or Free Hit: a choice that moves someone there takes it back, so its rows and cards say "instead of
  *  rolling". */
-export const rollingAt = (P, g) => { const w = weekOf(P, g); return !!w && !w.moves.length && !squadWeek(w) && P.pins.some((p) => p.id === `roll:${g}` && !rollKeeps(p)); };
+export const rollingAt = (P, g) => {
+  const w = weekOf(P, g);
+  return !!w && !w.moves.length && !squadWeek(w) && P.pins.some((p) => p.id === `roll:${g}` && !rollKeeps(p));
+};
 
 /** The rule of yours that makes transfer m (a sale, with its buy or the plan's pick; a slide or a Wish that buys him; a
  *  chip week's pick only in its week) | null: the row's × lifts it. P: a plan view. */
-export const pinOfMove = (P, m) => asksOf(P).find((p) => (p.kind === 'sell' && Number(p.player) === Number(m.out) && (p.in == null || Number(p.in) === Number(m.in)))
-  || ((p.kind === 'slide' || p.kind === 'wish') && Number(p.player) === Number(m.in) && !(isPick(p) && (m.gw == null || Number(m.gw) !== Number(p.gw))))) ?? null;
+export const pinOfMove = (P, m) =>
+  asksOf(P).find(
+    (p) =>
+      (p.kind === 'sell' && Number(p.player) === Number(m.out) && (p.in == null || Number(p.in) === Number(m.in))) ||
+      ((p.kind === 'slide' || p.kind === 'wish') &&
+        Number(p.player) === Number(m.in) &&
+        !(isPick(p) && (m.gw == null || Number(m.gw) !== Number(p.gw)))),
+  ) ?? null;
 
 /**
  * GW g's transfers in the order they were made (their rules' order, oldest first; the planner's own after yours), so a
@@ -1191,8 +1758,15 @@ export const pinOfMove = (P, m) => asksOf(P).find((p) => (p.kind === 'sell' && N
  */
 export function movesInOrder(P, w) {
   const asks = asksOf(P);
-  const rank = (m) => { const p = pinOfMove(P, { ...m, gw: w.gw }); const i = p ? asks.indexOf(p) : -1; return i < 0 ? Infinity : i; };
-  return (w?.moves || []).map((m, i) => [m, i]).sort(([a, i], [b, j]) => rank(a) - rank(b) || i - j).map(([m]) => m);
+  const rank = (m) => {
+    const p = pinOfMove(P, { ...m, gw: w.gw });
+    const i = p ? asks.indexOf(p) : -1;
+    return i < 0 ? Infinity : i;
+  };
+  return (w?.moves || [])
+    .map((m, i) => [m, i])
+    .sort(([a, i], [b, j]) => rank(a) - rank(b) || i - j)
+    .map(([m]) => m);
 }
 
 /**
@@ -1203,7 +1777,10 @@ export function fundingOf(P, g, m) {
   const w = weekOf(P, g);
   const pin = w ? pinOfMove(P, { ...m, gw: g }) : null;
   if (!pin) return null;
-  const fp = pin.funds != null ? pin : asksOf(P).find((p) => p.kind === 'sell' && p.funds != null && Number(p.funds) === Number(m.in));
+  const fp =
+    pin.funds != null
+      ? pin
+      : asksOf(P).find((p) => p.kind === 'sell' && p.funds != null && Number(p.funds) === Number(m.in));
   if (!fp) return null;
   const main = w.moves.find((x) => x.in === Number(fp.funds));
   const fund = w.moves.find((x) => x.out === Number(fp.player) && x.in === Number(fp.in));
@@ -1229,7 +1806,10 @@ export function removeMove(ctx, m) {
   const P = plan(ctx);
   const nm = P.L.name;
   // GW A under way is FPL's (memory.inkClash judges added pins; a removal adds none, so it is judged here)
-  if (m.gw === P.A && isLive(ctx)) { toastOf(ctx)(COPY.live(P.A), 'warn'); return false; }
+  if (m.gw === P.A && isLive(ctx)) {
+    toastOf(ctx)(COPY.live(P.A), 'warn');
+    return false;
+  }
   const pin = pinOfMove(P, m);
   if (!pin) return m.gw != null ? keep(ctx, m.out, { gw: m.gw, scope: 'gw' }) : false;
   // the week's Roll (a plan's + stored it: addPlan): the × hands the week back to whoever makes the rest, said as every
@@ -1249,28 +1829,57 @@ export function removeMove(ctx, m) {
   const vr = rolls ? weekRollOf(ctx, P, w, (x) => plansListed(ctx, P, x)) : null;
   const text = vr ? (Q, prev) => `${what}${end(Q, prev)}` : withPoints(ctx, what, end, { total: true });
   // the move its toast names is remembered as removed by you, part of its Undo (edit's `also`, after the snapshot)
-  return edit(ctx, { drop: [pin.id, ...taken.map((q) => q.id)], from, what, taken, text, also: () => noteRemoved(P, [own]) });
+  return edit(ctx, {
+    drop: [pin.id, ...taken.map((q) => q.id)],
+    from,
+    what,
+    taken,
+    text,
+    also: () => noteRemoved(P, [own]),
+  });
 }
 
 /** Every transfer of yours in GW g taken back in one edit: the card's Undo, which names them all (owner, 2026-11-05, "why
  *  ... when i click undo it not undo it and keep silva transfer"). → bool */
 export function removeWeek(ctx, g) {
-  const P = plan(ctx), own = (weekOf(P, g)?.moves || []).map((m) => ({ ...m, gw: g }));
+  const P = plan(ctx),
+    own = (weekOf(P, g)?.moves || []).map((m) => ({ ...m, gw: g }));
   // …and a later week's swap that buys back a player this week sells: with this week's sale undone he is yours, the
   // buy can't stand, and the plan it asked for failed, the Undo taking nothing back (qa-tk110 j-moves-undo-earlier: GW11
   // Muharemović → Van Hecke, GW12 Gabriel → Muharemović, Undo in GW11 left both)
   const sold = new Set(own.map((m) => Number(m.out)));
-  const back = P.gws.filter((x) => x > g).flatMap((x) => (weekOf(P, x)?.moves || []).filter((m) => sold.has(Number(m.in))).map((m) => ({ ...m, gw: x })));
+  const back = P.gws
+    .filter((x) => x > g)
+    .flatMap((x) => (weekOf(P, x)?.moves || []).filter((m) => sold.has(Number(m.in))).map((m) => ({ ...m, gw: x })));
   const moves = [...own, ...back];
-  if (g === P.A && isLive(ctx)) { toastOf(ctx)(COPY.live(P.A), 'warn'); return false; }
+  if (g === P.A && isLive(ctx)) {
+    toastOf(ctx)(COPY.live(P.A), 'warn');
+    return false;
+  }
   const taken = P.pins.filter((q) => q.id === `roll:${g}`);
   // (…and the rules of yours those transfers' bring-in took back, as they were (buys.js tookBy): its Undo's, so "Undo
   // transfer" and the toast's Undo leave the same rules)
-  const gone = goneIds(P, moves), had = new Set(P.pins.map((q) => q.id));
-  const again = [...new Map(P.pins.filter((q) => gone.includes(q.id)).flatMap((q) => q.took ?? []).filter((q) => !had.has(q.id)).map((q) => [q.id, q])).values()];
+  const gone = goneIds(P, moves),
+    had = new Set(P.pins.map((q) => q.id));
+  const again = [
+    ...new Map(
+      P.pins
+        .filter((q) => gone.includes(q.id))
+        .flatMap((q) => q.took ?? [])
+        .filter((q) => !had.has(q.id))
+        .map((q) => [q.id, q]),
+    ).values(),
+  ];
   const what = withTaken(P, COPY.removed(moves.map((m) => moveSaid(P.L.name, m)).join(', ')), taken);
   // (no noteRemoved: an Undo, never a refusal, so the card it undid comes back)
-  return edit(ctx, { pins: again, drop: [...gone, ...taken.map((q) => q.id)], from: g, what, taken, text: withPoints(ctx, what, () => '', { total: true }) });
+  return edit(ctx, {
+    pins: again,
+    drop: [...gone, ...taken.map((q) => q.id)],
+    from: g,
+    what,
+    taken,
+    text: withPoints(ctx, what, () => '', { total: true }),
+  });
 }
 
 /**
@@ -1282,7 +1891,10 @@ export function removeWeek(ctx, g) {
 const ROWGAINS = new WeakMap();
 export function rowGains(ctx, P, w) {
   let by = ROWGAINS.get(P);
-  if (!by) ROWGAINS.set(P, (by = new Map()));
+  if (!by) {
+    by = new Map();
+    ROWGAINS.set(P, by);
+  }
   if (by.has(w.gw)) return by.get(w.gw);
   const g = w.gw;
   const ms = movesInOrder(P, w);
@@ -1298,10 +1910,19 @@ export function rowGains(ctx, P, w) {
     ds.unshift(d);
   }
   const hitsAt = (ev) => ev.gws.find((x) => x.gw === g)?.hits ?? 0;
-  const out = new Map(ms.map((m, k) => [`${m.out}>${m.in}`, {
-    cmp: compare(ctx, evs[k + 1], evs[k]), hit: Math.max(0, hitsAt(evs[k + 1]) - hitsAt(evs[k])), withIt: evs[k + 1], without: evs[k],
-    dWith: ds[k + 1], dWithout: ds[k],
-  }]));
+  const out = new Map(
+    ms.map((m, k) => [
+      `${m.out}>${m.in}`,
+      {
+        cmp: compare(ctx, evs[k + 1], evs[k]),
+        hit: Math.max(0, hitsAt(evs[k + 1]) - hitsAt(evs[k])),
+        withIt: evs[k + 1],
+        without: evs[k],
+        dWith: ds[k + 1],
+        dWithout: ds[k],
+      },
+    ]),
+  );
   by.set(g, out);
   return out;
 }
@@ -1316,7 +1937,9 @@ export const onBase = (delta, own, head = null) => (head == null ? delta : delta
  *  what moving it there gives against rolling ("GW9 0.0": rolling makes the same move then). Pure. → weeks */
 export function whenOnBase(weeks, head = null) {
   const cur = weeks?.find((x) => x.current && x.ok);
-  return head == null || !cur ? weeks : weeks.map((x) => (x.ok ? { ...x, delta: onBase(x.delta, cur.delta, head) } : x));
+  return head == null || !cur
+    ? weeks
+    : weeks.map((x) => (x.ok ? { ...x, delta: onBase(x.delta, cur.delta, head) } : x));
 }
 
 /** If move `m` of GW g's buy misses that GW: the plan with it (dWith) against the plan without it (dWithout) from GW g
@@ -1340,17 +1963,35 @@ export function ifMisses(ctx, P, g, m, dWith, dWithout) {
  * counts against another baseline than `without` (rolling): the miss and the better use are set on it (onBase) so the
  * sheet has one baseline (owner, 2026-10-22). → [text]
  */
-export function whyFacts(ctx, P, g, m, withIt, without, { drafts = null, c = null, yours = false, vs = null, head = null } = {}) {
+export function whyFacts(
+  ctx,
+  P,
+  g,
+  m,
+  withIt,
+  without,
+  { drafts = null, c = null, yours = false, vs = null, head = null } = {},
+) {
   const nm = P.L.name;
-  const wa = withIt.gws.find((x) => x.gw === g), wb = without.gws.find((x) => x.gw === g);
+  const wa = withIt.gws.find((x) => x.gw === g),
+    wb = without.gws.find((x) => x.gw === g);
   const nx = P.gws.find((x) => x > g);
   const mv = wa?.moves.find((x) => x.out === m.out && x.in === m.in);
   const hit = (wa?.hits ?? 0) - (wb?.hits ?? 0);
   // a transfer the plan without it makes and the plan with it doesn't (its buy not made that week): one of Forkcast's
   // it takes the place of (addYours), in its week from g on
-  const gone = without.gws.filter((s) => s.gw >= g).flatMap((s) => s.moves
-    .filter((x) => x.ok && !(s.gw === g && x.out === m.out) && !withIt.gws.find((y) => y.gw === s.gw)?.moves.some((y) => y.in === x.in))
-    .map((x) => `${nm(x.out)} → ${nm(x.in)}${s.gw === g ? '' : ` in GW${s.gw}`}`));
+  const gone = without.gws
+    .filter((s) => s.gw >= g)
+    .flatMap((s) =>
+      s.moves
+        .filter(
+          (x) =>
+            x.ok &&
+            !(s.gw === g && x.out === m.out) &&
+            !withIt.gws.find((y) => y.gw === s.gw)?.moves.some((y) => y.in === x.in),
+        )
+        .map((x) => `${nm(x.out)} → ${nm(x.in)}${s.gw === g ? '' : ` in GW${s.gw}`}`),
+    );
   const miss = drafts ? ifMisses(ctx, P, g, m, ...drafts) : null;
   const use = yours && c ? otherUseOf(ctx, P, weekOf(P, g), m) : null;
   const better = use && use.cmp.delta > c.delta && E.verdictLabel(use.cmp.delta - c.delta, P.noise) !== 'coin';
@@ -1365,8 +2006,11 @@ export function whyFacts(ctx, P, g, m, withIt, without, { drafts = null, c = nul
   // one transfer fewer in its week (engine: evaluate's `used`, nextFt, ftGrant); a choice's with and without (two or
   // more transfers: without all of them, said so: "4 without these 3 transfers")
   const fa = evB.gws.find((x) => x.gw === nx)?.ft;
-  const fb = !yours ? without.gws.find((x) => x.gw === nx)?.ft
-    : wk && nx != null && !SQUAD_CHIPS.has(wk.chip) ? E.nextFt(wk.ft, Math.min(wk.ft, Math.max(0, wk.transfers - 1)), E.ftGrant(P.season, nx)) : null;
+  const fb = !yours
+    ? without.gws.find((x) => x.gw === nx)?.ft
+    : wk && nx != null && !SQUAD_CHIPS.has(wk.chip)
+      ? E.nextFt(wk.ft, Math.min(wk.ft, Math.max(0, wk.transfers - 1)), E.ftGrant(P.season, nx))
+      : null;
   const nOff = yours ? 1 : Math.max(1, (wa?.transfers ?? 0) - (wb?.transfers ?? 0));
   return [
     mv ? COPY.frees(freedBy(withIt, g, m), bank) : null,
@@ -1375,7 +2019,9 @@ export function whyFacts(ctx, P, g, m, withIt, without, { drafts = null, c = nul
     fa != null && fb != null && fa !== fb ? COPY.ftWithout(nx, fa, fb, nOff) : null,
     ...hitsLater(withIt.gws, without.gws, g),
     miss ? COPY.ifMisses(nm(m.in), g, onBase(miss.delta, miss.base, head), head ?? miss.base, vs) : null,
-    better ? COPY.instead(`${nm(use.out)} → ${nm(use.in)}`, onBase(use.cmp.delta, c.delta, head), head ?? c.delta, vs) : null,
+    better
+      ? COPY.instead(`${nm(use.out)} → ${nm(use.in)}`, onBase(use.cmp.delta, c.delta, head), head ?? c.delta, vs)
+      : null,
   ].filter(Boolean);
 }
 /** Move m's prices in an estimate's GW g (engine: FPL's sale price, the half-profit rule; the buy's price), as the Why
@@ -1392,4 +2038,3 @@ export const withFlag = (ctx, id, text) => (Q, prev) => {
   const flag = statusText(Q.L.name(id), Q.L.get(id)?.row);
   return flag && compare(ctx, { weeks: Q.weeks }, { weeks: prev.weeks }).delta <= -0.05 ? `${t} · ${flag}` : t;
 };
-

@@ -4,6 +4,7 @@ import { h, POS, posName } from '../../ui.js';
 
 // ---------------------------------------------------------------- constants
 
+/** @type {[string, string[]][]} */
 export const QUICK = [
   ['Rounds & data', ['season', 'from_r', 'to', 'dir', 'w']],
   ['Transfers & bank', ['max_hits', 'hit_cost', 'ft', 'cash']],
@@ -12,7 +13,8 @@ export const QUICK = [
 export const CHIP_ROUNDS = ['wc', 'fh', 'bb', 'tc'];
 export const CHIP_KEYS = [...CHIP_ROUNDS, 'plan', 'no_chips'];
 export const CHIP_MODES = [
-  { key: 'manual', label: 'Manual rounds' }, { key: 'plan', label: 'Stored plan' },
+  { key: 'manual', label: 'Manual rounds' },
+  { key: 'plan', label: 'Stored plan' },
   { key: 'none', label: 'No chips' },
 ];
 // Whose squad and which players: presets and scenarios leave these alone.
@@ -28,26 +30,42 @@ export const MOVES_SHOWN = 5;
 // (−) and credits.
 export const OBJ_TERMS = {
   xi: ['Starting XI', 'Forecast points of the starting eleven.'],
-  cap: ['Captain', 'The armband: the captain\'s forecast once more (twice under a triple captain).'],
-  bench: ['Bench, weighted', 'Bench forecasts, each slot weighted by its chance of coming on (--bn-w-slots); not in the reported xP.'],
-  cap_tie: ['Crowd captain tie-break', 'Bonus for captaining the poll\'s #1 pick at the anchor (--cap-tie-tau).'],
-  ft_cost: ['Transfer charge', 'What each buy must beat: by default τ, the seeds\' noise, scaled by the rounds left to pay it back (--ft-cost).'],
-  hit: ['Hits', 'Hits priced in the objective (--hit-cost); the points a hit costs when scored (--hit-cost-actual) are not part of it.'],
+  cap: ['Captain', "The armband: the captain's forecast once more (twice under a triple captain)."],
+  bench: [
+    'Bench, weighted',
+    'Bench forecasts, each slot weighted by its chance of coming on (--bn-w-slots); not in the reported xP.',
+  ],
+  cap_tie: ['Crowd captain tie-break', "Bonus for captaining the poll's #1 pick at the anchor (--cap-tie-tau)."],
+  ft_cost: [
+    'Transfer charge',
+    "What each buy must beat: by default τ, the seeds' noise, scaled by the rounds left to pay it back (--ft-cost).",
+  ],
+  hit: [
+    'Hits',
+    'Hits priced in the objective (--hit-cost); the points a hit costs when scored (--hit-cost-actual) are not part of it.',
+  ],
   ft_value: ['Banked free transfers', 'Credit for free transfers carried out of the window (--ft-value).'],
   over_team: ['Over the club limit', 'Charge per player above 3 from one club, in an imported squad that has more.'],
   ft_short: ['FT shortfall', 'Slack after a planned free hit: a huge penalty, 0 unless the FT count breaks.'],
 };
-export const MOVE_CHARGES = ['ft_cost', 'hit'];  // what a GW's own moves pay in that GW's objective
-
+export const MOVE_CHARGES = ['ft_cost', 'hit']; // what a GW's own moves pay in that GW's objective
 
 // ---------------------------------------------------------------- small helpers
 
 export const num = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
 export const sum = (xs) => xs.reduce((s, x) => s + (Number(x) || 0), 0);
 export const omit = (o, keys) => Object.fromEntries(Object.entries(o || {}).filter(([k]) => !keys.includes(k)));
-export const canon = (o) => JSON.stringify(Object.keys(o || {}).sort().map((k) => [k, o[k]]));
-const sortedKeys = (o) => Object.keys(o || {}).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
-
+export const canon = (o) =>
+  JSON.stringify(
+    Object.keys(o || {})
+      .sort()
+      .map((k) => [k, o[k]]),
+  );
+const sortedKeys = (o) =>
+  Object.keys(o || {})
+    .map(Number)
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
 
 /** A variant's values: base, then overrides (null = back to the solver default). */
 export function mergeValues(base, overrides) {
@@ -73,6 +91,7 @@ export function timelineOf(res) {
   const committed = res?.committed || {};
   const gws = sortedKeys(committed).filter((g) => committed[g]?.team);
   const from = num(res?.meta?.from) ?? gws[0];
+  /** @type {{gw: number, t: object, kind: 'committed' | 'plan', anchor?: number}[]} */
   const rows = gws.filter((g) => g >= from).map((gw) => ({ gw, t: committed[gw].team, kind: 'committed' }));
   const anchors = res?.anchors || {};
   const last = sortedKeys(anchors).at(-1);
@@ -89,9 +108,12 @@ export const playerIn = (t, prev, id) => t?.players?.[id] ?? prev?.players?.[id]
 /** OUT → IN pairs, same position first (dearest first), leftovers alone. */
 export function pairMoves(t, prev) {
   const P = (id) => playerIn(t, prev, id);
-  const rank = (p) => { const i = POS.indexOf(posName(p.pos)); return i < 0 ? 9 : i; };  // names now, ints in old results
-  const order = (ids) => (ids || []).map(P).sort((a, b) =>
-    rank(a) - rank(b) || (num(b.price) ?? 0) - (num(a.price) ?? 0));
+  const rank = (p) => {
+    const i = POS.indexOf(posName(p.pos));
+    return i < 0 ? 9 : i;
+  }; // names now, ints in old results
+  const order = (ids) =>
+    (ids || []).map(P).sort((a, b) => rank(a) - rank(b) || (num(b.price) ?? 0) - (num(a.price) ?? 0));
   const ins = order(t?.in);
   const pairs = order(t?.out).map((o) => {
     const i = ins.findIndex((p) => posName(p.pos) === posName(o.pos));
@@ -100,7 +122,8 @@ export function pairMoves(t, prev) {
   return [...pairs, ...ins.map((p) => [null, p])];
 }
 
-export const rowTag = (r, meta) => (r.kind === 'plan' ? 'Plan' : r.t.played ? 'Played' : r.gw === meta?.next_gw ? 'Next' : 'Commit');
+export const rowTag = (r, meta) =>
+  r.kind === 'plan' ? 'Plan' : r.t.played ? 'Played' : r.gw === meta?.next_gw ? 'Next' : 'Commit';
 
 /** No squad to start from (no team loaded): all 15 bought from the budget, not transfers. */
 export const isBuild = (t) => !t?.out?.length && (t?.in?.length || 0) >= 15;
@@ -109,9 +132,20 @@ export function movesList(t, prev, limit = MOVES_SHOWN) {
   if (isBuild(t)) return h('ul.pl-moves', null, h('li', null, 'New squad of 15'));
   const pairs = pairMoves(t, prev);
   if (!pairs.length) return h('ul.pl-moves', null, h('li.muted', null, 'Roll (no transfer)'));
-  return h('ul.pl-moves', null,
-    pairs.slice(0, limit).map(([o, i]) => h('li', null,
-      h('span.loss.truncate', null, o?.name ?? '—'), h('span.pl-arrow', { 'aria-label': 'replaced by' }, '→'),
-      h('span.gain.truncate', null, i?.name ?? '—'))),
-    pairs.length > limit ? h('li.muted', null, `+${pairs.length - limit} more`) : null);
+  return h(
+    'ul.pl-moves',
+    null,
+    pairs
+      .slice(0, limit)
+      .map(([o, i]) =>
+        h(
+          'li',
+          null,
+          h('span.loss.truncate', null, o?.name ?? '—'),
+          h('span.pl-arrow', { 'aria-label': 'replaced by' }, '→'),
+          h('span.gain.truncate', null, i?.name ?? '—'),
+        ),
+      ),
+    pairs.length > limit ? h('li.muted', null, `+${pairs.length - limit} more`) : null,
+  );
 }

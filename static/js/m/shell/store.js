@@ -6,7 +6,8 @@ import * as calls from '../calls.js';
 import * as engine from '../../plan/engine.js';
 import * as pitch from '../../plan/pitch.js';
 
-const range = (a, b) => (Number.isFinite(a) && Number.isFinite(b) && b >= a ? Array.from({ length: b - a + 1 }, (_, i) => a + i) : []);
+const range = (a, b) =>
+  Number.isFinite(a) && Number.isFinite(b) && b >= a ? Array.from({ length: b - a + 1 }, (_, i) => a + i) : [];
 
 // ================================================================ store
 
@@ -17,7 +18,10 @@ export function createStore(initial) {
   const store = {
     get: (k) => state[k],
     set(k, v) {
-      if (k && typeof k === 'object') { for (const [a, b] of Object.entries(k)) store.set(a, b); return; }
+      if (k && typeof k === 'object') {
+        for (const [a, b] of Object.entries(k)) store.set(a, b);
+        return;
+      }
       if (Object.is(state[k], v)) return;
       const prev = state[k];
       state[k] = v;
@@ -44,11 +48,20 @@ export function createStore(initial) {
 
 function lineupNow(entry, data) {
   if (Array.isArray(entry?.xi) && entry.xi.length === 11) {
-    return { xi: entry.xi.map(Number), bench: (entry.bench || []).map(Number), captain: entry.captain, vice: entry.vice };
+    return {
+      xi: entry.xi.map(Number),
+      bench: (entry.bench || []).map(Number),
+      captain: entry.captain,
+      vice: entry.vice,
+    };
   }
   const xpOf = (id) => pitch.xpAt(data.byId.get(Number(id)), data.gw, data.xpGws) ?? 0;
   const posOf = (id) => ui.posName(data.byId.get(Number(id))?.pos);
-  const { xi, bench } = engine.bestXI(data.base.squad.map((s) => s.id), xpOf, posOf);
+  const { xi, bench } = engine.bestXI(
+    data.base.squad.map((s) => s.id),
+    xpOf,
+    posOf,
+  );
   const ranked = [...xi].sort((a, b) => xpOf(b) - xpOf(a));
   return { xi, bench, captain: ranked[0] ?? null, vice: ranked[1] ?? null };
 }
@@ -65,7 +78,8 @@ function fplTeam(e, gw) {
 }
 
 /** The planned GWs of meta: meta.horizon, else GW A and the three after. */
-export const horizonOf = (m = {}) => (Array.isArray(m.horizon) ? m.horizon.map(Number) : range(Number(m.gw), Number(m.gw) + 3));
+export const horizonOf = (m = {}) =>
+  Array.isArray(m.horizon) ? m.horizon.map(Number) : range(Number(m.gw), Number(m.gw) + 3);
 /** The GWs the longest plan reaches (meta.reach, else the planned ones). */
 export const reachOf = (m = {}) => (Array.isArray(m.reach) ? m.reach.map(Number) : horizonOf(m));
 
@@ -75,20 +89,49 @@ export function derive(b, receivedAt) {
   const m = b.meta || {};
   const cols = calls.shownPlayers(b);
   const fields = cols?.fields || [];
-  const rows = (cols?.rows || []).map((r) => Object.fromEntries(fields.map((f, i) => [f, r[i]])));
-  const byId = new Map(rows.map((r) => [Number(r.id), r]));
   const gw = Number(m.gw);
-  const horizon = horizonOf(m), reach = reachOf(m);
+  const horizon = horizonOf(m),
+    reach = reachOf(m);
   const xpGws = range(gw, Number(m.forecast_edge ?? reach[reach.length - 1]));
+  const rows = (cols?.rows || []).map((r) => {
+    const player = Object.fromEntries(fields.map((f, i) => [f, r[i]]));
+    if (Array.isArray(player.xp) && pitch.availabilityChance(player) === 0)
+      player.xp = player.xp.map((_, i) => pitch.xpAt(player, gw + i, gw));
+    return player;
+  });
+  const byId = new Map(rows.map((r) => [Number(r.id), r]));
   const e = b.entry || {};
   const squad = (e.squad || []).map((s) => ({ ...byId.get(Number(s.id)), ...s, id: Number(s.id) }));
   const base = {
-    season: m.season, entry_id: e.id, gw, squad, bank: e.bank, ft: e.ft,
-    chips_available: e.chips_available || [], chips_used: e.chips_used || [], horizon: xpGws,
+    season: m.season,
+    entry_id: e.id,
+    gw,
+    squad,
+    bank: e.bank,
+    ft: e.ft,
+    chips_available: e.chips_available || [],
+    chips_used: e.chips_used || [],
+    horizon: xpGws,
   };
-  const data = { rows, byId, players: { horizon: xpGws, players: rows }, base, gw, horizon, reach, xpGws, noise: engine.noiseFloor(m, gw), receivedAt };
+  const data = {
+    rows,
+    byId,
+    players: { horizon: xpGws, players: rows },
+    base,
+    gw,
+    horizon,
+    reach,
+    xpGws,
+    noise: engine.noiseFloor(m, gw),
+    receivedAt,
+  };
   data.lineup = squad.length ? lineupNow(e, data) : { xi: [], bench: [], captain: null, vice: null };
   data.fpl = fplTeam(e, gw);
-  try { data.seeds = engine.decodeSeeds(b.seeds); } catch (err) { console.error('Forkcast: bad seed matrix', err); data.seeds = null; }
+  try {
+    data.seeds = engine.decodeSeeds(b.seeds);
+  } catch (err) {
+    console.error('Forkcast: bad seed matrix', err);
+    data.seeds = null;
+  }
   return data;
 }

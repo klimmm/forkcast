@@ -2,8 +2,28 @@
 
 import * as E from '../../plan/engine.js';
 import { h, chipName } from '../../ui.js';
-import { COPY, planInputs, compare as compareIn, counted as countedIn, clockText, waitedText, horizonFeature, waitLines, stepShare } from '../calls.js';
-import { attach, makePin, squadInto, composePins, findRoad, withBank, forcedHits, solveKept, solvedKey } from '../memory.js';
+import {
+  COPY,
+  planInputs,
+  compare as compareIn,
+  counted as countedIn,
+  clockText,
+  waitedText,
+  horizonFeature,
+  waitLines,
+  stepShare,
+} from '../calls.js';
+import {
+  attach,
+  makePin,
+  squadInto,
+  composePins,
+  findRoad,
+  withBank,
+  forcedHits,
+  solveKept,
+  solvedKey,
+} from '../memory.js';
 import { asksOf, changedOf, derivedPin, ovOf } from './edits.js';
 import { SQUAD_CHIPS } from './plans.js';
 import { pinOfMove } from './presolve.js';
@@ -12,18 +32,20 @@ import { TAP_IN } from './screen.js';
 
 export { clockText, waitedText, stepShare };
 
-export const LONG_MS = 430;           // long-press to lift a shirt
-export const SWIPE_PX = 90;           // a row swiped left past this rules its buy out
-export const SWIPE_MS = 260;          // the Why sheet's row travels left (vetoFromWhy: --dur), then the veto
-export const GRIP_MS = 150;           // a short hold: the C badge's drag (a move before it scrolls)
-export const TC_MS = 600;             // the C held still this long: the Triple Captain (a move before it drags the armband)
-export const EDGE_PX = 16;            // §5.5: a swipe or scrub starts ≥ 16 pt from the screen edges (the iOS back-swipe: atEdge)
-export const SPENT_PX = 24;           // a spent gesture's click lands this near its point
+export const LONG_MS = 430; // long-press to lift a shirt
+export const SWIPE_PX = 90; // a row swiped left past this rules its buy out
+export const SWIPE_MS = 260; // the Why sheet's row travels left (vetoFromWhy: --dur), then the veto
+export const GRIP_MS = 150; // a short hold: the C badge's drag (a move before it scrolls)
+export const TC_MS = 600; // the C held still this long: the Triple Captain (a move before it drags the armband)
+export const EDGE_PX = 16; // §5.5: a swipe or scrub starts ≥ 16 pt from the screen edges (the iOS back-swipe: atEdge)
+export const SPENT_PX = 24; // a spent gesture's click lands this near its point
 export const MINUS = '−';
 /** fn in its own task once the frame in flight is painted, so a tap's feedback draws first. Without frames (hidden
  *  page, node tests): at once. */
-export const afterPaint = (fn) => (typeof requestAnimationFrame === 'function' && globalThis.document?.visibilityState === 'visible'
-  ? requestAnimationFrame(() => setTimeout(fn, 0)) : fn());
+export const afterPaint = (fn) =>
+  typeof requestAnimationFrame === 'function' && globalThis.document?.visibilityState === 'visible'
+    ? requestAnimationFrame(() => setTimeout(fn, 0))
+    : fn();
 export const num = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
 export const ids = (xs) => (Array.isArray(xs) ? xs.map(Number).filter(Number.isFinite) : []);
 export const sum = (xs) => xs.reduce((s, x) => s + x, 0);
@@ -34,16 +56,31 @@ export const span = (gws) => COPY.span(gws);
  * edge, determinate where a count or time left is known. → {t: the words, bar}
  */
 export function waitView() {
-  return { t: h('span.m-wl', { 'aria-hidden': 'true' }, h('b'), h('span')), bar: h('span.m-wlb', { 'aria-hidden': 'true' }, h('i')), key: null };
+  return {
+    t: h('span.m-wl', { 'aria-hidden': 'true' }, h('b'), h('span')),
+    bar: h('span.m-wlb', { 'aria-hidden': 'true' }, h('i')),
+    key: null,
+  };
 }
 /** Draws wait W {key, word, scope, long, prog, so, p: 0..1 | null} as wait line `v` (waitView): longest words that fit
  *  whole, bar at p, else (p null) a sweep once per wait (W.key), ended after three. */
 export function paintWaitView(v, W) {
-  const [b, r] = v.t.children, i = v.bar.firstChild;
+  const [b, r] = v.t.children,
+    i = v.bar.firstChild;
   if (b.textContent !== W.word) b.textContent = W.word;
-  for (const x of waitLines(W)) { r.textContent = x; if (v.t.scrollWidth <= v.t.clientWidth + 0.5) break; }
-  if (W.p != null) { i.classList.remove('sweep'); i.style.width = `${(100 * Math.min(1, W.p)).toFixed(1)}%`; }
-  else if (v.key !== W.key) { i.classList.remove('sweep'); i.style.width = ''; void i.offsetWidth; i.classList.add('sweep'); }
+  for (const x of waitLines(W)) {
+    r.textContent = x;
+    if (v.t.scrollWidth <= v.t.clientWidth + 0.5) break;
+  }
+  if (W.p != null) {
+    i.classList.remove('sweep');
+    i.style.width = `${(100 * Math.min(1, W.p)).toFixed(1)}%`;
+  } else if (v.key !== W.key) {
+    i.classList.remove('sweep');
+    i.style.width = '';
+    void i.offsetWidth;
+    i.classList.add('sweep');
+  }
   v.key = W.key;
 }
 export const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
@@ -56,14 +93,26 @@ export const capFirst = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 /** The bundle-derived facts every plan function needs (null before a bundle with an entry); base: the solver's plan with
  *  none of your rules (memory model), null until it lands, its noise the plan's. */
 export function info(ctx) {
-  const b = ctx.bundle, d = ctx.data;
+  const b = ctx.bundle,
+    d = ctx.data;
   if (!b?.entry || !d?.base) return null;
-  const gws = d.horizon, base = (ctx.store.get('memory') ?? memPlan(ctx))?.model ?? null;
+  const gws = d.horizon,
+    base = (ctx.store.get('memory') ?? memPlan(ctx))?.model ?? null;
   return {
     // reach: the GWs the longest plan reaches; those past gws show locked (Settings → Plan ahead)
-    b, d, A: d.gw, gws, reach: d.reach ?? gws, end: gws[gws.length - 1], L: E.playerLookup({ base: d.base, players: d.players }),
-    seeds: d.seeds, noise: num(base?.noise) ?? d.noise ?? 0, base, entry: String(b.entry.id),
-    owned: ids(d.base.squad.map((s) => s.id)), season: d.base.season,
+    b,
+    d,
+    A: d.gw,
+    gws,
+    reach: d.reach ?? gws,
+    end: gws[gws.length - 1],
+    L: E.playerLookup({ base: d.base, players: d.players }),
+    seeds: d.seeds,
+    noise: num(base?.noise) ?? d.noise ?? 0,
+    base,
+    entry: String(b.entry.id),
+    owned: ids(d.base.squad.map((s) => s.id)),
+    season: d.base.season,
   };
 }
 /** Your plan drawn while the model's is not asked (Settings → Solve ahead Off, memory model): with it On Ahead waits for
@@ -72,10 +121,14 @@ const ownFirst = (ctx, gp = memPlan(ctx)) => ctx.presolveOn?.() === false && !!g
 export const editable = (ctx) => ctx.store.get('conn')?.state !== 'offline' && !!(info(ctx)?.base || ownFirst(ctx));
 /** Plans of n weeks or more are locked for this browser (the bundle's meta.locked): the reach's n-th GW can't be
  *  planned. */
-export const lockedFrom = (I, n) => I.reach.slice(n - 1).every((_, i) => (I.b.meta?.locked || []).includes(horizonFeature(n + i)));
+export const lockedFrom = (I, n) =>
+  I.reach.slice(n - 1).every((_, i) => (I.b.meta?.locked || []).includes(horizonFeature(n + i)));
 /** While Settings → Plan ahead asks a different length than the plan on screen (ctx.weeks, kept at the tap; bundle on
  *  the way: app.js setWeeks), no background solve is asked (forkPump, pumpPreps, optionsRef). */
-export const leftBehind = (ctx, I) => { const n = ctx.weeks?.(); return n != null && n !== I.gws.length; };
+export const leftBehind = (ctx, I) => {
+  const n = ctx.weeks?.();
+  return n != null && n !== I.gws.length;
+};
 export const OFFLINE_EDIT = 'Edits need a connection. Your plan is unchanged.';
 export const memOf = (ctx) => attach(ctx);
 export const memPlan = (ctx) => memOf(ctx)?.getPlan() ?? null;
@@ -102,7 +155,7 @@ export let FLASH = null;
 /** The week the screen shows of plan view P: the address's GW when the plan has it, else GW A (mount's gwNow). */
 export const viewedGw = (ctx, P) => {
   const g = Number(ctx.store?.get?.('gw'));
-  return P?.gws.includes(g) ? g : P?.A ?? ctx.data?.gw;
+  return P?.gws.includes(g) ? g : (P?.A ?? ctx.data?.gw);
 };
 /** The Why sheet shown (owner, 2026-11-02: "hide Why sheet and its tests"): off, a transfer's or plan's Why opens its
  *  buy's player sheet and a take's toast has no Why. */
@@ -112,7 +165,18 @@ export const WHY_SHEET = false;
 export const whyAct = (g, id) => ({ label: COPY.whyAct, keep: true, onClick: () => TAP_IN?.(g, id) });
 /** A sheet opening (ctx.openSheet's promise) → a promise settled once it has closed (its onClose, kept), at once when
  *  none opened. */
-export const closedOf = (p) => Promise.resolve(p).then((sh) => sh && new Promise((done) => { const was = sh.onClose; sh.onClose = () => { was?.(); done(); }; }));
+export const closedOf = (p) =>
+  Promise.resolve(p).then(
+    (sh) =>
+      sh &&
+      new Promise((done) => {
+        const was = sh.onClose;
+        sh.onClose = () => {
+          was?.();
+          done();
+        };
+      }),
+  );
 /** An edit made at once (a lineup edit, Reset plan, "Without your rules") landed: what it changed against plan view
  *  `prevP` (changedOf: tiles, rows, cards) flashed once by mount's render, `more` over it (its own weeks: … */
 export function flashLanding(ctx, prevP, more = {}) {
@@ -123,14 +187,17 @@ export function flashLanding(ctx, prevP, more = {}) {
 }
 /** A landing's changes (changedOf) for mount's render to flash once, stamped with P's team and GW A (`team`) so a team
  *  switch doesn't show them on another team's tiles. */
-export const setFlash = (P, x) => { FLASH = { ...x, team: P ? `${P.entry}|${P.A}` : null, at: Date.now() }; };
+export const setFlash = (P, x) => {
+  FLASH = { ...x, team: P ? `${P.entry}|${P.A}` : null, at: Date.now() };
+};
 /** Moves taken off this session ("removed by you"; removeMove), per entry and GW A: {key, by: {gw: [`${out}>${in}`]}}.
  *  A choice selling and buying only such players carries the label (plansOf `removed`) but keeps its rank (owner,
  *  2026-10-26). Its Undo restores the record. */
 export let REMOVED = { key: null, mem: null, by: {} };
 export const removedBy = (I) => {
   // this page's memory's: a sign-out takes them with it, as it takes your choices
-  const k = `${I.entry}:${I.A}`, mem = attach();
+  const k = `${I.entry}:${I.A}`,
+    mem = attach();
   if (REMOVED.key !== k || REMOVED.mem !== mem) REMOVED = { key: k, mem, by: {} };
   return REMOVED.by;
 };
@@ -138,7 +205,8 @@ export const removedBy = (I) => {
 export function noteRemoved(I, ms, on = true) {
   const by = removedBy(I);
   for (const m of ms) {
-    const k = `${m.out}>${m.in}`, rest = (by[m.gw] || []).filter((x) => x !== k);
+    const k = `${m.out}>${m.in}`,
+      rest = (by[m.gw] || []).filter((x) => x !== k);
     by[m.gw] = on ? [...rest, k] : rest;
   }
 }
@@ -146,8 +214,11 @@ export function noteRemoved(I, ms, on = true) {
 export const removedAt = (I, g) => new Set(removedBy(I)[g] || []);
 /** Phone-only lineups for GWs after A: {gw: {captain?, vice?, xi?, bench?}} (per entry and window). */
 let LU = { key: null, local: null, by: {} };
-let rev = 0;               // bumped on every Ahead-side change (the plan view is memoised on it)
-export const bump = (ctx) => { rev++; ctx.store.set('aheadRev', rev); };
+let rev = 0; // bumped on every Ahead-side change (the plan view is memoised on it)
+export const bump = (ctx) => {
+  rev++;
+  ctx.store.set('aheadRev', rev);
+};
 
 /** GW g's phone lineup, its own key (B9: keyed by GW A, a later GW's captain was gone once GW A's deadline passed). */
 const luKey = (I, g) => `fc:ahead:lu:${I.entry}:${g}`;
@@ -168,23 +239,41 @@ export function showTipsAgain(ctx) {
   ctx.store.set('learnt', Date.now());
 }
 export function lineups(ctx, I) {
-  const k = luWindow(I), local = ctx.api.local;
+  const k = luWindow(I),
+    local = ctx.api.local;
   if (LU.key !== k || LU.local !== local) {
     // old format: GW A's key held all later GWs' lineups ({gw: lineup}); each moves to its own key, never over a newer
     // one
     const old = local.json(luKey(I, I.A));
     if (old && typeof old === 'object' && Object.keys(old).every((g) => /^\d+$/.test(g))) {
-      for (const [g, lu] of Object.entries(old)) if (Number(g) > I.A && lu && local.get(luKey(I, g)) == null) local.set(luKey(I, g), JSON.stringify(lu));
+      for (const [g, lu] of Object.entries(old))
+        if (Number(g) > I.A && lu && local.get(luKey(I, g)) == null) local.set(luKey(I, g), JSON.stringify(lu));
       local.set(luKey(I, I.A), null);
     }
-    LU = { key: k, local, by: Object.fromEntries(laterGws(I).map((g) => [g, local.json(luKey(I, g))]).filter(([, lu]) => lu)) };
+    LU = {
+      key: k,
+      local,
+      by: Object.fromEntries(
+        laterGws(I)
+          .map((g) => [g, local.json(luKey(I, g))])
+          .filter(([, lu]) => lu),
+      ),
+    };
   }
   return LU.by;
 }
 /** `by` the later GWs' lineups: each GW's key written, a GW absent from it removed. */
 export function setLineups(ctx, I, by) {
   const local = ctx.api.local;
-  LU = { key: luWindow(I), local, by: Object.fromEntries(laterGws(I).filter((g) => by[g]).map((g) => [g, by[g]])) };
+  LU = {
+    key: luWindow(I),
+    local,
+    by: Object.fromEntries(
+      laterGws(I)
+        .filter((g) => by[g])
+        .map((g) => [g, by[g]]),
+    ),
+  };
   for (const g of laterGws(I)) local.set(luKey(I, g), LU.by[g] ? JSON.stringify(LU.by[g]) : null);
   bump(ctx);
 }
@@ -201,7 +290,10 @@ const DRAFTS = new WeakMap();
 export function roadDraft(ctx, road) {
   let d = DRAFTS.get(roadId(road));
   const keep = pairsOf((ctx.store.get('memory') ?? memPlan(ctx))?.pins);
-  if (!d) DRAFTS.set(roadId(road), (d = E.roadToDraft(road, ctx.data.base, { players: ctx.data.players, keep })));
+  if (!d) {
+    d = E.roadToDraft(road, ctx.data.base, { players: ctx.data.players, keep });
+    DRAFTS.set(roadId(road), d);
+  }
   return d;
 }
 
@@ -211,35 +303,78 @@ const BANKS = new WeakMap();
 function banksOf(ctx, road) {
   const base = baseOf(ctx);
   let b = BANKS.get(roadId(road));
-  if (b?.base !== base) BANKS.set(roadId(road), (b = { base, gw: E.planBanks({ base, players: ctx.data.players, draft: roadDraft(ctx, road), horizon: ctx.data.horizon }) }));
+  if (b?.base !== base) {
+    b = {
+      base,
+      gw: E.planBanks({ base, players: ctx.data.players, draft: roadDraft(ctx, road), horizon: ctx.data.horizon }),
+    };
+    BANKS.set(roadId(road), b);
+  }
   return b.gw;
 }
 /** Your transfers as your rules make them, [{out, in}]: a sale with its buy, a slide; each row finds its rule
  *  (pinOfMove). */
-export const pairsOf = (pins) => (pins || []).flatMap((p) => (p.kind === 'sell' && p.in != null ? [{ out: p.player, in: p.in }]
-  : p.kind === 'slide' ? [{ out: p.out, in: p.player }] : []));
+export const pairsOf = (pins) =>
+  (pins || []).flatMap((p) =>
+    p.kind === 'sell' && p.in != null
+      ? [{ out: p.player, in: p.in }]
+      : p.kind === 'slide'
+        ? [{ out: p.out, in: p.player }]
+        : [],
+  );
 /** A week's sales `outs` and buys `ins` paired by position (engine.pairMoves), your transfers as their rules make them
  *  (`keep`: pairsOf); whole pairs only. → [{out, in}] */
-export const pairedMoves = (outs, ins, L, keep = []) => E.pairMoves(outs, ins, L, keep).filter((m) => m.out !== null && m.in !== null);
+export const pairedMoves = (outs, ins, L, keep = []) =>
+  E.pairMoves(outs, ins, L, keep).filter((m) => m.out !== null && m.in !== null);
 /** A Road week as a ViewWeek (moves paired: pairedMoves; points = the engine's on today's mean xP, the one source of
  *  every gap). bank: the engine's (FPL sale prices) else the road's. keep: pairsOf. */
 export function viewOfRoadWeek(w, L, { bank = null, keep = [] } = {}) {
-  const xi = ids(w.xi), bench = ids(w.bench), hits = num(w.hits) ?? 0;
+  const xi = ids(w.xi),
+    bench = ids(w.bench),
+    hits = num(w.hits) ?? 0;
   const moves = pairedMoves(w.out, w.in, L, keep);
   return {
-    gw: Number(w.gw), xi, bench, squad: [...xi, ...bench], captain: num(w.captain), vice: num(w.vice), chip: w.chip ?? null,
-    bank: bank ?? num(w.bank), ft: num(w.ft_avail), used: num(w.ft_used), hits,
+    gw: Number(w.gw),
+    xi,
+    bench,
+    squad: [...xi, ...bench],
+    captain: num(w.captain),
+    vice: num(w.vice),
+    chip: w.chip ?? null,
+    bank: bank ?? num(w.bank),
+    ft: num(w.ft_avail),
+    used: num(w.ft_used),
+    hits,
     points: E.weekPoints({ ...w, xi, bench, hits }, L.xp),
-    moves, in: moves.map((m) => m.in), out: moves.map((m) => m.out), approx: false,
+    moves,
+    in: moves.map((m) => m.in),
+    out: moves.map((m) => m.out),
+    approx: false,
   };
 }
 /** An engine state as a ViewWeek (≈). With `L`, a Wildcard's or Free Hit's changes (chip squad vs the week before) pair
  *  as a road's week does (pairedMoves, `keep`). */
 export function viewOfState(s, L = null, keep = []) {
-  const moves = L && SQUAD_CHIPS.has(s.chip) ? pairedMoves(s.sold, s.bought, L, keep) : s.moves.filter((m) => m.ok).map((m) => ({ out: m.out, in: m.in }));
+  const moves =
+    L && SQUAD_CHIPS.has(s.chip)
+      ? pairedMoves(s.sold, s.bought, L, keep)
+      : s.moves.filter((m) => m.ok).map((m) => ({ out: m.out, in: m.in }));
   return {
-    gw: s.gw, xi: s.xi, bench: s.bench, squad: s.squad, captain: s.captain, vice: s.vice, chip: s.chip, bank: s.bank,
-    ft: s.ft, used: s.used, hits: s.hits, points: s.points, moves, in: moves.map((m) => m.in), out: moves.map((m) => m.out),
+    gw: s.gw,
+    xi: s.xi,
+    bench: s.bench,
+    squad: s.squad,
+    captain: s.captain,
+    vice: s.vice,
+    chip: s.chip,
+    bank: s.bank,
+    ft: s.ft,
+    used: s.used,
+    hits: s.hits,
+    points: s.points,
+    moves,
+    in: moves.map((m) => m.in),
+    out: moves.map((m) => m.out),
     approx: true,
   };
 }
@@ -266,7 +401,11 @@ export const isFrozen = (P, g) => frozenOf(P).includes(Number(g));
  *  your plan (P.weeks), so your subs and armbands never count. → {weeks} */
 export function asYours(ctx, road, gp = memPlan(ctx)) {
   const I = info(ctx);
-  return { weeks: (road?.weeks || []).filter((w) => I.gws.includes(Number(w.gw))).map((w) => withLineup(viewOfRoadWeek(w, I.L), lineupOf(ctx, I, gp, Number(w.gw)), I.L)) };
+  return {
+    weeks: (road?.weeks || [])
+      .filter((w) => I.gws.includes(Number(w.gw)))
+      .map((w) => withLineup(viewOfRoadWeek(w, I.L), lineupOf(ctx, I, gp, Number(w.gw)), I.L)),
+  };
 }
 
 let memo = { key: null, P: null };
@@ -277,14 +416,30 @@ const sameMemPlan = (a, b) => {
   if (a === b) return true;
   if (!a || !b) return false;
   const keys = Object.keys(a);
-  return keys.length === Object.keys(b).length && keys.every((k) => SAME_SKIP.has(k) || a[k] === b[k] || JSON.stringify(a[k]) === JSON.stringify(b[k]));
+  return (
+    keys.length === Object.keys(b).length &&
+    keys.every((k) => SAME_SKIP.has(k) || a[k] === b[k] || JSON.stringify(a[k]) === JSON.stringify(b[k]))
+  );
 };
 
 /** Plan views a and b for the same team, week, data and rules (pins): a view drawn anew for a bundle sent again (a
  *  first plan's solve landing, a refresh) is the same one, so a solve in flight for it is never let go and asked
  *  again (2026-11-03: a new team's load asked GW11's preparation and the ✕'s refusal up to seven times each). */
-export const sameView = (a, b) => a === b || (!!a && !!b && String(a.entry) === String(b.entry) && a.A === b.A && a.b?.version === b.b?.version
-  && (a.pins ?? []).map((p) => p.id).sort().join() === (b.pins ?? []).map((p) => p.id).sort().join());
+export const sameView = (a, b) =>
+  a === b ||
+  (!!a &&
+    !!b &&
+    String(a.entry) === String(b.entry) &&
+    a.A === b.A &&
+    a.b?.version === b.b?.version &&
+    (a.pins ?? [])
+      .map((p) => p.id)
+      .sort()
+      .join() ===
+      (b.pins ?? [])
+        .map((p) => p.id)
+        .sort()
+        .join());
 
 export function plan(ctx) {
   const I = info(ctx);
@@ -305,7 +460,7 @@ export function plan(ctx) {
   const byGw = new Map(road.weeks.map((w) => [Number(w.gw), w]));
   const pins = gp?.pins || [];
   // after a reload, the week the edit being checked changes (memory's pending.edit), not the earliest pin's
-  const pendFrom = gp?.pending ? gp.pending.edit?.gw ?? Math.min(I.end, ...pins.map((p) => num(p.gw) ?? I.A)) : null;
+  const pendFrom = gp?.pending ? (gp.pending.edit?.gw ?? Math.min(I.end, ...pins.map((p) => num(p.gw) ?? I.A))) : null;
   const from = ov?.from ?? pendFrom;
   // every week is the solver's returned plan (memory's: the model's plan where it fits, or a heal's) with your lineups; while an
   // edit plans, the plan before it with the edit's weeks waiting (shimmer). The phone's own ≈ is never drawn (owner,
@@ -313,26 +468,43 @@ export function plan(ctx) {
   const approx = new Set(from == null ? [] : I.gws.filter((g) => g >= from));
   const mark = new Set(from != null && approx.has(from) ? [from] : []);
   const made = pairsOf(pins);
-  const weeks = I.gws.map((g) => {
-    if (!byGw.has(g)) return null;
-    const w = viewOfRoadWeek(byGw.get(g), I.L, { bank: banksOf(ctx, road)[g], keep: made });
-    w.approx = mark.has(g);
-    return withLineup(w, lineupOf(ctx, I, gp, g), I.L);
-  }).filter(Boolean);
+  const weeks = I.gws
+    .map((g) => {
+      if (!byGw.has(g)) return null;
+      const w = viewOfRoadWeek(byGw.get(g), I.L, { bank: banksOf(ctx, road)[g], keep: made });
+      w.approx = mark.has(g);
+      return withLineup(w, lineupOf(ctx, I, gp, g), I.L);
+    })
+    .filter(Boolean);
   const total = sum(weeks.map((w) => w.points));
   // hits a shown week takes that its road's rules don't allow, or its planner never priced (memory.forcedHits); never a
   // waiting week's
   const drawn = (list) => list(road).filter((f) => !approx.has(f.gw));
   const forced = drawn((r) => forcedHits(r, I.gws));
   const edited = weeks.filter((w) => w.lineup);
-  const lineupGap = edited.length ? { delta: sum(edited.map((w) => w.lineupDelta ?? 0)), gws: edited.map((w) => w.gw) } : null;
+  const lineupGap = edited.length
+    ? { delta: sum(edited.map((w) => w.lineupDelta ?? 0)), gws: edited.map((w) => w.gw) }
+    : null;
   const comparable = !ov && !gp?.pending && (gp?.source !== 'yours' || (!gp.stale && !!road.objective));
   const bareRoad = bareRef(ctx, I, pins);
   const bare = bareRoad ? new Map(bareRoad.weeks.map((w) => [Number(w.gw), viewOfRoadWeek(w, I.L)])) : null;
   const ok = editable(ctx);
   const P = {
-    ...I, mem: gp, road, pins, weeks, total, approx, mark, forced, healing: !!(ov || gp?.pending), bare,
-    editable: ok, why: ok ? '' : OFFLINE_EDIT, lineupGap, comparable,
+    ...I,
+    mem: gp,
+    road,
+    pins,
+    weeks,
+    total,
+    approx,
+    mark,
+    forced,
+    healing: !!(ov || gp?.pending),
+    bare,
+    editable: ok,
+    why: ok ? '' : OFFLINE_EDIT,
+    lineupGap,
+    comparable,
   };
   memo = { key, P };
   return P;
@@ -348,7 +520,15 @@ export const valuesKey = (I, values) => solvedKey(I.b.version, values);
 function bareRef(ctx, I, pins) {
   const own = pins.filter((p) => !derivedPin(p));
   if (!own.length || !specOk(ctx, I)) return null;
-  return specRoad(ctx, I, valuesFor(ctx, [], own.map((p) => p.id)));
+  return specRoad(
+    ctx,
+    I,
+    valuesFor(
+      ctx,
+      [],
+      own.map((p) => p.id),
+    ),
+  );
 }
 /** A speculative solve can be asked (a solver there, this browser not left behind). */
 const specOk = (ctx, I) => !!ctx.api?.solve && !leftBehind(ctx, I);
@@ -359,17 +539,22 @@ function specRoad(ctx, I, values) {
   if (got?.weeks) return got;
   if (got || ctx.api.slotBusy?.('spec') || ctx.store.get('conn')?.state === 'offline') return null;
   OPTIONS.set(key, 'solving');
-  solveKept(ctx.api, { entry: Number(I.entry), purpose: 'speculative', values })
-    .then((r) => {
+  solveKept(ctx.api, { entry: Number(I.entry), purpose: 'speculative', values }).then(
+    (r) => {
       if (r.road) OPTIONS.set(key, r.road);
       else if (r.state === 'error') OPTIONS.set(key, 'error');
       else {
         OPTIONS.delete(key);
         // asked again once the slot is free: the re-draw then asks it (api.whenFree)
-        if (r.state === 'superseded') ctx.api.whenFree?.('spec').then(() => { if (attach()?.ctx === ctx) bump(ctx); });
+        if (r.state === 'superseded')
+          ctx.api.whenFree?.('spec').then(() => {
+            if (attach()?.ctx === ctx) bump(ctx);
+          });
       }
       bump(ctx);
-    }, () => OPTIONS.delete(key));
+    },
+    () => OPTIONS.delete(key),
+  );
   return null;
 }
 
@@ -383,13 +568,26 @@ export const squadBefore = (P, g) => squadInto((x) => weekOf(P, x), g, P.A, P.ow
 export const inTeamAt = (P, g) => new Set([...squadBefore(P, g), ...(weekOf(P, g)?.squad ?? [])]);
 
 /** Who takes whose place between lists `was` and `now`: of his own position first. → [[out, in]] */
-const placesTaken = (was, now, pos) => { const outs = was.filter((x) => !now.includes(x));
-  return now.filter((x) => !was.includes(x)).map((x) => { const i = Math.max(0, outs.findIndex((o) => pos(o) === pos(x))); return [outs.splice(i, 1)[0], x]; }).filter(([o]) => o != null); };
+const placesTaken = (was, now, pos) => {
+  const outs = was.filter((x) => !now.includes(x));
+  return now
+    .filter((x) => !was.includes(x))
+    .map((x) => {
+      const i = Math.max(
+        0,
+        outs.findIndex((o) => pos(o) === pos(x)),
+      );
+      return [outs.splice(i, 1)[0], x];
+    })
+    .filter(([o]) => o != null);
+};
 /** What the card's swap changes on the pitch, week view `w` to `after` (paintBoard): `place`, the one he stands where in the
  *  team as it is; `sold`, who a transfer sells for him, null for a player only changing places; `kind`: 'in' bought, 'up'
  *  bench to pitch, 'down' pitch to bench. → [{place, id, sold, kind}] */
 export function boardMarks(w, after, pos) {
-  const sells = new Map(placesTaken([...w.xi, ...w.bench], [...after.xi, ...after.bench], pos).map(([out, id]) => [id, out]));
+  const sells = new Map(
+    placesTaken([...w.xi, ...w.bench], [...after.xi, ...after.bench], pos).map(([out, id]) => [id, out]),
+  );
   return [...placesTaken(w.xi, after.xi, pos), ...placesTaken(w.bench, after.bench, pos)].map(([place, id]) => {
     const sold = sells.get(id) ?? null;
     return { place, id, sold, kind: sold != null ? 'in' : w.xi.includes(id) ? 'down' : 'up' };
@@ -401,9 +599,21 @@ export function boardMarks(w, after, pos) {
  *  as they are for every rule. Unchanged where the board pairs other players. → [{out, in}] */
 export function pairAsPlaced(w, after, pos, moves) {
   if (!after || moves.length < 2) return moves;
-  const by = new Map(boardMarks(w, after, pos).filter((m) => m.kind === 'in').map((m) => [Number(m.sold), m.id]));
+  const by = new Map(
+    boardMarks(w, after, pos)
+      .filter((m) => m.kind === 'in')
+      .map((m) => [Number(m.sold), m.id]),
+  );
   const out = moves.map((m) => ({ ...m, in: by.get(Number(m.out)) ?? m.in }));
-  const same = (a, b) => a.map((m) => Number(m.in)).sort().join() === b.map((m) => Number(m.in)).sort().join();
+  const same = (a, b) =>
+    a
+      .map((m) => Number(m.in))
+      .sort()
+      .join() ===
+    b
+      .map((m) => Number(m.in))
+      .sort()
+      .join();
   return same(out, moves) ? out : moves;
 }
 /** {id: name} for the players week w buys, each with the player he replaces (pitch.js). A Wildcard or Free Hit week is
@@ -431,7 +641,8 @@ export function boughtIn(P, g) {
 export function draftOf(ctx) {
   const P = plan(ctx);
   let d = roadDraft(ctx, P.road);
-  for (const w of P.weeks) if (w.lineup) d = E.setLineup(d, w.gw, { xi: w.xi, bench: w.bench, captain: w.captain, vice: w.vice });
+  for (const w of P.weeks)
+    if (w.lineup) d = E.setLineup(d, w.gw, { xi: w.xi, bench: w.bench, captain: w.captain, vice: w.vice });
   return d;
 }
 
@@ -447,9 +658,13 @@ export function estimate(ctx, draft, from) {
  *  derived data and base. */
 const INPUTS = new WeakMap();
 export function inputsOf(ctx) {
-  const base = baseOf(ctx), model = info(ctx)?.base ?? null;
+  const base = baseOf(ctx),
+    model = info(ctx)?.base ?? null;
   let c = INPUTS.get(ctx.data);
-  if (!c || c.b !== ctx.bundle || c.base !== base || c.model !== model) INPUTS.set(ctx.data, (c = { b: ctx.bundle, base, model, inputs: planInputs(ctx.bundle, { ...ctx.data, base }, model) }));
+  if (!c || c.b !== ctx.bundle || c.base !== base || c.model !== model) {
+    c = { b: ctx.bundle, base, model, inputs: planInputs(ctx.bundle, { ...ctx.data, base }, model) };
+    INPUTS.set(ctx.data, c);
+  }
   return c.inputs;
 }
 export const inputs = inputsOf;
@@ -464,14 +679,20 @@ export function baseline(ctx, from) {
   const P = plan(ctx);
   if (!P) return null;
   let m = BASELINES.get(P);
-  if (!m) BASELINES.set(P, (m = new Map()));
+  if (!m) {
+    m = new Map();
+    BASELINES.set(P, m);
+  }
   if (!m.has(from)) m.set(from, estimate(ctx, draftOf(ctx), from));
   return m.get(from);
 }
 
 export const clubCounts = (L, squad) => {
   const n = new Map();
-  for (const p of squad || []) { const c = L.club(p); if (c) n.set(c, (n.get(c) || 0) + 1); }
+  for (const p of squad || []) {
+    const c = L.club(p);
+    if (c) n.set(c, (n.get(c) || 0) + 1);
+  }
   return n;
 };
 
@@ -490,9 +711,11 @@ export function problemsOf(ctx, ev, from, { ignoreBudget = false } = {}) {
     if (bad) return [{ code: 'move', gw: s.gw, reason: bad.reason }];
     const out = [];
     const was = Math.min(0, b?.bank ?? 0);
-    if (!ignoreBudget && s.bank < -1e-9 && s.bank < was - 1e-9) out.push({ code: 'budget', gw: s.gw, short: was - s.bank });
+    if (!ignoreBudget && s.bank < -1e-9 && s.bank < was - 1e-9)
+      out.push({ code: 'budget', gw: s.gw, short: was - s.bank });
     const had = clubCounts(I.L, b?.squad);
-    for (const [club, n] of clubCounts(I.L, s.squad)) if (n > E.MAX_PER_CLUB && n > (had.get(club) ?? 0)) out.push({ code: 'club', gw: s.gw, club, count: n });
+    for (const [club, n] of clubCounts(I.L, s.squad))
+      if (n > E.MAX_PER_CLUB && n > (had.get(club) ?? 0)) out.push({ code: 'club', gw: s.gw, club, count: n });
     if (out.length) return out;
   }
   return [];
@@ -515,13 +738,20 @@ export function problemText(ctx, p, name = null) {
   return COPY.infeasible(p.gw);
 }
 /** …as a list row says it in its number's place (plansOf `needs`): "£1.2m short", "3 from ARS", else "can't fit". */
-export const problemShort = (p) => (p?.code === 'budget' ? COPY.moneyShort(p.short) : p?.code === 'club' ? COPY.clubFull(p.club) : "can't fit");
+export const problemShort = (p) =>
+  p?.code === 'budget' ? COPY.moneyShort(p.short) : p?.code === 'club' ? COPY.clubFull(p.club) : "can't fit";
 
-export const flatMoves = (draft) => Object.entries(draft?.moves || {})
-  .flatMap(([g, ms]) => (ms || []).map((m) => ({ gw: Number(g), out: Number(m.out), in: Number(m.in) })));
+export const flatMoves = (draft) =>
+  Object.entries(draft?.moves || {}).flatMap(([g, ms]) =>
+    (ms || []).map((m) => ({ gw: Number(g), out: Number(m.out), in: Number(m.in) })),
+  );
 export const withMoves = (draft, list) => {
   const moves = {};
-  for (const m of list) if (m.out !== m.in) (moves[m.gw] ||= []).push({ out: m.out, in: m.in });
+  for (const m of list) {
+    if (m.out === m.in) continue;
+    moves[m.gw] ||= [];
+    moves[m.gw].push({ out: m.out, in: m.in });
+  }
   return { ...draft, moves };
 };
 
@@ -529,13 +759,19 @@ export const withMoves = (draft, list) => {
 export function withLaterChipSquads(ctx, P, from, draft) {
   const chipWeeks = P.weeks.filter((w) => w.gw > from && squadWeek(w) && w.chip === draft.chips?.[w.gw]);
   if (!chipWeeks.length) return draft;
-  const base = baseOf(ctx), moves = { ...draft.moves };
+  const base = baseOf(ctx),
+    moves = { ...draft.moves };
   const updated = { ...draft, moves };
   for (const w of chipWeeks) {
     const horizon = P.gws.filter((g) => g < w.gw);
     const { gws } = E.evaluate({ base, players: P.d.players, draft: updated, horizon, banksOnly: true });
     const before = squadInto((g) => gws.find((s) => s.gw === g), w.gw, P.A, P.owned);
-    const pairs = pairedMoves(before.filter((id) => !w.squad.includes(id)), w.squad.filter((id) => !before.includes(id)), P.L, w.moves);
+    const pairs = pairedMoves(
+      before.filter((id) => !w.squad.includes(id)),
+      w.squad.filter((id) => !before.includes(id)),
+      P.L,
+      w.moves,
+    );
     if (pairs.length) moves[w.gw] = pairs;
     else delete moves[w.gw];
   }
@@ -546,7 +782,8 @@ export const sameMove = (a, b) => a.gw === b.gw && a.out === b.out && a.in === b
 
 /** Same sale, a different buy (a later sale of the old buy now sells the new one). */
 function swapIn(list, m, inn) {
-  return list.map((x) => (sameMove(x, m) ? { ...x, in: inn } : x.gw > m.gw && x.out === m.in ? { ...x, out: inn } : x))
+  return list
+    .map((x) => (sameMove(x, m) ? { ...x, in: inn } : x.gw > m.gw && x.out === m.in ? { ...x, out: inn } : x))
     .filter((x) => !(!sameMove(x, { ...m, in: inn }) && x.gw > m.gw && x.in === inn));
 }
 
@@ -566,32 +803,49 @@ export function addMove(ctx, draft, g, out, inn, measure = null) {
     variants.push(add(kept.filter((x) => !later.includes(x))));
     if (later.length) variants.push(add(kept.map((x) => (later.includes(x) ? { ...x, out: inn } : x))));
   }
-  return bestOf(ctx, variants.map((v) => withMoves(draft, v)), g, measure);
+  return bestOf(
+    ctx,
+    variants.map((v) => withMoves(draft, v)),
+    g,
+    measure,
+  );
 }
 
 /** `measure(d, from)` → evaluate's state (default: estimate); takenBy for a number the tap or your row must give. */
 export function bestOf(ctx, drafts, from, measure = null) {
-  return drafts.map((d) => {
-    const ev = measure ? measure(d, from) : estimate(ctx, d, from);
-    return { draft: d, ev, problem: problemOf(ctx, ev, from) };
-  }).sort((a, b) => (!!a.problem - !!b.problem) || (b.ev.total - a.ev.total))[0];
+  return drafts
+    .map((d) => {
+      const ev = measure ? measure(d, from) : estimate(ctx, d, from);
+      return { draft: d, ev, problem: problemOf(ctx, ev, from) };
+    })
+    .sort((a, b) => Number(!!a.problem) - Number(!!b.problem) || b.ev.total - a.ev.total)[0];
 }
 
 /** Players plan view P moves (sells or buys) in GW g or later: Set(id). A new move of one in GW g would silently change
  *  that transfer (addMove swaps its buy, voids a later buy, drops or carries a later sale) and his sale rule would
  *  overwrite his own, so suggestions, a row's other buy and a bring-in's sale avoid them. Never a Wildcard or Free Hit
  *  week's changes. `own`: your moves only. */
-export const movedFrom = (P, g, own = false) => new Set(P.weeks.filter((w) => w.gw >= g && !squadWeek(w))
-  .flatMap((w) => (w.moves || []).filter((m) => !own || pinOfMove(P, m)).flatMap((m) => [m.out, m.in])));
+export const movedFrom = (P, g, own = false) =>
+  new Set(
+    P.weeks
+      .filter((w) => w.gw >= g && !squadWeek(w))
+      .flatMap((w) => (w.moves || []).filter((m) => !own || pinOfMove(P, m)).flatMap((m) => [m.out, m.in])),
+  );
 
 /** Drop a move: keep the player it sold (a later sale of the player it bought now sells him). */
 export function dropMove(draft, m) {
   const list = flatMoves(draft);
-  return withMoves(draft, list.filter((x) => !sameMove(x, m)).map((x) => (x.gw > m.gw && x.out === m.in ? { ...x, out: m.out } : x)));
+  return withMoves(
+    draft,
+    list.filter((x) => !sameMove(x, m)).map((x) => (x.gw > m.gw && x.out === m.in ? { ...x, out: m.out } : x)),
+  );
 }
 /** The draft's own move for transfer x | undefined, and the draft without it (dropMove). */
 const draftMove = (d, x) => flatMoves(d).find((y) => sameMove(y, x));
-export const dropDrafted = (d, x) => { const y = draftMove(d, x); return y ? dropMove(d, y) : d; };
+export const dropDrafted = (d, x) => {
+  const y = draftMove(d, x);
+  return y ? dropMove(d, y) : d;
+};
 
 // ---------------------------------------------------------------- pins and solves
 
@@ -599,10 +853,24 @@ export const dropDrafted = (d, x) => { const y = draftMove(d, x); return y ? dro
 export function wishPin(P, id, g) {
   // a Wildcard or Free Hit week: him in that week's chip squad, the rest the solver's (owner, 2026-10-12)
   const chip = squadWeek(weekOf(P, g));
-  if (chip) return makePin({ id: `wish:${id}`, kind: 'wish', chip, player: Number(id), gw: g, label: `${P.L.name(id)} in your GW${g} ${chipName(chip)}`, must: [[id, g, g]] });
+  if (chip)
+    return makePin({
+      id: `wish:${id}`,
+      kind: 'wish',
+      chip,
+      player: Number(id),
+      gw: g,
+      label: `${P.L.name(id)} in your GW${g} ${chipName(chip)}`,
+      must: [[id, g, g]],
+    });
   return makePin({
-    id: `wish:${id}`, kind: 'wish', player: Number(id), gw: g, label: `${P.L.name(id)} from GW${g}`,
-    must: [[id, g, P.end]], excl: g > P.A ? [[id, P.A, g - 1]] : [],
+    id: `wish:${id}`,
+    kind: 'wish',
+    player: Number(id),
+    gw: g,
+    label: `${P.L.name(id)} from GW${g}`,
+    must: [[id, g, P.end]],
+    excl: g > P.A ? [[id, P.A, g - 1]] : [],
   });
 }
 
@@ -626,9 +894,19 @@ export function solveFor(ctx, extra, purpose, drop = []) {
   // one user-class solve per browser, a newer superseding the older (api/mobile.py solve_post): wait for a pending plan
   // heal, never cancel it
   if (ctx.api.SOLVE_CLASS[purpose] !== 'user') return go();
-  let inner = null, stopped = false;
-  const p = memOf(ctx).settled().then(() => (stopped ? { key: null, state: 'cancelled', road: null, error: null } : (inner = go())));
-  p.cancel = () => { stopped = true; inner?.cancel?.(); };
+  let inner = null,
+    stopped = false;
+  const p = memOf(ctx)
+    .settled()
+    .then(() => {
+      if (stopped) return { key: null, state: 'cancelled', road: null, error: null };
+      inner = go();
+      return inner;
+    });
+  p.cancel = () => {
+    stopped = true;
+    inner?.cancel?.();
+  };
   return p;
 }
 

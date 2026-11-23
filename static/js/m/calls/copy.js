@@ -2,7 +2,26 @@
 
 import * as E from '../../plan/engine.js';
 import { fmt, chipName, plural } from '../../ui.js';
-import { EPS, MINUS, ORD, WORDS, andList, gwList, gwsWords, hitsWords, ids, num, pts, range, rankOrd, rankShort, setsRow, setsSaid, signedMoney, span } from './helpers.js';
+import {
+  EPS,
+  MINUS,
+  ORD,
+  WORDS,
+  andList,
+  gwList,
+  gwsWords,
+  hitsWords,
+  ids,
+  num,
+  pts,
+  range,
+  rankOrd,
+  rankShort,
+  setsRow,
+  setsSaid,
+  signedMoney,
+  span,
+} from './helpers.js';
 import { priceSaid } from './prices.js';
 
 // ---------------------------------------------------------------- copy (IPHONE_DESIGN §9, §7.9, §5)
@@ -12,9 +31,10 @@ export const sentence = (text) => (/[.!?…]$/.test(String(text)) ? String(text)
 
 /** A Wildcard or Free Hit week in words: what the chip makes of it and (Free Hit) the free transfers kept for the week
  *  after (ftNext). */
-const chipWeekWhat = (chip, gw, ftNext = null) => (chip === 'fh'
-  ? `one-week squad, back to your team in GW${gw + 1}${ftNext == null ? '' : ` · ${ftNext} FT kept for GW${gw + 1}`}`
-  : 'unlimited transfers this week');
+const chipWeekWhat = (chip, gw, ftNext = null) =>
+  chip === 'fh'
+    ? `one-week squad, back to your team in GW${gw + 1}${ftNext == null ? '' : ` · ${ftNext} FT kept for GW${gw + 1}`}`
+    : 'unlimited transfers this week';
 export const COPY = Object.freeze({
   span,
   range,
@@ -39,16 +59,21 @@ export const COPY = Object.freeze({
   /** A lifted shirt's line under the switcher (ahead.js liftShirt): the players he can swap with outlined on the pitch
    *  (engine.swapCandidates), the weeks he can be sold from glowing. `out`: the Wildcard or Free Hit week that brought
    *  him in, where a drop rules him out of its squad. */
-  liftShirt: (name, swap, sell, out = null) => (out != null
-    ? `Drop ${name} ${[swap ? 'on a player to swap them' : null, `on GW${out} to rule him out`, sell ? 'on a later week to sell him' : null].filter(Boolean).join(', or ')}`
-    : swap && sell ? `Drop ${name} on a player to swap them, or on a week to sell him`
-      : swap ? `Drop ${name} on a player to swap them` : sell ? `Drop ${name} on a week to sell him from then`
-        : `No swap or week works for ${name}`),
+  liftShirt: (name, swap, sell, out = null) =>
+    out != null
+      ? `Drop ${name} ${[swap ? 'on a player to swap them' : null, `on GW${out} to rule him out`, sell ? 'on a later week to sell him' : null].filter(Boolean).join(', or ')}`
+      : swap && sell
+        ? `Drop ${name} on a player to swap them, or on a week to sell him`
+        : swap
+          ? `Drop ${name} on a player to swap them`
+          : sell
+            ? `Drop ${name} on a week to sell him from then`
+            : `No swap or week works for ${name}`,
   /** How many forecast runs back the pooled call: for the Why sheet, never a verdict. */
   agreement: (lead, runs) => `${lead} of ${runs} forecast runs`,
   /** An edit's verdict against the plan before it (changeText): forecast points minus hits, the direction in words, not
    *  only colour. `total`: take and remove toasts name what your total moves by (changeNum; owner, 2026-10-21). */
-  change: (what, delta, label, gws, total = false) => `${what} · ${COPY.changeNum(delta, total)}`,
+  change: (what, delta, _label, _gws, total = false) => `${what} · ${COPY.changeNum(delta, total)}`,
   changeNum: (delta, total = false) => (total ? `total ${pts(delta)}` : `${pts(delta)} pts`),
   /** An edit's subject in plain words, one form for every way in: "Bassey in your plan" (GW A: the move is the plan's
    *  until you make it in FPL), "Bassey in GW7"; with the player he replaces, "Bassey in for Chilwell in your plan". */
@@ -78,11 +103,12 @@ export const COPY = Object.freeze({
   /** A week you can choose (a tap selects it; whenMove moves it there). */
   whenWeek: (gw, delta) => (delta == null ? `GW${gw}` : `GW${gw}: ${pts(delta)} pts`),
   /** The Why table's forecast group (sheets/why.js pairTable). */
-  gridUnit: 'Forecast xP',  // a forecast's unit is "xP" everywhere
+  gridUnit: 'Forecast xP', // a forecast's unit is "xP" everywhere
   /** The stats' head, the Why table's and the player card's: their rounds, and in the Why table whom its ranks are
    *  among: "Stats · GW1–7 · ranks among 84 midfielders", `n` his position's ranked players (api/card.py _strip),
    *  `word` its plural (sheets/player.js WORD); rounds alone without them. */
-  statsHead: (g0, g1, n = 0, word = null) => `Stats · ${range(g0, g1)}${n > 0 && word ? ` · ranks among ${n} ${word}` : ''}`,
+  statsHead: (g0, g1, n = 0, word = null) =>
+    `Stats · ${range(g0, g1)}${n > 0 && word ? ` · ranks among ${n} ${word}` : ''}`,
   /** …and under the Why table, once, the stats set apart from the forecast, so the last matches' points above aren't
    *  taken for the forecast. */
   statsPast: (gws) => `Stats are past matches; the ${span(gws)} points above are the forecast.`,
@@ -95,7 +121,12 @@ export const COPY = Object.freeze({
   fundedBy: (moves) => `with ${andList(moves)}`,
   /** A transfer's money on its Why line ('→' is a transfer's alone): what its sale frees beyond its buy, or what the
    *  buy takes from the bank, with the bank it takes it from where known (`bank`); null when equal. */
-  frees: (x, bank = null) => (Math.abs(x) < 0.05 ? null : x > 0 ? `frees ${fmt.money(x)}` : `${fmt.money(-x)} from the bank${bank ? ` (${bank})` : ''}`),
+  frees: (x, bank = null) =>
+    Math.abs(x) < 0.05
+      ? null
+      : x > 0
+        ? `frees ${fmt.money(x)}`
+        : `${fmt.money(-x)} from the bank${bank ? ` (${bank})` : ''}`,
   /** A week with no transfer, its verdict by who left it empty (ahead.emptyHead): under the hold the Roll's own
    *  "No transfer made" (COPY.noTransferMade; owner, 2026-11-05: one name, whether or not there is a move); no edit reaches it (GW A under way) "No transfers"; off the hold,
    *  a week Forkcast's plan leaves empty "Forkcast rolls GW8" ("No transfers" while an edit's check may still re-plan
@@ -119,17 +150,20 @@ export const COPY = Object.freeze({
   keptIn: (names, gw) => `${andList(names)} ${names.length > 1 ? 'are' : 'is'} kept in GW${gw}.`,
   /** A buy no single extra sale pays for: what it needs, and another week only when that week fits him. Any edit short
    *  of money says it, the buy named where known (null: "Needs £1.2m more in GW6."). */
-  noFit: (name, short, gw, tryGw = null) => `${name ? `${name} ${COPY.moneyNeeds(short)}` : COPY.moneyNeeds(short).replace(/^n/, 'N')} in GW${gw}.${tryGw ? ` He fits in GW${tryGw}.` : ''}`,
+  noFit: (name, short, gw, tryGw = null) =>
+    `${name ? `${name} ${COPY.moneyNeeds(short)}` : COPY.moneyNeeds(short).replace(/^n/, 'N')} in GW${gw}.${tryGw ? ` He fits in GW${tryGw}.` : ''}`,
   /** The weeks a later week's numbers count, its GW to the window's end ("GW8–9"); the suggested plans' label names
    *  them (COPY.suggested). */
   valuedOver: (gws) => span(gws),
   /** The move if its buy misses its GW (scored 0 there: ahead.ifMisses), and what it makes when he plays (`base`, where
    *  the two differ as shown). */
-  ifMisses: (name, gw, delta, base = null, vs = null) => `if ${name} misses GW${gw}: ${pts(delta)}${base != null && pts(base) !== pts(delta) ? `, not ${pts(base)}${vs ? ` ${vs}` : ''}` : ''}`,
+  ifMisses: (name, gw, delta, base = null, vs = null) =>
+    `if ${name} misses GW${gw}: ${pts(delta)}${base != null && pts(base) !== pts(delta) ? `, not ${pts(base)}${vs ? ` ${vs}` : ''}` : ''}`,
   /** The week's better use of the free transfer your transfer takes (ahead.otherUseOf), a move now in its place, never
    *  a fallback, and what your transfer makes with it (`mine`): "Better use of this free transfer: Scott → Groß +7.5,
    *  not +2.3". */
-  instead: (move, delta, mine = null, vs = null) => `Better use of this free transfer: ${move} ${pts(delta)}${mine != null ? `, not ${pts(mine)}${vs ? ` ${vs}` : ''}` : ''}`,
+  instead: (move, delta, mine = null, vs = null) =>
+    `Better use of this free transfer: ${move} ${pts(delta)}${mine != null ? `, not ${pts(mine)}${vs ? ` ${vs}` : ''}` : ''}`,
   /** The baseline a Why fact's ", not X" names when the sheet's header counts against rolling ("+0.4 vs rolling" over
    *  "…, not +2.8" read as two numbers for one move). */
   vsKeeping: (name) => `vs keeping ${name}`,
@@ -151,8 +185,13 @@ export const COPY = Object.freeze({
    *  ("Saka → Palmer back · GW8 frozen back"). A removal takes its own rules alone (owner, 2026-10-26): no clause to
    *  turn. */
   undone: (what, gw = null) => {
-    const turn = (c) => c.replace(/ (removed|taken off)$/, '\u0000').replace(/ back$/, ' removed').replace(/\u0000/g, ' back');
-    const parts = what.split(' · '), said = parts.map(turn).join(' · ');
+    const turn = (c) =>
+      c
+        .replace(/ (removed|taken off)$/, '\u0000')
+        .replace(/ back$/, ' removed')
+        .replaceAll('\u0000', ' back');
+    const parts = what.split(' · '),
+      said = parts.map(turn).join(' · ');
     return `${turn(parts[0]) === parts[0] ? 'Undone: ' : ''}${said}${gw != null && !new RegExp(`\\bGW${gw}(?!\\d)`).test(what) ? ` · GW${gw}` : ''}`;
   },
   /** The forecast noise (meta.noise, its GW): the You sheet's Status row and the Player data sheet's note. */
@@ -175,112 +214,153 @@ export const COPY = Object.freeze({
   // the chips' names whole (review 7 B18: no codes in a hint); each line whole or the hint gives way (placeHint)
   hintChips: ['Hold C: Triple Captain', 'Hold bench: Bench Boost'],
   tipsAgain: 'Show tips on the screen again',
-  helpLead: 'Forkcast plans your FPL team up to four gameweeks (GWs) ahead. It can\'t change your FPL team: make your transfers in the FPL app before the deadline. Each change shows a message with Undo.',
+  helpLead:
+    "Forkcast plans your FPL team up to four gameweeks (GWs) ahead. It can't change your FPL team: make your transfers in the FPL app before the deadline. Each change shows a message with Undo.",
   /** → [[head, [bullet], clip?]], in the order a first visit needs them; `clip`: the section's recording on the real
    *  app (static/m/clips, sheets/about.js clip); `noise` and `gw` (ahead.inputsOf) are read by no line now. Bullets say
    *  what each number counts against (the total: your plan; a choice: rolling; a Sell list's ≈: keeping him), a chip's
    *  best week (chipBests, honestBest), how long checks take (minutes for the Chips sheet's), a take's message with its
    *  two numbers and Why, and the week line's facts in a GW with no transfers (ahead.factsWords); never the noise's
    *  points (Dev mode's: you.js paintDev). */
-  help: (noise = null, gw = null) => [
-    ['Plan your transfers', [
-      'Pick a GW at the top, or swipe the pitch.',
-      // (the band, its marks and his place: owner, 2026-11-03, design_1103b "Place header + Help text")
-      'Forkcast\'s best move for a GW is the dark strip above the pitch; the player it sells is framed on the pitch.',
-      'Swap takes it. ✕ by the player coming in: not him this GW, and the next best shows.',
-      'The lock by the player going out: keep him this GW.',
-      // (a card's ×, not ⇄: FPL's substitution sign; owner, 2026-11-03, "Back to ×")
-      'Tap × on a player\'s card for his place: the choices for his spot, each with its number and Swap.',
-      'In a player\'s place, Keep over his own card keeps him that GW: nothing sells him.',
-      'Rolling is making no transfer: your free transfer carries over to the next GW.',
-      // the rule a take adds, by its own word (rollRule; owner, 2026-10-22: never "lock", the plan length's padlock): a
-      // transfer's "GW8 frozen", the Roll's "GW8 roll", a Wildcard's or Free Hit's its chip
-      'Taken transfers lock their GW (Your rules: locked): Forkcast changes nothing there. Roll adds a roll rule; Wildcard or Free Hit, the chip.',
-      `Tap the line above the pitch for that GW's transfers, ${COPY.plansHead} and your rules.`,
-      // its free transfers in every week, before its transfers (renderLine's weekLead)
-      'The line above the pitch shows each GW\'s free transfers (FT) and money in the bank (ITB); with no transfers, the next GW\'s FT too.',
-    ], 'plans'],
-    ['Bring in a player', [
-      `Tap ${COPY.bringInShort} (above the pitch, beside ${COPY.chipsDoor}), then + beside a player.`,
-      'Pick a GW, then under Sells tap who goes out, even short of money.',
-    ], 'bringin'],
-    ['Your players', [
-      'Tap a shirt for his card: Keep, or Force out (one week, or sold from a week on).',
-      // the venue's case in words (review 7 B17: never case alone)
-      `Opponents under the shirts: ${COPY.oppCase}.`,
-      'Under Force out, From GW… lets you choose who comes in, or Let Forkcast choose.',
-      'Hold a shirt, then drop it on an outlined player to swap them, or on a GW to sell him from then.',
-      'Tap the C or the V to pick who wears it from a list.',
-      'Tap a sub\'s order on the bench (1st, 2nd or 3rd) to pick who he replaces from a list.',
-      'Hold the C or the V, then drop it on a starter. The V on the C swaps them.',
-    ], 'replace'],
-    ['Change a transfer', [
-      'Tap the line above the pitch, then × on your transfer to remove it.',
-      `Tap the player tagged IN, then a GW under “${COPY.whenHead}”, then ${COPY.whenVerb} that GW.`,
-    ], 'xfer'],
-    ['Keep a player, or say Not to one', [
-      'Tap the line above the pitch. Swipe a transfer left: Not the player it buys, in that GW.',
-      'A Wildcard or Free Hit week\'s changes work the same.',
-      'Your rules, at the end of that list, shows what you set. Tap one, then Remove.',
-    ], 'rules'],
-    ['Settings', [
-      `Hits: ${COPY.settingsDoor}, then ${COPY.hitsHead}.`,
-      `How many GWs it plans: ${COPY.settingsDoor}, then ${COPY.aheadHead}.`,
-    ]],
-    ['Play a chip', [
-      `Tap ${COPY.chipsDoor} (above the pitch, beside ${COPY.bringInShort}), then a chip. Each shows its best week.`,
-      'Triple Captain: hold the C still.',
-      'Bench Boost: hold the bench where no shirt is.',
-      `The same hold again, or ${COPY.chipTakeOff} in ${COPY.chipsDoor}, takes it off.`,
-      'Best week: of the GWs your plan covers in its half of the season, where it gains most against not playing it.',
-      'Every chip is compared with the same plan with no chip played that week, over the displayed gameweeks.',
-      'These numbers do not compare using a chip now with saving it for a later week.',
-      `${COPY.chipNoBestName}: no GW beats the next best by enough to act on. GWs past your plan aren't planned.`,
-      `A chip's numbers can take minutes; its row says ${COPY.waitShort} until then.`,
-    ], 'chips'],
-    ['What the numbers mean', [
-      'Points are forecast FPL points for a typical week, not a promise, minus 4 for each hit.',
-      'The total at the top: your plan\'s points, no transfers unless you add them.',
-      // one phrase for the baseline, "vs rolling" (owner, 2026-10-22: no "beats rolling", "against rolling")
-      'A transfer\'s number: what it adds to your weeks\' xP, the change you then see on the tabs.',
-      'A plan\'s number: the same, all its transfers together. Roll has no number: it keeps your team as it is.',
-      // compared to the transfer made, not rolling (owner, 2026-10-25)
-      'In a GW with a transfer, Wildcard or Free Hit of yours, every choice, Roll too, is vs your plan: worse than yours is negative.',
-      'Vs rolling, both sides get Forkcast\'s best later moves (none after a Wildcard), so the free transfer rolling saves can be used.',
-      'Taking a choice adds its GW\'s moves alone, not the later ones its number counts, so the total can move by another amount.',
-      // (owner, 2026-10-26: "what means +1.6 vs rolling but total +5.1"; the message carries no number since
-      // 2026-10-27)
-      'The total at the top shows its own change once the message goes.',
-      'Green: it beats the alternative by enough to act on.',
-      'Grey: not worth acting on: a plan or chip that doesn\'t beat what it counts against by enough, or a gap too small to matter.',
-      // (owner, 2026-10-21: worse ones are listed too, grey; the moves the bars keep from being the week's suggestion:
-      // ahead.plPays `early`)
-      'Grey too: a move that adds next to nothing or loses when taken, or is as good a GW later.',
-      'A transfer, Wildcard or Free Hit in your plan: amber when its gain is small, red when it loses by enough to matter.',
-      // (owner, 2026-10-26: the plan is never drawn from an estimate; every squad is the solver's)
-      'While a change is planned, the plan before it shimmers until the new one is in. Planning can take from seconds to several minutes.',
-      '≈ before a number in a list: Forkcast\'s quick estimate. Every squad and number of your plan is its solver\'s.',
-      '≈ in a Sell list is vs keeping him. Once made, the transfer\'s number is vs rolling instead, so it can differ.',
-    ]],
-    ['What the marks mean', [
-      // (owner, 2026-10-26: the black plate the transfer week's, a black ring after it)
-      'Black name plate: bought this GW; tap him for who he replaces and why.',
-      'Black ring round a name: bought in an earlier GW of your plan, not in your FPL team yet.',
-      // (owner, 2026-10-26: struck old points)
-      'Struck number on a GW: its points with no transfers of yours, beside its points with them.',
-      'Dot in a GW\'s corner: your own lineup there. Reset (pitch, top left) brings the best one back.',
-      `Lock on a GW: past your plan (${COPY.aheadHead}). Tap it to see how to plan it.`,
-    ]],
-    ['Prices and news', [
-      'Before a price change, the line above the pitch says whether to make your transfer tonight. Hide, in its list, puts it away.',
-      'Player data (pitch, top right): choose what shows under each shirt.',
-      'On a player\'s card, tap ⓘ to read what a chart shows.',
-    ]],
-    ['Start over', [
-      'Tap your initials, then Reset all weeks.',
-      // (the pitch's pill, owner, 2026-10-21; ahead.planHasYours, resetFits)
-      'Reset all weeks is on the week\'s card too while your plan has a transfer, chip or rule of yours.',
-    ]],
+  /** @returns {[heading: string, items: string[], clip?: string][]} */
+  help: (_noise = null, _gw = null) => [
+    [
+      'Plan your transfers',
+      [
+        'Pick a GW at the top, or swipe the pitch.',
+        // (the band, its marks and his place: owner, 2026-11-03, design_1103b "Place header + Help text")
+        "Forkcast's best move for a GW is the dark strip above the pitch; the player it sells is framed on the pitch.",
+        'Swap takes it. ✕ by the player coming in: not him this GW, and the next best shows.',
+        'The lock by the player going out: keep him this GW.',
+        // (a card's ×, not ⇄: FPL's substitution sign; owner, 2026-11-03, "Back to ×")
+        "Tap × on a player's card for his place: the choices for his spot, each with its number and Swap.",
+        "In a player's place, Keep over his own card keeps him that GW: nothing sells him.",
+        'Rolling is making no transfer: your free transfer carries over to the next GW.',
+        // the rule a take adds, by its own word (rollRule; owner, 2026-10-22: never "lock", the plan length's padlock): a
+        // transfer's "GW8 frozen", the Roll's "GW8 roll", a Wildcard's or Free Hit's its chip
+        'Taken transfers lock their GW (Your rules: locked): Forkcast changes nothing there. Roll adds a roll rule; Wildcard or Free Hit, the chip.',
+        `Tap the line above the pitch for that GW's transfers, ${COPY.plansHead} and your rules.`,
+        // its free transfers in every week, before its transfers (renderLine's weekLead)
+        "The line above the pitch shows each GW's free transfers (FT) and money in the bank (ITB); with no transfers, the next GW's FT too.",
+      ],
+      'plans',
+    ],
+    [
+      'Bring in a player',
+      [
+        `Tap ${COPY.bringInShort} (above the pitch, beside ${COPY.chipsDoor}), then + beside a player.`,
+        'Pick a GW, then under Sells tap who goes out, even short of money.',
+      ],
+      'bringin',
+    ],
+    [
+      'Your players',
+      [
+        'Tap a shirt for his card: Keep, or Force out (one week, or sold from a week on).',
+        // the venue's case in words (review 7 B17: never case alone)
+        `Opponents under the shirts: ${COPY.oppCase}.`,
+        'Under Force out, From GW… lets you choose who comes in, or Let Forkcast choose.',
+        'Hold a shirt, then drop it on an outlined player to swap them, or on a GW to sell him from then.',
+        'Tap the C or the V to pick who wears it from a list.',
+        "Tap a sub's order on the bench (1st, 2nd or 3rd) to pick who he replaces from a list.",
+        'Hold the C or the V, then drop it on a starter. The V on the C swaps them.',
+      ],
+      'replace',
+    ],
+    [
+      'Change a transfer',
+      [
+        'Tap the line above the pitch, then × on your transfer to remove it.',
+        `Tap the player tagged IN, then a GW under “${COPY.whenHead}”, then ${COPY.whenVerb} that GW.`,
+      ],
+      'xfer',
+    ],
+    [
+      'Keep a player, or say Not to one',
+      [
+        'Tap the line above the pitch. Swipe a transfer left: Not the player it buys, in that GW.',
+        "A Wildcard or Free Hit week's changes work the same.",
+        'Your rules, at the end of that list, shows what you set. Tap one, then Remove.',
+      ],
+      'rules',
+    ],
+    [
+      'Settings',
+      [
+        `Hits: ${COPY.settingsDoor}, then ${COPY.hitsHead}.`,
+        `How many GWs it plans: ${COPY.settingsDoor}, then ${COPY.aheadHead}.`,
+      ],
+    ],
+    [
+      'Play a chip',
+      [
+        `Tap ${COPY.chipsDoor} (above the pitch, beside ${COPY.bringInShort}), then a chip. Each shows its best week.`,
+        'Triple Captain: hold the C still.',
+        'Bench Boost: hold the bench where no shirt is.',
+        `The same hold again, or ${COPY.chipTakeOff} in ${COPY.chipsDoor}, takes it off.`,
+        'Best week: of the GWs your plan covers in its half of the season, where it gains most against not playing it.',
+        'Every chip is compared with the same plan with no chip played that week, over the displayed gameweeks.',
+        'These numbers do not compare using a chip now with saving it for a later week.',
+        `${COPY.chipNoBestName}: no GW beats the next best by enough to act on. GWs past your plan aren't planned.`,
+        `A chip's numbers can take minutes; its row says ${COPY.waitShort} until then.`,
+      ],
+      'chips',
+    ],
+    [
+      'What the numbers mean',
+      [
+        'Points are forecast FPL points for a typical week, not a promise, minus 4 for each hit.',
+        "The total at the top: your plan's points, no transfers unless you add them.",
+        // one phrase for the baseline, "vs rolling" (owner, 2026-10-22: no "beats rolling", "against rolling")
+        "A transfer's number: what it adds to your weeks' xP, the change you then see on the tabs.",
+        "A plan's number: the same, all its transfers together. Roll has no number: it keeps your team as it is.",
+        // compared to the transfer made, not rolling (owner, 2026-10-25)
+        'In a GW with a transfer, Wildcard or Free Hit of yours, every choice, Roll too, is vs your plan: worse than yours is negative.',
+        "Vs rolling, both sides get Forkcast's best later moves (none after a Wildcard), so the free transfer rolling saves can be used.",
+        "Taking a choice adds its GW's moves alone, not the later ones its number counts, so the total can move by another amount.",
+        // (owner, 2026-10-26: "what means +1.6 vs rolling but total +5.1"; the message carries no number since
+        // 2026-10-27)
+        'The total at the top shows its own change once the message goes.',
+        'Green: it beats the alternative by enough to act on.',
+        "Grey: not worth acting on: a plan or chip that doesn't beat what it counts against by enough, or a gap too small to matter.",
+        // (owner, 2026-10-21: worse ones are listed too, grey; the moves the bars keep from being the week's suggestion:
+        // ahead.plPays `early`)
+        'Grey too: a move that adds next to nothing or loses when taken, or is as good a GW later.',
+        'A transfer, Wildcard or Free Hit in your plan: amber when its gain is small, red when it loses by enough to matter.',
+        // (owner, 2026-10-26: the plan is never drawn from an estimate; every squad is the solver's)
+        'While a change is planned, the plan before it shimmers until the new one is in. Planning can take from seconds to several minutes.',
+        "≈ before a number in a list: Forkcast's quick estimate. Every squad and number of your plan is its solver's.",
+        "≈ in a Sell list is vs keeping him. Once made, the transfer's number is vs rolling instead, so it can differ.",
+      ],
+    ],
+    [
+      'What the marks mean',
+      [
+        // (owner, 2026-10-26: the black plate the transfer week's, a black ring after it)
+        'Black name plate: bought this GW; tap him for who he replaces and why.',
+        'Black ring round a name: bought in an earlier GW of your plan, not in your FPL team yet.',
+        // (owner, 2026-10-26: struck old points)
+        'Struck number on a GW: its points with no transfers of yours, beside its points with them.',
+        "Dot in a GW's corner: your own lineup there. Reset (pitch, top left) brings the best one back.",
+        `Lock on a GW: past your plan (${COPY.aheadHead}). Tap it to see how to plan it.`,
+      ],
+    ],
+    [
+      'Prices and news',
+      [
+        'Before a price change, the line above the pitch says whether to make your transfer tonight. Hide, in its list, puts it away.',
+        'Player data (pitch, top right): choose what shows under each shirt.',
+        "On a player's card, tap ⓘ to read what a chart shows.",
+      ],
+    ],
+    [
+      'Start over',
+      [
+        'Tap your initials, then Reset all weeks.',
+        // (the pitch's pill, owner, 2026-10-21; ahead.planHasYours, resetFits)
+        "Reset all weeks is on the week's card too while your plan has a transfer, chip or rule of yours.",
+      ],
+    ],
   ],
   /** About Forkcast (sheets/about.js): under Connect's form for whoever reads on, and from Help and the You sheet
    *  (owner, 2026-10-14). Its questions are those r/FantasyPL's Rate My Team threads ask most, in managers' words, most
@@ -288,37 +368,68 @@ export const COPY = Object.freeze({
    *  tools/qa/scenarios/about-clips.mjs); no Reddit figure on the page. Results are finishing ranks inside a season,
    *  never points across seasons; nothing says when to play a chip. Never "beats", "proven" or "guaranteed". */
   whyTitle: 'About Forkcast',
-  whySub: 'Roll or transfer, A or B, who to bench, whether the −4 pays: Forkcast works it out for your squad, your bank and your free transfers, in points over the next four gameweeks.',
+  whySub:
+    'Roll or transfer, A or B, who to bench, whether the −4 pays: Forkcast works it out for your squad, your bank and your free transfers, in points over the next four gameweeks.',
   whyStart: 'Find my team',
   /** One a question (`clip`: static/m/clips/<clip>.webp, recorded on the real app), the most asked first. */
   whyApp: [
-    { clip: 'plans', ask: 'Roll or make a transfer?', text: 'Forkcast\'s best buy waits behind the player he would replace, scored vs rolling the transfer: the points it adds over the next four gameweeks. One tap takes the transfer, and the player you sold waits behind him to take back.' },
-    { clip: 'replace', ask: 'A or B? Who replaces him?', text: 'Drag a player onto a gameweek and everyone who could come in for him is ranked, with the money your bank allows.' },
-    { clip: 'rules', ask: 'Keep your player, or rule one out?', text: 'Tap the line above the pitch, then swipe a transfer left: Not the player it buys. It holds for that gameweek, goes into Your rules, and the plan is made again around it.' },
-    { clip: 'bench', ask: 'Who starts? Who\'s on the bench?', text: 'Forkcast picks your XI, captain and bench order for every gameweek, the bench in the order FPL\'s auto-subs use.' },
-    { clip: 'bringin', ask: 'Take a −4 now, or wait a week?', text: 'Name any player: see what bringing him in gains in each of the next four gameweeks, a −4 taken off in a week that costs one, and who Forkcast would sell to pay for him. Take the best week in one tap.' },
-    { clip: 'player', ask: 'Will he start? Is he worth it?', text: 'Tap a player for his card: his team news, his last six matches with the cup and international games between them, his next seven forecasts, and the stats that best foretell his points, ranked against his position.' },
+    {
+      clip: 'plans',
+      ask: 'Roll or make a transfer?',
+      text: "Forkcast's best buy waits behind the player he would replace, scored vs rolling the transfer: the points it adds over the next four gameweeks. One tap takes the transfer, and the player you sold waits behind him to take back.",
+    },
+    {
+      clip: 'replace',
+      ask: 'A or B? Who replaces him?',
+      text: 'Drag a player onto a gameweek and everyone who could come in for him is ranked, with the money your bank allows.',
+    },
+    {
+      clip: 'rules',
+      ask: 'Keep your player, or rule one out?',
+      text: 'Tap the line above the pitch, then swipe a transfer left: Not the player it buys. It holds for that gameweek, goes into Your rules, and the plan is made again around it.',
+    },
+    {
+      clip: 'bench',
+      ask: "Who starts? Who's on the bench?",
+      text: "Forkcast picks your XI, captain and bench order for every gameweek, the bench in the order FPL's auto-subs use.",
+    },
+    {
+      clip: 'bringin',
+      ask: 'Take a −4 now, or wait a week?',
+      text: 'Name any player: see what bringing him in gains in each of the next four gameweeks, a −4 taken off in a week that costs one, and who Forkcast would sell to pay for him. Take the best week in one tap.',
+    },
+    {
+      clip: 'player',
+      ask: 'Will he start? Is he worth it?',
+      text: 'Tap a player for his card: his team news, his last six matches with the cup and international games between them, his next seven forecasts, and the stats that best foretell his points, ranked against his position.',
+    },
   ],
   /** The seasons replayed (why.json records: the rank after each GW, on the solver's own tables). */
   /** How it works' folded row over the seasons replayed and the scouts' tables (sheets/about.js `proof`). */
   // (the scouts' tables open on this season's live one: owner, 2026-10-14)
   whyProof: 'How it did: past seasons replayed, and this season against the scouts',
   whyRecordHead: 'Replayed over whole seasons',
-  whyRecordLead: 'The planner run through a past season one deadline at a time, knowing only what was known then: every transfer, captain and bench its own. Its chips were played in weeks set beforehand.',
+  whyRecordLead:
+    'The planner run through a past season one deadline at a time, knowing only what was known then: every transfer, captain and bench its own. Its chips were played in weeks set beforehand.',
   whyPlace: (r) => `${fmt.ordinal(r.ranks.at(-1))} overall`,
   whyPlaceOf: (r) => `in ${COPY.seasonOf(r.season)}, replayed`,
   whyRankAxis: 'Overall rank after each gameweek',
-  whyRecordNote: (r) => `A replay, not a real entry: nobody played this team.${r.estimated ? ' Its weekly ranks are estimated; the final one is from FPL\'s final table.' : ''}${r.am ? ` It can't play the Assistant Manager chip, so +${r.am} is credited for it.` : ''} Forkcast's settings were tuned on these seasons, so they flatter it, and one season is partly luck.`,
+  whyRecordNote: (r) =>
+    `A replay, not a real entry: nobody played this team.${r.estimated ? " Its weekly ranks are estimated; the final one is from FPL's final table." : ''}${r.am ? ` It can't play the Assistant Manager chip, so +${r.am} is credited for it.` : ''} Forkcast's settings were tuned on these seasons, so they flatter it, and one season is partly luck.`,
   /** The same replays at 1-4 GWs (why.json horizons: each one's final rank). */
-  whyHorizon: 'The same replays planning one to four gameweeks at a time. Across both seasons four came out best, so Forkcast plans four; each season\'s best is in bold.',
+  whyHorizon:
+    "The same replays planning one to four gameweeks at a time. Across both seasons four came out best, so Forkcast plans four; each season's best is in bold.",
   whyHorizonCols: ['Plans ahead', 'Final rank'],
   whyHorizonRow: (w) => (w === 1 ? '1 gameweek' : `${w} gameweeks`),
   /** The fresh-team benchmark (GET /api/m/scouts this season, why.json scouts the seasons replayed): every team's XI
    *  after FPL's auto-subs, net of its captain, the scouts named; no count of weeks won (owner, 2026-10-14). */
   whyScoutsHead: 'Against the scouts',
-  whyScoutsLead: 'Every week Forkcast also picks a fresh fifteen, as the scouts do. Each team is scored the same way: its XI after FPL\'s auto-subs, without the captain\'s double.',
-  whyScoutsLive: (s) => `${COPY.seasonOf(s.season)} so far, live: a real FPL team (ID ${s.entry}) built from Forkcast's fifteen before every deadline. Updated after every gameweek.`,
-  whyScoutsReplay: (s) => `${COPY.seasonOf(s.season)}, replayed: Forkcast's fifteen each gameweek against every squad a scout posted.`,
+  whyScoutsLead:
+    "Every week Forkcast also picks a fresh fifteen, as the scouts do. Each team is scored the same way: its XI after FPL's auto-subs, without the captain's double.",
+  whyScoutsLive: (s) =>
+    `${COPY.seasonOf(s.season)} so far, live: a real FPL team (ID ${s.entry}) built from Forkcast's fifteen before every deadline. Updated after every gameweek.`,
+  whyScoutsReplay: (s) =>
+    `${COPY.seasonOf(s.season)}, replayed: Forkcast's fifteen each gameweek against every squad a scout posted.`,
   whyScoutsCols: ['', 'GWs', 'Forkcast', 'Scout'],
   // the tuning caveat once, in the replays' note above it (owner, 2026-10-14)
   whyScoutsNote: 'Scored on the gameweeks each scout posted a squad.',
@@ -330,14 +441,26 @@ export const COPY = Object.freeze({
    *  more seeds each, averaged. Nothing says Forkcast is free. */
   whyHow: [
     // (no model talk: owner, 2026-11-03, design_1103b "Place header + Help text": Podmajersky, Johnson)
-    ['It forecasts every player.', 'Each player\'s points for his next seven fixtures, learned from every Premier League season since 2009/10 and his cup and European matches, from match data, team news and prices, never ownership.'],
-    ['It plans four gameweeks at once.', 'Transfers, XI, captain and bench are solved together within FPL\'s rules (your players\' selling prices and your bank, three per club, free transfers banked, −4 hits), around any chip you play.'],
-    ['It\'s fresh before every deadline.', 'The data is fetched and the forecast re-run every night and again before each deadline, ready 75 minutes before it for the late team news.'],
+    [
+      'It forecasts every player.',
+      "Each player's points for his next seven fixtures, learned from every Premier League season since 2009/10 and his cup and European matches, from match data, team news and prices, never ownership.",
+    ],
+    [
+      'It plans four gameweeks at once.',
+      "Transfers, XI, captain and bench are solved together within FPL's rules (your players' selling prices and your bank, three per club, free transfers banked, −4 hits), around any chip you play.",
+    ],
+    [
+      "It's fresh before every deadline.",
+      'The data is fetched and the forecast re-run every night and again before each deadline, ready 75 minutes before it for the late team news.',
+    ],
   ],
   whyFacts: [
-    ['No login.', 'Type your team\'s name or ID: no account, no password.'],
+    ['No login.', "Type your team's name or ID: no account, no password."],
     ['It never touches your FPL team.', 'You make the moves in the FPL app.'],
-    ['A forecast is a typical week, not a promise.', 'A good plan still loses some weeks: judge it over a run of them.'],
+    [
+      'A forecast is a typical week, not a promise.',
+      'A good plan still loses some weeks: judge it over a run of them.',
+    ],
   ],
   whyLegal: 'Not affiliated with the Premier League or FPL.',
   /** The noise's one name on screen (the solver's per-transfer charge at the anchor; `noise` stays the code's name),
@@ -350,7 +473,8 @@ export const COPY = Object.freeze({
   /** The player sheet's match-strip legend: the run ticks are the model runs' agreement, not the points he may score;
    *  `ticks` false (off a local page none are drawn) drops their clause. */
   barWidth: 'Bar width = minutes.',
-  runSpread: (ticks = true) => `${COPY.barWidth} Forecast = a typical week, not a ceiling${ticks ? '; its ticks show how far the forecasts agree' : ''}.`,
+  runSpread: (ticks = true) =>
+    `${COPY.barWidth} Forecast = a typical week, not a ceiling${ticks ? '; its ticks show how far the forecasts agree' : ''}.`,
   /** An opponent's venue as every screen writes it (pitch.oppText): the player sheet's chart key and Player data's. */
   // in words too: a screen reader says "EVE" and "eve" alike
   oppCase: 'capitals at home (EVE), lower case away (eve)',
@@ -360,14 +484,19 @@ export const COPY = Object.freeze({
   hitsIn: (n) => (n ? `${MINUS}${E.HIT_COST * n}` : 'no hit'),
   afterHit: (n) => `after ${n > 1 ? `${WORDS[n] ?? n} hits (${MINUS}${E.HIT_COST * n})` : `a ${MINUS}${E.HIT_COST}`}`,
   /** A8: Replace's hit, said once over its list: the rows' numbers count it. */
-  replaceHit: (gw, others = null) => `A buy here is an extra transfer in GW${gw}: its ${MINUS}${E.HIT_COST} is counted in each number${others ? `, or Forkcast drops ${others} instead` : ''}.`,
+  replaceHit: (gw, others = null) =>
+    `A buy here is an extra transfer in GW${gw}: its ${MINUS}${E.HIT_COST} is counted in each number${others ? `, or Forkcast drops ${others} instead` : ''}.`,
   /** Replace's and Add a player's search that finds no one, the typed text quoted, and the way out (FPL's names are
    *  mostly surnames): "No midfielder called “Emile”. …". */
   noneCalled: (who, q) => `No ${who} called “${q}”. Try his surname as FPL writes it.`,
   /** The bank a Replace row spends from: GW A's is the bank now, a later GW's the one after the week before; with other
    *  transfers that week (`others`) the one after them. */
-  bankNow: (money, gw, A, others = false) => (others ? `${money} in the bank after GW${gw}'s other transfers`
-    : gw === A ? `${money} in the bank now` : `${money} in the bank after GW${gw - 1}`),
+  bankNow: (money, gw, A, others = false) =>
+    others
+      ? `${money} in the bank after GW${gw}'s other transfers`
+      : gw === A
+        ? `${money} in the bank now`
+        : `${money} in the bank after GW${gw - 1}`,
   chipLess: (x, gw) => `${fmt.num(Math.max(0, x))} less than in GW${gw}`,
   /** A chip planned (its verdict toast, ahead.chipPlan): what was played, then what the week gives up against the
    *  chip's honest best (`less`, chipLess: "3.0 less than in GW8"), left out where unknown; no number "vs …" (owner,
@@ -376,10 +505,13 @@ export const COPY = Object.freeze({
   /** …when the planner's own count parts from the points (a rule is never called better by a count the planner
    *  disagrees with): the points, then why. way: 'better' | 'worse' by its count, 'no better' | 'no worse' with none
    *  (an estimate claims no count; a count inside the noise is changeLevel's). */
-  changeAgainst: (what, delta, gws, reason, way, total = false) => `${what} · ${COPY.changeNum(delta, total)} · Forkcast rates it ${way}: ${reason}`,
-  changeLevel: (what, delta, gws, reason, total = false) => `${what} · ${COPY.changeNum(delta, total)} · Forkcast rates them level: ${reason}`,
+  changeAgainst: (what, delta, _gws, reason, way, total = false) =>
+    `${what} · ${COPY.changeNum(delta, total)} · Forkcast rates it ${way}: ${reason}`,
+  changeLevel: (what, delta, _gws, reason, total = false) =>
+    `${what} · ${COPY.changeNum(delta, total)} · Forkcast rates them level: ${reason}`,
   /** A lineup change (a sub, the armband, a reset): its GWs' points (gw: one GW or a list), as a gain or a loss. */
-  lineup: (what, gw, delta, label) => `${what}${[].concat(gw).length > 1 ? ` (${gwList([].concat(gw))})` : ''} · ${pts(delta)} pts`,
+  lineup: (what, gw, delta, _label) =>
+    `${what}${[].concat(gw).length > 1 ? ` (${gwList([].concat(gw))})` : ''} · ${pts(delta)} pts`,
   /** …of one GW after GW A: the GW said with it ("Saka captain in GW8"). */
   inGw: (what, gw) => `${what} in GW${gw}`,
   /** Two subs swapped (ahead.sub): the bench order they make, [[name, n]] ("Bench order: Walle Egeli 1st, Murillo 3rd";
@@ -402,7 +534,7 @@ export const COPY = Object.freeze({
   // ("a week" read as a duration, "Its … take no more" pointed two phrases back)
   hitsHead: 'Most hits per GW',
   hitsSeg: (n) => (n === 0 ? 'None' : `${MINUS}${E.HIT_COST * n}`),
-  hitsNote: 'Forkcast\'s suggestions and the transfers it adds stay within this.',
+  hitsNote: "Forkcast's suggestions and the transfers it adds stay within this.",
   hitsMax: (n) => (n === 0 ? 'Hits: none in any week' : `Hits: up to ${MINUS}${E.HIT_COST * n} a week`),
   /** Settings → Plan ahead (owner, 2026-10-14): how many GWs Forkcast plans from the next deadline (planWeeks): its
    *  heading, segments, the line under it, and the one line why the locked options can't be picked (meta.locked). */
@@ -416,13 +548,16 @@ export const COPY = Object.freeze({
   // Settings → Solve ahead (sheets/you.js aheadCtl)
   presolveHead: 'Solve ahead',
   presolveSeg: (on) => (on ? 'On' : 'Off'),
-  presolveNote: 'On: what you are likely to tap next, and the next week, is planned before you tap, so it shows at once. Off: Forkcast plans only what you ask for.',
-  aheadLocked: 'Options with a lock aren\'t available on this Forkcast.',
+  presolveNote:
+    'On: what you are likely to tap next, and the next week, is planned before you tap, so it shows at once. Off: Forkcast plans only what you ask for.',
+  aheadLocked: "Options with a lock aren't available on this Forkcast.",
   /** A GW past your plan, tapped on the GW switcher (ahead.js edgeTicks): how to plan it, or that its length is locked. */
-  weekOff: (gw, n) => `Your plan covers ${COPY.aheadSeg(n)}. To plan GW${gw}, ${COPY.settingsDoor}, then ${COPY.aheadHead}.`,
+  weekOff: (gw, n) =>
+    `Your plan covers ${COPY.aheadSeg(n)}. To plan GW${gw}, ${COPY.settingsDoor}, then ${COPY.aheadHead}.`,
   weekLocked: (gw) => `GW${gw} is past your plan, and longer plans aren't available on this Forkcast.`,
   hitsUpTo: (n, gw) => `Up to ${MINUS}${E.HIT_COST * n} in GW${gw}`,
-  defaultHits: (n, gw) => (num(n) === null ? `When hits pay in GW${gw}` : `Up to ${MINUS}${E.HIT_COST * n} in GW${gw} (default)`),
+  defaultHits: (n, gw) =>
+    num(n) === null ? `When hits pay in GW${gw}` : `Up to ${MINUS}${E.HIT_COST * n} in GW${gw} (default)`,
   /** One name for a hits rule of 0, the retired Auto-plan segment's ("FT only"), on the chip toasts that take it off or
    *  bring it back (ahead.autoRuleName) and its rule chip and note (memory.ruleText). */
   freeOnly: (gw) => `${COPY.segFreeOnly} in GW${gw}`,
@@ -447,8 +582,14 @@ export const COPY = Object.freeze({
   /** A week's "FT only" rule described (memory.ruleOf, an older plan's per-week rule read back). */
   gwNote: { free: (gw) => `${COPY.segFreeOnly} in GW${gw}.` },
   /** …the same in a verdict (the edit's toast, a chip's line). */
-  hitForbiddenShort: (f) => `the plan takes ${hitsWords(f.hits)} in GW${f.gw} ${f.allowed ? "Forkcast didn't plan for" : "your rules don't allow"}${f.cause === 'relief' ? ' (no plan without it)'
-    : f.cause === 'moved' ? ` (planned in ${gwsWords(f.from)}; FPL uses free transfers first)` : ''}`,
+  hitForbiddenShort: (f) =>
+    `the plan takes ${hitsWords(f.hits)} in GW${f.gw} ${f.allowed ? "Forkcast didn't plan for" : "your rules don't allow"}${
+      f.cause === 'relief'
+        ? ' (no plan without it)'
+        : f.cause === 'moved'
+          ? ` (planned in ${gwsWords(f.from)}; FPL uses free transfers first)`
+          : ''
+    }`,
   /** The one button that brings him in, under the line naming its moves: Add a player's week; no name on the money
    *  toast's action, which names him already. */
   bringIn: (name, gw) => `Bring in ${name ? `${name} ` : ''}from GW${gw}`,
@@ -457,11 +598,11 @@ export const COPY = Object.freeze({
   /** Add a player's title, and its footer link with "…". */
   bringInSheet: 'Bring in a player',
   /** Its door at the week line's right end (ahead.js bringDoor). */
-  bringInShort: 'Bring in',  /* its "…" a "›" (m-ahead.css .ah-door::after; "…" only a cut word) */
+  bringInShort: 'Bring in' /* its "…" a "›" (m-ahead.css .ah-door::after; "…" only a cut word) */,
   /** The week line's Chips… door and sheet (ahead.chipsDoor, sheets/chips.js): title, spoken label, the line under the
    *  title (the shared no-chip baseline and each number's span), and each row's name and one fact
    *  (chipStates). */
-  chipsDoor: 'Chips',  /* as Bring in's: "›" drawn, FPL's own word */
+  chipsDoor: 'Chips' /* as Bring in's: "›" drawn, FPL's own word */,
   chipsIn: (gw) => `Chips in GW${gw}`,
   chipsSaid: (gw, chip = null) => (chip ? `Chips in GW${gw}, ${chipName(chip)} planned` : `Chips in GW${gw}`),
   chipsSub: (gws) => `Points over ${span(gws)}`,
@@ -491,8 +632,12 @@ export const COPY = Object.freeze({
   chipNoBestName: 'No clear best week',
   /* `bare`: the weeks without their gains (a Wildcard's or Free Hit's row, whose number is vs rolling: those gains are
    *  the pre-solves' against not playing it, which pick its best week). */
-  chipNoBest: ({ gw, delta, next, runner }, after = null, bare = false) => `${COPY.chipNoBestName}: GW${gw}${bare ? '' : ` ${fmt.signed(delta)}`} ${next == null
-    ? 'is too close to not playing it' : `and GW${next}${bare ? '' : ` ${fmt.signed(runner)}`} are too close to call`}${after != null ? `. ${COPY.chipAfter(after).replace(/^w/, 'W')}` : ''}`,
+  chipNoBest: ({ gw, delta, next, runner }, after = null, bare = false) =>
+    `${COPY.chipNoBestName}: GW${gw}${bare ? '' : ` ${fmt.signed(delta)}`} ${
+      next == null
+        ? 'is too close to not playing it'
+        : `and GW${next}${bare ? '' : ` ${fmt.signed(runner)}`} are too close to call`
+    }${after != null ? `. ${COPY.chipAfter(after).replace(/^w/, 'W')}` : ''}`,
   chipNoGain: 'No week gains',
   chipPlayed: (gw, back = null) => `Played${gw != null ? ` GW${gw}` : ''}${back != null ? ` · back GW${back}` : ''}`,
   /** Chips…'s row of a chip you played in that week. */
@@ -502,14 +647,16 @@ export const COPY = Object.freeze({
    *  (ahead.clockText); the Week sheet's suggested plans, "Planning GW8 · 3 of 9 plans" (`of` 'plan'); the week line's
    *  second line the same, "Planning GW8 · 3 of 9" where it doesn't fit (`of` null), "Planning · 3 of 9" where that
    *  doesn't either (`gw` null). */
-  planningWeek: (gw, i, n, of = 'week') => `${COPY.waitWord}${gw != null ? ` GW${gw}` : ''} · ${i} of ${of ? plural(n, of) : n}`,
+  planningWeek: (gw, i, n, of = 'week') =>
+    `${COPY.waitWord}${gw != null ? ` GW${gw}` : ''} · ${i} of ${of ? plural(n, of) : n}`,
   /** Add a player's line when no week works, as its pills say: every check failed (each "offline": no connection),
    *  every week not possible, else each pill's own reason. */
   weeksUnplanned: (offline) => `Couldn't plan the weeks${offline ? ': no connection' : ''}. Try again in a minute.`,
   noWeekPossible: (gws) => `No plan brings him in during ${span(gws)}.`,
   noWeekWorks: 'No week works: each week above says why.',
   /** FPL's club limit by its own number (engine.MAX_PER_CLUB) and the way out. */
-  club: (count, club, gw) => `GW${gw} would have ${count} ${club} players; FPL allows ${E.MAX_PER_CLUB}. Sell one of them first.`,
+  club: (count, club, gw) =>
+    `GW${gw} would have ${count} ${club} players; FPL allows ${E.MAX_PER_CLUB}. Sell one of them first.`,
   /** …as a list row or week pill says it: "3 from ARS". */
   clubFull: (club) => `${E.MAX_PER_CLUB} from ${club}`,
   /** No plan has it, with "Your plan is unchanged." after it. */
@@ -518,28 +665,33 @@ export const COPY = Object.freeze({
   infeasible: (gw) => `${COPY.noPlan(gw)} ${COPY.unchanged}`,
   /** A heal that can't keep every rule: the rules stay, the plan is the last one that worked. The choice named as its
    *  row says it (ahead.rowName: "Scott → Groß · GW6"); "rule" only for what Your rules lists. */
-  rulesClash: (stuck, what, why = null) => `No plan keeps ${stuck ?? 'all your choices'}${what ? ` with “${what}”` : ''}${why ? `: ${why}` : ''}. Your plan is unchanged. Remove one, or Undo.`,
+  rulesClash: (stuck, what, why = null) =>
+    `No plan keeps ${stuck ?? 'all your choices'}${what ? ` with “${what}”` : ''}${why ? `: ${why}` : ''}. Your plan is unchanged. Remove one, or Undo.`,
   /** …for an edit that adds no rule (a removal, Reset plan, "Without …"): its own words, then what the rules left can't
    *  keep, as the solver said it (ahead.clashParts): "Calafiori → Hill removed: no plan keeps your GW9 choices (Leno →
    *  Raya and João Pedro → Evanilson). Your plan is unchanged. Remove one, or Undo." */
-  dropClash: (said, stuck, why = null) => `${said ? `${said}: no` : 'No'} plan keeps ${stuck ?? 'your other choices'}${why ? `; ${why}` : ''}. Your plan is unchanged. Remove one, or Undo.`,
+  dropClash: (said, stuck, why = null) =>
+    `${said ? `${said}: no` : 'No'} plan keeps ${stuck ?? 'your other choices'}${why ? `; ${why}` : ''}. Your plan is unchanged. Remove one, or Undo.`,
   /** The week the solver found no plan for and your choices there: "your GW9 choices (Leno → Raya and João Pedro →
    *  Evanilson)". */
   choicesAt: (gw, names) => `your GW${gw} choices (${andList(names)})`,
   /** The Week sheet's status row (its first words the week line's second line) while that failure stands
    *  (ahead.clashLine): what the solve couldn't keep ("Groß in GW6", else all of these) with the choice that broke it
    *  ("Keep Scott · GW6"). Its Removes are on the row; the toast's Undo is gone by then, so the row never offers it. */
-  rulesStuck: (what, by, why = null) => `No plan keeps ${what ?? 'all of these'}${by ? ` with ${by}` : ''}${why ? `: ${why}` : ''}. Remove one.`,
+  rulesStuck: (what, by, why = null) =>
+    `No plan keeps ${what ?? 'all of these'}${by ? ` with ${by}` : ''}${why ? `: ${why}` : ''}. Remove one.`,
   /** Why the week the solver found no plan for has none (api/mobile.py _road_error's `why`: rolling._why_unsolvable,
    *  `short` in £0.1m): "they need 4 transfers in GW9, where 3 are allowed", "they need £0.4m more than you have", or
    *  both; null when nothing lifts it. */
   clashWhy: (why, gw) => {
-    const xf = why?.transfers != null ? `${why.transfers} transfers in GW${gw}, where ${why.allowed} are allowed` : null;
+    const xf =
+      why?.transfers != null ? `${why.transfers} transfers in GW${gw}, where ${why.allowed} are allowed` : null;
     const money = why?.short ? `${fmt.money(why.short / 10)} more than you have` : null;
     return xf || money ? `they need ${xf && money ? `${xf}, and ${money}` : xf || money}` : null;
   },
   unfinished: "Forkcast couldn't finish planning that. Your plan is unchanged.",
-  pinClash: (name, keepTo, sellGw) => `Keeping ${name} through GW${keepTo} clashes with selling him in GW${sellGw}. Which one?`,
+  pinClash: (name, keepTo, sellGw) =>
+    `Keeping ${name} through GW${keepTo} clashes with selling him in GW${sellGw}. Which one?`,
   /** The journal's notes of a forecast update you kept your plan over (memory writes them). */
   kept: 'New forecast: no change worth making',
   keptLocked: (gw) => `The new forecast changes GW${gw}, which is locked in. Your plan stays`,
@@ -547,7 +699,8 @@ export const COPY = Object.freeze({
   /** What a new forecast changed in the suggested plan (memory.forecastChange), the week line's second line and a Week
    *  sheet row: GW A's moves in words, then the later weeks' count ("New forecast: GW6 Scott → Le Fée (was Groß) · 2
    *  changes in GW7–9"). */
-  newForecast: (A, gwA, later, held = false) => `New forecast${held ? ', best plan' : ''}: ${[gwA ? `GW${A} ${gwA}` : null, later].filter(Boolean).join(' · ')}`,
+  newForecast: (A, gwA, later, held = false) =>
+    `New forecast${held ? ', best plan' : ''}: ${[gwA ? `GW${A} ${gwA}` : null, later].filter(Boolean).join(' · ')}`,
   /** What a choice takes back of your rules (ahead.takenBack: an alternative, Roll), named as their chips say them
    *  (ruleOf), on the line and in the sheet that asks first alike; taken back = the plan no longer keeps them. */
   altClash: (words) => `${words.join(', ')} removed`,
@@ -560,22 +713,39 @@ export const COPY = Object.freeze({
    *  very likely to rise tonight (+£0.1m to buy)"); what a "very likely" does to the money (half-profit rule on a
    *  sale), or "not counted" without the entry's stepped sale price. A "likely" is never counted and says so ("▲ Groß
    *  may rise tonight (FPL: likely)"): one bracket, never "(FPL: likely) (not counted)". */
-  watchPart: (p, when) => `${p.dir > 0 ? '▲' : '▼'} ${p.name} ${priceSaid(p, when)}${!p.sure ? '' : ` (${!p.counted ? 'not counted'
-    : p.role === 'buy' ? `${signedMoney(p.step)} to buy` : p.step === 0 ? `sale stays ${fmt.money(p.sale)}` : `sale ${signedMoney(p.step)}`})`}`,
+  watchPart: (p, when) =>
+    `${p.dir > 0 ? '▲' : '▼'} ${p.name} ${priceSaid(p, when)}${
+      !p.sure
+        ? ''
+        : ` (${
+            !p.counted
+              ? 'not counted'
+              : p.role === 'buy'
+                ? `${signedMoney(p.step)} to buy`
+                : p.step === 0
+                  ? `sale stays ${fmt.money(p.sale)}`
+                  : `sale ${signedMoney(p.step)}`
+          })`
+    }`,
   /** …the first night waiting costs: a move it puts out of reach (this GW's or a later one's) is the call to act before
    *  it (its UK time and the viewer's), in short sentences; money only is a fact, not a call. */
   watchAct: (x) => {
     const lead = `${x.before ? `Waiting past ${x.before} costs nothing. ` : ''}`;
     const make = `${lead}Make ${x.n > 1 ? 'these transfers' : 'it'} before ${x.ref} (${x.clock}). Waiting costs ${fmt.money(x.w)} and`;
-    if (x.verdict === 'thisMove') return `${make} leaves you ${fmt.money(x.short)} short. ${x.buys} would be out of reach.`;
+    if (x.verdict === 'thisMove')
+      return `${make} leaves you ${fmt.money(x.short)} short. ${x.buys} would be out of reach.`;
     if (x.verdict === 'laterMove') return `${make} GW${x.gw}'s ${x.later} would be ${fmt.money(x.short)} short.`;
     return `${lead}Waiting past ${x.ref} costs ${fmt.money(x.w)}${x.allOk ? '; your moves still fit' : ''}.`;
   },
   /** …the same verdict in one short line, for the week line's second line (ahead.renderLine): the call to act, what
    *  waiting costs, or what it gains. */
-  watchShort: (x) => (x.verdict === 'thisMove' || x.verdict === 'laterMove' ? `Make ${x.n > 1 ? 'them' : 'it'} before ${x.ref}`
-    // (its price first, never "Waiting": on the strip it read as the app's own wait)
-    : x.w > EPS ? `${x.ref[0].toUpperCase()}${x.ref.slice(1)} costs ${fmt.money(x.w)}` : `No rush: waiting gains ${fmt.money(-x.w)}`),
+  watchShort: (x) =>
+    x.verdict === 'thisMove' || x.verdict === 'laterMove'
+      ? `Make ${x.n > 1 ? 'them' : 'it'} before ${x.ref}`
+      : // (its price first, never "Waiting": on the strip it read as the app's own wait)
+        x.w > EPS
+        ? `${x.ref[0].toUpperCase()}${x.ref.slice(1)} costs ${fmt.money(x.w)}`
+        : `No rush: waiting gains ${fmt.money(-x.w)}`,
   /** …no night costs: waiting gains money (a sale that rises, a buy that drops), or changes nothing a move costs. */
   watchGain: (w, ref) => `No rush: waiting past ${ref} gains ${fmt.money(w)}.`,
   watchFree: (n) => `No cost to wait: the price changes leave ${n > 1 ? 'these transfers' : 'this transfer'} as it is.`,
@@ -591,11 +761,15 @@ export const COPY = Object.freeze({
   inYours: (inTeam, gw) => (inTeam ? 'In your team' : `In your GW${gw} plan`),
   /** GW A's countdown as VoiceOver says it (ahead.deadlineInfo's `said`): its two largest parts in words, the visible
    *  text unchanged. */
-  leftSaid: (d, hr, m, s) => `${d ? `${plural(d, 'day')} ${plural(hr, 'hour')}` : hr ? `${plural(hr, 'hour')} ${plural(m, 'minute')}` : `${plural(m, 'minute')} ${plural(s, 'second')}`} left`,
+  leftSaid: (d, hr, m, s) =>
+    `${d ? `${plural(d, 'day')} ${plural(hr, 'hour')}` : hr ? `${plural(hr, 'hour')} ${plural(m, 'minute')}` : `${plural(m, 'minute')} ${plural(s, 'second')}`} left`,
   watchWaitSaid: 'Hide the price watch until it changes',
-  watchMorning: (moved, gw, bank) => (!moved.length ? 'Prices held overnight'
-    : `${andList(moved.map((x, i) => `${x.name} ${x.t > 0 ? 'rose' : 'dropped'}${i ? '' : ' overnight'} (${signedMoney(x.t)})`))}${bank == null ? ''
-      : bank < -EPS ? `: ${fmt.money(-bank)} short now` : `: your GW${gw} moves still fit`}`),
+  watchMorning: (moved, gw, bank) =>
+    !moved.length
+      ? 'Prices held overnight'
+      : `${andList(moved.map((x, i) => `${x.name} ${x.t > 0 ? 'rose' : 'dropped'}${i ? '' : ' overnight'} (${signedMoney(x.t)})`))}${
+          bank == null ? '' : bank < -EPS ? `: ${fmt.money(-bank)} short now` : `: your GW${gw} moves still fit`
+        }`,
   /** An older plan's frozen week as plan memory still reads one (Freeze is gone: normalizeAccepted thaws them, so it is
    *  never said). */
   frozenEdit: (gw, at = null) => `GW${gw} is frozen${at ? ` (${at})` : ''}.`,
@@ -604,7 +778,8 @@ export const COPY = Object.freeze({
   /** The pitch's Reset plan pill, as VoiceOver names it: what ahead.resetPlan resets (memory.reset: your document as a
    *  new team's, Settings → Hits with it; this browser's later lineups). */
   resetAll: 'Reset all weeks',
-  planResetSaid: 'Reset all weeks: take off every transfer, chip, rule and lineup of yours, and set Hits back to its default',
+  planResetSaid:
+    'Reset all weeks: take off every transfer, chip, rule and lineup of yours, and set Hits back to its default',
   /** The pitch's one Reset where your viewed GW's lineup and your plan both have something to take back (owner,
    *  2026-10-29: top-left corner): its words "Reset ⌄", as VoiceOver names it, and its choice sheet, each row what it
    *  takes back (planResetSaid's words for the plan). */
@@ -620,7 +795,8 @@ export const COPY = Object.freeze({
    *  (owner, 2026-10-13). */
   // (`short`: fewer weeks than the plan's window, said so, "GW12–13 only": review 7, 2026-11-02, a GW12 +1.3 next to a
   // GW10 +1.2 counts fewer weeks)
-  suggested: (gws = null, vsPlan = null, lead = 'Suggested', short = false) => `${lead}${gws?.length ? ` · ${COPY.valuedOver(gws)}${short ? ' only' : ''}` : ''}${vsPlan === null ? '' : ` · vs ${typeof vsPlan === 'string' ? vsPlan : vsPlan ? 'your plan' : 'rolling'}`}`,
+  suggested: (gws = null, vsPlan = null, lead = 'Suggested', short = false) =>
+    `${lead}${gws?.length ? ` · ${COPY.valuedOver(gws)}${short ? ' only' : ''}` : ''}${vsPlan === null ? '' : ` · vs ${typeof vsPlan === 'string' ? vsPlan : vsPlan ? 'your plan' : 'rolling'}`}`,
   /** The suggested plans (owner, 2026-10-11): each week's choices (ahead.plansOf) under "Suggested plans", ranked by
    *  their numbers, each against rolling (the Roll row, no number); a row is the week's own moves alone ("GW7 Kayode →
    *  Vuskovic", none: "GW7 roll"; the + takes this week only: planTake) and its number; on the pitch, a place's "⋯ N
@@ -641,16 +817,21 @@ export const COPY = Object.freeze({
   /** Why a plan's moves go together, read off its solved road (ahead.openPlanWhy): "Neto's sale makes room: Palmer is
    *  your 3rd CHE player". */
   planRoom: (sold, buy, n, club) => `${sold}'s sale makes room: ${buy} is your ${fmt.ordinal(n)} ${club} player`,
-  planFailed: (why) => ({ offline: "can't plan it offline", nofit: 'Forkcast found no plan that keeps your other weeks', infeasible: 'no plan keeps your rules with it' }[why]
-    ?? "Forkcast couldn't plan it, trying again soon"),
+  planFailed: (why) =>
+    ({
+      offline: "can't plan it offline",
+      nofit: 'Forkcast found no plan that keeps your other weeks',
+      infeasible: 'no plan keeps your rules with it',
+    })[why] ?? "Forkcast couldn't plan it, trying again soon",
   /** A choice whose solve failed, under its card in a player's place (the Week sheet's row says planFailed in full). */
-  planFailedShort: (why) => ({ offline: 'offline', nofit: 'no plan fits', infeasible: 'breaks your rules' }[why] ?? "couldn't plan"),
+  planFailedShort: (why) =>
+    ({ offline: 'offline', nofit: 'no plan fits', infeasible: 'breaks your rules' })[why] ?? "couldn't plan",
   /** The card behind (ahead.renderDecks; owner, 2026-10-20): a pair's second tab, a player's place (its stack's label,
    *  header, notes, bar), the week's Roll locked beside the goal. A choice of several moves lit on several tabs: each
    *  tab its part mark, "1/3" (the main), "2/3", "3/3" (owner, 2026-10-22), read "part 2 of a 3-transfer plan, +5.8
    *  points vs rolling", never as that one player's sale. */
   placeOf: (name) => `Replace ${name}`,
-  /** The marks on the pitch (ahead.renderDecks; owner, 2026-10-23; forkcast/studies/design_marks/DECISION.md): a take's words,
+  /** The marks on the pitch (ahead.renderDecks; owner, 2026-10-23; forkcast/research/studies/design_marks/DECISION.md): a take's words,
    *  "Swap", "Swap both", "Swap all 3", spoken by a place's card ("Swap both: …", swapSaid; the pitch's plates take
    *  nothing: owner, 2026-10-25); a move said "Kayode out, Truffert in"; the best plate's label, "Best this week: …"; a
    *  plan's tag in another row, never its number twice; a place's first choice's plate where nothing there beats
@@ -659,12 +840,16 @@ export const COPY = Object.freeze({
   /** A plan's plate over its sellers in one row, the buys of its sellers in other rows counted (owner, 2026-10-25):
    *  "Rice & 2 more +5.0 xP Swap all 3"; each of those keeps his ring and his tag. */
   planMore: (n) => `& ${n} more`,
-  swapSaid: (pairs, num = null) => `${COPY.swapGo(pairs.length)}: ${pairs.map(([o, i]) => `${o} for ${i}`).join(', ')}${num ? `, ${num}` : ''}`,
+  swapSaid: (pairs, num = null) =>
+    `${COPY.swapGo(pairs.length)}: ${pairs.map(([o, i]) => `${o} for ${i}`).join(', ')}${num ? `, ${num}` : ''}`,
   moveSaid: (out, inn) => `${out} out, ${inn} in`,
   // (`move`: the best move beside a chip's token, the week's best: never two "Best this week"; owner, 2026-10-25)
-  bestSaid: (moves, num, move = false) => `Best ${move ? 'move ' : ''}this week: ${moves.length > 1 ? `${moves.length} transfers, ${num}: ${moves.join('; ')}` : `${moves[0]}, ${num}`}`,
-  partSaid: (mine, others, move = false) => `Part of the best ${move ? 'move ' : ''}this week: ${mine}${others.length ? `, with ${others.join('; ')}` : ''}`,
-  placeNoneSaid: (name, n, vs = null) => `${name}: ${plural(n, 'choice')} for his place, none better than ${vs ?? 'rolling'}. Shows ${n === 1 ? 'it' : 'them'}`,
+  bestSaid: (moves, num, move = false) =>
+    `Best ${move ? 'move ' : ''}this week: ${moves.length > 1 ? `${moves.length} transfers, ${num}: ${moves.join('; ')}` : `${moves[0]}, ${num}`}`,
+  partSaid: (mine, others, move = false) =>
+    `Part of the best ${move ? 'move ' : ''}this week: ${mine}${others.length ? `, with ${others.join('; ')}` : ''}`,
+  placeNoneSaid: (name, n, vs = null) =>
+    `${name}: ${plural(n, 'choice')} for his place, none better than ${vs ?? 'rolling'}. Shows ${n === 1 ? 'it' : 'them'}`,
   placeSwap: 'Swap',
   /** A take's one word wherever it is drawn (owner, 2026-10-28): "Swap" ("Swap both", "Swap all 3") for its transfers,
    *  "Roll" for a Roll, "Take" for a chip alone; on the place's header and line, the best move's ink token, the Week
@@ -678,9 +863,10 @@ export const COPY = Object.freeze({
   /** The header's total's change after an edit, named apart from a week's "vs rolling" (renderTotal). */
   totalChange: 'total',
   /** …a chip's token while the Why sheet is hidden (ahead WHY_SHEET): it opens the Week sheet, its row's + plays it. */
-  showsWeek: 'shows the week\'s plans',
+  showsWeek: "shows the week's plans",
   /** The week's runner-up token's name (ahead.js tokensOf; the owner, 2026-10-29), as bestSaid says the best's. */
-  nextSaid: (moves, num) => `Next best this week: ${moves.length > 1 ? `${moves.length} transfers, ${num}: ${moves.join('; ')}` : `${moves[0]}, ${num}`}`,
+  nextSaid: (moves, num) =>
+    `Next best this week: ${moves.length > 1 ? `${moves.length} transfers, ${num}: ${moves.join('; ')}` : `${moves[0]}, ${num}`}`,
   /** …a multi-move best's plate: it opens that plan's Why sheet, whose one button takes it. */
   showsWhy: 'Shows why',
   /** The best token's spoken name where its tap takes (ahead.tokensOf): its visible verb first. */
@@ -698,8 +884,9 @@ export const COPY = Object.freeze({
   /** A pair card's note, its other moves (ahead.noteOf): "also Semenyo → Palmer, Cunha → Rice". */
   placeAlso: (moves) => `also ${moves.join(', ')}`,
   placeChoices: (n) => `${plural(n, 'choice')} for his place ›`,
-  placeInstead: 'What could go there instead',  // a row to his place, its › drawn (.m-nav)
-  placeSaid: (name, n, best) => `${name}: ${plural(n, 'choice')} for his place${best ? `, best ${best}` : ''}. Shows them`,
+  placeInstead: 'What could go there instead', // a row to his place, its › drawn (.m-nav)
+  placeSaid: (name, n, best) =>
+    `${name}: ${plural(n, 'choice')} for his place${best ? `, best ${best}` : ''}. Shows them`,
   placeNow: 'Now',
   placeYours: 'Yours',
   placeRemove: 'Remove',
@@ -710,7 +897,8 @@ export const COPY = Object.freeze({
   // a card's corner marks (ahead renderDecks: cardMarks): × his place, the lock a GW Keep of him (owner, 2026-11-02)
   cardOutSaid: (name, g) => `Replace ${name} in GW${g}: his choices`,
   cardNoBuy: (name, g) => `No buy fits ${name}'s money in GW${g}`,
-  cardLockSaid: (name, g, on) => (on ? `${name} kept in GW${g}. Unlock` : `Lock ${name} in GW${g}: no transfer sells him`),
+  cardLockSaid: (name, g, on) =>
+    on ? `${name} kept in GW${g}. Unlock` : `Lock ${name} in GW${g}: no transfer sells him`,
   /** A Keep that leaves your plan as it is (ahead.keep), from his place or his card's Force keep, whichever Keep of his
    *  it remakes: what it changed, the suggestions. */
   keptFromChoices: (name, when) => `${name} kept${when}: suggestions won't sell him`,
@@ -721,8 +909,9 @@ export const COPY = Object.freeze({
    *  Kayode's sale" (its card's note in his place; its Week sheet row and spoken line after what it lacks alone,
    *  ahead.problemShort's "£1.2m short"). */
   needsSale: (names) => `needs ${andList(names.map((n) => `${n}'s`))} ${names.length > 1 ? 'sales' : 'sale'}`,
-  placeNth: (n) => `a ${n}${['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 > 3 ? 0 : n % 10]} transfer`,
-  placeMore: (n) => `${n} more ›`,  // "⋯" is a row's menu (Bring in's, his card); a next page reads as the bar's ›
+  placeNth: (n) =>
+    `a ${n}${['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 > 3 ? 0 : n % 10]} transfer`,
+  placeMore: (n) => `${n} more ›`, // "⋯" is a row's menu (Bring in's, his card); a next page reads as the bar's ›
   /** A place's last slot (ahead.drawPlace; owner, 2026-10-27): Bring in… at his position, for a player its cards don't
    *  offer. */
   placeOther: 'Bring in…',
@@ -749,7 +938,8 @@ export const COPY = Object.freeze({
   /** …the sub of a move's Why sheet in a week of two or more transfers, which has no number of its own (owner,
    *  2026-10-22: no row numbers). */
   whyOneOf: (gw, n) => `GW${gw} · one of ${n} transfers: the week's number is on its line`,
-  ftWithout: (gw, ft, without, n = 1) => `GW${gw}: ${ft} FT (${without} without ${n > 1 ? `these ${n} transfers` : 'this transfer'})`,
+  ftWithout: (gw, ft, without, n = 1) =>
+    `GW${gw}: ${ft} FT (${without} without ${n > 1 ? `these ${n} transfers` : 'this transfer'})`,
   /** …on the pitch the week's status beside the goal (ahead.emptyHead, statusTok), its Week sheet row with no + either. */
   noTransferMade: 'No transfer made',
   /** The strip's answer, in every week you can change (owner, 2026-11-05, design_1105b A, "like save more"): Forkcast's move
@@ -778,7 +968,7 @@ export const COPY = Object.freeze({
   bringInPlayer: 'Bring in a player',
   /** The card while the pitch asks who he replaces (design_1109a slip): "B.Fernandes → ?", the ask under it. */
   bringWho: (name) => `${name} → ?`,
-  subWho: (name, benched) => benched ? `Swap ${name} with ?` : `${name} off for ?`,
+  subWho: (name, benched) => (benched ? `Swap ${name} with ?` : `${name} off for ?`),
   subTap: 'Tap the player he swaps with',
   bringTap: 'Tap the player he replaces',
   bringCancel: 'Cancel',
@@ -811,7 +1001,8 @@ export const COPY = Object.freeze({
   /** A taken move's Why sheet, under its number vs rolling where your total moved by another amount: what that total
    *  counts it against, in the plans' words (planVs: "no transfers", "your plan"). One line: the take's toast says the
    *  number alone. */
-  totalMoved: (delta, mine = false) => `Your total moved ${pts(delta)}: vs ${mine ? 'your plan without it' : COPY.planVs(false)}, not vs rolling`,
+  totalMoved: (delta, mine = false) =>
+    `Your total moved ${pts(delta)}: vs ${mine ? 'your plan without it' : COPY.planVs(false)}, not vs rolling`,
   /** A choice's Why sheet, what its number counts after its week (ahead.countedAfter): its head, the roll's plan named,
    *  and a plan's line, "Rolling: GW9 Saka → Palmer · GW11 Rice → Wirtz", one that makes no later move "no transfers". */
   countedAfter: (g) => `Counted after GW${g}`,
@@ -831,11 +1022,17 @@ export const COPY = Object.freeze({
    *  that team is for, what it did and each change that makes this pitch, a step a line (setsRow): "Your FPL team for
    *  GW7 benched Justin and Barry. To match this pitch in FPL:" over "Start Justin for Gvardiol", "Captain: Saka"; the
    *  week line its one change, else how many ("Set in FPL: 3 changes"). */
-  setInFpl: (sets) => { const n = setsRow(sets)[1].length; return `Set in FPL: ${n > 1 ? COPY.nChanges(n) : setsSaid(sets)}`; },
+  setInFpl: (sets) => {
+    const n = setsRow(sets)[1].length;
+    return `Set in FPL: ${n > 1 ? COPY.nChanges(n) : setsSaid(sets)}`;
+  },
   /** …→ [lead, [step]]: the row's sentence and its steps (ahead.noteRow draws them a line each). */
   setInFplRow: (sets) => {
     const [had, steps] = setsRow(sets);
-    return [`Your FPL team${sets.gw ? ` for GW${sets.gw}` : ''} ${had ?? 'differs from this pitch'}. To match this pitch in FPL:`, steps];
+    return [
+      `Your FPL team${sets.gw ? ` for GW${sets.gw}` : ''} ${had ?? 'differs from this pitch'}. To match this pitch in FPL:`,
+      steps,
+    ];
   },
   /** …its words alone where the bar's line has no room for what to set (whole, never "Set in FPL: 2 ch…"; the Week
    *  sheet's row says what). */
@@ -867,35 +1064,47 @@ export const COPY = Object.freeze({
    *  ask), "waiting for your edit's plan". */
   waitShort: 'planning…',
   pairWaiting: 'waiting',
-  pairAfterEdit: 'waiting for your edit\'s plan',
+  pairAfterEdit: "waiting for your edit's plan",
   /** A new GW's one notice (memory.carryOver, said once by Ahead): what the last GW's plan handed on (your rules as
    *  their chips); '' with none. */
   carried: (from, what) => (what.length ? `Carried over from GW${from}: ${what.join(', ')}.` : ''),
   /** In a sentence the whole number, to the thousand ("≈" says it is rounded; a rate under 1,000, at the top ranks, as
    *  it is, never "0 places"): "At your rank, 1 pt ≈ 80,000 places (GW5 standings)." */
-  exchange: (placesPerPt, source) => `At your rank, 1 pt ≈ ${fmt.int(Math.abs(placesPerPt) >= 1e3 ? Math.round(placesPerPt / 1e3) * 1e3 : placesPerPt)} places (${source}).`,
+  exchange: (placesPerPt, source) =>
+    `At your rank, 1 pt ≈ ${fmt.int(Math.abs(placesPerPt) >= 1e3 ? Math.round(placesPerPt / 1e3) * 1e3 : placesPerPt)} places (${source}).`,
   /** The line every GW (owner, 2026-10-21): the bundle's rank.cheer (api/cheer.py: {gw, rank, best, at}: last season's
    *  best final rank among the managers ranked at or below yours after the same GW, `at` that manager's rank then),
    *  ranks as the You tile has them: "Last season a manager ranked 1.80M after GW7, below your 1.30M, finished 29th.";
    *  "just below you" where the two read alike. */
   cheerLine: (c) => {
-    const at = rankShort(c.at ?? c.rank), mine = rankShort(c.rank);
+    const at = rankShort(c.at ?? c.rank),
+      mine = rankShort(c.rank);
     return `Last season a manager ranked ${at} after GW${c.gw}, ${at === mine ? 'just below you' : `below your ${mine}`}, finished ${rankOrd(c.best)}.`;
   },
   /** While it plans (waitFacts; owner, 2026-10-27): two true lines about you, each [before, its number, after] (the
    *  number bold). Your rank before and after the last GW FPL has checked: "GW8 took you from 1.30M to **670K**
    *  overall."; the line every GW in 11 words: "Last season a manager ranked below you after GW8 finished **29th**."
    *  ("like you" where the two ranks read alike). */
-  factMove: (gw, from, to) => (rankShort(from) === rankShort(to) ? [`GW${gw} kept you at `, rankShort(to), ' overall.']
-    : [`GW${gw} took you from ${rankShort(from)} to `, rankShort(to), ' overall.']),
-  factRank: (c) => [`Last season a manager ranked ${rankShort(c.at ?? c.rank) === rankShort(c.rank) ? 'like' : 'below'} you after GW${c.gw} finished `, rankOrd(c.best), '.'],
+  factMove: (gw, from, to) =>
+    rankShort(from) === rankShort(to)
+      ? [`GW${gw} kept you at `, rankShort(to), ' overall.']
+      : [`GW${gw} took you from ${rankShort(from)} to `, rankShort(to), ' overall.'],
+  factRank: (c) => [
+    `Last season a manager ranked ${rankShort(c.at ?? c.rank) === rankShort(c.rank) ? 'like' : 'below'} you after GW${c.gw} finished `,
+    rankOrd(c.best),
+    '.',
+  ],
   /** What the points on screen are (the bundle's meta.scale {k, k_h, seasons}: the plan service puts every forecast
    *  number on the real-points scale, by horizon when k_h is there; a hit is FPL's −4 as it is). */
   realScale: (s) => {
-    const lo = Math.min(...s.seasons), hi = Math.max(...s.seasons);
+    const lo = Math.min(...s.seasons),
+      hi = Math.max(...s.seasons);
     const kh = Array.isArray(s.k_h) && s.k_h.length > 1 ? s.k_h.map(Number) : null;
-    const x = (k) => `×${k.toFixed(2)}`, n = kh ? kh.length - 1 : 0;
-    const by = kh ? `${x(kh[0])} this week up to ${x(kh[n])} ${WORDS[n] ?? n} week${n === 1 ? '' : 's'} ahead` : x(Number(s.k));
+    const x = (k) => `×${k.toFixed(2)}`,
+      n = kh ? kh.length - 1 : 0;
+    const by = kh
+      ? `${x(kh[0])} this week up to ${x(kh[n])} ${WORDS[n] ?? n} week${n === 1 ? '' : 's'} ahead`
+      : x(Number(s.k));
     return `Points shown ≈ real points: the forecast ${by} (actual per forecast point, ${lo === hi ? lo : `${lo}–${hi}`}).`;
   },
   forecastEdge: (gw) => `The forecast stops at GW${gw}.`,
@@ -917,9 +1126,16 @@ export const COPY = Object.freeze({
 export function liveCheck(published, week, L) {
   const fpl = published?.gw === week.gw ? ids([...(published.xi || []), ...(published.bench || [])]) : [];
   if (!fpl.length) return COPY.live(week.gw);
-  const pairs = E.pairMoves(week.squad.filter((p) => !fpl.includes(p)), fpl.filter((p) => !week.squad.includes(p)), L);
+  const pairs = E.pairMoves(
+    week.squad.filter((p) => !fpl.includes(p)),
+    fpl.filter((p) => !week.squad.includes(p)),
+    L,
+  );
   if (!pairs.length) return COPY.liveMatch(week.gw);
-  const names = (k) => pairs.map((m) => m[k]).filter((p) => p != null).map((p) => L.name(p));
+  const names = (k) =>
+    pairs
+      .map((m) => m[k])
+      .filter((p) => p != null)
+      .map((p) => L.name(p));
   return COPY.liveDiff(week.gw, names('in'), names('out'));
 }
-

@@ -24,10 +24,33 @@ export const CUP = {
 };
 /** A league outside the table (national teams: modules/leagues NATIONAL_LEAGUES), named from its slug: capitalised
  *  words, "qual" a qualifier, a confederation in capitals. */
-const slugName = (league) => String(league ?? '').split('_').filter(Boolean).map((x) => (x === 'qual' ? 'qualifier' : x === 'int' ? 'International'
-  : /^(uefa|afc|caf|conmebol|concacaf)$/.test(x) ? x.toUpperCase() : `${x[0].toUpperCase()}${x.slice(1)}`)).join(' ');
-const other = (league) => [/^(world_cup|euro|copa|africa|asian|confed|nations|concacaf|int_)/.test(String(league)) ? 'Intl' : String(league ?? '').slice(0, 3).toUpperCase(), null, slugName(league)];
-export const cupCode = (league, short = false) => { const c = CUP[league] ?? other(league); return (short && c[1]) || c[0]; };
+const slugName = (league) =>
+  String(league ?? '')
+    .split('_')
+    .filter(Boolean)
+    .map((x) =>
+      x === 'qual'
+        ? 'qualifier'
+        : x === 'int'
+          ? 'International'
+          : /^(uefa|afc|caf|conmebol|concacaf)$/.test(x)
+            ? x.toUpperCase()
+            : `${x[0].toUpperCase()}${x.slice(1)}`,
+    )
+    .join(' ');
+const other = (league) => [
+  /^(world_cup|euro|copa|africa|asian|confed|nations|concacaf|int_)/.test(String(league))
+    ? 'Intl'
+    : String(league ?? '')
+        .slice(0, 3)
+        .toUpperCase(),
+  null,
+  slugName(league),
+];
+export const cupCode = (league, short = false) => {
+  const c = CUP[league] ?? other(league);
+  return (short && c[1]) || c[0];
+};
 export const cupName = (league) => (CUP[league] ?? other(league))[2];
 
 /** "59′", "0′" (in the squad, unused), "—" (not in the squad), "–" (the files lack it). */
@@ -41,12 +64,20 @@ export function pastColumns(past, cups = []) {
   if (!past.length) return { cols: [] };
   const start = eplKo.length ? Math.min(...eplKo) : null;
   const first = past[0];
-  const inWindow = (c) => (start != null && Number.isFinite(c.kickoff) ? c.kickoff >= start
-    : c.season != null && first.season != null && (c.season > first.season || (c.season === first.season && (c.after_gw ?? -1) >= first.gw)));
+  const inWindow = (c) =>
+    start != null && Number.isFinite(c.kickoff)
+      ? c.kickoff >= start
+      : c.season != null &&
+        first.season != null &&
+        (c.season > first.season || (c.season === first.season && (c.after_gw ?? -1) >= first.gw));
   const mine = cups.filter(inWindow);
   // cup before match m: earlier kick-off, or (no kick-offs) deadline GW before m's GW
-  const before = (c, m) => (Number.isFinite(c.kickoff) && Number.isFinite(m.kickoff) ? c.kickoff < m.kickoff
-    : c.season !== m.season ? (c.season ?? 0) < (m.season ?? 0) : (c.after_gw ?? Infinity) < m.gw);
+  const before = (c, m) =>
+    Number.isFinite(c.kickoff) && Number.isFinite(m.kickoff)
+      ? c.kickoff < m.kickoff
+      : c.season !== m.season
+        ? (c.season ?? 0) < (m.season ?? 0)
+        : (c.after_gw ?? Infinity) < m.gw;
   const left = [...mine].sort((a, z) => (a.kickoff ?? 0) - (z.kickoff ?? 0));
   const cols = [];
   for (const m of past) {
@@ -60,12 +91,14 @@ export function pastColumns(past, cups = []) {
  *  true, before: the first GW whose deadline is after the tie's); one past the last deadline is dropped. A kicked-off
  *  tie stays until his past carries it (api/card.py card; owner, 2026-10-15). */
 export function futureColumns(fut, cupNext = [], played = []) {
-  const left = [...cupNext].filter((c) => Number.isFinite(c.after_gw))
+  const left = [...cupNext]
+    .filter((c) => Number.isFinite(c.after_gw))
     .sort((a, z) => (a.kickoff ?? 0) - (z.kickoff ?? 0));
   // pastColumns' `after` (cups played since his last EPL match) first
   const cols = [...played];
   for (const f of fut) {
-    while (left.length && left[0].after_gw < f.gw) cols.push({ kind: 'cup', next: true, before: f.gw, ...left.shift() });
+    while (left.length && left[0].after_gw < f.gw)
+      cols.push({ kind: 'cup', next: true, before: f.gw, ...left.shift() });
     cols.push({ kind: 'gw', ...f });
   }
   return { cols };
@@ -100,24 +133,31 @@ const unitOf = (cols, W) => (cols.length ? W / cols.length : 0);
  *  line, 0; a cup's null), ok (every label on one line). A cup also has `code` (short if the full one doesn't fit its
  *  free room) and `codeAt` [lo, hi] (its room). */
 function placeRow(cols, x0, x1, u, w) {
-  const width = () => u;
   // room column i leaves each side on the GW line for a cup's code: none past the chart's edges; a cup: what its
   // centred full code leaves; a match, forecast GW or slot: NEAR
   const lends = (i) => {
     const n = cols[i];
     if (!n) return 0;
-    return n.kind === 'cup' ? Math.max(0, (width(n) - w(cupCode(n.league), 400)) / 2) : NEAR;
+    return n.kind === 'cup' ? Math.max(0, (u - w(cupCode(n.league), 400)) / 2) : NEAR;
   };
   // opponent's room (match or forecast GW chip): its code in full, may run into a neighbouring cup, plus a px a side
   // (the chip's colour may be narrower than its 3 px padding: player.js chip)
-  const codeW = (c) => (c.kind === 'epl' ? w(c.opp) * CODE_SCALE + 2 : c.kind === 'gw' ? Math.max(0, ...(c.codes ?? []).map((s) => w(s) * CODE_SCALE)) + 2 : 0);
+  const codeW = (c) =>
+    c.kind === 'epl'
+      ? w(c.opp) * CODE_SCALE + 2
+      : c.kind === 'gw'
+        ? Math.max(0, ...(c.codes ?? []).map((s) => w(s) * CODE_SCALE)) + 2
+        : 0;
   // a centred code may take what the narrower side lends (a cup lends half its width)
-  const lend = (i) => { const n = cols[i]; return n && n.kind === 'cup' ? width(n) / 2 - 1 : 0; };
-  const room = (i) => width(cols[i]) + 2 * Math.min(lend(i - 1), lend(i + 1));
-  const ok = cols.every((c, i) => needOf(c, w) <= width(c) && (c.kind === 'cup' || codeW(c) <= room(i)));
+  const lend = (i) => {
+    const n = cols[i];
+    return n && n.kind === 'cup' ? u / 2 - 1 : 0;
+  };
+  const room = (i) => u + 2 * Math.min(lend(i - 1), lend(i + 1));
+  const ok = cols.every((c, i) => needOf(c, w) <= u && (c.kind === 'cup' || codeW(c) <= room(i)));
   let x = x0;
   const placed = cols.map((c, i) => {
-    const cw = width(c);
+    const cw = u;
     const out = { ...c, x, w: cw, cx: x + cw / 2, row: c.kind === 'cup' ? null : 0 };
     if (c.kind === 'cup') {
       const [cl, cr] = [lends(i - 1), lends(i + 1)];
@@ -139,7 +179,9 @@ function cut(cols, n) {
   if (n <= 1) return [cols];
   const per = cols.length / n;
   const out = Array.from({ length: n }, () => []);
-  cols.forEach((c, i) => out[Math.min(n - 1, Math.floor((i + 0.5) / per))].push(c));
+  cols.forEach((c, i) => {
+    out[Math.min(n - 1, Math.floor((i + 0.5) / per))].push(c);
+  });
   return out.filter((l) => l.length);
 }
 

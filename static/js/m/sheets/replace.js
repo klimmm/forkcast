@@ -10,9 +10,29 @@
 // paid back the pitch's best way (ahead.plansOf, owedRoad). The hit is said once over the list.
 
 import { h, fmt, fill, toast, norm, posName, icon, xpNum } from '../../ui.js';
-import * as E from '../../plan/engine.js';
 import { COPY } from '../calls.js';
-import { plan, squadBefore, inTeamAt, addMove, draftOf, planBaseline, takenBy, sellOut, problemText, problemShort, barred, barringRules, removeRule, openRules, baseOf, weekOf, saleBuy, bringIn, sayBuyProblem, presolveTaps } from '../ahead.js';
+import {
+  plan,
+  squadBefore,
+  inTeamAt,
+  addMove,
+  draftOf,
+  planBaseline,
+  takenBy,
+  sellOut,
+  problemText,
+  problemShort,
+  barred,
+  barringRules,
+  removeRule,
+  openRules,
+  baseOf,
+  weekOf,
+  saleBuy,
+  bringIn,
+  sayBuyProblem,
+  presolveTaps,
+} from '../ahead.js';
 import { weekPills, sortsOf, orderOf, sortChips, barTop, bars, ownWeeks, who, found, SORTS } from './buylist.js';
 
 const CAP = 30;
@@ -25,8 +45,17 @@ export function open(ctx, rawOut, rawGw) {
   const P0 = plan(ctx);
   if (!P0) return null;
   const valid = P0.gws.filter((g) => squadBefore(P0, g).includes(out));
-  if (!valid.length) { toast(`${P0.L.name(out)} isn't in your plan's squad in ${COPY.span(P0.gws)}.`, 'info'); return null; }
-  const st = { g: valid.includes(Number(rawGw)) ? Number(rawGw) : valid[0], sort: SORTS[0].key, flip: false, q: '', busy: false };
+  if (!valid.length) {
+    toast(`${P0.L.name(out)} isn't in your plan's squad in ${COPY.span(P0.gws)}.`, 'info');
+    return null;
+  }
+  const st = {
+    g: valid.includes(Number(rawGw)) ? Number(rawGw) : valid[0],
+    sort: SORTS[0].key,
+    flip: false,
+    q: '',
+    busy: false,
+  };
   const cache = new Map();
   const pos = P0.L.pos(out);
   const word = POS_WORD[pos] || 'player';
@@ -45,17 +74,19 @@ export function open(ctx, rawOut, rawGw) {
     // (every player of the position, the solver's ownership gate (r.buyable, 0.3%) none of a pick's: your transfer is a
     // must-have pin, which the gate exempts (player_data protected); owner, 2026-11-11, "why it not show players owned
     // less than 0.3")
-    const list = ctx.data.rows.filter((r) => posName(r.pos) === pos && Number(r.id) !== out).map((r) => {
-      const id = Number(r.id);
-      if (owned.has(id)) return { id, row: r, blocked: 'In team', code: 'owned' };
-      if (no.has(id)) return { id, row: r, blocked: 'your rule', code: 'vetoed' };
-      const res = addMove(ctx, d0, g, out, id, takenBy(ctx, P));
-      const p = res.problem;
-      // (one the bank can't pay for: what it gives unpaid, an upper bound of its number, `over`; below)
-      if (p) return { id, row: r, blocked: problemShort(p), code: p.code, problem: p };
-      // a −4 this swap needs that the plan didn't (GW g's free transfer already used): said once over the list
-      return { id, row: r, hit: hitsFrom(res.ev, g) > hitsFrom(ev0, g) };
-    });
+    const list = ctx.data.rows
+      .filter((r) => posName(r.pos) === pos && Number(r.id) !== out)
+      .map((r) => {
+        const id = Number(r.id);
+        if (owned.has(id)) return { id, row: r, blocked: 'In team', code: 'owned' };
+        if (no.has(id)) return { id, row: r, blocked: 'your rule', code: 'vetoed' };
+        const res = addMove(ctx, d0, g, out, id, takenBy(ctx, P));
+        const p = res.problem;
+        // (one the bank can't pay for: what it gives unpaid, an upper bound of its number, `over`; below)
+        if (p) return { id, row: r, blocked: problemShort(p), code: p.code, problem: p };
+        // a −4 this swap needs that the plan didn't (GW g's free transfer already used): said once over the list
+        return { id, row: r, hit: hitsFrom(res.ev, g) > hitsFrom(ev0, g) };
+      });
     const out0 = { list, ev0, P };
     cache.set(g, out0);
     return out0;
@@ -63,20 +94,44 @@ export function open(ctx, rawOut, rawGw) {
 
   let me = null;
   return ctx.sheets.open({
-    title: titleOf(st.g), detent: 'large', cls: 'rs',
+    title: titleOf(st.g),
+    detent: 'large',
+    cls: 'rs',
     onClose: () => presolveTaps(ctx, null, { owner: me }),
     build(body, sheet) {
       me = sheet;
       const subEl = h('p.rs-sub');
       const pills = h('div.ah-pills', { role: 'group', 'aria-label': 'From gameweek' });
-      const auto = h('button.m-secondary.rs-auto', { type: 'button', 'aria-description': COPY.autoBuy, onClick: () => sell(null) }, 'Let Forkcast choose');
+      const auto = h(
+        'button.m-secondary.rs-auto',
+        { type: 'button', 'aria-description': COPY.autoBuy, onClick: () => sell(null) },
+        'Let Forkcast choose',
+      );
       // the names FPL writes are mostly surnames (a first name finds no one)
-      const input = h('input', { type: 'search', placeholder: `Search ${word}s by surname`, 'aria-label': `Search ${word}s by surname`, autocomplete: 'off', spellcheck: 'false', enterkeyhint: 'search' });
+      const input = h('input', {
+        type: 'search',
+        placeholder: `Search ${word}s by surname`,
+        'aria-label': `Search ${word}s by surname`,
+        autocomplete: 'off',
+        spellcheck: 'false',
+        enterkeyhint: 'search',
+      });
       const sortEl = h('div.ws-sorts', { role: 'radiogroup', 'aria-label': 'Sort by' });
       const list = h('div.ah-list', { role: 'list' });
       const hitNote = h('p.rs-hitnote', { hidden: true });
-      body.append(subEl, pills, auto, h('label.ah-search', null, icon('search', { size: 16 }), input), sortEl, hitNote, list);
-      input.addEventListener('input', () => { st.q = input.value; draw(); });
+      body.append(
+        subEl,
+        pills,
+        auto,
+        h('label.ah-search', null, icon('search', { size: 16 }), input),
+        sortEl,
+        hitNote,
+        list,
+      );
+      input.addEventListener('input', () => {
+        st.q = input.value;
+        draw();
+      });
       const title = sheet.el.querySelector('.m-sh h2');
 
       function draw() {
@@ -92,62 +147,123 @@ export function open(ctx, rawOut, rawGw) {
         const wk = ev0.gws.find((s) => s.gw === st.g);
         const besides = (wk?.moves || []).some((m) => m.ok && m.out !== out);
         const own = (wk?.moves || []).filter((m) => m.ok && m.out === out).reduce((n, m) => n + m.sell - m.buy, 0);
-        const bank = besides ? wk.bank - own : prev ? prev.bank : baseOf(ctx).bank;  // GW A: the bank your plan starts from
+        const bank = besides ? wk.bank - own : prev ? prev.bank : baseOf(ctx).bank; // GW A: the bank your plan starts from
         // a shortfall the plan already has at FPL's prices is its own, not this swap's (ahead.problemOf): the swap may
         // spend up to the sale, so the header says what the rows allow
         // which bank: GW A's is the bank now, a later GW's the one after the week before and its other transfers
         const banked = COPY.bankNow(fmt.money(bank), st.g, P.A, besides);
-        fill(subEl, bank < -1e-9
-          ? `Sells for ${fmt.money(sellM)}, ${banked} (the plan's own): up to ${fmt.money(sellM)}`
-          : `Sells for ${fmt.money(sellM)}, ${banked}: up to ${fmt.money(sellM + bank)}`);
+        fill(
+          subEl,
+          bank < -1e-9
+            ? `Sells for ${fmt.money(sellM)}, ${banked} (the plan's own): up to ${fmt.money(sellM)}`
+            : `Sells for ${fmt.money(sellM)}, ${banked}: up to ${fmt.money(sellM + bank)}`,
+        );
         // a −4 the rows' estimates take, said once over the list; off the hold it may instead be a suggested GW-g move
         // the full plan drops (a free transfer back)
-        const others = P.mem?.hold ? '' : (weekOf(P, st.g)?.moves || []).filter((m) => m.out !== out).map((m) => `${L.name(m.out)} → ${L.name(m.in)}`).join(', ');
+        const others = P.mem?.hold
+          ? ''
+          : (weekOf(P, st.g)?.moves || [])
+              .filter((m) => m.out !== out)
+              .map((m) => `${L.name(m.out)} → ${L.name(m.in)}`)
+              .join(', ');
         const anyHit = all.some((o) => o.hit);
         fill(hitNote, anyHit ? COPY.replaceHit(st.g, others || null) : null);
         hitNote.hidden = !anyHit;
-        weekPills(pills, P.gws, st.g, (g) => valid.includes(g), (g) => { st.g = g; draw(); });
+        weekPills(
+          pills,
+          P.gws,
+          st.g,
+          (g) => valid.includes(g),
+          (g) => {
+            st.g = g;
+            draw();
+          },
+        );
         // the lists' sort chips, Predicted first and chosen at open (buylist.sortChips; no Best, the swap's estimate:
         // owner, 2026-11-12, "remove 'best gw11-14' from the table"): the row's number his forecast, the chosen stat
         // following his club and price where nothing else shows it
-        const sorts = sortsOf(ctx), x = sorts.find((y) => y.key === st.sort) ?? sorts[0];
+        const sorts = sortsOf(ctx),
+          x = sorts.find((y) => y.key === st.sort) ?? sorts[0];
         sortChips(sortEl, sorts, st, P, st.g, draw);
         // (his own xP, never the swap's ≈ gain: owner, 2026-11-12, "displays here actual xps not the negative/positive
         // numbers"): the chosen week's where that is the sort, else the window's (Predicted)
         const xpOf = x.xp ? x : SORTS[0];
-        const statOf = x.xp || x.key === 'price' ? () => null
-          : (o) => { const v = x.val(P, o.row, st.g); return v == null ? null : h('span.rs-stat', null, ` · ${x.num(v)} ${x.unit(P, st.g)}`); };
+        const statOf =
+          x.xp || x.key === 'price'
+            ? () => null
+            : (o) => {
+                const v = x.val(P, o.row, st.g);
+                return v == null ? null : h('span.rs-stat', null, ` · ${x.num(v)} ${x.unit(P, st.g)}`);
+              };
         const q = norm(st.q.trim());
         const by = orderOf(x, st.flip, P, st.g, (o) => o.row);
         // rows that can't be taken last (in team, your rule, …); one the bank can't pay for is taken as it is (FPL's
         // draft short of money), so it ranks by the chosen sort like any row (owner, 2026-10-28/29)
         const last = (o) => !!o.blocked && o.code !== 'budget';
-        const shown = all.filter((o) => !q || found(o.row, q))
-          .sort((a, b) => (last(a) - last(b)) || by(a, b)).filter((o, i) => i < CAP);
-        const weeks = ownWeeks(P, st.g), top = barTop(L, shown, weeks);
-        fill(list, shown.length ? shown.map((o) => {
-          const rowEl = h('button.ah-lrow', {
-            // (one the bank can't pay for is made as it is: pick, never greyed)
-            type: 'button', role: 'listitem', class: { blocked: !!o.blocked && o.code !== 'budget' }, disabled: (!o.blocked || o.code === 'budget') && !plan(ctx)?.editable,
-            'aria-label': o.blocked && o.code !== 'budget' ? null : `Sell ${L.name(out)} for ${o.row.name} from GW${st.g}`,
-            onClick: () => pick(o),
-          },
-          // (no "bench in GW11" under a name: owner, 2026-11-10, "удали 'bench in gw11'")
-          who(L, o.row, [statOf(o)]),
-          bars(L, o.id, weeks, st.g, top, st.sort),
-          // his xP (xpOf), blue with "xP" (ui.js xpNum; owner, 2026-10-22), no word under it (owner, 2026-11-11, "fix this
-          // 'total' crap"), one the bank can't pay for too (never "£1.4m short": owner, 2026-11-11); one you can't take
-          // says why (In team, your rule)
-          h('span.rt.m-num', null, o.blocked && o.code !== 'budget' ? h('small', null, o.blocked) : xpNum(fmt.num(xpOf.val(P, o.row, st.g)))));
-          return rowEl;
-        }) : h('p.ah-empty', null, COPY.noneCalled(word, st.q.trim())));
+        const shown = all
+          .filter((o) => !q || found(o.row, q))
+          .sort((a, b) => Number(last(a)) - Number(last(b)) || by(a, b))
+          .filter((_o, i) => i < CAP);
+        const weeks = ownWeeks(P, st.g),
+          top = barTop(L, shown, weeks);
+        fill(
+          list,
+          shown.length
+            ? shown.map((o) => {
+                const rowEl = h(
+                  'button.ah-lrow',
+                  {
+                    // (one the bank can't pay for is made as it is: pick, never greyed)
+                    type: 'button',
+                    role: 'listitem',
+                    class: { blocked: !!o.blocked && o.code !== 'budget' },
+                    disabled: (!o.blocked || o.code === 'budget') && !plan(ctx)?.editable,
+                    'aria-label':
+                      o.blocked && o.code !== 'budget' ? null : `Sell ${L.name(out)} for ${o.row.name} from GW${st.g}`,
+                    onClick: () => pick(o),
+                  },
+                  // (no "bench in GW11" under a name: owner, 2026-11-10, "удали 'bench in gw11'")
+                  who(L, o.row, [statOf(o)]),
+                  bars(L, o.id, weeks, st.g, top, st.sort),
+                  // his xP (xpOf), blue with "xP" (ui.js xpNum; owner, 2026-10-22), no word under it (owner, 2026-11-11, "fix this
+                  // 'total' crap"), one the bank can't pay for too (never "£1.4m short": owner, 2026-11-11); one you can't take
+                  // says why (In team, your rule)
+                  h(
+                    'span.rt.m-num',
+                    null,
+                    o.blocked && o.code !== 'budget'
+                      ? h('small', null, o.blocked)
+                      : xpNum(fmt.num(xpOf.val(P, o.row, st.g))),
+                  ),
+                );
+                return rowEl;
+              })
+            : h('p.ah-empty', null, COPY.noneCalled(word, st.q.trim())),
+        );
         // Presolve the automatic replacement first, then the highest-ranked selectable rows.
         const g = st.g;
         if (P.editable) {
-          presolveTaps(ctx, [
-            ...[null, ...shown.filter((o) => !o.blocked).map((o) => o.id)].map((inn) => ({ kind: 'sell', gw: g, run: () => sellOut(ctx, g, out, inn) })),
-            ...shown.filter((o) => o.code === 'budget').map((o) => ({ kind: 'bring', gw: g, run: () => { const bp = saleBuy(ctx, o.id, g, out); return bp.kind === 'one' && bringIn(ctx, o.id, g, bp); } })),
-          ], { gw: g, sig: `${g}|${st.sort}|${st.flip}|${q}`, owner: sheet });
+          presolveTaps(
+            ctx,
+            [
+              ...[null, ...shown.filter((o) => !o.blocked).map((o) => o.id)].map((inn) => ({
+                kind: 'sell',
+                gw: g,
+                run: () => sellOut(ctx, g, out, inn),
+              })),
+              ...shown
+                .filter((o) => o.code === 'budget')
+                .map((o) => ({
+                  kind: 'bring',
+                  gw: g,
+                  run: () => {
+                    const bp = saleBuy(ctx, o.id, g, out);
+                    return bp.kind === 'one' && bringIn(ctx, o.id, g, bp);
+                  },
+                })),
+            ],
+            { gw: g, sig: `${g}|${st.sort}|${st.flip}|${q}`, owner: sheet },
+          );
         }
       }
 
@@ -155,12 +271,16 @@ export function open(ctx, rawOut, rawGw) {
         if (o.blocked && o.code === 'budget') {
           // the sale made as it is, the bank short as FPL's draft is (ahead.saleBuy, both modes); one the club limit
           // stops says why, and the later week he fits in with its action
-          const P = plan(ctx), g = st.g;
+          const P = plan(ctx),
+            g = st.g;
           const bp = saleBuy(ctx, o.id, g, out);
-          if (bp.kind !== 'one') { sayBuyProblem(ctx, P, o.id, bp, 'info'); return; }
+          if (bp.kind !== 'one') {
+            sayBuyProblem(ctx, P, o.id, bp, 'info');
+            return;
+          }
           if (!bringIn(ctx, o.id, g, bp)) return;
           sheet.close();
-          ctx.navigate('ahead', { gw: g }, { replace: true, top: true });  // no new entry; the top
+          ctx.navigate('ahead', { gw: g }, { replace: true, top: true }); // no new entry; the top
           return;
         }
         // the one rule of yours that keeps him out from GW g (ahead.barringRules) is removed from the toast
@@ -168,16 +288,37 @@ export function open(ctx, rawOut, rawGw) {
         // the toast says where to go
         const bar = o.code === 'vetoed' ? barringRules(plan(ctx), o.id, st.g) : [];
         if (bar.length === 1) {
-          toast(`Your rules keep ${o.row.name} out.`, 'info', { action: { label: 'Remove', onClick: () => { if (removeRule(ctx, bar[0].id)) { cache.clear(); draw(); } } } });
+          toast(`Your rules keep ${o.row.name} out.`, 'info', {
+            action: {
+              label: 'Remove',
+              onClick: () => {
+                if (removeRule(ctx, bar[0].id)) {
+                  cache.clear();
+                  draw();
+                }
+              },
+            },
+          });
           return;
         }
         if (bar.length > 1) {
-          const review = () => { sheet.close(); openRules(ctx, st.g); ctx.navigate('ahead', { gw: st.g }, { replace: true }); };
+          const review = () => {
+            sheet.close();
+            openRules(ctx, st.g);
+            ctx.navigate('ahead', { gw: st.g }, { replace: true });
+          };
           toast(`Your rules keep ${o.row.name} out.`, 'info', { action: { label: 'Review', onClick: review } });
           return;
         }
         if (o.blocked) {
-          toast(o.code === 'owned' ? 'Already in your team.' : o.code === 'vetoed' ? `Your rules keep ${o.row.name} out. Remove the rule on Ahead to allow him.` : problemText(ctx, o.problem, o.row.name), 'info');
+          toast(
+            o.code === 'owned'
+              ? 'Already in your team.'
+              : o.code === 'vetoed'
+                ? `Your rules keep ${o.row.name} out. Remove the rule on Ahead to allow him.`
+                : problemText(ctx, o.problem, o.row.name),
+            'info',
+          );
           return;
         }
         sell(o.id);
@@ -191,8 +332,10 @@ export function open(ctx, rawOut, rawGw) {
         try {
           if (!sellOut(ctx, g, out, inn)) return;
           sheet.close();
-          ctx.navigate('ahead', { gw: g }, { replace: true, top: true });  // no new entry; the top
-        } finally { st.busy = false; }
+          ctx.navigate('ahead', { gw: g }, { replace: true, top: true }); // no new entry; the top
+        } finally {
+          st.busy = false;
+        }
       }
 
       draw();

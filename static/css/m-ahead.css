@@ -361,7 +361,7 @@ headings (.ah-wh: what the choices count against, "instead of …" every one tak
 .ah-wk > .ah-wgain { padding-bottom: 0; color: var(--ink); }  /* a week of two or more transfers: its number over its facts (its rows have none) */  /* the week's facts under the title, as the week line's (drawWeek) */
 
 /* ------------------------------------------------------------------ the choices on the pitch (ahead.js renderDecks;
-owner, 2026-10-23; chosen design: forkcast/studies/design_marks/DECISION.md, design.md, CSS in the app's tokens
+owner, 2026-10-23; chosen design: forkcast/research/studies/design_marks/DECISION.md, design.md, CSS in the app's tokens
 design_marks/src/base.css).
 .ah-decks a layer over the pitch with no taps of its own (only its buttons). .ah-sp a swap plate: one flat line in
 the row gap over the player it would replace, its foot on his tile's top (never on it: holds and drags start there),

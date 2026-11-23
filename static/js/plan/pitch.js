@@ -4,7 +4,21 @@
 // Player rows are /api/players rows ({name, club, pos, xp[], fixtures[][], status, chance, news}); xp[i] / fixtures[i]
 // are for GW horizon[0] + i.
 
-import { h, svg, fin, fmt, icon, posName, posCode, statusDot, statusInfo, chipName, uid, reduceMotion, xpNum } from '../ui.js';
+import {
+  h,
+  svg,
+  fin,
+  fmt,
+  icon,
+  posName,
+  posCode,
+  statusDot,
+  statusInfo,
+  chipName,
+  uid,
+  reduceMotion,
+  xpNum,
+} from '../ui.js';
 import { shirt } from './kits.js';
 
 const ROWS = ['GK', 'DEF', 'MID', 'FWD'];
@@ -19,7 +33,8 @@ export function gwIndex(gw, horizon) {
 /** A player's xPts for `gw` (null when unknown). */
 export function xpAt(p, gw, horizon) {
   const v = p?.xp?.[gwIndex(gw, horizon)];
-  return fin(v) ? Number(v) : null;
+  if (!fin(v)) return null;
+  return ruledOutAt(p, gw, horizon) ? 0 : Number(v);
 }
 
 /**
@@ -29,7 +44,9 @@ export function xpAt(p, gw, horizon) {
 const fixtureOf = (f, fdr) => {
   const d = typeof f === 'string' ? fdr : f?.fdr;
   return {
-    ...(typeof f === 'string' ? { opp: f.toUpperCase(), home: f === f.toUpperCase() } : { opp: String(f?.opp ?? '').toUpperCase(), home: !!f?.home }),
+    ...(typeof f === 'string'
+      ? { opp: f.toUpperCase(), home: f === f.toUpperCase() }
+      : { opp: String(f?.opp ?? '').toUpperCase(), home: !!f?.home }),
     fdr: fin(d) && d >= 1 && d <= 5 ? Math.round(Number(d)) : null,
   };
 };
@@ -51,10 +68,18 @@ export function oppLabel(fixtures) {
   if (!fixtures.length) return DASH;
   return fixtures.map((f) => oppText(fixtureOf(f))).join(', ');
 }
-const oppSpoken = (fx) => (!Array.isArray(fx) ? null : !fx.length ? 'no fixture'
-  : `vs ${fx.map((f) => fixtureOf(f)).map((f) => `${f.opp} (${f.home ? 'home' : 'away'}${f.fdr ? `, difficulty ${f.fdr}` : ''})`).join(' and ')}`);
+const oppSpoken = (fx) =>
+  !Array.isArray(fx)
+    ? null
+    : !fx.length
+      ? 'no fixture'
+      : `vs ${fx
+          .map((f) => fixtureOf(f))
+          .map((f) => `${f.opp} (${f.home ? 'home' : 'away'}${f.fdr ? `, difficulty ${f.fdr}` : ''})`)
+          .join(' and ')}`;
 
-const lookup = (players) => (id) => (players instanceof Map ? players.get(Number(id)) ?? players.get(String(id)) : players?.[id]);
+const lookup = (players) => (id) =>
+  players instanceof Map ? (players.get(Number(id)) ?? players.get(String(id))) : players?.[id];
 const asSet = (s) => (s == null ? null : new Set([...s].map(Number)));
 
 // ---------------------------------------------------------------- one player
@@ -64,39 +89,69 @@ function node(id, p, o) {
   const name = p?.name ?? `#${id}`;
   const xp = xpAt(p, o.gw, o.horizon);
   const fx = fixturesAt(p, o.gw, o.horizon);
-  const st = statusInfo(p?.status, p?.chance);
-  const isCap = id === o.captain, isVice = id === o.vice;
+  const availability = availabilityAt(p, o.gw, o.horizon);
+  const st = statusInfo(availability?.status, availability?.chance);
+  const isCap = id === o.captain,
+    isVice = id === o.vice;
   const badge = isCap ? (o.tc ? '3×' : 'C') : isVice ? 'V' : null;
   const isIn = o.incoming?.has(id);
   const target = o.selectable?.has(id);
   const hl = o.highlight?.has(id);
   const dim = o.selectable && !target && !hl;
-  const spoken = [name, [p?.club, pos].filter(Boolean).join(' '),
+  const spoken = [
+    name,
+    [p?.club, pos].filter(Boolean).join(' '),
     isCap ? (o.tc ? 'triple captain' : 'captain') : isVice ? 'vice-captain' : null,
-    xp != null ? `${fmt.pts(xp)} expected points` : null, oppSpoken(fx),
-    st.tone !== 'ok' ? (p?.news ? `${st.label}: ${p.news}` : st.label) : null,
-    isIn ? 'transferred in' : null].filter(Boolean).join(', ');
+    xp != null ? `${fmt.pts(xp)} expected points` : null,
+    oppSpoken(fx),
+    st.tone !== 'ok' ? (availability?.news ? `${st.label}: ${availability.news}` : st.label) : null,
+    isIn ? 'transferred in' : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
   const kids = [
-    h('span.pp-kit', null,
+    h(
+      'span.pp-kit',
+      null,
       shirt({ club: p?.club, gk: pos === 'GK', size: 64 }),
       badge ? h('span.pp-badge', { class: isCap ? 'cap' : 'vice', 'aria-hidden': 'true' }, badge) : null,
-      statusDot(p?.status, { chance: p?.chance, news: p?.news }),
-      isIn ? h('span.pp-in', { 'aria-hidden': 'true' }, 'IN') : null),
+      statusDot(availability?.status, { chance: availability?.chance, news: availability?.news }),
+      isIn ? h('span.pp-in', { 'aria-hidden': 'true' }, 'IN') : null,
+    ),
     h('span.pp-name', null, name),
-    h('span.pp-info', { class: { dgw: fx?.length > 1, blank: fx?.length === 0 } },
+    h(
+      'span.pp-info',
+      { class: { dgw: fx?.length > 1, blank: fx?.length === 0 } },
       h('b.pp-xp', null, xp == null ? DASH : fmt.pts(xp)),
-      h('span.pp-opp', null, oppLabel(fx) || DASH)),
+      h('span.pp-opp', null, oppLabel(fx) || DASH),
+    ),
   ];
   const attrs = {
-    class: ['pp-player', isCap && 'is-cap', isIn && 'is-in', target && 'is-target', hl && 'is-hl', dim && 'is-dim',
-      o.animate?.has(id) && 'is-new'],
-    dataset: { id, pos: pos || '' }, title: spoken, 'aria-label': spoken,
+    class: [
+      'pp-player',
+      isCap && 'is-cap',
+      isIn && 'is-in',
+      target && 'is-target',
+      hl && 'is-hl',
+      dim && 'is-dim',
+      o.animate?.has(id) && 'is-new',
+    ],
+    dataset: { id, pos: pos || '' },
+    title: spoken,
+    'aria-label': spoken,
   };
   if (!o.onPlayer) return h('div', { ...attrs, role: 'group' }, kids);
-  return h('button', {
-    ...attrs, type: 'button', disabled: dim, 'aria-pressed': hl ? 'true' : null,
-    onClick: (e) => o.onPlayer(id, e),
-  }, kids);
+  return h(
+    'button',
+    {
+      ...attrs,
+      type: 'button',
+      disabled: dim,
+      'aria-pressed': hl ? 'true' : null,
+      onClick: (e) => o.onPlayer(id, e),
+    },
+    kids,
+  );
 }
 
 // ---------------------------------------------------------------- pitch
@@ -104,15 +159,31 @@ function node(id, p, o) {
 function markings() {
   const id = uid('pp');
   const chalk = { class: 'pp-chalk' };
-  return svg('svg', { class: 'pp-lines', 'aria-hidden': 'true', width: '100%', height: '100%' },
-    svg('defs', null, svg('clipPath', { id: `${id}-d` }, svg('rect', { x: 0, y: '17%', width: '100%', height: '100%' }))),
+  return svg(
+    'svg',
+    { class: 'pp-lines', 'aria-hidden': 'true', width: '100%', height: '100%' },
+    svg(
+      'defs',
+      null,
+      svg('clipPath', { id: `${id}-d` }, svg('rect', { x: 0, y: '17%', width: '100%', height: '100%' })),
+    ),
     svg('rect', { ...chalk, x: '21%', y: -2, width: '58%', height: '17%' }),
     svg('rect', { ...chalk, x: '37.5%', y: -2, width: '25%', height: '6.5%' }),
     svg('circle', { class: 'pp-spot', cx: '50%', cy: '11.5%', r: 2 }),
     svg('circle', { ...chalk, cx: '50%', cy: '11.5%', r: '8.5%', 'clip-path': `url(#${id}-d)` }),
     svg('circle', { ...chalk, cx: '50%', cy: '100%', r: '12%' }),
-    svg('circle', { class: 'pp-spot', cx: '50%', cy: '100%', r: 2.5 }));
+    svg('circle', { class: 'pp-spot', cx: '50%', cy: '100%', r: 2.5 }),
+  );
 }
+
+/** @typedef {{xi?: (number | string)[], bench?: (number | string)[], captain?: number | string, vice?: number | string}} PitchLineup */
+/** @typedef {PitchLineup & {
+ *   players?: object, gw?: number, horizon?: number | number[], chip?: string,
+ *   onPlayer?: (id: number, event: Event) => void, animate?: Iterable<number>
+ * }} PitchOptions */
+/** @typedef {PitchOptions & {
+ *   second?: string | object, bought?: object, inFor?: object, approx?: boolean | Iterable<number>, first?: boolean
+ * }} PitchCardOptions */
 
 /**
  * renderPitch({xi, bench, captain, vice, players, gw, horizon, chip, incoming, onPlayer(id, evt), selectable,
@@ -123,43 +194,98 @@ function markings() {
  * caption: adds "Captain: X · Vice: Y · Bench in order shown". Players without onPlayer render as plain nodes. Ids
  * compare as numbers.
  */
-export function renderPitch({
-  xi = [], bench = [], captain, vice, players = {}, gw, horizon, chip, incoming, onPlayer,
-  selectable = null, highlight = null, animate = null, caption = false,
-} = {}) {
+export function renderPitch(
+  {
+    xi = [],
+    bench = [],
+    captain,
+    vice,
+    players = {},
+    gw,
+    horizon,
+    chip,
+    incoming,
+    onPlayer,
+    selectable = null,
+    highlight = null,
+    animate = null,
+    caption = false,
+  } = /** @type {PitchOptions & {incoming?: Iterable<number>, selectable?: Iterable<number>, highlight?: Iterable<number>, caption?: boolean}} */ ({}),
+) {
   const P = lookup(players);
   const chipKey = chip ? String(chip).toLowerCase() : null;
   const o = {
-    gw, horizon: horizon ?? gw, captain: fin(captain) ? Number(captain) : null, vice: fin(vice) ? Number(vice) : null,
-    tc: chipKey === 'tc', incoming: asSet(incoming), selectable: asSet(selectable), highlight: asSet(highlight),
-    animate: asSet(animate), onPlayer,
+    gw,
+    horizon: horizon ?? gw,
+    captain: fin(captain) ? Number(captain) : null,
+    vice: fin(vice) ? Number(vice) : null,
+    tc: chipKey === 'tc',
+    incoming: asSet(incoming),
+    selectable: asSet(selectable),
+    highlight: asSet(highlight),
+    animate: asSet(animate),
+    onPlayer,
   };
   const rows = Object.fromEntries([...ROWS, 'other'].map((r) => [r, []]));
   for (const id of xi) rows[posName(P(id)?.pos) || 'other'].push(Number(id));
   const chipLabel = chipName(chipKey);
-  const field = h('div.pp-field', { role: 'group', 'aria-label': `Starting eleven${fin(gw) ? `, GW${gw}` : ''}` },
+  const field = h(
+    'div.pp-field',
+    { role: 'group', 'aria-label': `Starting eleven${fin(gw) ? `, GW${gw}` : ''}` },
     markings(),
-    chipLabel ? h('span.pp-chip', { class: chipKey, title: chipLabel },
-      h('span.pp-chip-long', null, chipLabel), h('span.pp-chip-short', null, chipKey.toUpperCase())) : null,
-    Object.entries(rows).filter(([, ids]) => ids.length).map(([pos, ids]) =>
-      h('div.pp-row', { dataset: { pos } }, ids.map((id) => node(id, P(id), o)))));
+    chipLabel
+      ? h(
+          'span.pp-chip',
+          { class: chipKey, title: chipLabel },
+          h('span.pp-chip-long', null, chipLabel),
+          h('span.pp-chip-short', null, chipKey.toUpperCase()),
+        )
+      : null,
+    Object.entries(rows)
+      .filter(([, ids]) => ids.length)
+      .map(([pos, ids]) =>
+        h(
+          'div.pp-row',
+          { dataset: { pos } },
+          ids.map((id) => node(id, P(id), o)),
+        ),
+      ),
+  );
   let outfield = 0;
-  const benchEl = bench?.length ? h('div.pp-bench', { class: { boosted: chipKey === 'bb' }, role: 'group', 'aria-label': 'Bench, in order' },
-    h('span.pp-bench-label', null, chipKey === 'bb' ? 'Bench Boost' : 'Bench'),
-    h('div.pp-bench-row', null, bench.map((raw) => {
-      const id = Number(raw);
-      const gk = posName(P(id)?.pos) === 'GK';
-      return h('div.pp-slot', null, h('span.pp-order', { 'aria-hidden': 'true' }, gk ? 'GK' : ++outfield), node(id, P(id), o));
-    }))) : null;
-  const nm = (id) => (id == null ? DASH : P(id)?.name ?? `#${id}`);
-  const cap = caption && (o.captain != null || bench?.length)
-    ? h('p.pp-caption', null, `${o.tc ? 'Triple captain' : 'Captain'}: ${nm(o.captain)} · Vice: ${nm(o.vice)}${bench?.length ? ' · Bench in order shown' : ''}`)
+  const benchEl = bench?.length
+    ? h(
+        'div.pp-bench',
+        { class: { boosted: chipKey === 'bb' }, role: 'group', 'aria-label': 'Bench, in order' },
+        h('span.pp-bench-label', null, chipKey === 'bb' ? 'Bench Boost' : 'Bench'),
+        h(
+          'div.pp-bench-row',
+          null,
+          bench.map((raw) => {
+            const id = Number(raw);
+            const gk = posName(P(id)?.pos) === 'GK';
+            return h(
+              'div.pp-slot',
+              null,
+              h('span.pp-order', { 'aria-hidden': 'true' }, gk ? 'GK' : ++outfield),
+              node(id, P(id), o),
+            );
+          }),
+        ),
+      )
     : null;
+  const nm = (id) => (id == null ? DASH : (P(id)?.name ?? `#${id}`));
+  const cap =
+    caption && (o.captain != null || bench?.length)
+      ? h(
+          'p.pp-caption',
+          null,
+          `${o.tc ? 'Triple captain' : 'Captain'}: ${nm(o.captain)} · Vice: ${nm(o.vice)}${bench?.length ? ' · Bench in order shown' : ''}`,
+        )
+      : null;
   return h('div.pp', { dataset: { chip: chipKey || '' } }, field, benchEl, cap);
 }
 
 // ---------------------------------------------------------------- list row
-
 
 // ---------------------------------------------------------------- phone pitch (Forkcast, static/m/)
 // Classes pm-*, styled by css/views/plan-pitch.css: FPL's pick-team look. Stable slots keep a changed player in his
@@ -172,8 +298,44 @@ const PREVIEW_WORD = { O: 'predicted out', D: 'doubtful', DS: 'doubtful', B: 'pr
 const asSetOrNull = (s) => (s ? asSet(s) : null);
 
 /** The pitch box and its rows: row tops in px of the 446 px box; unknown positions share FWD's. */
-const PW = 390, PH = 446;
+const PW = 390,
+  PH = 446;
 const ROW_TOP = { GK: 13, DEF: 120, MID: 226, FWD: 332, other: 332 };
+
+const MONTHS = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ');
+const FIXTURE_DATE = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Europe/London',
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+});
+const dateParts = (ms) => FIXTURE_DATE.format(ms).split('/').map(Number);
+
+/** Keep FPL's status unless a dated suspension ends by one of this GW's kickoffs. */
+export function availabilityAt(p, gw, horizon) {
+  if (statusInfo(p?.status, p?.chance).code !== 's') return p;
+  const match = /^Suspended until (\d{1,2}) ([A-Z][a-z]{2})\.?$/.exec(p.news ?? '');
+  const added = Date.parse(p.news_added);
+  if (!match || !Number.isFinite(added)) return p;
+  const [, dayText, monthText] = match;
+  const day = Number(dayText);
+  const month = MONTHS.indexOf(monthText) + 1;
+  if (!month || day < 1) return p;
+  const [addedDay, addedMonth, addedYear] = dateParts(added);
+  const beforeNews = month * 100 + day < addedMonth * 100 + addedDay;
+  const year = addedYear + Number(beforeNews);
+  const release = Date.UTC(year, month - 1, day);
+  if (new Date(release).getUTCDate() !== day) return p;
+
+  const i = gwIndex(gw, horizon);
+  const kickoffs = p.kickoffs?.[i] ?? p.fixtures?.[i]?.map((f) => f?.kickoff);
+  const canPlay = kickoffs?.some((kickoff) => {
+    if (!Number.isFinite(kickoff) || kickoff <= 0) return false;
+    const [d, m, y] = dateParts(kickoff * 1000);
+    return Date.UTC(y, m - 1, d) >= release;
+  });
+  return canPlay ? null : p;
+}
 
 /**
  * The flag: FPL's availability only (status and chance, statusInfo): 'red' when out or 25% or less, 'amber' for any
@@ -186,10 +348,19 @@ export function availabilityTone(p) {
   if (st.tone === 'warn') return 'amber';
   return null;
 }
+export function availabilityChance(p) {
+  const st = statusInfo(p?.status, p?.chance);
+  return st.chance ?? (st.tone === 'bad' ? 0 : null);
+}
+
+/** A 0% flag applies until the player's dated suspension clears for the selected GW. */
+export function ruledOutAt(p, gw, horizon) {
+  return availabilityChance(p) === 0 && availabilityAt(p, gw, horizon) != null;
+}
+
 /** The flag's words on the card: FPL's chance ("75%"; "0%" for one out with no chance given), '' when unknown. */
 const chanceText = (p) => {
-  const st = statusInfo(p?.status, p?.chance);
-  const c = st.chance ?? (st.tone === 'bad' ? 0 : null);
+  const c = availabilityChance(p);
   return c == null ? '' : `${c}%`;
 };
 // WhoScored's preview of the next deadline's GW (ws_preview: O out, D / DS doubtful, B bench) is spoken on the card
@@ -198,7 +369,7 @@ const chanceText = (p) => {
 function availabilityWords(p, first) {
   const st = statusInfo(p?.status, p?.chance);
   if (st.tone !== 'ok' || st.chance === 0) return p?.news ? `${st.label}: ${p.news}` : st.label;
-  return first ? PREVIEW_WORD[p?.ws_preview] ?? null : null;
+  return first ? (PREVIEW_WORD[p?.ws_preview] ?? null) : null;
 }
 
 /**
@@ -208,10 +379,19 @@ function availabilityWords(p, first) {
  */
 const ORDER_KEY = 'fc:pitch:order';
 function storedOrder() {
-  try { const v = JSON.parse(globalThis.localStorage?.getItem(ORDER_KEY) ?? 'null'); return v && typeof v === 'object' ? v : null; } catch { return null; }
+  try {
+    const v = JSON.parse(globalThis.localStorage?.getItem(ORDER_KEY) ?? 'null');
+    return v && typeof v === 'object' ? v : null;
+  } catch {
+    return null;
+  }
 }
 function storeOrder(rows) {
-  try { globalThis.localStorage?.setItem(ORDER_KEY, JSON.stringify(rows)); } catch { /* private mode, blocked storage: the session's order only */ }
+  try {
+    globalThis.localStorage?.setItem(ORDER_KEY, JSON.stringify(rows));
+  } catch {
+    /* private mode, blocked storage: the session's order only */
+  }
 }
 function arrangeRows(prev, xi, posOf) {
   const rows = {};
@@ -236,18 +416,35 @@ function arrangeRows(prev, xi, posOf) {
 
 /** A shirt on the turf: a green-family goalkeeper colour turns grey there (kits.js `turf`); in FPL's 220 × 290 frame
  *  (`tall`), so a drawn and an official shirt sit the same. */
-const face = (p, side) => h(`span.pm-face.${side}`, null, shirt({ club: p?.club, gk: posName(p?.pos) === 'GK', size: 64, turf: true, tall: true }));
+const face = (p, side) =>
+  h(
+    `span.pm-face.${side}`,
+    null,
+    shirt({ club: p?.club, gk: posName(p?.pos) === 'GK', size: 64, turf: true, tall: true }),
+  );
 
 /** FPL's flag at the tile's top-right: a yellow (doubt) warning triangle, or a red (out, ≤ 25%) no-entry disc, and his
  *  chance ("75%"). */
-const flag = (tone, words) => h('span.pm-flag', { class: tone, 'aria-hidden': 'true' },
-  svg('svg', { class: 'pm-flag-g', viewBox: '0 0 15 13' }, ...(tone === 'red' ? [
-    svg('circle', { class: 'pm-flag-t', cx: 7.5, cy: 6.5, r: 6.1 }),
-    svg('rect', { class: 'pm-flag-i', x: 3.9, y: 5.5, width: 7.2, height: 2, rx: 0.4 })] : [
-    svg('path', { class: 'pm-flag-t', d: 'M7.5 .8 14.3 12.3H.7z' }),
-    svg('rect', { class: 'pm-flag-i', x: 6.8, y: 4.3, width: 1.4, height: 4.2, rx: 0.5 }),
-    svg('circle', { class: 'pm-flag-i', cx: 7.5, cy: 10.2, r: 0.85 })])),
-  words ? h('span.pm-flag-w', null, words) : null);
+const flag = (tone, words) =>
+  h(
+    'span.pm-flag',
+    { class: tone, 'aria-hidden': 'true' },
+    svg(
+      'svg',
+      { class: 'pm-flag-g', viewBox: '0 0 15 13' },
+      ...(tone === 'red'
+        ? [
+            svg('circle', { class: 'pm-flag-t', cx: 7.5, cy: 6.5, r: 6.1 }),
+            svg('rect', { class: 'pm-flag-i', x: 3.9, y: 5.5, width: 7.2, height: 2, rx: 0.4 }),
+          ]
+        : [
+            svg('path', { class: 'pm-flag-t', d: 'M7.5 .8 14.3 12.3H.7z' }),
+            svg('rect', { class: 'pm-flag-i', x: 6.8, y: 4.3, width: 1.4, height: 4.2, rx: 0.5 }),
+            svg('circle', { class: 'pm-flag-i', cx: 7.5, cy: 10.2, r: 0.85 }),
+          ]),
+    ),
+    words ? h('span.pm-flag-w', null, words) : null,
+  );
 
 /**
  * Where the plan's lineup differs from your FPL team (mountPitch `fpl`, GW A only) → Map(id → {move, arm}): move
@@ -255,11 +452,12 @@ const flag = (tone, words) => h('span.pm-flag', { class: tone, 'aria-hidden': 't
  * your FPL captain where the plan's armband is elsewhere (no mark for your FPL vice: owner, 2026-10-13). None for a
  * buy, a player the plan sells, or the bench order.
  */
-export function fplMarks(fpl, { xi = [], bench = [], captain = null } = {}) {
+export function fplMarks(fpl, { xi = [], bench = [], captain = null } = /** @type {PitchLineup} */ ({})) {
   const out = new Map();
   if (!fpl || !Array.isArray(fpl.xi)) return out;
   const n = (v) => (fin(v) ? Number(v) : null);
-  const fxi = new Set(fpl.xi.map(Number)), fbench = new Set((fpl.bench || []).map(Number));
+  const fxi = new Set(fpl.xi.map(Number)),
+    fbench = new Set((fpl.bench || []).map(Number));
   const ids = { xi: xi.map(Number), bench: bench.map(Number) };
   const put = (id, k, v) => out.set(id, { move: null, arm: null, ...out.get(id), [k]: v });
   for (const id of ids.xi) if (fbench.has(id)) put(id, 'move', 'start');
@@ -270,7 +468,10 @@ export function fplMarks(fpl, { xi = [], bench = [], captain = null } = {}) {
   return out;
 }
 // each difference is spoken (FPL_MOVE_SAID, FPL_ARM_SAID), not drawn (owner, 2026-10-09, 2026-10-15)
-const FPL_MOVE_SAID = { start: 'on your FPL bench: the plan starts him', bench: 'starts in your FPL team: the plan benches him' };
+const FPL_MOVE_SAID = {
+  start: 'on your FPL bench: the plan starts him',
+  bench: 'starts in your FPL team: the plan benches him',
+};
 const FPL_ARM_SAID = { c: 'your FPL captain' };
 /** A planned buy, spoken as the lineup's differences are: "not in your FPL team: the plan buys him in GW6", " for
  *  Scott" with the player he replaces. */
@@ -287,17 +488,30 @@ export const platePts = (xp, mult = 1) => (xp == null ? DASH : fmt.pts(Number(xp
  *  → [kids, the words it adds to the card's label]. */
 function secondPlate(id, p, o, fx, pts, approx) {
   // each opponent in a pale tint of FPL's FDR colour for this GW (plan-pitch.css .pm-opp.fdr-N); a blank or unknown week stays plain
-  const fxEl = () => h('span.pm-fx', null, !fx?.length ? oppLabel(fx) || DASH
-    : fx.map((f, i) => [i ? ', ' : null, h('span.pm-opp', { class: f.fdr ? `fdr-${f.fdr}` : null,
-      dataset: { fdr: f.fdr ?? '' } }, oppText(f))]));
+  const fxEl = () =>
+    h(
+      'span.pm-fx',
+      null,
+      !fx?.length
+        ? oppLabel(fx) || DASH
+        : fx.map((f, i) => [
+            i ? ', ' : null,
+            h('span.pm-opp', { class: f.fdr ? `fdr-${f.fdr}` : null, dataset: { fdr: f.fdr ?? '' } }, oppText(f)),
+          ]),
+    );
   // his forecast in the plate's blue, "xP" after it where the plate has room (ui.js xpNum; fitFixtures drops the marker first)
   const ptsEl = () => xpNum(pts, 'b.pm-px', { class: { approx } });
   const s = o.second ?? 'both';
   if (s === 'fx') return [h('span.pm-pf', null, fxEl()), null];
   if (s === 'pts') return [h('span.pm-pf', null, ptsEl()), null];
   if (typeof s === 'object') {
-    const text = s.text(id, p) ?? DASH, bar = s.bar?.(id, p);
-    const plate = h('span.pm-pf.data', bar ? { class: `bar t${bar.tone}` } : null, h('b.pm-px', null, bar?.locked ? icon('lock', { size: 9 }) : text));
+    const text = s.text(id, p) ?? DASH,
+      bar = s.bar?.(id, p);
+    const plate = h(
+      'span.pm-pf.data',
+      bar ? { class: `bar t${bar.tone}` } : null,
+      h('b.pm-px', null, bar?.locked ? icon('lock', { size: 9 }) : text),
+    );
     if (bar) plate.style.setProperty('--pm-fill', `${bar.fill}%`);
     return [plate, `${s.label} ${text}`];
   }
@@ -320,7 +534,9 @@ export function fitFixtures(root) {
     return r.width > 0 && range.getBoundingClientRect().width > r.width + 0.01;
   };
   // every fixture beside its points on one line, then read once (one layout, not one a plate): the ones too wide take two
-  const fxs = [...root.querySelectorAll('.pm-fx')].filter((fx) => fx.querySelector('.pm-opp') && fx.nextElementSibling?.matches('.pm-px'));
+  const fxs = [...root.querySelectorAll('.pm-fx')].filter(
+    (fx) => fx.querySelector('.pm-opp') && fx.nextElementSibling?.matches('.pm-px'),
+  );
   for (const fx of fxs) fx.parentElement.classList.remove('two', 'nomark');
   const short = fxs.filter(over);
   for (const fx of short) fx.parentElement.classList.add('nomark');
@@ -346,9 +562,11 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
   const name = p?.name ?? `#${id}`;
   const fx = fixturesAt(p, o.gw, o.horizon);
   const xp = xpAt(p, o.gw, o.horizon);
-  const isCap = id === o.captain, isVice = id === o.vice;
+  const isCap = id === o.captain,
+    isVice = id === o.vice;
   const mult = isCap && o.capPoints ? (o.tc ? 3 : 2) : 1;
-  const tone = availabilityTone(p);
+  const availability = availabilityAt(p, o.gw, o.horizon);
+  const tone = availabilityTone(availability);
   const blank = Array.isArray(fx) && !fx.length;
   // (a forecast under 1 xP for the week, less than the point FPL gives any player who comes on: dimmed as a doubtful
   // player is, no flag (FPL's doubts keep theirs); a week with no fixture keeps its own look; owner, 2026-11-09, "why
@@ -356,8 +574,8 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
   // thomas have full opacity despite 0.4 xp": a 50% flag at 0.4 xP stood full)
   const low = !blank && xp != null && xp < 1;
   const dgw = fx?.length > 1;
-  const bought = o.bought?.[id] ?? null;  // the GW he was bought in, when he is not in the real squad
-  const sold = o.sold?.[id] ?? null;  // the GW the plan sells him in, when it does after this one
+  const bought = o.bought?.[id] ?? null; // the GW he was bought in, when he is not in the real squad
+  const sold = o.sold?.[id] ?? null; // the GW the plan sells him in, when it does after this one
   const approx = o.approx === true || !!o.approx?.has(id);
   // the captain's points doubled (tripled with a Triple Captain) only with `capPoints`, his spoken label then "6.1
   // times 2"; off by default (owner, 2026-11-02: his own forecast on his plate, the C badge says he is captain)
@@ -365,30 +583,72 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
   // the ink plate a buy of this GW only (an earlier week's buy keeps `bought`: an ink ring inside his plain plate);
   // with `inFor` every buy of the week, one of your FPL team bought back too: his name plate ink (`is-in`: no badge, no
   // green; owner, 2026-10-25), the player he replaces in his spoken label and his Why sheet
-  const by = o.inFor?.[id];  // the player he replaces, or true in a squad week (a Wildcard or Free Hit)
+  const by = o.inFor?.[id]; // the player he replaces, or true in a squad week (a Wildcard or Free Hit)
   const tagIn = by != null || (bought != null && bought === o.gw) ? 'IN' : null;
   // where the plan differs from your FPL team (fplMarks, GW A only): your FPL captain, a sub or a start are spoken on
   // the card, not drawn
   const mk = o.marks?.get(id) ?? null;
   const [plate2, said] = secondPlate(id, p, o, fx, pts, approx);
-  const spoken = [order ? `${order}: ${name}` : name, POS_WORD[pos], p?.club,
-    isCap ? (o.tc ? 'triple captain' : 'captain') : isVice ? 'vice-captain' : null, FPL_ARM_SAID[mk?.arm] ?? null, FPL_MOVE_SAID[mk?.move] ?? null,
-    xp == null ? null : `${approx ? 'about ' : ''}${mult > 1 ? `${fmt.pts(xp)} times ${mult}` : pts} expected points${dgw ? ', double gameweek' : ''}`, oppSpoken(fx),
-    availabilityWords(p, o.first), bought != null ? fplBuySaid(bought, tagIn && by !== true ? by : null) : by != null ? buyBackSaid(o.gw, by) : null,
-    sold != null ? `sold in GW${sold}` : null, said].filter(Boolean).join(', ') + (o.why?.has(id) ? '; shows why' : '');
+  const spoken =
+    [
+      order ? `${order}: ${name}` : name,
+      POS_WORD[pos],
+      p?.club,
+      isCap ? (o.tc ? 'triple captain' : 'captain') : isVice ? 'vice-captain' : null,
+      FPL_ARM_SAID[mk?.arm] ?? null,
+      FPL_MOVE_SAID[mk?.move] ?? null,
+      xp == null
+        ? null
+        : `${approx ? 'about ' : ''}${mult > 1 ? `${fmt.pts(xp)} times ${mult}` : pts} expected points${dgw ? ', double gameweek' : ''}`,
+      oppSpoken(fx),
+      availabilityWords(availability, o.first),
+      bought != null ? fplBuySaid(bought, tagIn && by !== true ? by : null) : by != null ? buyBackSaid(o.gw, by) : null,
+      sold != null ? `sold in GW${sold}` : null,
+      said,
+    ]
+      .filter(Boolean)
+      .join(', ') + (o.why?.has(id) ? '; shows why' : '');
   const kids = [
-    h('span.pm-kit', null,
-      h('span.pm-flip', { class: { from: flipFrom != null } }, face(p, 'front'), flipFrom != null ? face(P(flipFrom), 'back') : null),
-      isCap || isVice ? h('span.pm-badge', { class: isCap ? ['c', o.tc && 'tc'] : 'v', dataset: { badge: isCap ? 'c' : 'v' }, 'aria-hidden': 'true' },
-        isCap ? (o.tc ? '3×' : 'C') : 'V') : null,
-      tone ? flag(tone, chanceText(p)) : null,
-      sold != null ? h('span.pm-out', { 'aria-hidden': 'true' }, `OUT GW${sold}`) : null),
-    h('span.pm-plate', { class: { chg: flipFrom != null }, 'aria-hidden': 'true' }, h('span.pm-pn', null, name), plate2),
+    h(
+      'span.pm-kit',
+      null,
+      h(
+        'span.pm-flip',
+        { class: { from: flipFrom != null } },
+        face(p, 'front'),
+        flipFrom != null ? face(P(flipFrom), 'back') : null,
+      ),
+      isCap || isVice
+        ? h(
+            'span.pm-badge',
+            { class: isCap ? ['c', o.tc && 'tc'] : 'v', dataset: { badge: isCap ? 'c' : 'v' }, 'aria-hidden': 'true' },
+            isCap ? (o.tc ? '3×' : 'C') : 'V',
+          )
+        : null,
+      tone ? flag(tone, chanceText(availability)) : null,
+      sold != null ? h('span.pm-out', { 'aria-hidden': 'true' }, `OUT GW${sold}`) : null,
+    ),
+    h(
+      'span.pm-plate',
+      { class: { chg: flipFrom != null }, 'aria-hidden': 'true' },
+      h('span.pm-pn', null, name),
+      plate2,
+    ),
   ];
   const attrs = {
-    class: [order ? 'pm-bs' : 'pm-pl', 'pm-card', tone && `f-${tone}`, low && 'low', bought != null && 'bought', tagIn && 'is-in', sold != null && 'sold', blank && 'blank',
-      o.animate?.has(id) && 'new'],
-    dataset: { id, pos: pos || '', pts }, 'aria-label': spoken,
+    class: [
+      order ? 'pm-bs' : 'pm-pl',
+      'pm-card',
+      tone && `f-${tone}`,
+      low && 'low',
+      bought != null && 'bought',
+      tagIn && 'is-in',
+      sold != null && 'sold',
+      blank && 'blank',
+      o.animate?.has(id) && 'new',
+    ],
+    dataset: { id, pos: pos || '', pts },
+    'aria-label': spoken,
   };
   return o.onPlayer
     ? h('button', { ...attrs, type: 'button', onClick: (e) => o.onPlayer(id, e) }, kids)
@@ -397,27 +657,46 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
 
 /** The turf (stripes and markings in perspective) and the goal over its goal line, in the 390 × 446 box. */
 function turf() {
-  const bands = 11, bh = PH / bands;
+  const bands = 11,
+    bh = PH / bands;
   const box = { viewBox: `0 0 ${PW} ${PH}`, preserveAspectRatio: 'none', 'aria-hidden': 'true' };
   const chalk = (tag, a) => svg(tag, { class: 'pm-chalk', ...a });
   const net = [];
   for (let x = 167; x <= 223; x += 5) net.push(svg('line', { x1: x, y1: 1, x2: x, y2: 25 }));
   for (let y = 5; y <= 25; y += 5) net.push(svg('line', { x1: 164, y1: y, x2: 226, y2: y }));
   return [
-    h('div.pm-turf', null, svg('svg', { class: 'pm-lines', ...box },
-      // the last band is turf-1, so it runs on into the bench's fade
-      Array.from({ length: bands }, (_, i) => svg('rect', { class: (bands - 1 - i) % 2 ? 'pm-band b' : 'pm-band', x: 0, y: i * bh, width: PW, height: bh + 0.5 })),
-      chalk('path', { d: 'M-2 107 L44 25 H346 L392 107' }),   // touchlines and goal line
-      chalk('path', { d: 'M103 25 L84 66 H306 L287 25' }),    // penalty area
-      chalk('path', { d: 'M150 25 L147 45 H243 L240 25' }),   // goal area
-      chalk('path', { d: 'M155 66 Q195 84 235 66' }),         // penalty arc
-      chalk('path', { d: 'M51 25 Q49.2 34 40.6 31.1 M339 25 Q340.8 34 349.4 31.1' }),  // corner arcs, 7 units round each corner
-      chalk('line', { x1: 0, y1: 303, x2: PW, y2: 303 }),     // halfway line, through the MID plates
-      chalk('ellipse', { cx: 195, cy: 303, rx: 64, ry: 54 }))),
-    svg('svg', { class: 'pm-goal', ...box },
+    h(
+      'div.pm-turf',
+      null,
+      svg(
+        'svg',
+        { class: 'pm-lines', ...box },
+        // the last band is turf-1, so it runs on into the bench's fade
+        Array.from({ length: bands }, (_, i) =>
+          svg('rect', {
+            class: (bands - 1 - i) % 2 ? 'pm-band b' : 'pm-band',
+            x: 0,
+            y: i * bh,
+            width: PW,
+            height: bh + 0.5,
+          }),
+        ),
+        chalk('path', { d: 'M-2 107 L44 25 H346 L392 107' }), // touchlines and goal line
+        chalk('path', { d: 'M103 25 L84 66 H306 L287 25' }), // penalty area
+        chalk('path', { d: 'M150 25 L147 45 H243 L240 25' }), // goal area
+        chalk('path', { d: 'M155 66 Q195 84 235 66' }), // penalty arc
+        chalk('path', { d: 'M51 25 Q49.2 34 40.6 31.1 M339 25 Q340.8 34 349.4 31.1' }), // corner arcs, 7 units round each corner
+        chalk('line', { x1: 0, y1: 303, x2: PW, y2: 303 }), // halfway line, through the MID plates
+        chalk('ellipse', { cx: 195, cy: 303, rx: 64, ry: 54 }),
+      ),
+    ),
+    svg(
+      'svg',
+      { class: 'pm-goal', ...box },
       svg('rect', { class: 'pm-goal-in', x: 164, y: 0, width: 62, height: 25 }),
       svg('g', { class: 'pm-net' }, net),
-      svg('path', { class: 'pm-goal-frame', d: 'M164 25 V1 H226 V25' })),
+      svg('path', { class: 'pm-goal-frame', d: 'M164 25 V1 H226 V25' }),
+    ),
   ];
 }
 
@@ -430,7 +709,7 @@ export function subOrder(bench, posOf) {
   return new Map((bench || []).map(Number).map((id) => [id, posOf(id) === 'GK' ? null : ++n]));
 }
 /** A sub's label over his card: "1 · DEF" in its bench order (subOrder's n), "GKP" for the keeper (owner, 2026-10-21). */
-export const benchTag = (pos, n) => (n == null ? posCode(pos) ?? 'GKP' : `${n} · ${posCode(pos) ?? ''}`);
+export const benchTag = (pos, n) => (n == null ? (posCode(pos) ?? 'GKP') : `${n} · ${posCode(pos) ?? ''}`);
 /** A sub's order as Ahead's bench label reads it, "1st", "2nd", "3rd" (owner, 2026-10-22), the keeper's none:
  *  benchTag's order with its ending (.pm-blo, drawn only where a host shows it). */
 export const benchNth = (n) => (n == null ? '' : fmt.ordinal(n));
@@ -445,19 +724,51 @@ export const benchTagSaid = (pos, n, name) => `${benchTag(pos, n)}, ${benchOrder
 function benchPanel(bench, P, o, posOf, chipKey) {
   const nos = subOrder(bench, posOf);
   const bo = { ...o, captain: null, vice: null, animate: null };
-  return h('div.pm-benchzone', null, h('div.pm-bench', { role: 'group', 'aria-label': benchLabel(chipKey) },
-    bench.map((id) => {
-      const n = nos.get(id), order = benchOrder(n), pos = P(id)?.pos;
-      // its position's part (.pm-blp: "GKP", " · DEF") a host may leave out and its order's ending (.pm-blo: "st") a
-      // host may show (Ahead: "1st"), its spoken name the whole label's
-      const t = benchTag(pos, n), at = t.indexOf(' · ');
-      const tag = h('span', null, at < 0 ? h('span.pm-blp', null, t)
-        : [t.slice(0, at), h('span.pm-blo', null, benchNth(n).slice(String(n).length)), h('span.pm-blp', null, t.slice(at))]);
-      return h('div.pm-slot', null, o.onBench
-        ? h('button.pm-bl', { type: 'button', dataset: { id }, 'aria-label': benchTagSaid(pos, n, P(id)?.name ?? `#${id}`), onClick: (e) => o.onBench(id, e) }, tag)
-        : h('span.pm-bl', { 'aria-hidden': 'true' }, tag),
-      card(id, P, bo, { order }));
-    })));
+  return h(
+    'div.pm-benchzone',
+    null,
+    h(
+      'div.pm-bench',
+      { role: 'group', 'aria-label': benchLabel(chipKey) },
+      bench.map((id) => {
+        const n = nos.get(id),
+          order = benchOrder(n),
+          pos = P(id)?.pos;
+        // its position's part (.pm-blp: "GKP", " · DEF") a host may leave out and its order's ending (.pm-blo: "st") a
+        // host may show (Ahead: "1st"), its spoken name the whole label's
+        const t = benchTag(pos, n),
+          at = t.indexOf(' · ');
+        const tag = h(
+          'span',
+          null,
+          at < 0
+            ? h('span.pm-blp', null, t)
+            : [
+                t.slice(0, at),
+                h('span.pm-blo', null, benchNth(n).slice(String(n).length)),
+                h('span.pm-blp', null, t.slice(at)),
+              ],
+        );
+        return h(
+          'div.pm-slot',
+          null,
+          o.onBench
+            ? h(
+                'button.pm-bl',
+                {
+                  type: 'button',
+                  dataset: { id },
+                  'aria-label': benchTagSaid(pos, n, P(id)?.name ?? `#${id}`),
+                  onClick: (e) => o.onBench(id, e),
+                },
+                tag,
+              )
+            : h('span.pm-bl', { 'aria-hidden': 'true' }, tag),
+          card(id, P, bo, { order }),
+        );
+      }),
+    ),
+  );
 }
 
 /** The C badge flies from the old captain's shirt to the new one along a 220 ms arc (§6). */
@@ -466,24 +777,58 @@ function armbandHop(root, fromRect, captain) {
   if (!to || !fromRect?.width) return;
   const box = root.getBoundingClientRect();
   const tr = to.getBoundingClientRect();
-  const x0 = fromRect.left - box.left, y0 = fromRect.top - box.top;
-  const x1 = tr.left - box.left, y1 = tr.top - box.top;
+  const x0 = fromRect.left - box.left,
+    y0 = fromRect.top - box.top;
+  const x1 = tr.left - box.left,
+    y1 = tr.top - box.top;
   const fly = h('span.pm-badge.c.pm-fly', { 'aria-hidden': 'true' }, to.textContent);
   root.append(fly);
   to.style.visibility = 'hidden';
   const at = (x, y, s = 1) => ({ transform: `translate(${x}px, ${y}px) scale(${s})` });
-  const anim = fly.animate([at(x0, y0), at((x0 + x1) / 2, Math.min(y0, y1) - 34, 1.35), at(x1, y1)],
-    { duration: 220, easing: 'cubic-bezier(.3, .7, .3, 1)' });
-  anim.onfinish = anim.oncancel = () => { fly.remove(); to.style.visibility = ''; to.closest('.pm-pl')?.classList.add('bump'); };
+  const anim = fly.animate([at(x0, y0), at((x0 + x1) / 2, Math.min(y0, y1) - 34, 1.35), at(x1, y1)], {
+    duration: 220,
+    easing: 'cubic-bezier(.3, .7, .3, 1)',
+  });
+  anim.onfinish = anim.oncancel = () => {
+    fly.remove();
+    to.style.visibility = '';
+    to.closest('.pm-pl')?.classList.add('bump');
+  };
 }
 
 /**
  * One card as mountPitch draws it, on its own (Ahead's place): the same tile, plates and marks for player `id` in GW
  * `gw`; `order` makes it a bench card; other options are mountPitch's. → the card's node
  */
-export function pitchCard(id, { players = {}, gw, horizon, second = 'both', bought = null, inFor = null, approx = false, onPlayer = null, order = null, first = false } = {}) {
-  const o = { gw, horizon: horizon ?? gw, first, capPoints: false, onPlayer, bought, inFor, second, captain: null, vice: null,
-    approx: approx === true ? true : asSetOrNull(approx), marks: new Map() };
+export function pitchCard(
+  id,
+  {
+    players = {},
+    gw,
+    horizon,
+    second = 'both',
+    bought = null,
+    inFor = null,
+    approx = false,
+    onPlayer = null,
+    order = null,
+    first = false,
+  } = /** @type {PitchCardOptions & {order?: number}} */ ({}),
+) {
+  const o = {
+    gw,
+    horizon: horizon ?? gw,
+    first,
+    capPoints: false,
+    onPlayer,
+    bought,
+    inFor,
+    second,
+    captain: null,
+    vice: null,
+    approx: approx === true ? true : asSetOrNull(approx),
+    marks: new Map(),
+  };
   return card(Number(id), lookup(players), o, { order });
 }
 
@@ -510,38 +855,96 @@ export function pitchCard(id, { players = {}, gw, horizon, second = 'both', boug
  * Each card carries data-pts. Hooks: starters .pm-pl[data-id] (a button with onPlayer), the captain's badge
  * .pm-badge[data-badge="c"]; bench cards .pm-bs[data-id], labels .pm-bl (buttons with onBench).
  */
-export function mountPitch(host, {
-  xi = [], bench = [], captain, vice, chip, players = {}, gw, horizon, first = false,
-  bought = null, inFor = null, second = 'both', sold = null, approx = false, capPoints = false, animate, flip = true,
-  benchRow = false, fpl = null, onPlayer, onBench = null, label, why = null, gapRows = false,
-} = {}) {
+export function mountPitch(
+  host,
+  {
+    xi = [],
+    bench = [],
+    captain,
+    vice,
+    chip,
+    players = {},
+    gw,
+    horizon,
+    first = false,
+    bought = null,
+    inFor = null,
+    second = 'both',
+    sold = null,
+    approx = false,
+    capPoints = false,
+    animate,
+    flip = true,
+    benchRow = false,
+    fpl = null,
+    onPlayer,
+    onBench = null,
+    label,
+    why = null,
+    gapRows = false,
+  } = /** @type {PitchCardOptions & {sold?: object, capPoints?: boolean, flip?: boolean, benchRow?: boolean, fpl?: PitchLineup, onBench?: (id: number, event: Event) => void, label?: string, why?: Iterable<number>, gapRows?: boolean}} */ ({}),
+) {
   const P = lookup(players);
-  const st = host._pm || (host._pm = { rows: null, cap: null });
+  host._pm ||= { rows: null, cap: null };
+  const st = host._pm;
   const chipKey = chip ? String(chip).toLowerCase() : null;
   const o = {
-    gw, horizon: horizon ?? gw, first, capPoints, sold, onPlayer, onBench, tc: chipKey === 'tc', bought, inFor, second,
-    captain: fin(captain) ? Number(captain) : null, vice: fin(vice) ? Number(vice) : null,
+    gw,
+    horizon: horizon ?? gw,
+    first,
+    capPoints,
+    sold,
+    onPlayer,
+    onBench,
+    tc: chipKey === 'tc',
+    bought,
+    inFor,
+    second,
+    captain: fin(captain) ? Number(captain) : null,
+    vice: fin(vice) ? Number(vice) : null,
     why: asSetOrNull(why),
-    animate: asSetOrNull(animate), approx: approx === true ? true : asSetOrNull(approx),
+    animate: asSetOrNull(animate),
+    approx: approx === true ? true : asSetOrNull(approx),
     // computed once over XI and bench: a bench card is drawn without the plan's armbands (benchPanel), never its marks
     marks: fplMarks(fpl, { xi: xi || [], bench: bench || [], captain, vice }),
   };
   const posOf = (id) => posName(P(id)?.pos) || 'other';
   const benchIds = (bench || []).map(Number);
   // the first mount takes this browser's last order (no flips then: nothing on the page changed)
-  const { rows, flips } = arrangeRows(flip ? st.rows ?? storedOrder() : null, (xi || []).map(Number), posOf);
+  const { rows, flips } = arrangeRows(flip ? (st.rows ?? storedOrder()) : null, (xi || []).map(Number), posOf);
   if (!st.rows) flips.clear();
   const old = host.querySelector(':scope > .pm');
-  const hop = old && !reduceMotion() && st.cap != null && o.captain != null && st.cap !== o.captain
-    ? old.querySelector(`.pm-pl[data-id="${st.cap}"] .pm-badge.c`)?.getBoundingClientRect() : null;
+  const hop =
+    old && !reduceMotion() && st.cap != null && o.captain != null && st.cap !== o.captain
+      ? old.querySelector(`.pm-pl[data-id="${st.cap}"] .pm-badge.c`)?.getBoundingClientRect()
+      : null;
 
-  const rowsEl = h('div.pm-rows', null, PM_ROWS.filter((r) => rows[r].length).map((r) =>
-    h('div.pm-row', { dataset: { pos: r, n: rows[r].length }, style: { [gapRows ? '--pm-share' : 'top']: `${(ROW_TOP[r] / PH) * 100}%` } },
-      rows[r].map((id) => card(id, P, o, { flipFrom: flips.get(id) ?? null })))));
-  const field = h('div.pm-field', { role: 'group', 'aria-label': label ?? `Starting eleven${fin(gw) ? `, GW${gw}` : ''}` },
-    turf(), rowsEl);
-  const root = h('div.pm', { dataset: { chip: chipKey || '', ...(gapRows ? { rows: 'gap' } : {}) } },
-    field, benchRow && benchIds.length ? benchPanel(benchIds, P, o, posOf, chipKey) : null);
+  const rowsEl = h(
+    'div.pm-rows',
+    null,
+    PM_ROWS.filter((r) => rows[r].length).map((r) =>
+      h(
+        'div.pm-row',
+        {
+          dataset: { pos: r, n: rows[r].length },
+          style: { [gapRows ? '--pm-share' : 'top']: `${(ROW_TOP[r] / PH) * 100}%` },
+        },
+        rows[r].map((id) => card(id, P, o, { flipFrom: flips.get(id) ?? null })),
+      ),
+    ),
+  );
+  const field = h(
+    'div.pm-field',
+    { role: 'group', 'aria-label': label ?? `Starting eleven${fin(gw) ? `, GW${gw}` : ''}` },
+    turf(),
+    rowsEl,
+  );
+  const root = h(
+    'div.pm',
+    { dataset: { chip: chipKey || '', ...(gapRows ? { rows: 'gap' } : {}) } },
+    field,
+    benchRow && benchIds.length ? benchPanel(benchIds, P, o, posOf, chipKey) : null,
+  );
   host.replaceChildren(root);
   // a fixture's fit is the card's width and the text's size: the pitch's width and a plate's height (--pm-plate grows
   // with the text size)
@@ -549,20 +952,29 @@ export function mountPitch(host, {
   fitFixtures(root);
   st.fit = fitKey(root);
   // a web font landing after the first fit widens the text: fit again then
-  document.fonts?.ready.then(() => { if (root.isConnected) fitFixtures(root); });
+  document.fonts?.ready.then(() => {
+    if (root.isConnected) fitFixtures(root);
+  });
   // the cards scale with the pitch and their type with the text size: a new width or text size fits the fixtures again
   if (!st.ro && typeof ResizeObserver === 'function') {
     st.ro = new ResizeObserver(() => {
       const r = host.querySelector(':scope > .pm');
-      if (r && fitKey(r) !== st.fit) { st.fit = fitKey(r); fitFixtures(r); }
+      if (r && fitKey(r) !== st.fit) {
+        st.fit = fitKey(r);
+        fitFixtures(r);
+      }
     });
     st.ro.observe(host);
   }
   const plate = root.querySelector('.pm-plate');
-  if (st.ro && plate) { if (st.plate) st.ro.unobserve(st.plate); st.ro.observe(plate); st.plate = plate; }
+  if (st.ro && plate) {
+    if (st.plate) st.ro.unobserve(st.plate);
+    st.ro.observe(plate);
+    st.plate = plate;
+  }
   const flipping = root.querySelectorAll('.pm-flip.from');
   if (flipping.length) {
-    void root.offsetWidth;  // style the back face first, so dropping .from transitions to the front
+    void root.offsetWidth; // style the back face first, so dropping .from transitions to the front
     for (const f of flipping) f.classList.remove('from');
   }
   if (hop) armbandHop(root, hop, o.captain);
@@ -580,7 +992,8 @@ export function mountPitch(host, {
 export function setPitchChip(host, chip) {
   const root = host?.querySelector(':scope > .pm');
   const chipKey = chip ? String(chip).toLowerCase() : null;
-  if (!root?.querySelector(':scope > .pm-field > .pm-rows') || [chipKey, root.dataset.chip].includes('tc')) return false;
+  if (!root?.querySelector(':scope > .pm-field > .pm-rows') || [chipKey, root.dataset.chip].includes('tc'))
+    return false;
   root.querySelector(':scope > .pm-benchzone > .pm-bench')?.setAttribute('aria-label', benchLabel(chipKey));
   root.dataset.chip = chipKey || '';
   return true;
