@@ -342,8 +342,8 @@ export function fitOf(ctx, P, g, c, d0) {
   const k = `${g}|${forkKey(c, g)}`;
   if (!by.has(k)) {
     const mine = flatMoves(d0);
-    const d1 = planTakeDraft(ctx, P, g, d0, c.moves);
-    const ev = estimate(ctx, chipBackOf(P, g, c) ? E.setChip(d1, g, null) : d1, g);
+    const base = chipBackOf(P, g, c) ? E.setChip(d0, g, null) : d0;
+    const ev = estimate(ctx, planTakeDraft(ctx, P, g, base, c.moves), g);
     const ps = problemsOf(ctx, ev, g), p = ps[0] ?? null, p0 = p && problemOf(ctx, estimate(ctx, d0, g), g);
     const own = !!p && p0?.code === p.code && p0.gw === p.gw;
     by.set(k, { ok: (!p || own) && !rebought(P, c.moves, ev, mine.filter((m) => pinOfMove(P, m))), problems: own ? [] : ps });

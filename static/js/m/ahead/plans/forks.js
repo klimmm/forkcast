@@ -7,7 +7,7 @@ import { attach, makePin, pinSell, pinHits, pinRoll, isRoll, solveKept, solvedLi
 import { noteAnswer } from '../../memory/values.js';
 import { keepChipRoad } from '../../memory/chip-cache.js';
 import { range } from '../../memory/pins.js';
-import { baseOf, compare, draftOf, flatMoves, info, inputs, leftBehind, memOf, num, plan, problemOf, roadDraft, sameMove, valuesFor, valuesKey, weekOf, withMoves } from '../core.js';
+import { baseOf, compare, draftOf, flatMoves, info, inputs, leftBehind, memOf, num, plan, problemOf, roadDraft, sameMove, valuesFor, valuesKey, weekOf, withLaterChipSquads, withMoves } from '../core.js';
 import { chainOf, chipBackOf, chipEdit, chipOffParts, derivedPin } from '../edits.js';
 import { AHEAD, PAIR, PAIR_AGAIN_MS, PAIR_HOLD_MS, PAIR_TAKES, PREP_BESIDE, aheadAsks, aheadWaited, clearRoots, madeEarlier, noHitsFrom, pairChanged, pinOfMove, pumpAhead, repicks, mayAnswer, rootStill, ownLeft, tapSpent } from '../presolve.js';
 import { prepItems, prepsWaiting, squadWeek } from '../pieces.js';
@@ -45,9 +45,10 @@ export function planOfRoad(ctx, P, r, g, d0) {
   if (otherBoost || later.some((x) => (SQUAD_CHIPS.has(chipAt(rd, x)) || yours[x]) && chipAt(rd, x) !== (yours[x] ?? null))
     || (!wcBack && ownAfter(P, g).some((m) => !theirs.some((y) => sameMove(y, m))))) return { choice, plan: null };
   const moves = theirs.filter((m) => m.gw >= g && P.gws.includes(m.gw) && !(sq && m.gw === g) && !yours[m.gw]);
-  let draft = withMoves(d0, [...mine.filter((m) => m.gw < g), ...theirs.filter((m) => m.gw >= g && P.gws.includes(m.gw))]);
+  let draft = withMoves(d0, [...mine.filter((m) => m.gw < g), ...theirs.filter((m) => m.gw >= g && P.gws.includes(m.gw) && !yours[m.gw])]);
   if (sq) draft = E.setChip(draft, g, chipAt(rd, g));
   else if (SQUAD_CHIPS.has(chipAt(d0, g))) draft = E.setChip(draft, g, null);  // your chip week, its choice no chip (chipBackOf)
+  if (!wcBack) draft = withLaterChipSquads(ctx, P, g, draft);
   return { choice, plan: { moves, chips: choice.chips, yours, draft } };
 }
 

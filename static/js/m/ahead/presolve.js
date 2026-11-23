@@ -5,7 +5,7 @@ import { solveGap } from '../api.js';
 import { fmt, chipName } from '../../ui.js';
 import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
 import { SOLVES, SWAPS, attach, pinSell, pinHits, pinRefusal, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
-import { MINUS, WHY_SHEET, addMove, asYours, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withMoves } from './core.js';
+import { MINUS, WHY_SHEET, addMove, asYours, ids, baseline, bestOf, compare, draftOf, dropDrafted, dropMove, estimate, flatMoves, isFrozen, isPick, leftBehind, memOf, movedFrom, noteRemoved, num, pairedMoves, pairsOf, plan, problemOf, sameView, problemText, sameMove, squadBefore, valuesFor, valuesKey, weekOf, whyAct, wishDrop, withLaterChipSquads, withMoves } from './core.js';
 import { saidNow, sayAgain, asksOf, autoRuleName, barred, refusedAt, buyCandidates, chainOf, chipBackOf, chipEdit, chipOffParts, chipWords, clashing, derivedPin, edit, endingOf, hitsLater, inPlaceOf, keep, keptFrom, removeRule, ruleOf, toastOf, withPoints, withTaken } from './edits.js';
 import { recordDecision } from './diagnostics.js';
 import { refusedRoad } from '../memory/pins.js';
@@ -996,8 +996,9 @@ export function takenKeep(P, g, pl) {
  *  earlier goes (madeEarlier; owner, 2026-10-30). */
 export function planTakeDraft(ctx, P, g, base, now) {
   const wished = wishWeeks(P);
-  const keeps = (m) => m.gw < g || (m.gw > g && (!!squadWeek(weekOf(P, m.gw)) || ((!!pinOfMove(P, m) || wished.has(m.gw)) && !madeEarlier(now, m))));
-  return withMoves(base, [...flatMoves(draftOf(ctx)).filter(keeps), ...now]);
+  const keeps = (m) => m.gw < g || (m.gw > g && !squadWeek(weekOf(P, m.gw)) && (!!pinOfMove(P, m) || wished.has(m.gw)) && !madeEarlier(now, m));
+  const draft = withMoves(base, [...flatMoves(draftOf(ctx)).filter(keeps), ...now]);
+  return withLaterChipSquads(ctx, P, g, draft);
 }
 /** Whether later move m sells or buys a player the moves `ms` (a choice's, made earlier) moved already: it is one of
  *  them made earlier, so it goes from its later week, as addMove takes it (planOfRoad, planTakeDraft). Pure. */

@@ -524,6 +524,24 @@ export const withMoves = (draft, list) => {
   for (const m of list) if (m.out !== m.in) (moves[m.gw] ||= []).push({ out: m.out, in: m.in });
   return { ...draft, moves };
 };
+
+/** Keep each later chip's squad by pairing its changes against the updated squad entering that week. */
+export function withLaterChipSquads(ctx, P, from, draft) {
+  const chipWeeks = P.weeks.filter((w) => w.gw > from && squadWeek(w) && w.chip === draft.chips?.[w.gw]);
+  if (!chipWeeks.length) return draft;
+  const base = baseOf(ctx), moves = { ...draft.moves };
+  const updated = { ...draft, moves };
+  for (const w of chipWeeks) {
+    const horizon = P.gws.filter((g) => g < w.gw);
+    const { gws } = E.evaluate({ base, players: P.d.players, draft: updated, horizon, banksOnly: true });
+    const before = squadInto((g) => gws.find((s) => s.gw === g), w.gw, P.A, P.owned);
+    const pairs = pairedMoves(before.filter((id) => !w.squad.includes(id)), w.squad.filter((id) => !before.includes(id)), P.L, w.moves);
+    if (pairs.length) moves[w.gw] = pairs;
+    else delete moves[w.gw];
+  }
+  return updated;
+}
+
 export const sameMove = (a, b) => a.gw === b.gw && a.out === b.out && a.in === b.in;
 
 /** Same sale, a different buy (a later sale of the old buy now sells the new one). */
