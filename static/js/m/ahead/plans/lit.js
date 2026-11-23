@@ -167,11 +167,16 @@ export function decksOf(P, w, M) {
   }
   return { decks: [...by.values()].sort((x, y) => y.mine - x.mine || x.rank - y.rank), toks };
 }
-/** Whether choice pl's GW-g buys (`adds`) all stay out of its XI in every week of its plan from g on (pl.ev, as taking
- *  it plays them): a transfer to the bench, no plate on the pitch and no card in a place, so never the week's best
- *  (owner, 2026-10-28). Known once checked; the player's Replace list still offers him. Pure. */
-export const benchOnly = (g, pl, adds) => pl?.state === 'ready' && !!pl.ev?.gws && adds.length > 0
-  && adds.every((m) => pl.ev.gws.every((s) => s.gw < g || !(s.xi ?? []).some((x) => Number(x) === Number(m.in))));
+/** Whether all GW-g buys miss the scoring lineup from g on: starters and, on Bench Boost, the bench count.
+ *  A bench-only transfer has no pitch plate or place card. The player's Replace list still offers it. */
+export const benchOnly = (g, pl, adds) =>
+  pl?.state === 'ready' &&
+  !!pl.ev?.gws &&
+  adds.length > 0 &&
+  adds.every((m) => {
+    const isBuy = (id) => Number(id) === Number(m.in);
+    return !pl.ev.gws.some((s) => s.gw >= g && (s.xi?.some(isBuy) || (s.chip === 'bb' && s.bench?.some(isBuy))));
+  });
 /** A place's entry that takes a transfer back (the Roll of a week with yours, Remove): dealt last (placeOrder), and
  *  dealt even where the place has room for fewer cards than it holds (drawPlace: before "⋯ N more"). */
 export const takesBack = (e) => !!(e.back || e.remove || e.pl?.refRow);
