@@ -4,16 +4,22 @@ services:
     name: forkcast-fpl
     runtime: node
     plan: free
+    autoDeployTrigger: "off"
+    buildCommand: "true"
+    startCommand: node redirect.js
+    healthCheckPath: /__ping
+  - type: web
+    name: forkcast
+    runtime: node
+    plan: free
+    buildFilter:
+      paths:
+        - forwarder.js
+        - package.json
+        - render.yaml
     buildCommand: "true"
     startCommand: node forwarder.js
     healthCheckPath: /__ping
     envVars:
       - key: TARGET_SOURCE
         value: https://raw.githubusercontent.com/klimmm/forkcast/main/target.txt
-  - type: web
-    name: forkcast
-    runtime: node
-    plan: free
-    buildCommand: "true"
-    startCommand: node redirect.js
-    healthCheckPath: /__ping

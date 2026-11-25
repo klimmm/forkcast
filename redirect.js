@@ -1,6 +1,6 @@
 // Keep existing bookmarks working after the move. Preserve paths and queries.
 const http = require('node:http');
-const destination = 'https://forkcast-fpl.onrender.com';
+const destination = 'https://forkcast-e6vj.onrender.com';
 http.createServer((req, res) => {
   if (req.url === '/__ping') {
     res.writeHead(200, { 'content-type': 'text/plain' });
