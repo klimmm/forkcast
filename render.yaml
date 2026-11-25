@@ -4,8 +4,8 @@ services:
     name: forkcast-fpl
     runtime: node
     plan: free
-    autoDeployTrigger: "off"
-    buildCommand: "true"
+    autoDeployTrigger: 'off'
+    buildCommand: 'true'
     startCommand: node redirect.js
     healthCheckPath: /__ping
   - type: web
@@ -17,7 +17,7 @@ services:
         - forwarder.js
         - package.json
         - render.yaml
-    buildCommand: "true"
+    buildCommand: 'true'
     startCommand: node forwarder.js
     healthCheckPath: /__ping
     envVars:

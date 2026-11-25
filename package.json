@@ -2,6 +2,20 @@
   "name": "forkcast-link",
   "private": true,
   "description": "Forkcast's fixed address: a forwarder to the laptop's current tunnel",
-  "engines": { "node": ">=18" },
-  "scripts": { "start": "node forwarder.js" }
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node forwarder.js",
+    "check:types": "tsc --project tsconfig.json",
+    "check:lint": "biome lint --error-on-warnings forwarder.js redirect.js",
+    "check:format": "prettier --check forwarder.js redirect.js render.yaml .github/workflows/*.yml package.json tsconfig.json",
+    "check": "npm run check:types && npm run check:lint && npm run check:format"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.4",
+    "@types/node": "26.1.0",
+    "prettier": "3.6.2",
+    "typescript": "5.9.3"
+  }
 }

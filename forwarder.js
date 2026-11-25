@@ -27,7 +27,7 @@ const zlib = require('node:zlib');
 const PORT = Number(process.env.PORT || 10000);
 const TARGET_SOURCE = process.env.TARGET_SOURCE || 'https://raw.githubusercontent.com/klimmm/forkcast/main/target.txt';
 const TARGET_TTL_MS = 60_000;
-const RETRY_GAP_MS = 5_000;  // the least time between two forced re-reads after a failure
+const RETRY_GAP_MS = 5_000; // the least time between two forced re-reads after a failure
 // hop-by-hop headers (RFC 9110 7.6.1) are this connection's, never forwarded
 const HOP = new Set(['connection', 'keep-alive', 'proxy-connection', 'transfer-encoding', 'te', 'trailer', 'upgrade']);
 
@@ -35,7 +35,7 @@ const HOP = new Set(['connection', 'keep-alive', 'proxy-connection', 'transfer-e
 // fallback without it
 const PINNED = Boolean(process.env.TARGET_URL);
 const PUSH_TOKEN = process.env.PUSH_TOKEN || '';
-let target = PINNED ? new URL(process.env.TARGET_URL) : null;  // URL of the tunnel's origin
+let target = PINNED ? new URL(process.env.TARGET_URL) : null; // URL of the tunnel's origin
 let readAt = 0;
 let forcedAt = 0;
 
@@ -63,7 +63,9 @@ async function readTarget(force = false) {
 // for a minute after the tunnel reconnected under the same name, with the server up, cause unseen)
 const ERRORS = [];
 function noteError(req, to, what, retried) {
-  ERRORS.push(`${new Date().toISOString()} ${req.method} ${req.url} -> ${to.host}: ${what}${retried ? ' (retry, fresh connection)' : ''}`);
+  ERRORS.push(
+    `${new Date().toISOString()} ${req.method} ${req.url} -> ${to.host}: ${what}${retried ? ' (retry, fresh connection)' : ''}`,
+  );
   if (ERRORS.length > 50) ERRORS.shift();
 }
 
@@ -98,15 +100,21 @@ const RESUMES = 30;
 // own URL (the laptop's stamped page asks `?v=<its sha1's first 10>`, stamp_static.py) kept a year, IMMUTABLE (owner,
 // 2026-11-12, "find why 429 and fix": every open re-asked its scripts, and Render's free plan refuses past a rate).
 const STATIC_DIR = path.join(__dirname, 'static');
-const APP_STATIC = /^\/(?:m\/.*|js\/m\/.+|js\/plan\/.+|js\/ui\.js|js\/api\.js|js\/vendor\/qr\.js|css\/app\.css|css\/m\.css|css\/m-[a-z0-9-]+\.css|css\/views\/plan-pitch\.css)$/i;
+const APP_STATIC =
+  /^\/(?:m\/.*|js\/m\/.+|js\/plan\/.+|js\/ui\.js|js\/api\.js|js\/vendor\/qr\.js|css\/app\.css|css\/m\.css|css\/m-[a-z0-9-]+\.css|css\/views\/plan-pitch\.css)$/i;
 const TYPES = {
-  '.js': 'application/javascript; charset=utf-8', '.mjs': 'application/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
-  '.html': 'text/html; charset=utf-8', '.json': 'application/json; charset=utf-8', '.webmanifest': 'application/manifest+json; charset=utf-8',
-  '.svg': 'image/svg+xml', '.png': 'image/png',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
 };
-const GZIP_TYPES = /^(?:text\/|application\/json|application\/javascript|image\/svg\+xml)/;  // the laptop's server.GZIP_TYPES
+const GZIP_TYPES = /^(?:text\/|application\/json|application\/javascript|image\/svg\+xml)/; // the laptop's server.GZIP_TYPES
 const META_MS = 15_000;
-const IMMUTABLE = 'public, max-age=31536000, immutable';  // (the laptop's server.IMMUTABLE)
+const IMMUTABLE = 'public, max-age=31536000, immutable'; // (the laptop's server.IMMUTABLE)
 let laptop = null;
 
 // static/ read once at start: url path -> {body, gz, type, etag}; a directory's index.html also under its own path
@@ -121,14 +129,19 @@ function loadStatic() {
   const walk = (dir) => {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       const p = path.join(dir, e.name);
-      if (e.isDirectory()) { walk(p); continue; }
-      const url = '/' + path.relative(STATIC_DIR, p).split(path.sep).join('/');
+      if (e.isDirectory()) {
+        walk(p);
+        continue;
+      }
+      const url = `/${path.relative(STATIC_DIR, p).split(path.sep).join('/')}`;
       const type = TYPES[path.extname(p).toLowerCase()];
       if (!type || !APP_STATIC.test(url) || /\.test\.mjs$/i.test(url)) continue;
       const body = fs.readFileSync(p);
       const sha = crypto.createHash('sha1').update(body).digest('hex');
       const f = {
-        body, type, v: sha.slice(0, 10),
+        body,
+        type,
+        v: sha.slice(0, 10),
         gz: GZIP_TYPES.test(type) && body.length >= 1024 ? zlib.gzipSync(body, { level: 6 }) : null,
         etag: `W/"${sha.slice(0, 16)}"`,
       };
@@ -142,7 +155,10 @@ function loadStatic() {
 const STATIC = loadStatic();
 
 // gzip accepted unless its q is 0 (the laptop's server.gzipped)
-const gzipOk = (accept) => (accept || '').split(',').some((e) => e.split(';')[0].trim().toLowerCase() === 'gzip' && !/;\s*q=0(\.0*)?\s*$/.test(e.trim()));
+const gzipOk = (accept) =>
+  (accept || '')
+    .split(',')
+    .some((e) => e.split(';')[0].trim().toLowerCase() === 'gzip' && !/;\s*q=0(\.0*)?\s*$/.test(e.trim()));
 
 // req answered from static/ (true), or left to the laptop (false)
 function local(req, res) {
@@ -152,8 +168,11 @@ function local(req, res) {
   const f = STATIC.files.get(where);
   if (!f) return false;
   const headers = {
-    'cache-control': new URLSearchParams(query).get('v') === f.v ? IMMUTABLE : 'no-cache', etag: f.etag, 'x-forkcast-release': STATIC.release,
-    'x-frame-options': 'SAMEORIGIN', 'content-security-policy': "frame-ancestors 'self'",
+    'cache-control': new URLSearchParams(query).get('v') === f.v ? IMMUTABLE : 'no-cache',
+    etag: f.etag,
+    'x-forkcast-release': STATIC.release,
+    'x-frame-options': 'SAMEORIGIN',
+    'content-security-policy': "frame-ancestors 'self'",
     ...(f.gz ? { vary: 'Accept-Encoding' } : {}),
   };
   if ((req.headers['if-none-match'] || '').split(',').some((t) => t.trim() === f.etag)) {
@@ -175,7 +194,13 @@ function local(req, res) {
 const KEPT = new Map();
 const KEPT_MAX = 4;
 function keep(req, r, buf) {
-  if (req.method !== 'GET' || r.statusCode !== 200 || !req.url.startsWith('/api/') || !/\bimmutable\b/.test(r.headers['cache-control'] || '')) return;
+  if (
+    req.method !== 'GET' ||
+    r.statusCode !== 200 ||
+    !req.url.startsWith('/api/') ||
+    !/\bimmutable\b/.test(r.headers['cache-control'] || '')
+  )
+    return;
   const headers = {};
   for (const [k, v] of Object.entries(r.headers)) if (!HOP.has(k)) headers[k] = v;
   KEPT.delete(req.url);
@@ -201,7 +226,8 @@ function fromKept(req, res) {
 // the laptop's release, from an answer it gave
 function noteRelease(r) {
   // a server.py answer (2xx/3xx, not a tunnel's 502/504/530) without it: the tree's own front end, nothing served here
-  if (r.statusCode >= 200 && r.statusCode < 400) laptop = r.headers['x-forkcast-release'] ? String(r.headers['x-forkcast-release']) : null;
+  if (r.statusCode >= 200 && r.statusCode < 400)
+    laptop = r.headers['x-forkcast-release'] ? String(r.headers['x-forkcast-release']) : null;
 }
 
 // its /api/meta every META_MS while static/ holds a release: a release change on the laptop is seen within META_MS
@@ -210,10 +236,20 @@ function watchLaptop() {
   const tick = async () => {
     const to = await readTarget();
     if (to) {
-      const q = https.request({ host: to.hostname, port: Number(to.port) || 443, path: '/api/meta', method: 'GET', servername: to.hostname, headers: { host: to.host } }, (r) => {
-        noteRelease(r);
-        r.resume();
-      });
+      const q = https.request(
+        {
+          host: to.hostname,
+          port: Number(to.port) || 443,
+          path: '/api/meta',
+          method: 'GET',
+          servername: to.hostname,
+          headers: { host: to.host },
+        },
+        (r) => {
+          noteRelease(r);
+          r.resume();
+        },
+      );
       q.setTimeout(10_000, () => q.destroy());
       q.on('error', () => {});
       q.end();
@@ -235,8 +271,18 @@ const VISITOR_LOG_N = 40;
 let visitorLogged = 0;
 // (a private or local address is a hop inside Render, never the visitor: its proxies' own are 10.x, each request
 // another; 2026-11-03)
-const PRIVATE = [/^10\./, /^127\./, /^192\.168\./, /^172\.(1[6-9]|2\d|3[01])\./, /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./, /^169\.254\./,
-  /^::1$/, /^f[cd]/i, /^fe[89ab]/i, /^::ffff:(10|127)\./i];
+const PRIVATE = [
+  /^10\./,
+  /^127\./,
+  /^192\.168\./,
+  /^172\.(1[6-9]|2\d|3[01])\./,
+  /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./,
+  /^169\.254\./,
+  /^::1$/,
+  /^f[cd]/i,
+  /^fe[89ab]/i,
+  /^::ffff:(10|127)\./i,
+];
 const isPublic = (ip) => !!ip && !PRIVATE.some((rx) => rx.test(ip));
 function visitorHeaders(req) {
   const xff = String(req.headers['x-forwarded-for'] || '');
@@ -248,7 +294,9 @@ function visitorHeaders(req) {
   if (!ip) return {};
   if (visitorLogged < VISITOR_LOG_N) {
     visitorLogged++;
-    console.log(`visitor ${ip} (x-forwarded-for "${xff}", true-client-ip "${req.headers['true-client-ip'] || ''}", cf-connecting-ip "${req.headers['cf-connecting-ip'] || ''}", peer ${req.socket.remoteAddress})`);
+    console.log(
+      `visitor ${ip} (x-forwarded-for "${xff}", true-client-ip "${req.headers['true-client-ip'] || ''}", cf-connecting-ip "${req.headers['cf-connecting-ip'] || ''}", peer ${req.socket.remoteAddress})`,
+    );
   }
   return { 'x-forkcast-visitor': ip };
 }
@@ -257,9 +305,11 @@ function visitorHeaders(req) {
 // tries made before this one.
 // `part`: the stalled answer's bytes so far, its rest asked here ({r: its 200 answer, etag, len, chunks, got, resumes}).
 function forward(req, res, body, to, attempt = 0, part = null) {
+  /** @type {import('node:http').OutgoingHttpHeaders} */
   const headers = {};
   // (a visitor's own x-forkcast-visitor* never passes: only this forwarder's, visitorHeaders)
-  for (const [k, v] of Object.entries(req.headers)) if (!HOP.has(k) && !k.startsWith('x-forkcast-visitor')) headers[k] = v;
+  for (const [k, v] of Object.entries(req.headers))
+    if (!HOP.has(k) && !k.startsWith('x-forkcast-visitor')) headers[k] = v;
   const own = `https://${req.headers.host}`;
   headers.host = to.host;
   if (req.headers.origin && req.headers.origin.toLowerCase() === own.toLowerCase()) headers.origin = to.origin;
@@ -270,7 +320,15 @@ function forward(req, res, body, to, attempt = 0, part = null) {
     headers.range = `bytes=${part.got}-`;
     headers['if-range'] = part.etag;
   }
-  const opts = { host: to.hostname, port: Number(to.port) || 443, method: req.method, path: req.url, headers, servername: to.hostname };
+  /** @type {import('node:https').RequestOptions} */
+  const opts = {
+    host: to.hostname,
+    port: Number(to.port) || 443,
+    method: req.method,
+    path: req.url,
+    headers,
+    servername: to.hostname,
+  };
   if (attempt || part) opts.agent = false;
   const read = req.method === 'GET' || req.method === 'HEAD';
   const tries = read ? TRIES : 2;
@@ -283,41 +341,66 @@ function forward(req, res, body, to, attempt = 0, part = null) {
     noteError(req, to, what + (part ? ` (resumed from ${part.got} B)` : ''), attempt > 0 || !!part);
     r?.destroy();
     up.destroy();
-    if (res.headersSent || res.destroyed) return res.destroy();  // the answer had begun: cut it, the browser sees a broken response
+    if (res.headersSent || res.destroyed) return res.destroy(); // the answer had begun: cut it, the browser sees a broken response
     const gained = next && next.got > (part?.got ?? 0) && next.resumes <= RESUMES;
     const tries2 = gained ? attempt : attempt + 1;
-    if (again && tries2 < tries) return forward(req, res, body, (await readTarget(true)) || to, tries2, next && next.resumes <= RESUMES ? next : null);
+    if (again && tries2 < tries)
+      return forward(
+        req,
+        res,
+        body,
+        (await readTarget(true)) || to,
+        tries2,
+        next && next.resumes <= RESUMES ? next : null,
+      );
     res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
     res.end(`Forkcast is not reachable right now (${what}). Try again in a minute.`);
   };
   const up = https.request(opts, (r) => {
     if (over) return r.destroy();
     // Cloudflare's 530 (error 1033, the tunnel is gone), 502/504 (localhost.run's "no tunnel"): asked again
-    if ([502, 504, 530].includes(r.statusCode) && attempt + 1 < tries) return fail(`HTTP ${r.statusCode}`, up, r, true, part);
+    if ([502, 504, 530].includes(r.statusCode) && attempt + 1 < tries)
+      return fail(`HTTP ${r.statusCode}`, up, r, true, part);
     if (part && r.statusCode === 206) {
       // the rest of `part`: exactly the bytes from part.got to its end, of the same answer (its ETag), else from byte 0
       const m = /^bytes (\d+)-(\d+)\/(\d+)$/.exec(r.headers['content-range'] || '');
       const rest = part.len - part.got;
-      if (!m || Number(m[1]) !== part.got || Number(m[2]) !== part.len - 1 || Number(m[3]) !== part.len
-        || Number(r.headers['content-length']) !== rest || (r.headers.etag && r.headers.etag !== part.etag)) {
+      if (
+        !m ||
+        Number(m[1]) !== part.got ||
+        Number(m[2]) !== part.len - 1 ||
+        Number(m[3]) !== part.len ||
+        Number(r.headers['content-length']) !== rest ||
+        (r.headers.etag && r.headers.etag !== part.etag)
+      ) {
         return fail(`a range not asked: ${r.headers['content-range']}`, up, r);
       }
-      return whole(r, rest, (what, got, chunks) => fail(what, up, r, true, resumable(req, r, got, chunks, part)), (buf) => {
-        over = true;
-        const all = Buffer.concat([...part.chunks, buf], part.len);
-        keep(req, part.r, all);
-        relay(part.r, res, own, to, all);
-      });
+      return whole(
+        r,
+        rest,
+        (what, got, chunks) => fail(what, up, r, true, resumable(req, r, got, chunks, part)),
+        (buf) => {
+          over = true;
+          const all = Buffer.concat([...part.chunks, buf], part.len);
+          keep(req, part.r, all);
+          relay(part.r, res, own, to, all);
+        },
+      );
     }
     // asked for the rest, answered neither the rest nor the whole: from byte 0
     if (part && r.statusCode !== 200) return fail(`HTTP ${r.statusCode} to a range`, up, r);
     const len = Number(r.headers['content-length']);
     if (read && Number.isInteger(len) && len <= BUFFER_MAX) {
-      return whole(r, req.method === 'HEAD' ? 0 : len, (what, got, chunks) => fail(what, up, r, true, resumable(req, r, got, chunks)), (buf) => {
-        over = true;
-        keep(req, r, buf);
-        relay(r, res, own, to, buf);
-      });
+      return whole(
+        r,
+        req.method === 'HEAD' ? 0 : len,
+        (what, got, chunks) => fail(what, up, r, true, resumable(req, r, got, chunks)),
+        (buf) => {
+          over = true;
+          keep(req, r, buf);
+          relay(r, res, own, to, buf);
+        },
+      );
     }
     over = true;
     relay(r, res, own, to);
@@ -329,7 +412,7 @@ function forward(req, res, body, to, attempt = 0, part = null) {
     up.destroy();
   });
   up.setTimeout(HEAD_MS, () => fail(`no answer in ${HEAD_MS / 1000} s`, up, null, read, part));
-  up.on('error', (e) => fail(e.code || e.message, up, null, true, part));
+  up.on('error', (e) => fail(('code' in e && e.code) || e.message, up, null, true, part));
   up.end(body);
 }
 
@@ -384,7 +467,7 @@ function relay(r, res, own, to, buf = null) {
   const headers = {};
   for (const [k, v] of Object.entries(r.headers)) if (!HOP.has(k)) headers[k] = v;
   // a redirect to the tunnel's own name comes back under this service's
-  if (headers.location && headers.location.startsWith(to.origin)) headers.location = own + headers.location.slice(to.origin.length);
+  if (headers.location?.startsWith(to.origin)) headers.location = own + headers.location.slice(to.origin.length);
   res.writeHead(r.statusCode, headers);
   if (buf) return res.end(buf);
   r.setTimeout(STALL_MS, () => {
@@ -417,43 +500,49 @@ function pushTarget(req, res, body) {
   res.end();
 }
 
-http.createServer((req, res) => {
-  if (req.url === '/__errors') {
-    res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
-    return res.end(ERRORS.join('\n') + '\n');
-  }
-  // which forwarder runs (a deploy checked from outside, no laptop involved)
-  if (req.url === '/__version') {
-    res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
-    return res.end(`stall-resume 2026-10-26, immutable 2026-11-12, kept api ${KEPT.size}; static ${STATIC.release || '-'} (${STATIC.files.size} files); laptop ${laptop || '-'}\n`);
-  }
-  if (req.url === '/__ping') {
-    res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
-    return res.end(target ? `ok ${target.host}` : 'ok');
-  }
-  const chunks = [];
-  req.on('data', (c) => chunks.push(c));
-  req.on('end', async () => {
-    // a throw here answers 502, never ends the process (the live site; the review, 2026-10-23: one request took it down)
-    try {
-      if (req.url === '/__target' && req.method === 'POST') return pushTarget(req, res, Buffer.concat(chunks));
-      if (local(req, res) || fromKept(req, res)) return;
-      const to = await readTarget();
-      if (!to) {
-        res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
-        return res.end('Forkcast is starting: no address yet. Try again in a minute.');
-      }
-      forward(req, res, Buffer.concat(chunks), to, 0);
-    } catch (e) {
-      console.error(`request ${req.method} ${req.url}: ${e.stack || e}`);
-      if (!res.headersSent) {
-        res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
-        res.end('Forkcast hit an error passing this on. Try again.');
-      } else res.destroy();
+http
+  .createServer((req, res) => {
+    if (req.url === '/__errors') {
+      res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
+      return res.end(`${ERRORS.join('\n')}\n`);
     }
+    // which forwarder runs (a deploy checked from outside, no laptop involved)
+    if (req.url === '/__version') {
+      res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
+      return res.end(
+        `stall-resume 2026-10-26, immutable 2026-11-12, kept api ${KEPT.size}; static ${STATIC.release || '-'} (${STATIC.files.size} files); laptop ${laptop || '-'}\n`,
+      );
+    }
+    if (req.url === '/__ping') {
+      res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
+      return res.end(target ? `ok ${target.host}` : 'ok');
+    }
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', async () => {
+      // a throw here answers 502, never ends the process (the live site; the review, 2026-10-23: one request took it down)
+      try {
+        if (req.url === '/__target' && req.method === 'POST') return pushTarget(req, res, Buffer.concat(chunks));
+        if (local(req, res) || fromKept(req, res)) return;
+        const to = await readTarget();
+        if (!to) {
+          res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
+          return res.end('Forkcast is starting: no address yet. Try again in a minute.');
+        }
+        forward(req, res, Buffer.concat(chunks), to, 0);
+      } catch (e) {
+        console.error(`request ${req.method} ${req.url}: ${e.stack || e}`);
+        if (!res.headersSent) {
+          res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
+          res.end('Forkcast hit an error passing this on. Try again.');
+        } else res.destroy();
+      }
+    });
+  })
+  .listen(PORT, () => {
+    console.log(
+      `forwarder on :${PORT}, target ${PINNED ? `${target.origin} (TARGET_URL)` : `from ${TARGET_SOURCE}`}, static ${STATIC.release || 'none'} (${STATIC.files.size} files)`,
+    );
+    readTarget(true);
+    watchLaptop();
   });
-}).listen(PORT, () => {
-  console.log(`forwarder on :${PORT}, target ${PINNED ? target.origin + ' (TARGET_URL)' : 'from ' + TARGET_SOURCE}, static ${STATIC.release || 'none'} (${STATIC.files.size} files)`);
-  readTarget(true);
-  watchLaptop();
-});

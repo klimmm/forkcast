@@ -1,0 +1,29 @@
+name: Check Forkcast deployment
+
+on:
+  pull_request:
+  push:
+    paths:
+      - 'forwarder.js'
+      - 'redirect.js'
+      - 'render.yaml'
+      - 'package*.json'
+      - 'tsconfig.json'
+      - '.prettierrc.json'
+      - '.github/workflows/*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
