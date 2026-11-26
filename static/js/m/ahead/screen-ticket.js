@@ -6,6 +6,7 @@ import { h, fill, fmt, plural, reduceMotion, chipName, xpGain, xpNum } from '../
 import { CHIPS_OFF, COPY, shownDelta } from '../calls.js';
 import { MINUS, pairAsPlaced, plan, viewOfRoadWeek, weekOf } from './core.js';
 import { forkRead } from './plans/forks.js';
+import { planBack } from './plans/lit.js';
 import {
   cardGain,
   forecastGain,
@@ -47,7 +48,7 @@ const lineRow = (words, right = null, data = null) =>
     right ? [' ', h('span.ah-tkr.m-num', null, right)] : null,
   );
 /** The combined comparison line's explanation, kept in a sheet so the ticket itself remains one line. */
-function comparisonInfo(ctx, rounds, vs, points) {
+function comparisonInfo(ctx, rounds, vs, points, alternatives) {
   const period = rounds === 1 ? 'next week' : `next ${rounds} weeks`;
   const signed = fmt.signed(points);
   const baseline =
@@ -71,13 +72,14 @@ function comparisonInfo(ctx, rounds, vs, points) {
             null,
             `This is the difference over the ${period} between making this transfer and ${baseline}. Transfer costs are included.`,
           ),
+          ...(alternatives?.() ?? []),
         ),
       ),
   });
 }
 
 /** Forecast change over the stated weeks, with its comparison plan named beside it. */
-function moveLine(ctx, gain, forced, rounds, vs, decision = false, points = null) {
+function moveLine(ctx, gain, forced, rounds, vs, decision = false, points = null, alternatives = null) {
   // (a loss in the muted ink, never the gain's blue: books review 2026-11-08; "−0.0" and "0.0" are no loss)
   const signed = fmt.signed(gain),
     cls = `span.ah-tkcount${signed.startsWith(MINUS) ? '.neg' : ''}`;
@@ -93,7 +95,7 @@ function moveLine(ctx, gain, forced, rounds, vs, decision = false, points = null
               type: 'button',
               'aria-label': 'Explain xP',
               'aria-haspopup': 'dialog',
-              onClick: () => comparisonInfo(ctx, rounds, vs, points),
+              onClick: () => comparisonInfo(ctx, rounds, vs, points, alternatives),
             },
             'i',
           ),
@@ -652,6 +654,34 @@ export function ticketPart(V) {
       after = result.preview ?? (own ? viewOfRoadWeek(own, P.L) : null) ?? (moves.length ? inPlaces(w, moves) : null);
       title = withMine(moves.length ? movesTitle(ctx, P, g, pairAsPlaced(w, after, P.L.pos, moves)) : fallback);
       diagnosticComparison = { gain: pts, rounds, vs };
+      const alternatives =
+        moves.length < 2 || who
+          ? null
+          : () =>
+              (M?.plans ?? []).flatMap((single) => {
+                if (single.state !== 'ready' || single.refRow || Object.keys(single.choice.chips ?? {}).length)
+                  return [];
+                const { adds, taken } = planBack(P, g, single);
+                const [move] = adds;
+                if (adds.length !== 1 || taken.length || !moves.some((m) => m.out === move.out && m.in === move.in))
+                  return [];
+                return [
+                  h(
+                    'p',
+                    null,
+                    h(
+                      'button.ah-rsbtn',
+                      {
+                        type: 'button',
+                        onClick: () => V.weekSheet(g, move.out, V.planKey(g, single)),
+                      },
+                      `${movesWords(P, adds)} only`,
+                    ),
+                    ' ',
+                    xpGain(shownDelta(single.cmp)),
+                  ),
+                ];
+              });
       const gain =
         pts == null
           ? lineRow(COPY.vsNext(rounds, vs), '…')
@@ -663,6 +693,7 @@ export function ticketPart(V) {
               vs,
               !!result.decision,
               displayPts,
+              alternatives,
             );
       if (notice) gain.querySelector('.ah-tkl').append(' ', notice);
       line = withCompare(gain, moves.length === 1 ? moves[0] : null);
@@ -773,12 +804,14 @@ export function ticketPart(V) {
       const inf = failed === 'infeasible';
       if (yours.length) {
         made();
-        line = inf ? COPY.infeasible(g) : COPY.unfinished;
       } else {
         title = withMine(inf ? COPY.noPlan(g) : '');
-        line = inf ? COPY.unchanged : COPY.unfinished;
         right = onward;
       }
+      line = withCompare(
+        inf ? (yours.length ? COPY.infeasible(g) : COPY.unchanged) : COPY.unfinished,
+        yours.length === 1 ? yours[0] : null,
+      );
     } else if (freeLeft && asked && ans && !short && !solving) {
       // (asked on top of yours, the solver adding none: the save of the free transfers left)
       noTransferAnswer();

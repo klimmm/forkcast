@@ -689,7 +689,7 @@ function model(ctx, P, row, id, card, state, local = null, vs = null, vsCard = n
     gw: g,
     xp: ctx.pitch.xpAt(row, g, d.xpGws),
     rank: xpRank(ctx, pos, ctx.pitch.xpAt(row, g, d.xpGws), g),
-    runs: local && !ctx.pitch.ruledOutAt(row, g, d.xpGws) ? runsOf(id, g) : [],
+    runs: local ? runsOf(id, g) : [],
     fx: ctx.pitch.fixturesAt(row, g, d.xpGws) ?? [],
     inPlan: !!weekOf(P, g),
   }));

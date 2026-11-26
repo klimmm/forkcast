@@ -33,8 +33,7 @@ export function gwIndex(gw, horizon) {
 /** A player's xPts for `gw` (null when unknown). */
 export function xpAt(p, gw, horizon) {
   const v = p?.xp?.[gwIndex(gw, horizon)];
-  if (!fin(v)) return null;
-  return ruledOutAt(p, gw, horizon) ? 0 : Number(v);
+  return fin(v) ? Number(v) : null;
 }
 
 /**
@@ -348,19 +347,10 @@ export function availabilityTone(p) {
   if (st.tone === 'warn') return 'amber';
   return null;
 }
-export function availabilityChance(p) {
-  const st = statusInfo(p?.status, p?.chance);
-  return st.chance ?? (st.tone === 'bad' ? 0 : null);
-}
-
-/** A 0% flag applies until the player's dated suspension clears for the selected GW. */
-export function ruledOutAt(p, gw, horizon) {
-  return availabilityChance(p) === 0 && availabilityAt(p, gw, horizon) != null;
-}
-
 /** The flag's words on the card: FPL's chance ("75%"; "0%" for one out with no chance given), '' when unknown. */
 const chanceText = (p) => {
-  const c = availabilityChance(p);
+  const st = statusInfo(p?.status, p?.chance);
+  const c = st.chance ?? (st.tone === 'bad' ? 0 : null);
   return c == null ? '' : `${c}%`;
 };
 // WhoScored's preview of the next deadline's GW (ws_preview: O out, D / DS doubtful, B bench) is spoken on the card

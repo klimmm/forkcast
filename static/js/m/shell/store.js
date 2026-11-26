@@ -89,17 +89,12 @@ export function derive(b, receivedAt) {
   const m = b.meta || {};
   const cols = calls.shownPlayers(b);
   const fields = cols?.fields || [];
+  const rows = (cols?.rows || []).map((r) => Object.fromEntries(fields.map((f, i) => [f, r[i]])));
+  const byId = new Map(rows.map((r) => [Number(r.id), r]));
   const gw = Number(m.gw);
   const horizon = horizonOf(m),
     reach = reachOf(m);
   const xpGws = range(gw, Number(m.forecast_edge ?? reach[reach.length - 1]));
-  const rows = (cols?.rows || []).map((r) => {
-    const player = Object.fromEntries(fields.map((f, i) => [f, r[i]]));
-    if (Array.isArray(player.xp) && pitch.availabilityChance(player) === 0)
-      player.xp = player.xp.map((_, i) => pitch.xpAt(player, gw + i, gw));
-    return player;
-  });
-  const byId = new Map(rows.map((r) => [Number(r.id), r]));
   const e = b.entry || {};
   const squad = (e.squad || []).map((s) => ({ ...byId.get(Number(s.id)), ...s, id: Number(s.id) }));
   const base = {
