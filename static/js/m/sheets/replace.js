@@ -2,7 +2,7 @@
 // GW…: open(ctx, outId, gw). Every row is scored on the phone at once (the swap from GW g on, best XI each week but a
 // lineup you saved: ahead.takenBy); one tap makes a row the plan (the shirt changes on Ahead, the heal solve confirms
 // it, the verdict toast has Undo); under the hold the week keeps the rest of its squad and takes that one buy only
-// (memory.holdOf). "Let Forkcast choose" saves the sale and leaves the replacement to the planner. Selling a
+// (memory.holdOf). "Show suggestion" previews the planner's replacement before the user adds it. Selling a
 // player you asked to keep, or in a GW you roll, goes at once, the verdict naming the Keep or Roll it takes back
 // (ahead.sellOut). A row needing a −4 says so, or, when GW g has other suggested moves, that the full plan may drop one
 // instead; a player your rules keep out (a veto, Never) is blocked as "your rule". A row he can't afford is made as it
@@ -34,6 +34,7 @@ import {
   presolveTaps,
 } from '../ahead.js';
 import { weekPills, sortsOf, orderOf, sortChips, barTop, bars, ownWeeks, who, found, SORTS } from './buylist.js';
+import { requestSaleSuggestion, saleSuggestionTap } from '../ahead/presolve.js';
 
 const CAP = 30;
 /** Hits the estimate takes from GW g on. */
@@ -104,8 +105,8 @@ export function open(ctx, rawOut, rawGw) {
       const pills = h('div.ah-pills', { role: 'group', 'aria-label': 'From gameweek' });
       const auto = h(
         'button.m-secondary.rs-auto',
-        { type: 'button', 'aria-description': COPY.autoBuy, onClick: () => sell(null) },
-        'Let Forkcast choose',
+        { type: 'button', 'aria-description': COPY.autoBuy, onClick: showSuggestion },
+        COPY.showSuggestion,
       );
       // the names FPL writes are mostly surnames (a first name finds no one)
       const input = h('input', {
@@ -246,11 +247,14 @@ export function open(ctx, rawOut, rawGw) {
           presolveTaps(
             ctx,
             [
-              ...[null, ...shown.filter((o) => !o.blocked).map((o) => o.id)].map((inn) => ({
-                kind: 'sell',
-                gw: g,
-                run: () => sellOut(ctx, g, out, inn),
-              })),
+              () => saleSuggestionTap(ctx, P, g, out),
+              ...shown
+                .filter((o) => !o.blocked)
+                .map(({ id: inn }) => ({
+                  kind: 'sell',
+                  gw: g,
+                  run: () => sellOut(ctx, g, out, inn),
+                })),
               ...shown
                 .filter((o) => o.code === 'budget')
                 .map((o) => ({
@@ -265,6 +269,13 @@ export function open(ctx, rawOut, rawGw) {
             { gw: g, sig: `${g}|${st.sort}|${st.flip}|${q}`, owner: sheet },
           );
         }
+      }
+
+      function showSuggestion() {
+        const g = st.g;
+        sheet.close();
+        ctx.navigate('ahead', { gw: g }, { replace: true, top: true });
+        requestSaleSuggestion(ctx, g, out);
       }
 
       function pick(o) {

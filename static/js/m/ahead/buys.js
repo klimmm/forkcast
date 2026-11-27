@@ -30,6 +30,7 @@ import {
   problemText,
   problemsOf,
   removedBy,
+  sameView,
   setLineups,
   solveFor,
   squadBefore,
@@ -305,15 +306,21 @@ const tookBy = (p, taken) => (taken.length ? { ...p, took: taken.map((q) => stru
 const teamKey = (P) => `${P.entry}|${P.A}`;
 export const choosing = (ctx, P, g = null) => {
   const b = ctx.store.get('bringing');
-  return b && P && b.team === teamKey(P) && (g == null || b.g === g) ? b : null;
+  return b && P && b.team === teamKey(P) && (!b.P || sameView(b.P, P)) && (g == null || b.g === g) ? b : null;
 };
 export function pitchChoice(ctx, P, g = null) {
   const pick = choosing(ctx, P, g);
-  return pick?.bp || pick?.pending ? null : pick;
+  return pick?.kind === 'sell' || pick?.bp || pick?.pending ? null : pick;
 }
-export function previousPurchase(ctx, pick) {
-  if (pick.previous && choosing(ctx, plan(ctx)) === pick) ctx.store.set('bringing', pick.previous);
+export function setChoice(ctx, P, choice) {
+  const pick = { ...choice, team: teamKey(P) };
+  ctx.store.set('bringing', pick);
+  return pick;
 }
+export function previousChoice(ctx, pick) {
+  if (choosing(ctx, plan(ctx)) === pick) ctx.store.set('bringing', pick.previous ?? null);
+}
+export const choiceCanReset = (pick) => !!pick && (pick.kind === 'sell' || !!pick.previous);
 export const stopChoosing = (ctx) => ctx.store.set('bringing', null);
 /** Who player `id` can replace in GW g: every sale of his position but one the club limit stops, `short` what the money
  *  lacks (saleBuy makes it all the same). → [{out, short}] */
@@ -334,7 +341,7 @@ export const canChooseSub = (ctx, P, id, g) =>
 export function chooseSub(ctx, id, g) {
   const P = plan(ctx);
   if (!canChooseSub(ctx, P, id, g)) return false;
-  ctx.store.set('bringing', { kind: 'sub', id: Number(id), g, team: teamKey(P) });
+  setChoice(ctx, P, { kind: 'sub', id: Number(id), g });
   return true;
 }
 /** His + on the Bring in list: the pitch asks who he replaces; a Wildcard or Free Hit week has no sale to choose, him in
@@ -350,7 +357,7 @@ export function chooseOnPitch(ctx, id, g) {
     sayBuyProblem(ctx, P, id, buyPlan(ctx, id, g), 'info');
     return false;
   }
-  ctx.store.set('bringing', { id: Number(id), g, team: teamKey(P) });
+  setChoice(ctx, P, { id: Number(id), g });
   return true;
 }
 /** Preview the solver's purchase without editing the plan. Ignore a late result after a cancel or another pick. */
@@ -366,8 +373,7 @@ export async function suggestPurchase(ctx, pick) {
       }),
     );
   }
-  const pending = { ...pick, previous: pick, pending: true, error: null };
-  ctx.store.set('bringing', pending);
+  const pending = setChoice(ctx, P, { ...pick, previous: pick, pending: true, error: null });
   let bp = null,
     exhausted = false;
   /** @type {string} */
@@ -388,7 +394,7 @@ export async function suggestPurchase(ctx, pick) {
     /* Keep manual selection and retry available. */
   }
   if (choosing(ctx, plan(ctx)) === pending)
-    ctx.store.set('bringing', {
+    setChoice(ctx, P, {
       ...pick,
       previous: bp ? pick : pick.previous,
       bp: bp ?? pick.bp,

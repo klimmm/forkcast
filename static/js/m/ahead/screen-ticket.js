@@ -8,6 +8,8 @@ import { MINUS, pairAsPlaced, plan, viewOfRoadWeek, weekOf } from './core.js';
 import { forkRead } from './plans/forks.js';
 import { planBack } from './plans/lit.js';
 import {
+  addPlan,
+  requestSaleSuggestion,
   cardGain,
   forecastGain,
   swapForecast,
@@ -28,7 +30,7 @@ import {
 } from './presolve.js';
 import {
   choosing,
-  previousPurchase,
+  previousChoice,
   purchaseOffer,
   suggestPurchase,
   placedAt,
@@ -410,6 +412,7 @@ export function ticketPart(V) {
     // did; the left button where the card has nothing else there, a word beside Reset all weeks where it does (owner,
     // 2026-11-05, "why no undo button")
     const who = choosing(ctx, P, g);
+    const sale = who?.kind === 'sell' ? who : null;
     let after = null;
     const refused = P.pins.filter((p) => p.kind === 'notfor' && Number(p.gw) === g).at(-1);
     const swaps = M?.sq ? 0 : w.moves.length,
@@ -598,7 +601,7 @@ export function ticketPart(V) {
       // isn't in, a tap's landing (its swap solved ahead, the later weeks filling ~0.4 s) after the usual second: owner,
       // 2026-11-12, "why when i press transfer it greys out and plan if it already solved this")
       S.cardWait = g;
-      S.cardAsk = asked && !best && !answered();
+      S.cardAsk = !!(who?.pending || (asked && !best && !answered()));
       title = withMine('');
       // (no buttons while it plans, their places kept: the greyed Show another | Swap promised a suggestion where a made or
       // a save card came; card audit 2026-11-10)
@@ -652,7 +655,41 @@ export function ticketPart(V) {
       }
       if (placed) after = inPlaces(w, [placed]);
     };
-    const constrained = purchaseOffer(ctx, P, who);
+    const showFailure = (reason, retry = null) => {
+      const inf = reason === 'infeasible';
+      if (yours.length) made();
+      else {
+        title = withMine(inf ? COPY.noPlan(g) : '');
+        right = onward;
+      }
+      line = withCompare(
+        inf ? (yours.length ? COPY.infeasible(g) : COPY.unchanged) : COPY.unfinished,
+        yours.length === 1 ? yours[0] : null,
+      );
+      if (retry) left = askLeft('tk:suggest-sale', retry);
+    };
+    const saleOffer = (() => {
+      if (!sale?.pl || sale.pending) return null;
+      const { pl } = sale;
+      clearTimeout(S.swapAsk);
+      S.swapAsk = setTimeout(() => presolveSwap(ctx, P, g, pl));
+      const { preview, pts, rounds } = swapForecast(ctx, P, g, pl);
+      return {
+        candidate: { e: planBack(P, g, pl), pl },
+        preview,
+        pts,
+        rounds,
+        vs: COPY.planVs(true),
+        another: () => requestSaleSuggestion(ctx, g, sale.out, sale),
+        exhausted: sale.exhausted,
+        notice: sale.exhausted ? COPY.noOtherPurchase : sale.error,
+        take: () => {
+          if (choosing(ctx, plan(ctx), g) !== sale) return;
+          if (addPlan(ctx, g, pl)) stopChoosing(ctx);
+        },
+      };
+    })();
+    const constrained = purchaseOffer(ctx, P, who) ?? saleOffer;
     const offerState = { current: null };
     const offer = (result) => {
       offerState.current = result;
@@ -678,7 +715,7 @@ export function ticketPart(V) {
       );
       diagnosticComparison = { gain: pts, rounds, vs };
       const alternatives =
-        moves.length < 2 || who
+        moves.length < 2 || (who && !sale)
           ? null
           : () =>
               (M?.plans ?? []).flatMap((single) => {
@@ -718,8 +755,8 @@ export function ticketPart(V) {
               displayPts,
               alternatives,
             );
-      if (notice) gain.querySelector('.ah-tkl').append(' ', notice);
       line = withCompare(gain, moves.length === 1 ? moves[0] : null);
+      if (notice) gain.after(h('p.ah-tkline', { role: 'status' }, h('span.ah-tkl', null, notice)));
       left = another ? btn('alt', COPY.showAnother, `tok:not:${g}`, another) : null;
       if (left && exhausted) left.disabled = true;
       right = btn('go', COPY.swap, `tok:best:${g}`, take);
@@ -772,6 +809,8 @@ export function ticketPart(V) {
       left = btn('alt', COPY.bringCancel, 'tk:cancel', () => stopChoosing(ctx));
     } else if (who?.pending) {
       wait();
+    } else if (sale?.failed) {
+      showFailure(sale.failed, () => requestSaleSuggestion(ctx, g, sale.out, sale));
     } else if (who && !constrained) {
       const pr = P.L.price(who.id);
       title = COPY.bringWho(P.L.name(who.id));
@@ -790,7 +829,9 @@ export function ticketPart(V) {
         ),
       );
       left = askLeft('tk:buy-suggest', () => suggestPurchase(ctx, who));
-    } else if (w.chip && (chipSquad ? w.moves.length : !asked && !showing && !constrained)) {
+    } else if (constrained) {
+      offer(constrained);
+    } else if (w.chip && (chipSquad ? w.moves.length : !asked && !showing)) {
       // Bench Boost and Triple Captain leave the same week's transfers available. Once asked, use the regular
       // transfer suggestion flow. A Free Hit or Wildcard's squad changes stay in the Week sheet.
       const cmp = chipGain(ctx, P, g);
@@ -816,25 +857,15 @@ export function ticketPart(V) {
     } else if (M?.live) {
       title = M.liveText;
       right = next ? onward : null;
-    } else if (constrained || offerable) {
-      offer(constrained ?? weekOffer());
+    } else if (offerable) {
+      offer(weekOffer());
     } else if (placed) {
       // (a bring-in tapped on the pitch, its solve out: the wait card with its green line, never the made card on the bank
       // before it; review 1, 12)
       wait();
     } else if (failed && !solving) {
       // (the ask came back without a plan: said so, never a Save the solver didn't give; your transfers' card under it)
-      const inf = failed === 'infeasible';
-      if (yours.length) {
-        made();
-      } else {
-        title = withMine(inf ? COPY.noPlan(g) : '');
-        right = onward;
-      }
-      line = withCompare(
-        inf ? (yours.length ? COPY.infeasible(g) : COPY.unchanged) : COPY.unfinished,
-        yours.length === 1 ? yours[0] : null,
-      );
+      showFailure(failed);
     } else if (freeLeft && asked && ans && !short && !solving) {
       // (asked on top of yours, the solver adding none: the save of the free transfers left)
       noTransferAnswer();
@@ -853,11 +884,11 @@ export function ticketPart(V) {
       right = next ? onward : null;
     }
     showDiagnostics(ctx, P, w, {
-      asked,
-      wanted,
+      asked: asked || !!sale,
+      wanted: wanted || !!sale,
       offerable: !!offerState.current,
       solving: who ? !!who.pending : solving,
-      failed,
+      failed: sale ? sale.failed : failed,
       short: !!short,
       freeLeft,
       refused,
@@ -876,7 +907,7 @@ export function ticketPart(V) {
         ? 'Suggestion'
         : who?.pending
           ? 'Calculating'
-          : who
+          : who && !sale
             ? 'Choosing a player'
             : M?.live
               ? 'Live week'
@@ -896,7 +927,7 @@ export function ticketPart(V) {
       if (chips) chips.textContent = COPY.playAChip;
       S.doors = { g, editable: P.editable, bring, chips };
     }
-    const doors = (who && !offerState.current) || inkAt(ctx, P, g) ? null : S.doors;
+    const doors = (who && !sale && !offerState.current) || inkAt(ctx, P, g) ? null : S.doors;
     const bring = doors?.bring ?? null,
       chips = doors?.chips ?? null;
     if (chips) chips.setAttribute('aria-label', COPY.chipsSaid(g, w.chip ?? null));
@@ -968,20 +999,23 @@ export function ticketPart(V) {
     // top of them only took the ask off, to a made card never shown (dynamics D4), with Undo transfer beside it the row
     // ran to two lines and the card grew; owner 2026-11-10)
     const bringLink = !noBring && !bringBy ? bring : null;
+    const previousSuggestion = (who?.previous || sale) && (() => previousChoice(ctx, who));
     fill(
       block.querySelector(':scope > .ah-tklinks'),
       h(
         'span.ah-tkback',
         null,
-        who
-          ? who.previous && backButton(`tk:prev:${g}`, () => previousPurchase(ctx, who))
-          : [
-              toChoice,
-              undo && (!toChoice || last) && !prev
-                ? backButton(`tk:undo:${g}`, undo, undoWords, !!onTop || (!swaps && (!!refused || shown)))
-                : null,
-              prev,
-            ],
+        previousSuggestion
+          ? backButton(`tk:prev:${g}`, previousSuggestion)
+          : who
+            ? null
+            : [
+                toChoice,
+                undo && (!toChoice || last) && !prev
+                  ? backButton(`tk:undo:${g}`, undo, undoWords, !!onTop || (!swaps && (!!refused || shown)))
+                  : null,
+                prev,
+              ],
         rsBtn,
       ),
       bringLink || chips ? h('span.ah-tkor', null, bringLink, chips) : null,

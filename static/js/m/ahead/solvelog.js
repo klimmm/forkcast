@@ -2,7 +2,7 @@
 // team, the page's and the server's own alike, as the server logs them where every solve is asked (GET /api/m/solves:
 // api/mobile_solves.py _ensure_solve; owner, 2026-11-03, "each and every logged there in this one place"), newest
 // first: its week, what for, the flags it passes the solver (its players by name), how long it took and how it ended.
-// Only with ?solves=1 in the address; a tap folds it.
+// Inside Suggestion logic locally; ?solves=1 opens a floating log elsewhere and ?solves=0 hides it.
 
 import { ANSWERED } from '../memory/values.js';
 import { ROADS } from '../memory/live.js';
@@ -18,12 +18,14 @@ const namedFlag = (L, f) =>
     ? f.replace(/=(.*)$/, (_, v) => `=${v.replace(/\d{4,}/g, (id) => (L.has(Number(id)) ? L.name(Number(id)) : id))}`)
     : f;
 
-export function mountSolveLog(ctx) {
-  if (!/[?&]solves=1\b/.test(location.search) || document.querySelector('.ah-solvelog')) return;
+export function mountSolveLog(ctx, host = null) {
+  const setting = new URLSearchParams(location.search).get('solves');
+  if (setting === '0' || (!host && setting !== '1') || document.querySelector('.ah-solvelog')) return;
   const el = document.createElement('div');
-  el.className = 'ah-solvelog';
-  el.addEventListener('click', () => el.classList.toggle('folded'));
-  document.body.append(el);
+  el.className = host ? 'ah-solvelog embedded' : 'ah-solvelog';
+  if (!host) el.addEventListener('click', () => el.classList.toggle('folded'));
+  (host ?? document.body).append(el);
+  const listeners = new AbortController();
   // (your last tap or key on the page, never one on the panel: what it asked since; owner, 2026-11-03, "show solves
   // since last user action")
   let acted = 0;
@@ -33,7 +35,7 @@ export function mountSolveLog(ctx) {
       (e) => {
         if (!(e.target instanceof Node && el.contains(e.target))) acted = Date.now();
       },
-      { capture: true, passive: true },
+      { capture: true, passive: true, signal: listeners.signal },
     );
   const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
   // (a button copies the header and every line, not only the 30 shown, as plain text; owner, 2026-11-03, "add button to
@@ -211,6 +213,12 @@ export function mountSolveLog(ctx) {
     );
   };
   ask();
-  setInterval(ask, 1000);
-  setInterval(paint, 500);
+  const requestTimer = setInterval(ask, 1000);
+  const paintTimer = setInterval(paint, 500);
+  return () => {
+    listeners.abort();
+    clearInterval(requestTimer);
+    clearInterval(paintTimer);
+    el.remove();
+  };
 }

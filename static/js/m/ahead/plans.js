@@ -64,6 +64,7 @@ export {
   asTaken,
   planBaseline,
   takenBy,
+  earlierWeeksPin,
   forkValues,
   forkAsk,
   forkKept,

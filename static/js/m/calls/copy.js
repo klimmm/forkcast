@@ -55,7 +55,7 @@ export const COPY = Object.freeze({
   subGo: 'Sub…',
   /** Replace's "Let Forkcast choose" (owner, 2026-10-13): the sale alone yours, the buy the full plan's
    *  (ahead.sellAny). */
-  autoBuy: 'The full plan picks who comes in',
+  autoBuy: 'See who the full plan suggests before adding the transfer',
   /** A lifted shirt's line under the switcher (ahead.js liftShirt): the players he can swap with outlined on the pitch
    *  (engine.swapCandidates), the weeks he can be sold from glowing. `out`: the Wildcard or Free Hit week that brought
    *  him in, where a drop rules him out of its squad. */
@@ -259,7 +259,7 @@ export const COPY = Object.freeze({
         'Tap a shirt for his card: Keep, or Force out (one week, or sold from a week on).',
         // the venue's case in words (review 7 B17: never case alone)
         `Opponents under the shirts: ${COPY.oppCase}.`,
-        'Under Force out, From GW… lets you choose who comes in, or Let Forkcast choose.',
+        'Under Force out, From GW… lets you choose who comes in or tap Show suggestion.',
         'Hold a shirt, then drop it on an outlined player to swap them, or on a GW to sell him from then.',
         'Tap the C or the V to pick who wears it from a list.',
         "Tap a sub's order on the bench (1st, 2nd or 3rd) to pick who he replaces from a list.",

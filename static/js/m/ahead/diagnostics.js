@@ -1,5 +1,6 @@
 // Observations from the decision path, never a second solver or an inferred explanation.
 import { h, fill } from '../../ui.js';
+import { mountSolveLog } from './solvelog.js';
 const decisions = new WeakMap(),
   views = new WeakMap(),
   listeners = new WeakMap();
@@ -25,25 +26,8 @@ export function showDiagnostics(ctx, P, w, data) {
 export function mountDiagnostics(ctx) {
   let closed = false,
     panel,
-    history;
-  let historyVersion = 0;
-  const loadHistory = async () => {
-    const version = ++historyVersion,
-      entry = ctx.store.get('entry');
-    const list = history.querySelector('pre');
-    list.textContent = 'Loading…';
-    try {
-      const result = await ctx.api.getSolves(entry);
-      if (closed || historyVersion !== version || ctx.store.get('entry') !== entry) return;
-      list.textContent =
-        [...(result?.solves ?? [])]
-          .reverse()
-          .map((q) => [`GW${q.gw ?? '?'} · ${q.kind} · ${q.state}`, (q.flags ?? []).join(' '), `#${q.key}`].join('\n'))
-          .join('\n\n') || 'No requests logged.';
-    } catch {
-      if (!closed && historyVersion === version) list.textContent = 'Request log unavailable.';
-    }
-  };
+    history,
+    closeLog;
   const paint = () => {
     const v = views.get(ctx);
     if (!panel || !v) return;
@@ -166,23 +150,20 @@ export function mountDiagnostics(ctx) {
   ctx.api
     .access()
     .then((access) => {
-      if (closed || !access?.local) return;
+      if (closed) return;
+      if (!access?.local) {
+        closeLog = mountSolveLog(ctx);
+        return;
+      }
       panel = h(
         'aside.ah-diagnostics',
         { 'aria-label': 'Suggestion logic' },
         h('h2', null, 'Suggestion logic'),
         h('p', null, 'Waiting for the current plan…'),
       );
-      history = h(
-        'details',
-        null,
-        h('summary', null, 'Server request log'),
-        h('button', { type: 'button', onClick: loadHistory }, 'Refresh log'),
-        h('pre'),
-      );
-      history.addEventListener('toggle', () => {
-        if (history.open) loadHistory();
-      });
+      history = h('section', null, h('h3', null, 'Solve log'));
+      closeLog = mountSolveLog(ctx, history);
+      if (!closeLog) history = null;
       document.body.append(panel);
       document.body.classList.add('has-diagnostics');
       paint();
@@ -190,6 +171,7 @@ export function mountDiagnostics(ctx) {
     .catch(() => {});
   return () => {
     closed = true;
+    closeLog?.();
     panel?.remove();
     document.body.classList.remove('has-diagnostics');
     listeners.delete(ctx);

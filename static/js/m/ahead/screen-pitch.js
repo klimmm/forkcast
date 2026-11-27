@@ -1,7 +1,17 @@
 // screen.js mount: the pitch, the GW rail, the total and Player data
 
 import { FLASH, MINUS, boardMarks, boughtIn, inFor, plan, span } from './core.js';
-import { choosable, chooseSub, choosing, pitchChoice, fplOf, inkAt, planHasYours, replaceWith } from './buys.js';
+import {
+  choosable,
+  chooseSub,
+  choosing,
+  choiceCanReset,
+  pitchChoice,
+  fplOf,
+  inkAt,
+  planHasYours,
+  replaceWith,
+} from './buys.js';
 import { h, fmt, fill, chipName, plural, icon, roving, xpNum, xpGain } from '../../ui.js';
 import { CHIPS_OFF, COPY, gwFlags } from '../calls.js';
 import { chipsAvail, squadWeek } from './pieces.js';
@@ -139,10 +149,10 @@ export function pitchPart(V) {
     // button")
     // (…or a suggestion shown in any week: Reset all weeks takes every week back to its choice; the viewed week's own ask
     // alone not: its card's Previous takes it back, and Reset beside it did the same; card audit 2026-11-10)
-    // A purchase preview also has history: Previous goes back one choice, Reset discards the whole search.
+    // Previous goes back one choice, Reset discards the whole search.
     const lu = !!w.lineup,
       mine =
-        !!choosing(ctx, P)?.previous ||
+        choiceCanReset(choosing(ctx, P)) ||
         planHasYours(P) ||
         P.gws.some((g) => g !== w.gw && (showingAt(P, g) || tappedSuggestion(P, g)));
     S.reset = lu || mine ? { lu, plan: mine, gw: w.gw } : null;

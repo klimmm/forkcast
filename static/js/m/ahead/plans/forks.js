@@ -163,6 +163,13 @@ export function measurePlan(ctx, P, g, p, before, held = true) {
   return { ...p, ev, cmp: compare(ctx, ev, before), hits };
 }
 
+export function earlierWeeksPin(P, g, rolled = new Set()) {
+  const must = P.gws
+    .filter((x) => x < g && !rolled.has(x))
+    .flatMap((x) => (weekOf(P, x)?.squad ?? []).map((id) => [id, x, x]));
+  return must.length ? [makePin({ id: 'fork:before', kind: 'road', label: 'Your weeks before', gw: P.A, must })] : [];
+}
+
 /** The solve of GW g's choice c ({moves, chips}) with Forkcast's best plan after it, on your plan as it stands (owner,
  *  2026-10-11): your pins; each week before g held to your plan's squad (so planOfRoad keeps it); your GW-g transfers
  *  (and a hits rule there) giving way to c's moves as exact transfers (memory.pinSell) or its chip (chipEdit); each
@@ -227,16 +234,7 @@ export function forkValues(ctx, P, g, c, more = []) {
       .filter(Boolean)
       .map(Number),
   );
-  const held = P.gws
-    .filter((x) => x < g && !rolled.has(x))
-    .flatMap((x) => (weekOf(P, x)?.squad ?? []).map((id) => [id, x, x]));
-  const all = held.length
-    ? [
-        ...more,
-        makePin({ id: 'fork:before', kind: 'road', label: 'Your weeks before', gw: P.A, must: held }),
-        ...extra.slice(more.length),
-      ]
-    : extra;
+  const all = [...more, ...earlierWeeksPin(P, g, rolled), ...extra.slice(more.length)];
   return { ...noHitsFrom(P, g, valuesFor(ctx, all, drop), true), to: g };
 }
 

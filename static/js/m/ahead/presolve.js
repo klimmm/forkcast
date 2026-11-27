@@ -4,7 +4,19 @@ import * as E from '../../plan/engine.js';
 import { solveGap } from '../api.js';
 import { fmt, chipName } from '../../ui.js';
 import { COPY, hitCap, shownDelta, statusText } from '../calls.js';
-import { SOLVES, SWAPS, attach, pinSell, pinHits, pinRefusal, pinRoll, isRoll, isExact, rollKeeps } from '../memory.js';
+import {
+  SOLVES,
+  SWAPS,
+  attach,
+  pinSell,
+  pinHits,
+  pinRefusal,
+  pinRoll,
+  isRoll,
+  isExact,
+  rollKeeps,
+  solveKept,
+} from '../memory.js';
 import {
   MINUS,
   WHY_SHEET,
@@ -65,6 +77,7 @@ import {
   keptFrom,
   removeRule,
   ruleOf,
+  sellOut,
   toastOf,
   withPoints,
   withTaken,
@@ -87,6 +100,7 @@ import {
   forkKept,
   forkPump,
   forkRead,
+  earlierWeeksPin,
   forkValues,
   modelMoves,
   planBaseline,
@@ -96,7 +110,7 @@ import {
   takenBy,
   weekRollOf,
 } from './plans.js';
-import { freedBy, lineupMoved, gwMode, inkAt, isLive } from './buys.js';
+import { choosing, setChoice, freedBy, lineupMoved, gwMode, inkAt, isLive } from './buys.js';
 import { plPays, squadWeek } from './pieces.js';
 import { rulesOf } from './screen.js';
 
@@ -280,8 +294,10 @@ function askOf(ctx, P, t, src) {
       extra: [...(t.extra ?? []), ...a.pins],
       drop: a.drop,
       hitsMax: a.hitsMax,
+      hold: t.hold,
       order: a.inPlace ? (list) => inPlaceOf(list, a.inPlace, a.was) : null,
     });
+    if (t.to != null) values = { ...values, to: t.to };
   } catch {
     return null;
   }
@@ -309,6 +325,48 @@ function askOf(ctx, P, t, src) {
       ref = { key: valuesKey(P, v), values: v };
     } catch {}
   return { key: valuesKey(P, values), values, gw: t.gw ?? P.A, kind: t.kind, src, prep: true, ahead: true, root, ref };
+}
+
+/** Keep the weeks before the offer as the standard week suggestion does. */
+export function saleSuggestionTap(ctx, P, g, out, refusals = []) {
+  const extra = [...earlierWeeksPin(P, g), ...refusals];
+  return { kind: 'sell', gw: g, to: g, hold: false, run: () => sellOut(ctx, g, out), extra };
+}
+
+async function saleSuggestion(ctx, P, g, out, refusals) {
+  const ask = askOf(ctx, P, saleSuggestionTap(ctx, P, g, out, refusals), 'sheet');
+  if (!ask) return { suggestion: null, exhausted: false };
+  const cached = memOf(ctx).solvedRoad(ask.values) ?? answeredBy(P, ask.key, ask.values);
+  const result = cached
+    ? { road: cached, error: null }
+    : await solveKept(ctx.api, { entry: Number(P.entry), purpose: 'wish', values: ask.values });
+  if (!result.road) return { suggestion: null, exhausted: result.error?.code === 'infeasible' };
+  const planned = planOfRoad(ctx, P, result.road, g, draftOf(ctx));
+  if (!planned?.choice.moves.some((move) => move.out === out)) return { suggestion: null, exhausted: true };
+  if (!planned.plan) return { suggestion: null, exhausted: false };
+  const pl = { ...planned.plan, state: 'ready', road: result.road, choice: planned.choice };
+  return { suggestion: { pl, refusals }, exhausted: false };
+}
+
+export async function requestSaleSuggestion(ctx, g, out, sale = null) {
+  const P = plan(ctx);
+  if (!P?.editable || (sale && (sale.pending || choosing(ctx, P) !== sale))) return;
+  const refusals = [...(sale?.refusals ?? [])];
+  if (sale?.pl) refusals.push(pinRefusal(sale.pl.choice.moves, g));
+  const previous = sale?.pl ? sale : null;
+  const base = { kind: 'sell', P, g, out };
+  const pending = setChoice(ctx, P, { ...base, pending: true, previous });
+  const current = () => choosing(ctx, plan(ctx)) === pending;
+  const fail = (exhausted = false) =>
+    sale?.pl
+      ? { ...sale, exhausted, error: exhausted ? null : COPY.unfinished }
+      : { ...base, failed: exhausted ? 'infeasible' : 'error' };
+  try {
+    const { suggestion, exhausted } = await saleSuggestion(ctx, P, g, out, refusals);
+    if (current()) setChoice(ctx, P, suggestion ? { ...base, ...suggestion, previous } : fail(exhausted));
+  } catch {
+    if (current()) setChoice(ctx, P, fail());
+  }
 }
 
 /** Source `src`'s taps (most likely first) on plan view P: the first PRESOLVE_MAX[src] that make a solve asked; those
@@ -344,7 +402,7 @@ function presolve(ctx, P, src, taps, { gw = P.A, sig = '', owner = null } = {}) 
     const room = () => cur.made.length < PRESOLVE_MAX[src];
     for (const t0 of taps) {
       const t = typeof t0 === 'function' ? t0() : t0;
-      if (!room() || (t.id != null && cur.tried.has(t.id))) continue;
+      if (!t || !room() || (t.id != null && cur.tried.has(t.id))) continue;
       if (t.id != null) cur.tried.add(t.id);
       const a = askOf(ctx, P, t, src);
       if (a) cur.made.push(a); // (every tap's, asked here or not: presolveTaps)

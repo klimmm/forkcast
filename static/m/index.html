@@ -3503,6 +3503,7 @@ card is under "Keep" */
 /* the ?solves=1 panel (ahead/solvelog.js): every fork solve, newest first */
 .ah-solvelog { position: fixed; left: 4px; right: 4px; bottom: 4px; z-index: 9999; max-height: 38vh; overflow: auto; padding: 6px 8px; border-radius: 8px; background: rgb(0 0 0 / .82); color: #FFFFFF; font: 11px/1.35 ui-monospace, Menlo, monospace; }
 .ah-solvelog.folded > div > div { display: none; }
+.ah-solvelog.embedded { position: static; max-height: 38vh; padding: 8px; }
 .ah-solvelog > textarea { display: block; box-sizing: border-box; width: 100%; height: 30vh; margin: 2px 0 4px; background: #111; color: #FFFFFF; font: inherit; }
 .ah-solvelog > button { float: right; margin: -2px 0 2px 8px; padding: 2px 10px; border: 1px solid rgb(255 255 255 / .5); border-radius: 6px; background: none; color: #FFFFFF; font: inherit; }
 .ah-solvelog > div > div { border-top: 1px solid rgb(255 255 255 / .12); padding: 2px 0 2px 1.2em; text-indent: -1.2em; }
@@ -3971,8 +3972,8 @@ one in the selected look's tint and green ring, 600, with its arrow (a second ta
 .m-banner.offline .m-banner-ic { opacity: .6; }
 
 </style>
-<meta name="forkcast-release" content="v1.3.274">
-<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=5c3b709af0","/js/app.js":"/js/app.js?v=db6c95393a","/js/m/ahead.js":"/js/m/ahead.js?v=377664cc09","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=e0ffe5fca9","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=41f66e132a","/js/m/ahead/diagnostics.js":"/js/m/ahead/diagnostics.js?v=ef9b2a48eb","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=25d9060ef2","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=628edb4111","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=5f3317cef6","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=652f0ae23b","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=d5e663b889","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=8f3cccc8bd","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=acaecafa38","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=c317c21a21","/js/m/ahead/plans/groups.js":"/js/m/ahead/plans/groups.js?v=1b1abb4034","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=d2e4b2572d","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=c1b0640160","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=c344725dd2","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=5174744d47","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=7f000b9abc","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=c10d54f3b2","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=00f1304306","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=7fb2528090","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=8ba72c082d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=812b574679","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=b014e6d8a9","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=e73fd9c009","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=b2daaca688","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=4262881e41","/js/m/api.js":"/js/m/api.js?v=0942bd4682","/js/m/app.js":"/js/m/app.js?v=fd985f0df4","/js/m/calls.js":"/js/m/calls.js?v=cc25e4f961","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=0f2724442c","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=1d8ca8efe0","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=a14a651ba4","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=34049e400c","/js/m/memory.js":"/js/m/memory.js?v=18f75d1fb8","/js/m/memory/chip-cache.js":"/js/m/memory/chip-cache.js?v=469da99c8d","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=52ed052dc7","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=9e4e27db95","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=f1a98e7107","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=280683b86e","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=b1857741a3","/js/m/memory/live.js":"/js/m/memory/live.js?v=c575ef129f","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=c1188126bc","/js/m/memory/values.js":"/js/m/memory/values.js?v=7d599c8e37","/js/m/picker.js":"/js/m/picker.js?v=9c1b5d917c","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=6bcf2f22f1","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=267fe45a03","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=71e339cbf4","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=30ef4264fd","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=2365a7f230","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=78b24d4cc7","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=516f9dd0c3","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=9d5a15cee2","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=af30142223","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=41064a84fc","/js/m/shell/store.js":"/js/m/shell/store.js?v=e0ecdf6961","/js/marks.js":"/js/marks.js?v=124db486e1","/js/plan/engine.js":"/js/plan/engine.js?v=0995024cb9","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=2bbbf536aa","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=19877756a7","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=a054129350","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=82fe001fd8","/js/plan/kits.js":"/js/plan/kits.js?v=cfe152fcd8","/js/plan/pitch.js":"/js/plan/pitch.js?v=631603e113","/js/studio/flags.js":"/js/studio/flags.js?v=2647d49b09","/js/studio/kit.js":"/js/studio/kit.js?v=e716329914","/js/studio/tables.js":"/js/studio/tables.js?v=0a2fdd526e","/js/ui.js":"/js/ui.js?v=ce8c1e3f7e","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=97fd60c21e","/js/views/compare.js":"/js/views/compare.js?v=1974b794fd","/js/views/dashboard.js":"/js/views/dashboard.js?v=0007306caa","/js/views/data.js":"/js/views/data.js?v=4371ffddca","/js/views/docs.js":"/js/views/docs.js?v=65fdc63ad9","/js/views/fixtures.js":"/js/views/fixtures.js?v=76773e01f6","/js/views/planner.js":"/js/views/planner.js?v=d874790460","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=39236f1fe1","/js/views/planner/model.js":"/js/views/planner/model.js?v=85a70b3242","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=0253f5e488","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=18e34284ea","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=9b564f7322","/js/views/players.js":"/js/views/players.js?v=56ff8a898b","/js/views/preview.js":"/js/views/preview.js?v=91cedeb946","/js/views/runs.js":"/js/views/runs.js?v=6b4300b53f"}}</script>
+<meta name="forkcast-release" content="v1.3.275">
+<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=5c3b709af0","/js/app.js":"/js/app.js?v=db6c95393a","/js/m/ahead.js":"/js/m/ahead.js?v=377664cc09","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=705fbe74ed","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=41f66e132a","/js/m/ahead/diagnostics.js":"/js/m/ahead/diagnostics.js?v=d6fbf7e75b","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=25d9060ef2","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=628edb4111","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=5f3317cef6","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=652f0ae23b","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=d5e663b889","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=c063f4749c","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=acaecafa38","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=0a8a860577","/js/m/ahead/plans/groups.js":"/js/m/ahead/plans/groups.js?v=1b1abb4034","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=d2e4b2572d","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=c1b0640160","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=7b4b86f388","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=5174744d47","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=7f000b9abc","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=c10d54f3b2","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=fd93c60a0b","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=7fb2528090","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=8ba72c082d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=9210cd6d04","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=b014e6d8a9","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=e73fd9c009","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=712b3e4c50","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=54e715f47a","/js/m/api.js":"/js/m/api.js?v=0942bd4682","/js/m/app.js":"/js/m/app.js?v=fd985f0df4","/js/m/calls.js":"/js/m/calls.js?v=cc25e4f961","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=c7ddc62106","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=1d8ca8efe0","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=a14a651ba4","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=34049e400c","/js/m/memory.js":"/js/m/memory.js?v=18f75d1fb8","/js/m/memory/chip-cache.js":"/js/m/memory/chip-cache.js?v=469da99c8d","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=52ed052dc7","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=9e4e27db95","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=3db9c7cc51","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=280683b86e","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=b1857741a3","/js/m/memory/live.js":"/js/m/memory/live.js?v=c575ef129f","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=c1188126bc","/js/m/memory/values.js":"/js/m/memory/values.js?v=7d599c8e37","/js/m/picker.js":"/js/m/picker.js?v=9c1b5d917c","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=6bcf2f22f1","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=267fe45a03","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=71e339cbf4","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=30ef4264fd","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=f796e99698","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=78b24d4cc7","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=516f9dd0c3","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=9d5a15cee2","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=dc13785e9e","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=41064a84fc","/js/m/shell/store.js":"/js/m/shell/store.js?v=e0ecdf6961","/js/marks.js":"/js/marks.js?v=124db486e1","/js/plan/engine.js":"/js/plan/engine.js?v=0995024cb9","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=2bbbf536aa","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=19877756a7","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=a054129350","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=82fe001fd8","/js/plan/kits.js":"/js/plan/kits.js?v=cfe152fcd8","/js/plan/pitch.js":"/js/plan/pitch.js?v=631603e113","/js/studio/flags.js":"/js/studio/flags.js?v=2647d49b09","/js/studio/kit.js":"/js/studio/kit.js?v=e716329914","/js/studio/tables.js":"/js/studio/tables.js?v=0a2fdd526e","/js/ui.js":"/js/ui.js?v=ce8c1e3f7e","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=97fd60c21e","/js/views/compare.js":"/js/views/compare.js?v=1974b794fd","/js/views/dashboard.js":"/js/views/dashboard.js?v=0007306caa","/js/views/data.js":"/js/views/data.js?v=4371ffddca","/js/views/docs.js":"/js/views/docs.js?v=65fdc63ad9","/js/views/fixtures.js":"/js/views/fixtures.js?v=76773e01f6","/js/views/planner.js":"/js/views/planner.js?v=d874790460","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=39236f1fe1","/js/views/planner/model.js":"/js/views/planner/model.js?v=85a70b3242","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=0253f5e488","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=18e34284ea","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=9b564f7322","/js/views/players.js":"/js/views/players.js?v=56ff8a898b","/js/views/preview.js":"/js/views/preview.js?v=91cedeb946","/js/views/runs.js":"/js/views/runs.js?v=6b4300b53f"}}</script>
 </head>
 <body>
 <div class="m-app" id="app">
@@ -7241,7 +7242,7 @@ var init_copy = __esm({
       subGo: "Sub\u2026",
       /** Replace's "Let Forkcast choose" (owner, 2026-10-13): the sale alone yours, the buy the full plan's
        *  (ahead.sellAny). */
-      autoBuy: "The full plan picks who comes in",
+      autoBuy: "See who the full plan suggests before adding the transfer",
       /** A lifted shirt's line under the switcher (ahead.js liftShirt): the players he can swap with outlined on the pitch
        *  (engine.swapCandidates), the weeks he can be sold from glowing. `out`: the Wildcard or Free Hit week that brought
        *  him in, where a drop rules him out of its squad. */
@@ -7422,7 +7423,7 @@ var init_copy = __esm({
             "Tap a shirt for his card: Keep, or Force out (one week, or sold from a week on).",
             // the venue's case in words (review 7 B17: never case alone)
             `Opponents under the shirts: ${COPY.oppCase}.`,
-            "Under Force out, From GW\u2026 lets you choose who comes in, or Let Forkcast choose.",
+            "Under Force out, From GW\u2026 lets you choose who comes in or tap Show suggestion.",
             "Hold a shirt, then drop it on an outlined player to swap them, or on a GW to sell him from then.",
             "Tap the C or the V to pick who wears it from a list.",
             "Tap a sub's order on the bench (1st, 2nd or 3rd) to pick who he replaces from a list.",
@@ -12005,15 +12006,17 @@ function healPart(V) {
     extra = [],
     drop: drop2 = [],
     order = null,
-    hitsMax
+    hitsMax,
+    hold = true
   } = (
-    /** @type {{extra?: object[], drop?: string[], order?: (pins: object[]) => object[], hitsMax?: number}} */
+    /** @type {{extra?: object[], drop?: string[], order?: (pins: object[]) => object[], hitsMax?: number, hold?: boolean}} */
     {}
   )) {
     const { S, accNow, cctxNow, ownedNow, storedNow, withHits, withHold } = V;
     const after = pinsAfter(storedNow(), { add: extra, drop: drop2 }, S.A, ownedNow());
+    const ordered = order ? order(after) : after;
     const list = withHits(
-      withHold(order ? order(after) : after),
+      hold ? withHold(ordered) : ordered,
       hitsMax === void 0 ? num3(accNow()?.hits_max) : num3(hitsMax)
     );
     const cctx = cctxNow(list);
@@ -13138,6 +13141,187 @@ var init_memory = __esm({
   }
 });
 
+// js/m/memory/chip-cache.js
+function chipRoads(local2, entry) {
+  const saved = local2?.json(CHIP_ROADS(entry));
+  return saved?.schema === 1 && Array.isArray(saved.roads) ? saved.roads.filter((x) => typeof x?.key === "string" && Array.isArray(x.road?.weeks) && x.road.weeks.length).slice(0, MAX_ROADS) : [];
+}
+function keepChipRoad(local2, entry, key, road) {
+  if (!local2 || !road?.weeks?.length) return;
+  const roads = [{ key, road }, ...chipRoads(local2, entry).filter((x) => x.key !== key)].slice(0, MAX_ROADS);
+  while (roads.length) {
+    const saved = JSON.stringify({ schema: 1, roads });
+    if (saved.length <= MAX_CHARS && local2.set(CHIP_ROADS(entry), saved)) return;
+    roads.pop();
+  }
+}
+var CHIP_ROADS, MAX_ROADS, MAX_CHARS;
+var init_chip_cache = __esm({
+  "js/m/memory/chip-cache.js"() {
+    CHIP_ROADS = (entry) => `fc:mem:chips:${entry}`;
+    MAX_ROADS = 96;
+    MAX_CHARS = 5e5;
+  }
+});
+
+// js/m/ahead/solvelog.js
+function mountSolveLog(ctx2, host = null) {
+  const setting = new URLSearchParams(location.search).get("solves");
+  if (setting === "0" || !host && setting !== "1" || document.querySelector(".ah-solvelog")) return;
+  const el = document.createElement("div");
+  el.className = host ? "ah-solvelog embedded" : "ah-solvelog";
+  if (!host) el.addEventListener("click", () => el.classList.toggle("folded"));
+  (host ?? document.body).append(el);
+  const listeners2 = new AbortController();
+  let acted = 0;
+  for (const t of ["pointerdown", "keydown"])
+    document.addEventListener(
+      t,
+      (e) => {
+        if (!(e.target instanceof Node && el.contains(e.target))) acted = Date.now();
+      },
+      { capture: true, passive: true, signal: listeners2.signal }
+    );
+  const secs = (ms) => `${(ms / 1e3).toFixed(1)} s`;
+  let said = [];
+  const copy = Object.assign(document.createElement("button"), { type: "button", textContent: "Copy" });
+  let shown2 = null;
+  copy.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    const text = [`${location.href} \xB7 ${(/* @__PURE__ */ new Date()).toISOString()}`, ...said].join("\n");
+    const t = Object.assign(document.createElement("textarea"), { value: text, readOnly: true });
+    t.addEventListener("click", (e) => e.stopPropagation());
+    document.body.append(t);
+    t.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {
+      ok = false;
+    }
+    t.remove();
+    const flash = (w) => {
+      copy.textContent = w;
+      setTimeout(() => {
+        copy.textContent = "Copy";
+      }, 2e3);
+    };
+    if (ok) return flash("Copied");
+    const byHand = () => {
+      shown2?.remove();
+      shown2 = t;
+      el.insertBefore(t, list);
+      t.focus();
+      t.select();
+      flash("Selected");
+    };
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => flash("Copied"), byHand);
+    else byHand();
+  });
+  let cleared = 0;
+  const clear = Object.assign(document.createElement("button"), { type: "button", textContent: "Clear" });
+  clear.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    cleared = Date.now();
+    acted = 0;
+    shown2?.remove();
+    shown2 = null;
+    paint();
+    const e = ctx2.store.get("entry");
+    if (e != null)
+      ctx2.api.clearSolves(e).then(
+        () => {
+          for (const key of [ROADS(e), CHIP_ROADS(e)]) ctx2.api.local.set(key, null);
+          location.reload();
+        },
+        () => {
+        }
+      );
+  });
+  const list = document.createElement("div");
+  el.replaceChildren(copy, clear, list);
+  let got = { solves: [], skew: 0 }, asking = false;
+  const ask = () => {
+    const e = ctx2.store.get("entry");
+    if (asking || e == null) return;
+    asking = true;
+    ctx2.api.getSolves(e).then(
+      (r) => {
+        got = { solves: r?.solves ?? [], skew: Date.now() - Number(r?.now ?? 0) * 1e3 };
+      },
+      () => {
+      }
+    ).finally(() => {
+      asking = false;
+      paint();
+    });
+  };
+  const paint = () => {
+    const L2 = info(ctx2)?.L, named = (f) => namedFlag(L2, f);
+    const now = Date.now(), asks = got.solves.map((x) => ({ ...x, at: Number(x.at) * 1e3 + got.skew, ms: x.ms == null ? null : Number(x.ms) })).filter((x) => x.at >= cleared);
+    const live = (x) => x.state === "running" || x.state === "queued";
+    const by = /* @__PURE__ */ new Map();
+    for (const x of asks) {
+      const g = by.get(x.key) ?? { ...x, kinds: [], n: 0 };
+      if (!by.has(x.key)) by.set(x.key, g);
+      g.n++;
+      g.mine ||= x.mine !== false;
+      if (x.mine !== false && x.state !== "already solved") g.ownAt = Math.min(g.ownAt ?? Infinity, x.at);
+      if (!g.kinds.includes(x.kind)) g.kinds.push(x.kind);
+      if (x.state !== "already solved" && (g.state === "already solved" || x.at < g.at))
+        Object.assign(g, { at: x.at, state: x.state, ms: x.ms, what: x.what, gw: x.gw });
+    }
+    const mine = [...by.values()].sort((x, y) => y.at - x.at), ran = (xs) => xs.filter((x) => x.state !== "already solved");
+    const running = mine.filter(live).length, sinceTap = mine.filter((x) => x.ownAt != null && (!acted || x.ownAt >= acted)).length;
+    const answered = [...ANSWERED.values()].filter((x) => x.at >= cleared).map((x) => ({ ...x, kinds: [x.kind], n: 1, mine: true, state: "answered", key: x.byKey }));
+    const at2 = (job) => {
+      const m = /^\d{8}-(\d\d)(\d\d)/.exec(job ?? "");
+      return m ? `${m[1]}:${m[2]}` : null;
+    };
+    const listed = new Set(mine.map((x) => x.key));
+    const ends = (x) => x.state === "answered" ? `answered by #${x.key}${listed.has(x.key) || !at2(x.job) ? "" : ` (solved at ${at2(x.job)}, kept on this device)`}` : x.state === "running" ? `solving, ${secs(now - x.at)}` : x.state === "queued" ? `waiting, ${secs(now - x.at)}` : x.state === "already solved" ? x.baked ? `no solve: the lineups${x.ms != null ? ` in ${x.ms < 1e3 ? `${x.ms} ms` : secs(x.ms)}` : ""}` : "cached" : x.state === "done" ? `solved in ${secs(x.ms ?? 0)}` : x.ms != null ? `${x.state} in ${secs(x.ms)}` : x.state;
+    const head = `${running} running \xB7 ${sinceTap} since tap \xB7 ${ran(mine).length} solved \xB7 ${mine.length - ran(mine).length} cached \xB7 ${answered.length} answered \xB7 ${asks.length} asks`;
+    const what = (x) => {
+      const fs = x.baked ? [] : (x.flags ?? []).filter((f) => !HIDDEN_FLAG.test(f));
+      return fs.length ? ` \xB7 ${fs.map(named).join(" ")}` : "";
+    };
+    const line = (x) => `\u2022 ${x.gw != null ? `GW${x.gw}` : "GW?"} \xB7 ${x.kinds.join(" + ")}${what(x)} \xB7 ${ends(x)}${x.n > 1 ? ` \xB7 asked ${x.n}\xD7` : ""}${x.mine ? "" : " \xB7 another page"}`;
+    const all = [...mine, ...answered].sort((x, y) => y.at - x.at);
+    const full = (x) => x.state === "answered" ? line(x) : `${line(x)} \xB7 #${x.key}`;
+    said = [head, ...all.map(full)];
+    list.replaceChildren(
+      Object.assign(document.createElement("b"), { textContent: head }),
+      ...all.slice(0, 30).map(
+        (x) => Object.assign(document.createElement("div"), {
+          className: live(x) ? "solving" : x.state === "done" ? "solved" : x.state,
+          textContent: full(x)
+        })
+      )
+    );
+  };
+  ask();
+  const requestTimer = setInterval(ask, 1e3);
+  const paintTimer = setInterval(paint, 500);
+  return () => {
+    listeners2.abort();
+    clearInterval(requestTimer);
+    clearInterval(paintTimer);
+    el.remove();
+  };
+}
+var HIDDEN_FLAG, PLAYER_FLAG, namedFlag;
+var init_solvelog = __esm({
+  "js/m/ahead/solvelog.js"() {
+    init_values();
+    init_live();
+    init_chip_cache();
+    init_core();
+    HIDDEN_FLAG = /^--(entry|poll-max-age)=/;
+    PLAYER_FLAG = /^--(must-have|exclude|not-for-gw|for-gw|[a-z-]*(keep|sell|buy|captain|vice|bench)[a-z-]*)=/;
+    namedFlag = (L2, f) => L2 && PLAYER_FLAG.test(f) ? f.replace(/=(.*)$/, (_, v) => `=${v.replace(/\d{4,}/g, (id) => L2.has(Number(id)) ? L2.name(Number(id)) : id)}`) : f;
+  }
+});
+
 // js/m/ahead/diagnostics.js
 function recordDecision(P, gw, trace) {
   let weeks = decisions.get(P);
@@ -13152,20 +13336,7 @@ function showDiagnostics(ctx2, P, w, data) {
   listeners.get(ctx2)?.();
 }
 function mountDiagnostics(ctx2) {
-  let closed = false, panel, history2;
-  let historyVersion = 0;
-  const loadHistory = async () => {
-    const version = ++historyVersion, entry = ctx2.store.get("entry");
-    const list = history2.querySelector("pre");
-    list.textContent = "Loading\u2026";
-    try {
-      const result = await ctx2.api.getSolves(entry);
-      if (closed || historyVersion !== version || ctx2.store.get("entry") !== entry) return;
-      list.textContent = [...result?.solves ?? []].reverse().map((q) => [`GW${q.gw ?? "?"} \xB7 ${q.kind} \xB7 ${q.state}`, (q.flags ?? []).join(" "), `#${q.key}`].join("\n")).join("\n\n") || "No requests logged.";
-    } catch {
-      if (!closed && historyVersion === version) list.textContent = "Request log unavailable.";
-    }
-  };
+  let closed = false, panel, history2, closeLog;
   const paint = () => {
     const v = views.get(ctx2);
     if (!panel || !v) return;
@@ -13274,23 +13445,20 @@ function mountDiagnostics(ctx2) {
   };
   listeners.set(ctx2, paint);
   ctx2.api.access().then((access2) => {
-    if (closed || !access2?.local) return;
+    if (closed) return;
+    if (!access2?.local) {
+      closeLog = mountSolveLog(ctx2);
+      return;
+    }
     panel = h(
       "aside.ah-diagnostics",
       { "aria-label": "Suggestion logic" },
       h("h2", null, "Suggestion logic"),
       h("p", null, "Waiting for the current plan\u2026")
     );
-    history2 = h(
-      "details",
-      null,
-      h("summary", null, "Server request log"),
-      h("button", { type: "button", onClick: loadHistory }, "Refresh log"),
-      h("pre")
-    );
-    history2.addEventListener("toggle", () => {
-      if (history2.open) loadHistory();
-    });
+    history2 = h("section", null, h("h3", null, "Solve log"));
+    closeLog = mountSolveLog(ctx2, history2);
+    if (!closeLog) history2 = null;
     document.body.append(panel);
     document.body.classList.add("has-diagnostics");
     paint();
@@ -13298,6 +13466,7 @@ function mountDiagnostics(ctx2) {
   });
   return () => {
     closed = true;
+    closeLog?.();
     panel?.remove();
     document.body.classList.remove("has-diagnostics");
     listeners.delete(ctx2);
@@ -13308,6 +13477,7 @@ var decisions, views, listeners, decisionOf, decisionReason;
 var init_diagnostics = __esm({
   "js/m/ahead/diagnostics.js"() {
     init_ui();
+    init_solvelog();
     decisions = /* @__PURE__ */ new WeakMap();
     views = /* @__PURE__ */ new WeakMap();
     listeners = /* @__PURE__ */ new WeakMap();
@@ -13316,29 +13486,6 @@ var init_diagnostics = __esm({
       pending: "The main calculation has not returned a plan.",
       "solver-plan": "Independent moves and minimal feasible groups from the week plan are compared with the best single transfer by projected gain."
     })[t?.reason] ?? "No decision trace is available for this card.";
-  }
-});
-
-// js/m/memory/chip-cache.js
-function chipRoads(local2, entry) {
-  const saved = local2?.json(CHIP_ROADS(entry));
-  return saved?.schema === 1 && Array.isArray(saved.roads) ? saved.roads.filter((x) => typeof x?.key === "string" && Array.isArray(x.road?.weeks) && x.road.weeks.length).slice(0, MAX_ROADS) : [];
-}
-function keepChipRoad(local2, entry, key, road) {
-  if (!local2 || !road?.weeks?.length) return;
-  const roads = [{ key, road }, ...chipRoads(local2, entry).filter((x) => x.key !== key)].slice(0, MAX_ROADS);
-  while (roads.length) {
-    const saved = JSON.stringify({ schema: 1, roads });
-    if (saved.length <= MAX_CHARS && local2.set(CHIP_ROADS(entry), saved)) return;
-    roads.pop();
-  }
-}
-var CHIP_ROADS, MAX_ROADS, MAX_CHARS;
-var init_chip_cache = __esm({
-  "js/m/memory/chip-cache.js"() {
-    CHIP_ROADS = (entry) => `fc:mem:chips:${entry}`;
-    MAX_ROADS = 96;
-    MAX_CHARS = 5e5;
   }
 });
 
@@ -13504,15 +13651,20 @@ function bringIn(ctx2, id, g, bp) {
 }
 function pitchChoice(ctx2, P, g = null) {
   const pick = choosing(ctx2, P, g);
-  return pick?.bp || pick?.pending ? null : pick;
+  return pick?.kind === "sell" || pick?.bp || pick?.pending ? null : pick;
 }
-function previousPurchase(ctx2, pick) {
-  if (pick.previous && choosing(ctx2, plan(ctx2)) === pick) ctx2.store.set("bringing", pick.previous);
+function setChoice(ctx2, P, choice) {
+  const pick = { ...choice, team: teamKey(P) };
+  ctx2.store.set("bringing", pick);
+  return pick;
+}
+function previousChoice(ctx2, pick) {
+  if (choosing(ctx2, plan(ctx2)) === pick) ctx2.store.set("bringing", pick.previous ?? null);
 }
 function chooseSub(ctx2, id, g) {
   const P = plan(ctx2);
   if (!canChooseSub(ctx2, P, id, g)) return false;
-  ctx2.store.set("bringing", { kind: "sub", id: Number(id), g, team: teamKey(P) });
+  setChoice(ctx2, P, { kind: "sub", id: Number(id), g });
   return true;
 }
 function chooseOnPitch(ctx2, id, g) {
@@ -13526,7 +13678,7 @@ function chooseOnPitch(ctx2, id, g) {
     sayBuyProblem(ctx2, P, id, buyPlan(ctx2, id, g), "info");
     return false;
   }
-  ctx2.store.set("bringing", { id: Number(id), g, team: teamKey(P) });
+  setChoice(ctx2, P, { id: Number(id), g });
   return true;
 }
 async function suggestPurchase(ctx2, pick) {
@@ -13541,8 +13693,7 @@ async function suggestPurchase(ctx2, pick) {
       })
     );
   }
-  const pending = { ...pick, previous: pick, pending: true, error: null };
-  ctx2.store.set("bringing", pending);
+  const pending = setChoice(ctx2, P, { ...pick, previous: pick, pending: true, error: null });
   let bp = null, exhausted = false;
   let error = COPY.unfinished;
   try {
@@ -13560,7 +13711,7 @@ async function suggestPurchase(ctx2, pick) {
   } catch {
   }
   if (choosing(ctx2, plan(ctx2)) === pending)
-    ctx2.store.set("bringing", {
+    setChoice(ctx2, P, {
       ...pick,
       previous: bp ? pick : pick.previous,
       bp: bp ?? pick.bp,
@@ -13894,7 +14045,7 @@ function reroute(g) {
     );
   });
 }
-var FUND_MAINS, FUND_SELLS, FUND_BUYS, BUYS, SALES, tookBy, teamKey, choosing, stopChoosing, replaceable, choosable, canChooseSub, PLACED, placedAt, placedDone, fundsOf, freedBy, buyPins, wishSolve, wishTakes, laterBuys, movedBesides, draftFor, removesText, fitsLater, solvesRound, captainMoved, lineupMoved, planHasYours, solverCap, takenBack, plainRule, rowName, WATCHES, DL_WORDS, isLive, fplOf, fplGw, inkAt, sellWeek, liftFrom, liftsLive;
+var FUND_MAINS, FUND_SELLS, FUND_BUYS, BUYS, SALES, tookBy, teamKey, choosing, choiceCanReset, stopChoosing, replaceable, choosable, canChooseSub, PLACED, placedAt, placedDone, fundsOf, freedBy, buyPins, wishSolve, wishTakes, laterBuys, movedBesides, draftFor, removesText, fitsLater, solvesRound, captainMoved, lineupMoved, planHasYours, solverCap, takenBack, plainRule, rowName, WATCHES, DL_WORDS, isLive, fplOf, fplGw, inkAt, sellWeek, liftFrom, liftsLive;
 var init_buys = __esm({
   "js/m/ahead/buys.js"() {
     init_engine();
@@ -13916,8 +14067,9 @@ var init_buys = __esm({
     teamKey = (P) => `${P.entry}|${P.A}`;
     choosing = (ctx2, P, g = null) => {
       const b = ctx2.store.get("bringing");
-      return b && P && b.team === teamKey(P) && (g == null || b.g === g) ? b : null;
+      return b && P && b.team === teamKey(P) && (!b.P || sameView(b.P, P)) && (g == null || b.g === g) ? b : null;
     };
+    choiceCanReset = (pick) => !!pick && (pick.kind === "sell" || !!pick.previous);
     stopChoosing = (ctx2) => ctx2.store.set("bringing", null);
     replaceable = (ctx2, id, g) => saleOptions(ctx2, id, g).filter((x) => !x.problem || x.problem.code === "budget").map((x) => ({ out: x.out, short: x.problem?.short ?? 0 }));
     choosable = (ctx2, b) => b.kind === "sub" ? subChoices(ctx2, plan(ctx2), b.g, b.id).map((c) => c.id) : replaceable(ctx2, b.id, b.g).map((x) => x.out);
@@ -14177,6 +14329,7 @@ __export(forks_exports, {
   FORK_REFS: () => FORK_REFS,
   answeredBy: () => answeredBy,
   asTaken: () => asTaken,
+  earlierWeeksPin: () => earlierWeeksPin,
   forkAgain: () => forkAgain,
   forkAsk: () => forkAsk,
   forkDue: () => forkDue,
@@ -14253,6 +14406,10 @@ function measurePlan(ctx2, P, g, p, before, held2 = true) {
   );
   return { ...p, ev, cmp: compare2(ctx2, ev, before), hits };
 }
+function earlierWeeksPin(P, g, rolled = /* @__PURE__ */ new Set()) {
+  const must = P.gws.filter((x) => x < g && !rolled.has(x)).flatMap((x) => (weekOf(P, x)?.squad ?? []).map((id) => [id, x, x]));
+  return must.length ? [makePin({ id: "fork:before", kind: "road", label: "Your weeks before", gw: P.A, must })] : [];
+}
 function forkValues(ctx2, P, g, c, more = []) {
   const squad = SQUAD_CHIPS.has(c.chips?.[g]);
   const drop2 = [...new Set((weekOf(P, g)?.moves || []).map((m) => pinOfMove(P, { ...m, gw: g })?.id).filter(Boolean))];
@@ -14287,12 +14444,7 @@ function forkValues(ctx2, P, g, c, more = []) {
   const rolled = new Set(
     String(valuesFor(ctx2, extra, drop2).no_buys_gw ?? "").split(",").filter(Boolean).map(Number)
   );
-  const held2 = P.gws.filter((x) => x < g && !rolled.has(x)).flatMap((x) => (weekOf(P, x)?.squad ?? []).map((id) => [id, x, x]));
-  const all = held2.length ? [
-    ...more,
-    makePin({ id: "fork:before", kind: "road", label: "Your weeks before", gw: P.A, must: held2 }),
-    ...extra.slice(more.length)
-  ] : extra;
+  const all = [...more, ...earlierWeeksPin(P, g, rolled), ...extra.slice(more.length)];
   return { ...noHitsFrom(P, g, valuesFor(ctx2, all, drop2), true), to: g };
 }
 function answeredBy(P, key, values) {
@@ -19186,7 +19338,7 @@ function pitchPart(V) {
   function renderPitch2(P, w) {
     const { S, ctx: ctx2, pitchHost, rsBtn } = V;
     const d = ctx2.data;
-    const lu = !!w.lineup, mine = !!choosing(ctx2, P)?.previous || planHasYours(P) || P.gws.some((g) => g !== w.gw && (showingAt(P, g) || tappedSuggestion(P, g)));
+    const lu = !!w.lineup, mine = choiceCanReset(choosing(ctx2, P)) || planHasYours(P) || P.gws.some((g) => g !== w.gw && (showingAt(P, g) || tappedSuggestion(P, g)));
     S.reset = lu || mine ? { lu, plan: mine, gw: w.gw } : null;
     rsBtn.hidden = !S.reset;
     rsBtn.disabled = !P.editable;
@@ -19567,156 +19719,6 @@ var init_screen_pitch = __esm({
     init_engine();
     init_screen();
     init_presolve();
-  }
-});
-
-// js/m/ahead/solvelog.js
-function mountSolveLog(ctx2) {
-  if (!/[?&]solves=1\b/.test(location.search) || document.querySelector(".ah-solvelog")) return;
-  const el = document.createElement("div");
-  el.className = "ah-solvelog";
-  el.addEventListener("click", () => el.classList.toggle("folded"));
-  document.body.append(el);
-  let acted = 0;
-  for (const t of ["pointerdown", "keydown"])
-    document.addEventListener(
-      t,
-      (e) => {
-        if (!(e.target instanceof Node && el.contains(e.target))) acted = Date.now();
-      },
-      { capture: true, passive: true }
-    );
-  const secs = (ms) => `${(ms / 1e3).toFixed(1)} s`;
-  let said = [];
-  const copy = Object.assign(document.createElement("button"), { type: "button", textContent: "Copy" });
-  let shown2 = null;
-  copy.addEventListener("click", (ev) => {
-    ev.stopPropagation();
-    const text = [`${location.href} \xB7 ${(/* @__PURE__ */ new Date()).toISOString()}`, ...said].join("\n");
-    const t = Object.assign(document.createElement("textarea"), { value: text, readOnly: true });
-    t.addEventListener("click", (e) => e.stopPropagation());
-    document.body.append(t);
-    t.select();
-    let ok = false;
-    try {
-      ok = document.execCommand("copy");
-    } catch {
-      ok = false;
-    }
-    t.remove();
-    const flash = (w) => {
-      copy.textContent = w;
-      setTimeout(() => {
-        copy.textContent = "Copy";
-      }, 2e3);
-    };
-    if (ok) return flash("Copied");
-    const byHand = () => {
-      shown2?.remove();
-      shown2 = t;
-      el.insertBefore(t, list);
-      t.focus();
-      t.select();
-      flash("Selected");
-    };
-    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => flash("Copied"), byHand);
-    else byHand();
-  });
-  let cleared = 0;
-  const clear = Object.assign(document.createElement("button"), { type: "button", textContent: "Clear" });
-  clear.addEventListener("click", (ev) => {
-    ev.stopPropagation();
-    cleared = Date.now();
-    acted = 0;
-    shown2?.remove();
-    shown2 = null;
-    paint();
-    const e = ctx2.store.get("entry");
-    if (e != null)
-      ctx2.api.clearSolves(e).then(
-        () => {
-          for (const key of [ROADS(e), CHIP_ROADS(e)]) ctx2.api.local.set(key, null);
-          location.reload();
-        },
-        () => {
-        }
-      );
-  });
-  const list = document.createElement("div");
-  el.replaceChildren(copy, clear, list);
-  let got = { solves: [], skew: 0 }, asking = false;
-  const ask = () => {
-    const e = ctx2.store.get("entry");
-    if (asking || e == null) return;
-    asking = true;
-    ctx2.api.getSolves(e).then(
-      (r) => {
-        got = { solves: r?.solves ?? [], skew: Date.now() - Number(r?.now ?? 0) * 1e3 };
-      },
-      () => {
-      }
-    ).finally(() => {
-      asking = false;
-      paint();
-    });
-  };
-  const paint = () => {
-    const L2 = info(ctx2)?.L, named = (f) => namedFlag(L2, f);
-    const now = Date.now(), asks = got.solves.map((x) => ({ ...x, at: Number(x.at) * 1e3 + got.skew, ms: x.ms == null ? null : Number(x.ms) })).filter((x) => x.at >= cleared);
-    const live = (x) => x.state === "running" || x.state === "queued";
-    const by = /* @__PURE__ */ new Map();
-    for (const x of asks) {
-      const g = by.get(x.key) ?? { ...x, kinds: [], n: 0 };
-      if (!by.has(x.key)) by.set(x.key, g);
-      g.n++;
-      g.mine ||= x.mine !== false;
-      if (x.mine !== false && x.state !== "already solved") g.ownAt = Math.min(g.ownAt ?? Infinity, x.at);
-      if (!g.kinds.includes(x.kind)) g.kinds.push(x.kind);
-      if (x.state !== "already solved" && (g.state === "already solved" || x.at < g.at))
-        Object.assign(g, { at: x.at, state: x.state, ms: x.ms, what: x.what, gw: x.gw });
-    }
-    const mine = [...by.values()].sort((x, y) => y.at - x.at), ran = (xs) => xs.filter((x) => x.state !== "already solved");
-    const running = mine.filter(live).length, sinceTap = mine.filter((x) => x.ownAt != null && (!acted || x.ownAt >= acted)).length;
-    const answered = [...ANSWERED.values()].filter((x) => x.at >= cleared).map((x) => ({ ...x, kinds: [x.kind], n: 1, mine: true, state: "answered", key: x.byKey }));
-    const at2 = (job) => {
-      const m = /^\d{8}-(\d\d)(\d\d)/.exec(job ?? "");
-      return m ? `${m[1]}:${m[2]}` : null;
-    };
-    const listed = new Set(mine.map((x) => x.key));
-    const ends = (x) => x.state === "answered" ? `answered by #${x.key}${listed.has(x.key) || !at2(x.job) ? "" : ` (solved at ${at2(x.job)}, kept on this device)`}` : x.state === "running" ? `solving, ${secs(now - x.at)}` : x.state === "queued" ? `waiting, ${secs(now - x.at)}` : x.state === "already solved" ? x.baked ? `no solve: the lineups${x.ms != null ? ` in ${x.ms < 1e3 ? `${x.ms} ms` : secs(x.ms)}` : ""}` : "cached" : x.state === "done" ? `solved in ${secs(x.ms ?? 0)}` : x.ms != null ? `${x.state} in ${secs(x.ms)}` : x.state;
-    const head = `${running} running \xB7 ${sinceTap} since tap \xB7 ${ran(mine).length} solved \xB7 ${mine.length - ran(mine).length} cached \xB7 ${answered.length} answered \xB7 ${asks.length} asks`;
-    const what = (x) => {
-      const fs = x.baked ? [] : (x.flags ?? []).filter((f) => !HIDDEN_FLAG.test(f));
-      return fs.length ? ` \xB7 ${fs.map(named).join(" ")}` : "";
-    };
-    const line = (x) => `\u2022 ${x.gw != null ? `GW${x.gw}` : "GW?"} \xB7 ${x.kinds.join(" + ")}${what(x)} \xB7 ${ends(x)}${x.n > 1 ? ` \xB7 asked ${x.n}\xD7` : ""}${x.mine ? "" : " \xB7 another page"}`;
-    const all = [...mine, ...answered].sort((x, y) => y.at - x.at);
-    const full = (x) => x.state === "answered" ? line(x) : `${line(x)} \xB7 #${x.key}`;
-    said = [head, ...all.map(full)];
-    list.replaceChildren(
-      Object.assign(document.createElement("b"), { textContent: head }),
-      ...all.slice(0, 30).map(
-        (x) => Object.assign(document.createElement("div"), {
-          className: live(x) ? "solving" : x.state === "done" ? "solved" : x.state,
-          textContent: full(x)
-        })
-      )
-    );
-  };
-  ask();
-  setInterval(ask, 1e3);
-  setInterval(paint, 500);
-}
-var HIDDEN_FLAG, PLAYER_FLAG, namedFlag;
-var init_solvelog = __esm({
-  "js/m/ahead/solvelog.js"() {
-    init_values();
-    init_live();
-    init_chip_cache();
-    init_core();
-    HIDDEN_FLAG = /^--(entry|poll-max-age)=/;
-    PLAYER_FLAG = /^--(must-have|exclude|not-for-gw|for-gw|[a-z-]*(keep|sell|buy|captain|vice|bench)[a-z-]*)=/;
-    namedFlag = (L2, f) => L2 && PLAYER_FLAG.test(f) ? f.replace(/=(.*)$/, (_, v) => `=${v.replace(/\d{4,}/g, (id) => L2.has(Number(id)) ? L2.name(Number(id)) : id)}`) : f;
   }
 });
 
@@ -20454,6 +20456,7 @@ function ticketPart(V) {
       setGw(next);
     }) : null;
     const who2 = choosing(ctx2, P, g);
+    const sale = who2?.kind === "sell" ? who2 : null;
     let after = null;
     const refused = P.pins.filter((p) => p.kind === "notfor" && Number(p.gw) === g).at(-1);
     const swaps = M2?.sq ? 0 : w.moves.length, last = cardUndo(ctx2, g);
@@ -20539,7 +20542,7 @@ function ticketPart(V) {
     const solving = !!S.wait || !!M2 && !M2.settled || !!M2?.shownOut || !!M2?.all?.owedOut || asked && !best && !answered();
     const wait2 = () => {
       S.cardWait = g;
-      S.cardAsk = asked && !best && !answered();
+      S.cardAsk = !!(who2?.pending || asked && !best && !answered());
       title = withMine("");
       line = withCompare(COPY.waitShort);
       noBring = true;
@@ -20581,7 +20584,41 @@ function ticketPart(V) {
       }
       if (placed) after = inPlaces(w, [placed]);
     };
-    const constrained = purchaseOffer(ctx2, P, who2);
+    const showFailure = (reason, retry = null) => {
+      const inf = reason === "infeasible";
+      if (yours.length) made();
+      else {
+        title = withMine(inf ? COPY.noPlan(g) : "");
+        right = onward;
+      }
+      line = withCompare(
+        inf ? yours.length ? COPY.infeasible(g) : COPY.unchanged : COPY.unfinished,
+        yours.length === 1 ? yours[0] : null
+      );
+      if (retry) left = askLeft("tk:suggest-sale", retry);
+    };
+    const saleOffer = (() => {
+      if (!sale?.pl || sale.pending) return null;
+      const { pl } = sale;
+      clearTimeout(S.swapAsk);
+      S.swapAsk = setTimeout(() => presolveSwap(ctx2, P, g, pl));
+      const { preview, pts: pts2, rounds } = swapForecast(ctx2, P, g, pl);
+      return {
+        candidate: { e: planBack(P, g, pl), pl },
+        preview,
+        pts: pts2,
+        rounds,
+        vs: COPY.planVs(true),
+        another: () => requestSaleSuggestion(ctx2, g, sale.out, sale),
+        exhausted: sale.exhausted,
+        notice: sale.exhausted ? COPY.noOtherPurchase : sale.error,
+        take: () => {
+          if (choosing(ctx2, plan(ctx2), g) !== sale) return;
+          if (addPlan(ctx2, g, pl)) stopChoosing(ctx2);
+        }
+      };
+    })();
+    const constrained = purchaseOffer(ctx2, P, who2) ?? saleOffer;
     const offerState = { current: null };
     const offer = (result) => {
       offerState.current = result;
@@ -20603,7 +20640,7 @@ function ticketPart(V) {
         moves.length ? movesTitle(ctx2, P, g, pairAsPlaced(w, after, P.L.pos, moves), !off && !inkAt2(ctx2, P, g)) : fallback
       );
       diagnosticComparison = { gain: pts2, rounds, vs };
-      const alternatives = moves.length < 2 || who2 ? null : () => (M2?.plans ?? []).flatMap((single) => {
+      const alternatives = moves.length < 2 || who2 && !sale ? null : () => (M2?.plans ?? []).flatMap((single) => {
         if (single.state !== "ready" || single.refRow || Object.keys(single.choice.chips ?? {}).length)
           return [];
         const { adds, taken } = planBack(P, g, single);
@@ -20637,8 +20674,8 @@ function ticketPart(V) {
         displayPts,
         alternatives
       );
-      if (notice) gain.querySelector(".ah-tkl").append(" ", notice);
       line = withCompare(gain, moves.length === 1 ? moves[0] : null);
+      if (notice) gain.after(h("p.ah-tkline", { role: "status" }, h("span.ah-tkl", null, notice)));
       left = another ? btn("alt", COPY.showAnother, `tok:not:${g}`, another) : null;
       if (left && exhausted) left.disabled = true;
       right = btn("go", COPY.swap, `tok:best:${g}`, take);
@@ -20680,6 +20717,8 @@ function ticketPart(V) {
       left = btn("alt", COPY.bringCancel, "tk:cancel", () => stopChoosing(ctx2));
     } else if (who2?.pending) {
       wait2();
+    } else if (sale?.failed) {
+      showFailure(sale.failed, () => requestSaleSuggestion(ctx2, g, sale.out, sale));
     } else if (who2 && !constrained) {
       const pr = P.L.price(who2.id);
       title = COPY.bringWho(P.L.name(who2.id));
@@ -20698,7 +20737,9 @@ function ticketPart(V) {
         )
       );
       left = askLeft("tk:buy-suggest", () => suggestPurchase(ctx2, who2));
-    } else if (w.chip && (chipSquad ? w.moves.length : !asked && !showing && !constrained)) {
+    } else if (constrained) {
+      offer(constrained);
+    } else if (w.chip && (chipSquad ? w.moves.length : !asked && !showing)) {
       const cmp = chipGain(ctx2, P, g);
       const rounds = cmp?.counted ? sameWindow(...cmp.counted, g) : 0;
       title = withMine(chipName(w.chip));
@@ -20718,22 +20759,12 @@ function ticketPart(V) {
     } else if (M2?.live) {
       title = M2.liveText;
       right = next ? onward : null;
-    } else if (constrained || offerable) {
-      offer(constrained ?? weekOffer());
+    } else if (offerable) {
+      offer(weekOffer());
     } else if (placed) {
       wait2();
     } else if (failed2 && !solving) {
-      const inf = failed2 === "infeasible";
-      if (yours.length) {
-        made();
-      } else {
-        title = withMine(inf ? COPY.noPlan(g) : "");
-        right = onward;
-      }
-      line = withCompare(
-        inf ? yours.length ? COPY.infeasible(g) : COPY.unchanged : COPY.unfinished,
-        yours.length === 1 ? yours[0] : null
-      );
+      showFailure(failed2);
     } else if (freeLeft && asked && ans && !short && !solving) {
       noTransferAnswer();
     } else if (yours.length && !(wanted && solving)) {
@@ -20749,11 +20780,11 @@ function ticketPart(V) {
       right = next ? onward : null;
     }
     showDiagnostics(ctx2, P, w, {
-      asked,
-      wanted,
+      asked: asked || !!sale,
+      wanted: wanted || !!sale,
       offerable: !!offerState.current,
       solving: who2 ? !!who2.pending : solving,
-      failed: failed2,
+      failed: sale ? sale.failed : failed2,
       short: !!short,
       freeLeft,
       refused,
@@ -20764,7 +20795,7 @@ function ticketPart(V) {
         pl,
         moves: pl.choice.moves.filter((m) => !w.moves.some((y) => y.out === m.out && y.in === m.in))
       })),
-      status: offerState.current ? "Suggestion" : who2?.pending ? "Calculating" : who2 ? "Choosing a player" : M2?.live ? "Live week" : solving ? "Calculating" : yours.length ? "Your transfers" : wanted && ans ? "Save transfers" : "Suggestion not requested"
+      status: offerState.current ? "Suggestion" : who2?.pending ? "Calculating" : who2 && !sale ? "Choosing a player" : M2?.live ? "Live week" : solving ? "Calculating" : yours.length ? "Your transfers" : wanted && ans ? "Save transfers" : "Suggestion not requested"
     });
     if (S.doors?.g !== g || S.doors.editable !== P.editable) {
       const bring2 = bringDoor(P, g), chips2 = CHIPS_OFF ? null : chipsDoor(P, g);
@@ -20772,7 +20803,7 @@ function ticketPart(V) {
       if (chips2) chips2.textContent = COPY.playAChip;
       S.doors = { g, editable: P.editable, bring: bring2, chips: chips2 };
     }
-    const doors = who2 && !offerState.current || inkAt2(ctx2, P, g) ? null : S.doors;
+    const doors = who2 && !sale && !offerState.current || inkAt2(ctx2, P, g) ? null : S.doors;
     const bring = doors?.bring ?? null, chips = doors?.chips ?? null;
     if (chips) chips.setAttribute("aria-label", COPY.chipsSaid(g, w.chip ?? null));
     const was = P.bare?.has(g) ? tickWas(w, P.bare.get(g)) : null;
@@ -20818,12 +20849,13 @@ function ticketPart(V) {
     for (const old of block.querySelectorAll(":scope > .ah-tksug")) if (old !== sug) old.remove();
     if (sug) acts.after(sug);
     const bringLink = !noBring && !bringBy ? bring : null;
+    const previousSuggestion = (who2?.previous || sale) && (() => previousChoice(ctx2, who2));
     fill(
       block.querySelector(":scope > .ah-tklinks"),
       h(
         "span.ah-tkback",
         null,
-        who2 ? who2.previous && backButton(`tk:prev:${g}`, () => previousPurchase(ctx2, who2)) : [
+        previousSuggestion ? backButton(`tk:prev:${g}`, previousSuggestion) : who2 ? null : [
           toChoice,
           undo && (!toChoice || last) && !prev ? backButton(`tk:undo:${g}`, undo, undoWords, !!onTop || !swaps && (!!refused || shown2)) : null,
           prev
@@ -20944,7 +20976,6 @@ var init_screen_ticket = __esm({
 
 // js/m/ahead/screen.js
 function mount(el, ctx2) {
-  mountSolveLog(ctx2);
   const closeDiagnostics = mountDiagnostics(ctx2);
   const V = {
     get ADD_HOLD_MS() {
@@ -21982,7 +22013,6 @@ var init_screen = __esm({
     init_screen_rows();
     init_screen_pitch();
     init_diagnostics();
-    init_solvelog();
     init_screen_touch();
     init_screen_ticket();
     GO_GW = null;
@@ -22831,9 +22861,11 @@ __export(presolve_exports, {
   removeMove: () => removeMove,
   removeWeek: () => removeWeek,
   repicks: () => repicks,
+  requestSaleSuggestion: () => requestSaleSuggestion,
   rollingAt: () => rollingAt,
   rootStill: () => rootStill,
   rowGains: () => rowGains,
+  saleSuggestionTap: () => saleSuggestionTap,
   sameWindow: () => sameWindow,
   showSuggestion: () => showSuggestion,
   showTransfer: () => showTransfer,
@@ -22900,8 +22932,10 @@ function askOf(ctx2, P, t, src) {
       extra: [...t.extra ?? [], ...a.pins],
       drop: a.drop,
       hitsMax: a.hitsMax,
+      hold: t.hold,
       order: a.inPlace ? (list) => inPlaceOf(list, a.inPlace, a.was) : null
     });
+    if (t.to != null) values = { ...values, to: t.to };
   } catch {
     return null;
   }
@@ -22927,6 +22961,39 @@ function askOf(ctx2, P, t, src) {
     }
   return { key: valuesKey(P, values), values, gw: t.gw ?? P.A, kind: t.kind, src, prep: true, ahead: true, root, ref };
 }
+function saleSuggestionTap(ctx2, P, g, out, refusals = []) {
+  const extra = [...earlierWeeksPin(P, g), ...refusals];
+  return { kind: "sell", gw: g, to: g, hold: false, run: () => sellOut(ctx2, g, out), extra };
+}
+async function saleSuggestion(ctx2, P, g, out, refusals) {
+  const ask = askOf(ctx2, P, saleSuggestionTap(ctx2, P, g, out, refusals), "sheet");
+  if (!ask) return { suggestion: null, exhausted: false };
+  const cached2 = memOf(ctx2).solvedRoad(ask.values) ?? answeredBy(P, ask.key, ask.values);
+  const result = cached2 ? { road: cached2, error: null } : await solveKept(ctx2.api, { entry: Number(P.entry), purpose: "wish", values: ask.values });
+  if (!result.road) return { suggestion: null, exhausted: result.error?.code === "infeasible" };
+  const planned = planOfRoad2(ctx2, P, result.road, g, draftOf(ctx2));
+  if (!planned?.choice.moves.some((move) => move.out === out)) return { suggestion: null, exhausted: true };
+  if (!planned.plan) return { suggestion: null, exhausted: false };
+  const pl = { ...planned.plan, state: "ready", road: result.road, choice: planned.choice };
+  return { suggestion: { pl, refusals }, exhausted: false };
+}
+async function requestSaleSuggestion(ctx2, g, out, sale = null) {
+  const P = plan(ctx2);
+  if (!P?.editable || sale && (sale.pending || choosing(ctx2, P) !== sale)) return;
+  const refusals = [...sale?.refusals ?? []];
+  if (sale?.pl) refusals.push(pinRefusal(sale.pl.choice.moves, g));
+  const previous = sale?.pl ? sale : null;
+  const base = { kind: "sell", P, g, out };
+  const pending = setChoice(ctx2, P, { ...base, pending: true, previous });
+  const current2 = () => choosing(ctx2, plan(ctx2)) === pending;
+  const fail3 = (exhausted = false) => sale?.pl ? { ...sale, exhausted, error: exhausted ? null : COPY.unfinished } : { ...base, failed: exhausted ? "infeasible" : "error" };
+  try {
+    const { suggestion, exhausted } = await saleSuggestion(ctx2, P, g, out, refusals);
+    if (current2()) setChoice(ctx2, P, suggestion ? { ...base, ...suggestion, previous } : fail3(exhausted));
+  } catch {
+    if (current2()) setChoice(ctx2, P, fail3());
+  }
+}
 function presolve(ctx2, P, src, taps, { gw = P.A, sig = "", owner = null } = {}) {
   if (DRY || !ctx2.api?.solve || ctx2.store.get("conn")?.state === "offline") return;
   if (!ctx2.presolveOn?.()) return;
@@ -22943,7 +23010,7 @@ function presolve(ctx2, P, src, taps, { gw = P.A, sig = "", owner = null } = {})
     const room = () => cur.made.length < PRESOLVE_MAX[src];
     for (const t0 of taps) {
       const t = typeof t0 === "function" ? t0() : t0;
-      if (!room() || t.id != null && cur.tried.has(t.id)) continue;
+      if (!t || !room() || t.id != null && cur.tried.has(t.id)) continue;
       if (t.id != null) cur.tried.add(t.id);
       const a = askOf(ctx2, P, t, src);
       if (a) cur.made.push(a);
@@ -28049,8 +28116,8 @@ function open4(ctx2, rawOut, rawGw) {
       const pills = h("div.ah-pills", { role: "group", "aria-label": "From gameweek" });
       const auto = h(
         "button.m-secondary.rs-auto",
-        { type: "button", "aria-description": COPY.autoBuy, onClick: () => sell(null) },
-        "Let Forkcast choose"
+        { type: "button", "aria-description": COPY.autoBuy, onClick: showSuggestion2 },
+        COPY.showSuggestion
       );
       const input = h("input", {
         type: "search",
@@ -28153,7 +28220,8 @@ function open4(ctx2, rawOut, rawGw) {
           presolveTaps(
             ctx2,
             [
-              ...[null, ...shown2.filter((o) => !o.blocked).map((o) => o.id)].map((inn) => ({
+              () => saleSuggestionTap(ctx2, P, g, out),
+              ...shown2.filter((o) => !o.blocked).map(({ id: inn }) => ({
                 kind: "sell",
                 gw: g,
                 run: () => sellOut(ctx2, g, out, inn)
@@ -28170,6 +28238,12 @@ function open4(ctx2, rawOut, rawGw) {
             { gw: g, sig: `${g}|${st.sort}|${st.flip}|${q}`, owner: sheet }
           );
         }
+      }
+      function showSuggestion2() {
+        const g = st.g;
+        sheet.close();
+        ctx2.navigate("ahead", { gw: g }, { replace: true, top: true });
+        requestSaleSuggestion(ctx2, g, out);
       }
       function pick(o) {
         if (o.blocked && o.code === "budget") {
@@ -28240,6 +28314,7 @@ var init_replace = __esm({
     init_calls();
     init_ahead();
     init_buylist();
+    init_presolve();
     CAP = 30;
     hitsFrom = (ev, g) => ev.gws.filter((s) => s.gw >= g).reduce((n, s) => n + (s.hits || 0), 0);
     POS_WORD2 = { GK: "goalkeeper", DEF: "defender", MID: "midfielder", FWD: "forward" };
@@ -29737,10 +29812,8 @@ function open7(ctx2, what = null) {
               [acc.release ?? "dev", when(acc.released_at, { fullDate: true })].filter(Boolean).join(" \xB7 ")
             )
           ) : null,
-          HELP_OFF ? null : [
-            h2("button.m-nav", { type: "button", onClick: () => helpSheet(ctx2) }, COPY.helpShort),
-            h2("button.m-nav", { type: "button", onClick: () => ctx2.openSheet("about") }, COPY.whyTitle)
-          ]
+          HELP_OFF ? null : h2("button.m-nav", { type: "button", onClick: () => helpSheet(ctx2) }, COPY.helpShort),
+          !HELP_OFF || acc?.local ? h2("button.m-nav", { type: "button", onClick: () => ctx2.openSheet("about") }, COPY.whyTitle) : null
         );
         paintDev();
       }

@@ -319,12 +319,14 @@ export function healPart(V) {
       drop = [],
       order = null,
       hitsMax,
-    } = /** @type {{extra?: object[], drop?: string[], order?: (pins: object[]) => object[], hitsMax?: number}} */ ({}),
+      hold = true,
+    } = /** @type {{extra?: object[], drop?: string[], order?: (pins: object[]) => object[], hitsMax?: number, hold?: boolean}} */ ({}),
   ) {
     const { S, accNow, cctxNow, ownedNow, storedNow, withHits, withHold } = V;
     const after = pinsAfter(storedNow(), { add: extra, drop }, S.A, ownedNow());
+    const ordered = order ? order(after) : after;
     const list = withHits(
-      withHold(order ? order(after) : after),
+      hold ? withHold(ordered) : ordered,
       hitsMax === undefined ? num(accNow()?.hits_max) : num(hitsMax),
     );
     const cctx = cctxNow(list);

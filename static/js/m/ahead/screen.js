@@ -17,7 +17,6 @@ import { weekPart } from './screen-week.js';
 import { rowsPart } from './screen-rows.js';
 import { pitchPart } from './screen-pitch.js';
 import { mountDiagnostics } from './diagnostics.js';
-import { mountSolveLog } from './solvelog.js';
 import { touchPart } from './screen-touch.js';
 import { ticketPart } from './screen-ticket.js';
 
@@ -201,8 +200,6 @@ export const cssPx = (host, ...lengths) => {
 /** The store listener that forgets the asks of a team left (mount), once for the page. */
 let _FORGET_ASKS = null;
 export function mount(el, ctx) {
-  // (?solves=1 only: the fork solves in words, and the server's planning of a new team while it bakes)
-  mountSolveLog(ctx);
   const closeDiagnostics = mountDiagnostics(ctx);
   // the parts' view of this function's scope (live getters) and the parts' functions, by their own names
   const V = {

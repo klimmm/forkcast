@@ -146,12 +146,10 @@ export function open(ctx, what = null) {
                 ),
               )
             : null,
-          HELP_OFF
-            ? null
-            : [
-                h('button.m-nav', { type: 'button', onClick: () => helpSheet(ctx) }, COPY.helpShort),
-                h('button.m-nav', { type: 'button', onClick: () => ctx.openSheet('about') }, COPY.whyTitle),
-              ],
+          HELP_OFF ? null : h('button.m-nav', { type: 'button', onClick: () => helpSheet(ctx) }, COPY.helpShort),
+          !HELP_OFF || acc?.local
+            ? h('button.m-nav', { type: 'button', onClick: () => ctx.openSheet('about') }, COPY.whyTitle)
+            : null,
         );
         paintDev();
       }
