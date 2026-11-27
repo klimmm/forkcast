@@ -462,6 +462,49 @@ gain). The tiles in one track as the header's GW tiles, the chosen one the selec
 .ps .ps-sub { color: var(--muted); }
 .ps .ps-grid button { min-height: 44px; height: auto; padding: 4px 10px; border: 1px solid var(--border-2); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); }
 .ps .ps-keep .m-seg { height: 36px; }
+.ps-head-actions {
+  display: flex;
+  flex: none;
+  gap: 10px;
+}
+.m-keep-icon {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.m-keep-icon svg {
+  width: 0.8em;
+  height: 0.8em;
+  stroke-width: 2.2;
+}
+.m-keep-icon::before {
+  position: absolute;
+  inset: -7px;
+  content: "";
+}
+.m-keep-icon:focus-visible {
+  outline: 2px solid var(--sel-edge);
+  outline-offset: 1px;
+}
+.ps .ps-keep-action {
+  width: 30px;
+  height: 30px;
+  color: var(--ink);
+  font: 600 var(--t-head) / 1.2 var(--f-text);
+}
+.m-keep-icon[hidden] {
+  display: none;
+}
+.ps .ps-keep-action:disabled {
+  opacity: 0.45;
+}
 .ps .ps-grid .ps-keep .m-seg > button { min-height: 0; padding: 0 4px; border: 0; background: none; }
 .ps .ps-grid .ps-tog.on { border-color: var(--acc-bg); background: var(--surface); color: var(--ink); }
 .ps .ps-tog .sw { background: var(--track); box-shadow: inset 0 0 0 1px var(--border-2); transition: background var(--dur) var(--ease); }

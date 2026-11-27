@@ -11,7 +11,7 @@
 // the Sell row doesn't show, a wish, or a Keep or veto of another GW shows with its way back (UX-6). An edit that
 // undoes an older rule acts at once, its verdict naming that rule, with Undo.
 
-import { h, fmt, fill, statusInfo, posName, posCode, roving, xpNum } from '../../ui.js';
+import { h, fmt, fill, icon, statusInfo, posName, posCode, roving, xpNum } from '../../ui.js';
 import { COPY, newsReason, priceProgress } from '../calls.js';
 import { getPlayer } from '../api.js';
 import * as AH from '../ahead.js';
@@ -339,6 +339,27 @@ export function open(
       AH.presolveTaps(ctx, null, { owner: row });
     },
     build(body, sheet) {
+      const dismiss = two ? null : body.querySelector('.m-sh > .m-xbtn');
+      const keepButton = dismiss
+        ? h(
+            'button.m-keep-icon.ps-keep-action',
+            {
+              type: 'button',
+              hidden: true,
+              title: `Keep in GW${g}`,
+              'aria-label': COPY.keepIn(P0.L.name(id), g),
+              onClick: () => {
+                if (AH.keep(ctx, id, { gw: g, scope: 'gw' })) sheet.close();
+              },
+            },
+            icon('lock', { size: 12 }),
+          )
+        : null;
+      if (dismiss && keepButton) {
+        const buttons = h('div.ps-head-actions', null, keepButton);
+        dismiss.before(buttons);
+        buttons.append(dismiss);
+      }
       // stats view (Per match | Per 90): this viewer's last pick
       let view = statsView(ctx);
       const setView = (v) => {
@@ -376,6 +397,10 @@ export function open(
         const m = model(ctx, P, row, id, card, cardState, local, vs, vsCard);
         const G = geometry(m, W);
         fill(subEl, headerSub(row, P.L.pos(id), card, entry));
+        if (keepButton) {
+          keepButton.hidden = !owns(P) || !!pinOf(P, 'keep', id, g);
+          keepButton.disabled = !P.editable || AH.inkAt(ctx, P, g);
+        }
         // focus survives a redraw: a segmented option (ui.roving) in its group, found by name; an ⓘ by its label
         const grp = document.activeElement?.closest?.('.ps-main [role="radio"]')?.closest('[role="radiogroup"]');
         const info = document.activeElement?.closest?.('.ps-main .ps-info')?.getAttribute('aria-label');
@@ -435,10 +460,12 @@ export function open(
        *  controls below don't show (another GW's, or beside the Sell row's sale), with the button that takes it off:
        *  removeRule (a sale's or Wish's move as its row's ×, else liftAsk). */
       function askLine(P) {
-        // pinOf returns the one pin covering GW g (one rule per player: meeting), so one it doesn't is of another GW;
-        // the Sell row's sale shows over a same-GW veto (sale ?? out)
-        // (no week controls on his card since 2026-11-09 (Replace… and Sub…, Bring him in…): any rule of his)
-        const pin = pinOf(P, 'sell', id) ?? pinOf(P, 'wish', id) ?? pinsOf(P, ['keep', 'veto', 'never'], id)[0] ?? null;
+        const pin =
+          pinOf(P, 'keep', id, g) ??
+          pinOf(P, 'sell', id) ??
+          pinOf(P, 'wish', id) ??
+          pinsOf(P, ['keep', 'veto', 'never'], id)[0] ??
+          null;
         if (!pin) return null;
         const word =
           pin.kind === 'sell'
@@ -463,10 +490,7 @@ export function open(
           P.editable ? liveWhy(P, pin) : h('p.ps-off.m-foot', null, P.why),
         );
       }
-      /** Buttons under the header: for a player you have, Replace… (sell him from the first week he can go: who comes in,
-       *  or Forkcast's pick; sheets/replace.js) and Sub… (his week's legal swaps lit on the pitch: buys.chooseSub), his Keep and Force out
-       *  hidden (owner, 2026-11-09, "hide this buttons and only add button on replace and sub"); for one you don't,
-       *  Bring him in… (whole row) and Force out. */
+      /** Owned players can be replaced, subbed, or kept in the viewed gameweek. */
       function actions(P) {
         const b = (label, onClick, cls = '', off = false) =>
           h('button', { type: 'button', class: cls, disabled: !P.editable || off, onClick }, label);

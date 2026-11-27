@@ -799,7 +799,7 @@ export function decksPart(V) {
           delay: reduceMotion() ? 0 : 170,
           fill: 'backwards',
         });
-    cardMarks(P, g, boxes);
+    cardMarks(P, g);
     // a × tapped on a card no choice sold: his place once his asked buys are listed (askPlace), or why none comes
     const want = S.placeWant?.g === g ? S.placeWant : null;
     if (!want) S.placeWant = null;
@@ -828,8 +828,8 @@ export function decksPart(V) {
     else if (pin.must?.length === 1 && pin.must[0][1] === g && pin.must[0][2] === g) removeRule(ctx, pin.id);
     else ruleSheet(pin);
   }
-  function cardMarks(P, g, boxes) {
-    const { S, boxOf, ctx, decks, pitchHost } = V;
+  function cardMarks(P, g) {
+    const { S, boxOf, cardBoxes, ctx, decks, pitchHost } = V;
     const root = pitchHost.querySelector(':scope > .pm');
     if (!P.editable || !root) return;
     const nm = P.L.name,
@@ -837,9 +837,11 @@ export function decksPart(V) {
     // (the mark's size: m-ahead.css .ah-cm, 12 px; its target's reach past each side, --hit)
     const M = 12,
       HIT = 16;
-    for (const c of boxes) {
+    for (const c of cardBoxes(root)) {
       const a = c.id,
         pin = pinOf(P, 'keep', a, g);
+      const badge = c.n.querySelector('.pm-keep');
+      const kept = badge ? Number(badge.dataset.player) : pin ? a : null;
       const tile = c.n.querySelector('.pm-kit'),
         t = tile ? boxOf(tile, b) : c;
       // (a tile too short for both, at large text: the lock right of the ×, their 24 px targets apart)
@@ -875,22 +877,26 @@ export function decksPart(V) {
         );
       // (the lock only on a player you locked, its tap unlocking him: owner, 2026-11-02, "remove locks for player plates
       // unless players are locked"; a lock is set from the band's ✕ on the seller or his card's sheet)
-      if (pin)
+      if (kept != null) {
+        const mark = badge ? boxOf(badge, b) : null;
         decks.append(
           h(
             'button.ah-cm.lock',
             {
               type: 'button',
-              class: { on: !!pin },
-              'aria-pressed': String(!!pin),
-              'aria-label': COPY.cardLockSaid(nm(a), g, !!pin),
-              dataset: { row: `lock:${a}` },
-              style: lAt,
-              onClick: () => lockTap(P, g, a),
+              class: { on: true, 'ah-unkeep': !!mark },
+              'aria-pressed': 'true',
+              'aria-label': COPY.cardLockSaid(nm(kept), g, true),
+              dataset: { row: `lock:${kept}` },
+              style: mark
+                ? { left: `${mark.x}px`, top: `${mark.y}px`, width: `${mark.w}px`, height: `${mark.h}px` }
+                : lAt,
+              onClick: () => lockTap(P, g, kept),
             },
-            lockGlyph(!!pin),
+            mark ? null : lockGlyph(true),
           ),
         );
+      }
     }
   }
   /** The Week sheet's green follows the pitch as just drawn (owner, 2026-10-25: "Follow the pitch"): the week's `shown`

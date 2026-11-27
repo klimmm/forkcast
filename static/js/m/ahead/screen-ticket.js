@@ -2,7 +2,7 @@
 // and see another suggestion"; "stop wasting space on useless crap"; design_1105f prototype/ticket.html)
 
 import { showDiagnostics } from './diagnostics.js';
-import { h, fill, fmt, plural, reduceMotion, chipName, xpGain, xpNum } from '../../ui.js';
+import { h, fill, fmt, icon, plural, reduceMotion, chipName, xpGain, xpNum } from '../../ui.js';
 import { CHIPS_OFF, COPY, shownDelta } from '../calls.js';
 import { MINUS, pairAsPlaced, plan, viewOfRoadWeek, weekOf } from './core.js';
 import { forkRead } from './plans/forks.js';
@@ -35,7 +35,7 @@ import {
   placedDone,
   stopChoosing,
 } from './buys.js';
-import { cardUndo, removeRule, takingBack, tickWas, veto } from './edits.js';
+import { cardUndo, keep, removeRule, takingBack, tickWas, veto } from './edits.js';
 import { chipGain, squadWeek } from './pieces.js';
 import { MOVE_KINDS, fitNum } from './screen.js';
 
@@ -120,7 +120,7 @@ const movesWords = (P, ms) =>
 /** …as the card's title: each name a door to his own card, no other player on it (owner, 2026-11-04: "make players
  *  clickable in tickets so they can be opened"; 2026-11-09: "remove konsa from vuskovic card"). The → is text: the two
  *  side by side are the Compare players link under the line, one control for one thing (card audit 2026-11-10). */
-const movesTitle = (ctx, P, g, ms) => {
+const movesTitle = (ctx, P, g, ms, canKeep) => {
   const door = (id) =>
     h(
       'button.ah-tkname',
@@ -134,7 +134,26 @@ const movesTitle = (ctx, P, g, ms) => {
       P.L.name(id),
     );
   const list = (xs) => xs.flatMap((x, i) => (i ? [', ', x] : [x]));
-  return [...list(ms.map((x) => door(x.out))), ' → ', ...list(ms.map((x) => door(x.in)))];
+  const seller = ({ out }) => {
+    if (!canKeep) return door(out);
+    return h(
+      'span.ah-tkseller',
+      null,
+      door(out),
+      h(
+        'button.m-keep-icon.ah-tkkeep',
+        {
+          type: 'button',
+          title: COPY.keepIn(P.L.name(out), g),
+          'aria-label': COPY.keepIn(P.L.name(out), g),
+          dataset: { row: `tk:keep:${g}:${out}` },
+          onClick: () => keep(ctx, Number(out), { gw: g, scope: 'gw' }),
+        },
+        icon('lock', { size: 12 }),
+      ),
+    );
+  };
+  return [...list(ms.map(seller)), ' → ', ...list(ms.map((x) => door(x.in)))];
 };
 /** GW w's team with transfers `ms` made, each buy in his seller's place: the pitch while their solve is out (owner,
  *  2026-11-08: "suggestions not highlighting on pitch"), and a bring-in landing (placedAt). */
@@ -652,7 +671,11 @@ export function ticketPart(V) {
       const moves = e.adds,
         own = pl.road?.weeks?.find((x) => Number(x.gw) === g);
       after = result.preview ?? (own ? viewOfRoadWeek(own, P.L) : null) ?? (moves.length ? inPlaces(w, moves) : null);
-      title = withMine(moves.length ? movesTitle(ctx, P, g, pairAsPlaced(w, after, P.L.pos, moves)) : fallback);
+      title = withMine(
+        moves.length
+          ? movesTitle(ctx, P, g, pairAsPlaced(w, after, P.L.pos, moves), !off && !inkAt(ctx, P, g))
+          : fallback,
+      );
       diagnosticComparison = { gain: pts, rounds, vs };
       const alternatives =
         moves.length < 2 || who

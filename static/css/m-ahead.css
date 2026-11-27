@@ -1387,7 +1387,7 @@ FPL's, no shirt tiles */
      the goal and player rows at their established positions. */
   --pm-turf-clip: polygon(8.59% 1.97%, 9.23% 1.01%, 10.26% .36%, 11.92% 0%, 88.08% 0%, 89.74% .36%, 90.77% 1.01%, 91.41% 1.97%, 100% 20.81%, 100% 100%, 0 100%, 0 20.81%);
 }
-.m-screen.ah .ah-decks, .m-screen.ah .ah-cheer, .m-screen.ah .ah-hint, .m-screen.ah .ah-thumb, .m-screen.ah .pm-bl { display: none !important; }
+.m-screen.ah .ah-decks > :not(.ah-unkeep), .m-screen.ah .ah-cheer, .m-screen.ah .ah-hint, .m-screen.ah .ah-thumb, .m-screen.ah .pm-bl { display: none !important; }
 .m-screen.ah .pm-card .pm-kit { width: 100%; height: var(--pm-kh); background: none; box-shadow: none; }
 .m-screen.ah .pm-card .pm-flip { overflow: visible; }
 .m-screen.ah .pm-card .pm-face { position: absolute; left: 0; top: 0; width: 100%; height: calc(var(--pm-h) - 2px); display: flex; justify-content: center; transform: none; }
@@ -1406,6 +1406,27 @@ wider; owner, 2026-11-11, "why such small shirts: bigger, partly hidden behind t
   background-repeat: no-repeat;
 }
 .m-screen.ah .pm-card .pm-badge { position: absolute; left: calc(50% - 30px); top: 1px; z-index: 2; width: 14px; height: 14px; margin: 0; padding: 0; border: 0; border-radius: 50%; box-shadow: none; background: #fff; color: var(--tk-ink); font: 700 9px/14px var(--f-text); text-align: center; }
+.m-screen.ah .pm-card .pm-keep {
+  display: grid;
+  place-items: center;
+  background: var(--tk-ink);
+  color: #fff;
+}
+.m-screen.ah .ah-decks .ah-unkeep {
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+.m-screen.ah .ah-decks .ah-unkeep:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+.m-screen.ah .ah-decks .ah-unkeep::before {
+  inset: -5px;
+}
+.m-screen.ah .pm-card :is(.c, .v) + .pm-keep {
+  top: 17px;
+}
 /* (one line always, at every text size: a row is the height the pitch was fitted for, the longest fixture ellipsises; the
 wider system font took a second line at the largest sizes and ran the rows together, QA fit 2026-11-05) */
 .m-screen.ah .pm-card .pm-pf.two:has(.xp-u) { display: flex; flex-direction: row; height: auto; column-gap: 3px; }
@@ -1535,6 +1556,18 @@ back the next card rises over it */
 /* (above the row's tap area, which reaches down over the title: z-index 1, .ah-tkrow; a tap on a name opened the Week sheet,
    journeys 2026-11-08) */
 .m-screen.ah .ah-tkname { position: relative; z-index: 2; padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; cursor: pointer; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; text-decoration-color: rgb(20 23 26 / .35); }
+.m-screen.ah .ah-tkseller {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+}
+.m-screen.ah .ah-tkkeep {
+  z-index: 3;
+}
+.m-screen.ah .ah-tkkeep::before {
+  inset: -12px -4px -12px 0;
+}
 .m-screen.ah .ah-tkname::before { content: ""; position: absolute; inset: -8px -2px; }
 .m-screen.ah .ah-tkname:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: 2px; }
 .m-screen.ah :is(.ah-tkline, .ah-tkpad.l) { display: flex; align-items: baseline; gap: 8px; margin: 0; font: 500 var(--tk3)/1.33 var(--f-text); color: var(--tk-mute); }

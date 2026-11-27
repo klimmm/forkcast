@@ -1742,6 +1742,49 @@ gain). The tiles in one track as the header's GW tiles, the chosen one the selec
 .ps .ps-sub { color: var(--muted); }
 .ps .ps-grid button { min-height: 44px; height: auto; padding: 4px 10px; border: 1px solid var(--border-2); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); }
 .ps .ps-keep .m-seg { height: 36px; }
+.ps-head-actions {
+  display: flex;
+  flex: none;
+  gap: 10px;
+}
+.m-keep-icon {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.m-keep-icon svg {
+  width: 0.8em;
+  height: 0.8em;
+  stroke-width: 2.2;
+}
+.m-keep-icon::before {
+  position: absolute;
+  inset: -7px;
+  content: "";
+}
+.m-keep-icon:focus-visible {
+  outline: 2px solid var(--sel-edge);
+  outline-offset: 1px;
+}
+.ps .ps-keep-action {
+  width: 30px;
+  height: 30px;
+  color: var(--ink);
+  font: 600 var(--t-head) / 1.2 var(--f-text);
+}
+.m-keep-icon[hidden] {
+  display: none;
+}
+.ps .ps-keep-action:disabled {
+  opacity: 0.45;
+}
 .ps .ps-grid .ps-keep .m-seg > button { min-height: 0; padding: 0 4px; border: 0; background: none; }
 .ps .ps-grid .ps-tog.on { border-color: var(--acc-bg); background: var(--surface); color: var(--ink); }
 .ps .ps-tog .sw { background: var(--track); box-shadow: inset 0 0 0 1px var(--border-2); transition: background var(--dur) var(--ease); }
@@ -3513,7 +3556,7 @@ FPL's, no shirt tiles */
      the goal and player rows at their established positions. */
   --pm-turf-clip: polygon(8.59% 1.97%, 9.23% 1.01%, 10.26% .36%, 11.92% 0%, 88.08% 0%, 89.74% .36%, 90.77% 1.01%, 91.41% 1.97%, 100% 20.81%, 100% 100%, 0 100%, 0 20.81%);
 }
-.m-screen.ah .ah-decks, .m-screen.ah .ah-cheer, .m-screen.ah .ah-hint, .m-screen.ah .ah-thumb, .m-screen.ah .pm-bl { display: none !important; }
+.m-screen.ah .ah-decks > :not(.ah-unkeep), .m-screen.ah .ah-cheer, .m-screen.ah .ah-hint, .m-screen.ah .ah-thumb, .m-screen.ah .pm-bl { display: none !important; }
 .m-screen.ah .pm-card .pm-kit { width: 100%; height: var(--pm-kh); background: none; box-shadow: none; }
 .m-screen.ah .pm-card .pm-flip { overflow: visible; }
 .m-screen.ah .pm-card .pm-face { position: absolute; left: 0; top: 0; width: 100%; height: calc(var(--pm-h) - 2px); display: flex; justify-content: center; transform: none; }
@@ -3532,6 +3575,27 @@ wider; owner, 2026-11-11, "why such small shirts: bigger, partly hidden behind t
   background-repeat: no-repeat;
 }
 .m-screen.ah .pm-card .pm-badge { position: absolute; left: calc(50% - 30px); top: 1px; z-index: 2; width: 14px; height: 14px; margin: 0; padding: 0; border: 0; border-radius: 50%; box-shadow: none; background: #fff; color: var(--tk-ink); font: 700 9px/14px var(--f-text); text-align: center; }
+.m-screen.ah .pm-card .pm-keep {
+  display: grid;
+  place-items: center;
+  background: var(--tk-ink);
+  color: #fff;
+}
+.m-screen.ah .ah-decks .ah-unkeep {
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+.m-screen.ah .ah-decks .ah-unkeep:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+.m-screen.ah .ah-decks .ah-unkeep::before {
+  inset: -5px;
+}
+.m-screen.ah .pm-card :is(.c, .v) + .pm-keep {
+  top: 17px;
+}
 /* (one line always, at every text size: a row is the height the pitch was fitted for, the longest fixture ellipsises; the
 wider system font took a second line at the largest sizes and ran the rows together, QA fit 2026-11-05) */
 .m-screen.ah .pm-card .pm-pf.two:has(.xp-u) { display: flex; flex-direction: row; height: auto; column-gap: 3px; }
@@ -3661,6 +3725,18 @@ back the next card rises over it */
 /* (above the row's tap area, which reaches down over the title: z-index 1, .ah-tkrow; a tap on a name opened the Week sheet,
    journeys 2026-11-08) */
 .m-screen.ah .ah-tkname { position: relative; z-index: 2; padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; cursor: pointer; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; text-decoration-color: rgb(20 23 26 / .35); }
+.m-screen.ah .ah-tkseller {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+}
+.m-screen.ah .ah-tkkeep {
+  z-index: 3;
+}
+.m-screen.ah .ah-tkkeep::before {
+  inset: -12px -4px -12px 0;
+}
 .m-screen.ah .ah-tkname::before { content: ""; position: absolute; inset: -8px -2px; }
 .m-screen.ah .ah-tkname:focus-visible { outline: 2px solid var(--acc-bg); outline-offset: 2px; }
 .m-screen.ah :is(.ah-tkline, .ah-tkpad.l) { display: flex; align-items: baseline; gap: 8px; margin: 0; font: 500 var(--tk3)/1.33 var(--f-text); color: var(--tk-mute); }
@@ -3895,8 +3971,8 @@ one in the selected look's tint and green ring, 600, with its arrow (a second ta
 .m-banner.offline .m-banner-ic { opacity: .6; }
 
 </style>
-<meta name="forkcast-release" content="v1.3.273">
-<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=5c3b709af0","/js/app.js":"/js/app.js?v=db6c95393a","/js/m/ahead.js":"/js/m/ahead.js?v=377664cc09","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=e0ffe5fca9","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=41f66e132a","/js/m/ahead/diagnostics.js":"/js/m/ahead/diagnostics.js?v=ef9b2a48eb","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=25d9060ef2","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=628edb4111","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=5f3317cef6","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=652f0ae23b","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=d5e663b889","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=8f3cccc8bd","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=acaecafa38","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=c317c21a21","/js/m/ahead/plans/groups.js":"/js/m/ahead/plans/groups.js?v=1b1abb4034","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=d2e4b2572d","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=c1b0640160","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=c344725dd2","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=5582d971f9","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=7f000b9abc","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=c10d54f3b2","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=648aa36559","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=7fb2528090","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=8ba72c082d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=9ce78b6013","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=b014e6d8a9","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=e73fd9c009","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=b2daaca688","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=4262881e41","/js/m/api.js":"/js/m/api.js?v=0942bd4682","/js/m/app.js":"/js/m/app.js?v=fd985f0df4","/js/m/calls.js":"/js/m/calls.js?v=cc25e4f961","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=0f2724442c","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=1d8ca8efe0","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=a14a651ba4","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=34049e400c","/js/m/memory.js":"/js/m/memory.js?v=18f75d1fb8","/js/m/memory/chip-cache.js":"/js/m/memory/chip-cache.js?v=469da99c8d","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=52ed052dc7","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=9e4e27db95","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=f1a98e7107","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=280683b86e","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=b1857741a3","/js/m/memory/live.js":"/js/m/memory/live.js?v=c575ef129f","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=c1188126bc","/js/m/memory/values.js":"/js/m/memory/values.js?v=7d599c8e37","/js/m/picker.js":"/js/m/picker.js?v=9c1b5d917c","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=6bcf2f22f1","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=267fe45a03","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=71e339cbf4","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=278e2f8533","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=2365a7f230","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=78b24d4cc7","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=516f9dd0c3","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=9d5a15cee2","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=af30142223","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=41064a84fc","/js/m/shell/store.js":"/js/m/shell/store.js?v=e0ecdf6961","/js/marks.js":"/js/marks.js?v=124db486e1","/js/plan/engine.js":"/js/plan/engine.js?v=0995024cb9","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=2bbbf536aa","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=19877756a7","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=a054129350","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=82fe001fd8","/js/plan/kits.js":"/js/plan/kits.js?v=cfe152fcd8","/js/plan/pitch.js":"/js/plan/pitch.js?v=9c7cf533e8","/js/studio/flags.js":"/js/studio/flags.js?v=2647d49b09","/js/studio/kit.js":"/js/studio/kit.js?v=e716329914","/js/studio/tables.js":"/js/studio/tables.js?v=0a2fdd526e","/js/ui.js":"/js/ui.js?v=ce8c1e3f7e","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=97fd60c21e","/js/views/compare.js":"/js/views/compare.js?v=1974b794fd","/js/views/dashboard.js":"/js/views/dashboard.js?v=0007306caa","/js/views/data.js":"/js/views/data.js?v=4371ffddca","/js/views/docs.js":"/js/views/docs.js?v=65fdc63ad9","/js/views/fixtures.js":"/js/views/fixtures.js?v=76773e01f6","/js/views/planner.js":"/js/views/planner.js?v=d874790460","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=39236f1fe1","/js/views/planner/model.js":"/js/views/planner/model.js?v=85a70b3242","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=0253f5e488","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=18e34284ea","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=9b564f7322","/js/views/players.js":"/js/views/players.js?v=56ff8a898b","/js/views/preview.js":"/js/views/preview.js?v=91cedeb946","/js/views/runs.js":"/js/views/runs.js?v=6b4300b53f"}}</script>
+<meta name="forkcast-release" content="v1.3.274">
+<script type="importmap">{"imports":{"/js/api.js":"/js/api.js?v=5c3b709af0","/js/app.js":"/js/app.js?v=db6c95393a","/js/m/ahead.js":"/js/m/ahead.js?v=377664cc09","/js/m/ahead/buys.js":"/js/m/ahead/buys.js?v=e0ffe5fca9","/js/m/ahead/core.js":"/js/m/ahead/core.js?v=41f66e132a","/js/m/ahead/diagnostics.js":"/js/m/ahead/diagnostics.js?v=ef9b2a48eb","/js/m/ahead/edits.js":"/js/m/ahead/edits.js?v=25d9060ef2","/js/m/ahead/edits/lineups.js":"/js/m/ahead/edits/lineups.js?v=628edb4111","/js/m/ahead/edits/rules.js":"/js/m/ahead/edits/rules.js?v=5f3317cef6","/js/m/ahead/edits/say.js":"/js/m/ahead/edits/say.js?v=652f0ae23b","/js/m/ahead/pieces.js":"/js/m/ahead/pieces.js?v=d5e663b889","/js/m/ahead/plans.js":"/js/m/ahead/plans.js?v=8f3cccc8bd","/js/m/ahead/plans/choices.js":"/js/m/ahead/plans/choices.js?v=acaecafa38","/js/m/ahead/plans/forks.js":"/js/m/ahead/plans/forks.js?v=c317c21a21","/js/m/ahead/plans/groups.js":"/js/m/ahead/plans/groups.js?v=1b1abb4034","/js/m/ahead/plans/lit.js":"/js/m/ahead/plans/lit.js?v=d2e4b2572d","/js/m/ahead/plans/suggest.js":"/js/m/ahead/plans/suggest.js?v=c1b0640160","/js/m/ahead/presolve.js":"/js/m/ahead/presolve.js?v=c344725dd2","/js/m/ahead/screen-decks.js":"/js/m/ahead/screen-decks.js?v=5174744d47","/js/m/ahead/screen-head.js":"/js/m/ahead/screen-head.js?v=7f000b9abc","/js/m/ahead/screen-line.js":"/js/m/ahead/screen-line.js?v=c10d54f3b2","/js/m/ahead/screen-pitch.js":"/js/m/ahead/screen-pitch.js?v=00f1304306","/js/m/ahead/screen-place.js":"/js/m/ahead/screen-place.js?v=7fb2528090","/js/m/ahead/screen-rows.js":"/js/m/ahead/screen-rows.js?v=8ba72c082d","/js/m/ahead/screen-ticket.js":"/js/m/ahead/screen-ticket.js?v=812b574679","/js/m/ahead/screen-touch.js":"/js/m/ahead/screen-touch.js?v=b014e6d8a9","/js/m/ahead/screen-week.js":"/js/m/ahead/screen-week.js?v=e73fd9c009","/js/m/ahead/screen.js":"/js/m/ahead/screen.js?v=b2daaca688","/js/m/ahead/solvelog.js":"/js/m/ahead/solvelog.js?v=4262881e41","/js/m/api.js":"/js/m/api.js?v=0942bd4682","/js/m/app.js":"/js/m/app.js?v=fd985f0df4","/js/m/calls.js":"/js/m/calls.js?v=cc25e4f961","/js/m/calls/copy.js":"/js/m/calls/copy.js?v=0f2724442c","/js/m/calls/helpers.js":"/js/m/calls/helpers.js?v=1d8ca8efe0","/js/m/calls/measure.js":"/js/m/calls/measure.js?v=a14a651ba4","/js/m/calls/prices.js":"/js/m/calls/prices.js?v=34049e400c","/js/m/memory.js":"/js/m/memory.js?v=18f75d1fb8","/js/m/memory/chip-cache.js":"/js/m/memory/chip-cache.js?v=469da99c8d","/js/m/memory/drift.js":"/js/m/memory/drift.js?v=52ed052dc7","/js/m/memory/live-api.js":"/js/m/memory/live-api.js?v=9e4e27db95","/js/m/memory/live-heal.js":"/js/m/memory/live-heal.js?v=f1a98e7107","/js/m/memory/live-model.js":"/js/m/memory/live-model.js?v=280683b86e","/js/m/memory/live-state.js":"/js/m/memory/live-state.js?v=b1857741a3","/js/m/memory/live.js":"/js/m/memory/live.js?v=c575ef129f","/js/m/memory/pins.js":"/js/m/memory/pins.js?v=c1188126bc","/js/m/memory/values.js":"/js/m/memory/values.js?v=7d599c8e37","/js/m/picker.js":"/js/m/picker.js?v=9c1b5d917c","/js/m/qa-mods.js":"/js/m/qa-mods.js?v=6846c3f093","/js/m/sheets/about.js":"/js/m/sheets/about.js?v=6bcf2f22f1","/js/m/sheets/buylist.js":"/js/m/sheets/buylist.js?v=267fe45a03","/js/m/sheets/chips.js":"/js/m/sheets/chips.js?v=71e339cbf4","/js/m/sheets/player.js":"/js/m/sheets/player.js?v=30ef4264fd","/js/m/sheets/replace.js":"/js/m/sheets/replace.js?v=2365a7f230","/js/m/sheets/strip.js":"/js/m/sheets/strip.js?v=78b24d4cc7","/js/m/sheets/why.js":"/js/m/sheets/why.js?v=516f9dd0c3","/js/m/sheets/wish.js":"/js/m/sheets/wish.js?v=9d5a15cee2","/js/m/sheets/you.js":"/js/m/sheets/you.js?v=af30142223","/js/m/shell/sheets.js":"/js/m/shell/sheets.js?v=41064a84fc","/js/m/shell/store.js":"/js/m/shell/store.js?v=e0ecdf6961","/js/marks.js":"/js/marks.js?v=124db486e1","/js/plan/engine.js":"/js/plan/engine.js?v=0995024cb9","/js/plan/engine/evaluate.js":"/js/plan/engine/evaluate.js?v=2bbbf536aa","/js/plan/engine/phone.js":"/js/plan/engine/phone.js?v=19877756a7","/js/plan/engine/solver.js":"/js/plan/engine/solver.js?v=a054129350","/js/plan/engine/squad.js":"/js/plan/engine/squad.js?v=82fe001fd8","/js/plan/kits.js":"/js/plan/kits.js?v=cfe152fcd8","/js/plan/pitch.js":"/js/plan/pitch.js?v=631603e113","/js/studio/flags.js":"/js/studio/flags.js?v=2647d49b09","/js/studio/kit.js":"/js/studio/kit.js?v=e716329914","/js/studio/tables.js":"/js/studio/tables.js?v=0a2fdd526e","/js/ui.js":"/js/ui.js?v=ce8c1e3f7e","/js/vendor/qr.js":"/js/vendor/qr.js?v=ff498ff3a5","/js/views/backtests.js":"/js/views/backtests.js?v=97fd60c21e","/js/views/compare.js":"/js/views/compare.js?v=1974b794fd","/js/views/dashboard.js":"/js/views/dashboard.js?v=0007306caa","/js/views/data.js":"/js/views/data.js?v=4371ffddca","/js/views/docs.js":"/js/views/docs.js?v=65fdc63ad9","/js/views/fixtures.js":"/js/views/fixtures.js?v=76773e01f6","/js/views/planner.js":"/js/views/planner.js?v=d874790460","/js/views/planner/cards.js":"/js/views/planner/cards.js?v=39236f1fe1","/js/views/planner/model.js":"/js/views/planner/model.js?v=85a70b3242","/js/views/planner/settings.js":"/js/views/planner/settings.js?v=0253f5e488","/js/views/planner/solve.js":"/js/views/planner/solve.js?v=18e34284ea","/js/views/planner/squad.js":"/js/views/planner/squad.js?v=9b564f7322","/js/views/players.js":"/js/views/players.js?v=56ff8a898b","/js/views/preview.js":"/js/views/preview.js?v=91cedeb946","/js/views/runs.js":"/js/views/runs.js?v=6b4300b53f"}}</script>
 </head>
 <body>
 <div class="m-app" id="app">
@@ -9297,6 +9373,7 @@ function fitFixtures(root) {
 }
 function card(id, P, o, { flipFrom = null, order = null } = {}) {
   const p = P(id);
+  const kept = o.kept?.has(id);
   const pos = posName(p?.pos);
   const name = p?.name ?? `#${id}`;
   const fx = fixturesAt(p, o.gw, o.horizon);
@@ -9320,6 +9397,7 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
     order ? `${order}: ${name}` : name,
     POS_WORD[pos],
     p?.club,
+    kept ? `kept in GW${o.gw}` : null,
     isCap ? o.tc ? "triple captain" : "captain" : isVice ? "vice-captain" : null,
     FPL_ARM_SAID[mk?.arm] ?? null,
     FPL_MOVE_SAID[mk?.move] ?? null,
@@ -9345,6 +9423,7 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
         { class: isCap ? ["c", o.tc && "tc"] : "v", dataset: { badge: isCap ? "c" : "v" }, "aria-hidden": "true" },
         isCap ? o.tc ? "3\xD7" : "C" : "V"
       ) : null,
+      kept ? h("span.pm-badge.pm-keep", { "aria-hidden": "true", dataset: { player: id } }, icon("lock", { size: 10 })) : null,
       tone ? flag(tone, chanceText(availability)) : null,
       sold != null ? h("span.pm-out", { "aria-hidden": "true" }, `OUT GW${sold}`) : null
     ),
@@ -9520,6 +9599,7 @@ function pitchCard(id, {
 function mountPitch(host, {
   xi = [],
   bench = [],
+  kept = null,
   captain: captain2,
   vice: vice2,
   chip,
@@ -9565,6 +9645,7 @@ function mountPitch(host, {
     captain: fin(captain2) ? Number(captain2) : null,
     vice: fin(vice2) ? Number(vice2) : null,
     why: asSetOrNull(why),
+    kept: asSetOrNull(kept),
     animate: asSetOrNull(animate),
     approx: approx === true ? true : asSetOrNull(approx),
     // computed once over XI and bench: a bench card is drawn without the plan's armbands (benchPanel), never its marks
@@ -16971,7 +17052,7 @@ function decksPart(V) {
           delay: reduceMotion() ? 0 : 170,
           fill: "backwards"
         });
-    cardMarks(P, g, boxes);
+    cardMarks(P, g);
     const want2 = S.placeWant?.g === g ? S.placeWant : null;
     if (!want2) S.placeWant = null;
     if (S.place) drawPlace(false);
@@ -16991,14 +17072,16 @@ function decksPart(V) {
     else if (pin.must?.length === 1 && pin.must[0][1] === g && pin.must[0][2] === g) removeRule(ctx2, pin.id);
     else ruleSheet(pin);
   }
-  function cardMarks(P, g, boxes) {
-    const { S, boxOf, ctx: ctx2, decks, pitchHost } = V;
+  function cardMarks(P, g) {
+    const { S, boxOf, cardBoxes, ctx: ctx2, decks, pitchHost } = V;
     const root = pitchHost.querySelector(":scope > .pm");
     if (!P.editable || !root) return;
     const nm = P.L.name, b = root.getBoundingClientRect();
     const M2 = 12, HIT = 16;
-    for (const c of boxes) {
+    for (const c of cardBoxes(root)) {
       const a = c.id, pin = pinOf(P, "keep", a, g);
+      const badge = c.n.querySelector(".pm-keep");
+      const kept = badge ? Number(badge.dataset.player) : pin ? a : null;
       const tile = c.n.querySelector(".pm-kit"), t = tile ? boxOf(tile, b) : c;
       const tall = t.h >= 2 * M2 + 8;
       const half = `${Math.max(0, Math.min(HIT, ((tall ? t.h - 6 : 3 * M2) - 2 * M2) / 2))}px`;
@@ -17026,22 +17109,24 @@ function decksPart(V) {
             crossGlyph()
           )
         );
-      if (pin)
+      if (kept != null) {
+        const mark = badge ? boxOf(badge, b) : null;
         decks.append(
           h(
             "button.ah-cm.lock",
             {
               type: "button",
-              class: { on: !!pin },
-              "aria-pressed": String(!!pin),
-              "aria-label": COPY.cardLockSaid(nm(a), g, !!pin),
-              dataset: { row: `lock:${a}` },
-              style: lAt,
-              onClick: () => lockTap(P, g, a)
+              class: { on: true, "ah-unkeep": !!mark },
+              "aria-pressed": "true",
+              "aria-label": COPY.cardLockSaid(nm(kept), g, true),
+              dataset: { row: `lock:${kept}` },
+              style: mark ? { left: `${mark.x}px`, top: `${mark.y}px`, width: `${mark.w}px`, height: `${mark.h}px` } : lAt,
+              onClick: () => lockTap(P, g, kept)
             },
-            lockGlyph(!!pin)
+            mark ? null : lockGlyph(true)
           )
         );
+      }
     }
   }
   function sheetFollows(P, w, M2) {
@@ -19057,6 +19142,7 @@ function pitchPart(V) {
     return {
       xi: w.xi,
       bench: w.bench,
+      kept: w.squad.filter((id) => pinOf(P, "keep", id, w.gw)),
       captain: w.captain,
       vice: w.vice,
       chip: w.chip,
@@ -19123,7 +19209,7 @@ function pitchPart(V) {
     const plate = plateOf();
     const props = pitchProps(P, w, plate);
     const key = JSON.stringify([
-      ...["xi", "bench", "captain", "vice", "gw", "first", "bought", "inFor", "why", "approx"].map(
+      ...["xi", "bench", "captain", "vice", "gw", "first", "bought", "inFor", "why", "approx", "kept"].map(
         (k) => props[k] ?? null
       ),
       plate.key
@@ -20513,7 +20599,9 @@ function ticketPart(V) {
       } = result;
       const moves = e.adds, own = pl.road?.weeks?.find((x) => Number(x.gw) === g);
       after = result.preview ?? (own ? viewOfRoadWeek(own, P.L) : null) ?? (moves.length ? inPlaces(w, moves) : null);
-      title = withMine(moves.length ? movesTitle(ctx2, P, g, pairAsPlaced(w, after, P.L.pos, moves)) : fallback);
+      title = withMine(
+        moves.length ? movesTitle(ctx2, P, g, pairAsPlaced(w, after, P.L.pos, moves), !off && !inkAt2(ctx2, P, g)) : fallback
+      );
       diagnosticComparison = { gain: pts2, rounds, vs };
       const alternatives = moves.length < 2 || who2 ? null : () => (M2?.plans ?? []).flatMap((single) => {
         if (single.state !== "ready" || single.refRow || Object.keys(single.choice.chips ?? {}).length)
@@ -20789,7 +20877,7 @@ var init_screen_ticket = __esm({
       right ? [" ", h("span.ah-tkr.m-num", null, right)] : null
     );
     movesWords = (P, ms) => `${ms.map((m) => P.L.name(m.out)).join(", ")} \u2192 ${ms.map((m) => P.L.name(m.in)).join(", ")}`;
-    movesTitle = (ctx2, P, g, ms) => {
+    movesTitle = (ctx2, P, g, ms, canKeep) => {
       const door = (id) => h(
         "button.ah-tkname",
         {
@@ -20802,7 +20890,26 @@ var init_screen_ticket = __esm({
         P.L.name(id)
       );
       const list = (xs) => xs.flatMap((x, i) => i ? [", ", x] : [x]);
-      return [...list(ms.map((x) => door(x.out))), " \u2192 ", ...list(ms.map((x) => door(x.in)))];
+      const seller = ({ out }) => {
+        if (!canKeep) return door(out);
+        return h(
+          "span.ah-tkseller",
+          null,
+          door(out),
+          h(
+            "button.m-keep-icon.ah-tkkeep",
+            {
+              type: "button",
+              title: COPY.keepIn(P.L.name(out), g),
+              "aria-label": COPY.keepIn(P.L.name(out), g),
+              dataset: { row: `tk:keep:${g}:${out}` },
+              onClick: () => keep(ctx2, Number(out), { gw: g, scope: "gw" })
+            },
+            icon("lock", { size: 12 })
+          )
+        );
+      };
+      return [...list(ms.map(seller)), " \u2192 ", ...list(ms.map((x) => door(x.in)))];
     };
     inPlaces = (w, ms) => {
       const swap = (x) => ms.find((m) => Number(m.out) === Number(x))?.in ?? x;
@@ -26731,6 +26838,25 @@ function open3(ctx2, rawId, {
       presolveTaps(ctx2, null, { owner: row });
     },
     build(body, sheet) {
+      const dismiss = two3 ? null : body.querySelector(".m-sh > .m-xbtn");
+      const keepButton = dismiss ? h(
+        "button.m-keep-icon.ps-keep-action",
+        {
+          type: "button",
+          hidden: true,
+          title: `Keep in GW${g}`,
+          "aria-label": COPY.keepIn(P0.L.name(id), g),
+          onClick: () => {
+            if (keep(ctx2, id, { gw: g, scope: "gw" })) sheet.close();
+          }
+        },
+        icon("lock", { size: 12 })
+      ) : null;
+      if (dismiss && keepButton) {
+        const buttons = h("div.ps-head-actions", null, keepButton);
+        dismiss.before(buttons);
+        buttons.append(dismiss);
+      }
       let view = statsView(ctx2);
       const setView = (v) => {
         view = v;
@@ -26764,6 +26890,10 @@ function open3(ctx2, rawId, {
         const m = model(ctx2, P, row, id, card2, cardState, local2, vs, vsCard);
         const G = geometry(m, W);
         fill(subEl, headerSub(row, P.L.pos(id), card2, entry));
+        if (keepButton) {
+          keepButton.hidden = !owns(P) || !!pinOf(P, "keep", id, g);
+          keepButton.disabled = !P.editable || inkAt(ctx2, P, g);
+        }
         const grp = document.activeElement?.closest?.('.ps-main [role="radio"]')?.closest('[role="radiogroup"]');
         const info2 = document.activeElement?.closest?.(".ps-main .ps-info")?.getAttribute("aria-label");
         const kept = grp ? `${grp.getAttribute("aria-labelledby") ? `[aria-labelledby="${grp.getAttribute("aria-labelledby")}"]` : `[aria-label="${grp.getAttribute("aria-label")}"]`} [aria-checked="true"]` : info2 ? `.ps-info[aria-label="${info2}"]` : null;
@@ -26800,7 +26930,7 @@ function open3(ctx2, rawId, {
       const liveWhy = (P, q) => liftsLive(ctx2, P, q) ? h("p.ps-off.m-foot", null, COPY.live(P.A)) : null;
       const owns = (P) => weekOf(P, g).squad.includes(id) || squadBefore(P, g).includes(id);
       function askLine(P) {
-        const pin = pinOf(P, "sell", id) ?? pinOf(P, "wish", id) ?? pinsOf(P, ["keep", "veto", "never"], id)[0] ?? null;
+        const pin = pinOf(P, "keep", id, g) ?? pinOf(P, "sell", id) ?? pinOf(P, "wish", id) ?? pinsOf(P, ["keep", "veto", "never"], id)[0] ?? null;
         if (!pin) return null;
         const word = pin.kind === "sell" ? pin.label || "Sold by your pick" : pin.kind === "wish" ? pin.label || "Added by you" : ruleOf(P, pin).text;
         const undo = "Remove";

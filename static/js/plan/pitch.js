@@ -181,7 +181,8 @@ function markings() {
  *   onPlayer?: (id: number, event: Event) => void, animate?: Iterable<number>
  * }} PitchOptions */
 /** @typedef {PitchOptions & {
- *   second?: string | object, bought?: object, inFor?: object, approx?: boolean | Iterable<number>, first?: boolean
+ *   second?: string | object, bought?: object, inFor?: object, approx?: boolean | Iterable<number>, first?: boolean,
+ *   kept?: Iterable<number>
  * }} PitchCardOptions */
 
 /**
@@ -548,6 +549,7 @@ export function fitFixtures(root) {
  */
 function card(id, P, o, { flipFrom = null, order = null } = {}) {
   const p = P(id);
+  const kept = o.kept?.has(id);
   const pos = posName(p?.pos);
   const name = p?.name ?? `#${id}`;
   const fx = fixturesAt(p, o.gw, o.horizon);
@@ -584,6 +586,7 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
       order ? `${order}: ${name}` : name,
       POS_WORD[pos],
       p?.club,
+      kept ? `kept in GW${o.gw}` : null,
       isCap ? (o.tc ? 'triple captain' : 'captain') : isVice ? 'vice-captain' : null,
       FPL_ARM_SAID[mk?.arm] ?? null,
       FPL_MOVE_SAID[mk?.move] ?? null,
@@ -614,6 +617,9 @@ function card(id, P, o, { flipFrom = null, order = null } = {}) {
             { class: isCap ? ['c', o.tc && 'tc'] : 'v', dataset: { badge: isCap ? 'c' : 'v' }, 'aria-hidden': 'true' },
             isCap ? (o.tc ? '3×' : 'C') : 'V',
           )
+        : null,
+      kept
+        ? h('span.pm-badge.pm-keep', { 'aria-hidden': 'true', dataset: { player: id } }, icon('lock', { size: 10 }))
         : null,
       tone ? flag(tone, chanceText(availability)) : null,
       sold != null ? h('span.pm-out', { 'aria-hidden': 'true' }, `OUT GW${sold}`) : null,
@@ -850,6 +856,7 @@ export function mountPitch(
   {
     xi = [],
     bench = [],
+    kept = null,
     captain,
     vice,
     chip,
@@ -893,6 +900,7 @@ export function mountPitch(
     captain: fin(captain) ? Number(captain) : null,
     vice: fin(vice) ? Number(vice) : null,
     why: asSetOrNull(why),
+    kept: asSetOrNull(kept),
     animate: asSetOrNull(animate),
     approx: approx === true ? true : asSetOrNull(approx),
     // computed once over XI and bench: a bench card is drawn without the plan's armbands (benchPanel), never its marks

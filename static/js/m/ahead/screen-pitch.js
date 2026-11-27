@@ -5,7 +5,7 @@ import { choosable, chooseSub, choosing, pitchChoice, fplOf, inkAt, planHasYours
 import { h, fmt, fill, chipName, plural, icon, roving, xpNum, xpGain } from '../../ui.js';
 import { CHIPS_OFF, COPY, gwFlags } from '../calls.js';
 import { chipsAvail, squadWeek } from './pieces.js';
-import { tickWas, totalShift } from './edits.js';
+import { pinOf, tickWas, totalShift } from './edits.js';
 import * as E from '../../plan/engine.js';
 import { fitNum, oneLook } from './screen.js';
 import { showingAt, tappedSuggestion } from './presolve.js';
@@ -88,6 +88,7 @@ export function pitchPart(V) {
     return {
       xi: w.xi,
       bench: w.bench,
+      kept: w.squad.filter((id) => pinOf(P, 'keep', id, w.gw)),
       captain: w.captain,
       vice: w.vice,
       chip: w.chip,
@@ -168,7 +169,7 @@ export function pitchPart(V) {
     // the same pitch as drawn (a re-draw for a chip, a rule or the week line): nothing to mount again; the same but its
     // chip (a Bench Boost planned or taken off): only the bench's label changes (pitch.setPitchChip)
     const key = JSON.stringify([
-      ...['xi', 'bench', 'captain', 'vice', 'gw', 'first', 'bought', 'inFor', 'why', 'approx'].map(
+      ...['xi', 'bench', 'captain', 'vice', 'gw', 'first', 'bought', 'inFor', 'why', 'approx', 'kept'].map(
         (k) => props[k] ?? null,
       ),
       plate.key,
